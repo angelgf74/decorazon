@@ -33,3 +33,19 @@ describe('sectorCircunscrito', () => {
     expect(s).toHaveLength(18)
   })
 })
+
+describe('sectorCircunscrito: argumentos inválidos', () => {
+  const o = { x: 0, y: 0 }
+  it('segmentos < 1', () => {
+    expect(() => sectorCircunscrito(o, 50, 0, 90, 0)).toThrow(RangeError)
+  })
+  it('span 0', () => {
+    expect(() => sectorCircunscrito(o, 50, 30, 30)).toThrow(RangeError)
+  })
+  it('span > 180', () => {
+    expect(() => sectorCircunscrito(o, 50, 0, 181)).toThrow(RangeError)
+  })
+  it('paso >= 90', () => {
+    expect(() => sectorCircunscrito(o, 50, 0, 180, 2)).toThrow(RangeError)
+  })
+})

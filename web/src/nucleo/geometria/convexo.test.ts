@@ -30,3 +30,14 @@ describe('convexo', () => {
     expect(distanciaConvexos(cuadrado(0), cuadrado(130, 140))).toBeCloseTo(50, 9)
   })
 })
+
+describe('convexo oblicuo', () => {
+  const rombo = (x: number) => rectangulo({ x, y: 0 }, 100, 100, 45)
+  const base = rectangulo({ x: 0, y: 0 }, 100, 100, 0)
+  it('rombo penetrando ~10', () => {
+    expect(Math.abs(penetracion(base, rombo(50 + 70.71 - 10)) - 10)).toBeLessThanOrEqual(0.01)
+  })
+  it('rombo separado <= 0', () => {
+    expect(penetracion(base, rombo(50 + 70.71 + 5))).toBeLessThanOrEqual(0)
+  })
+})

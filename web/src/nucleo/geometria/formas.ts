@@ -13,7 +13,11 @@ export function rectangulo(centro: Punto, ancho: number, fondo: number, rotacion
  * Ángulos en grados con la misma convención que `rotar` (0° = +x, 90° = +y, hacia abajo).
  */
 export function sectorCircunscrito(centro: Punto, radio: number, desdeGrados: number, hastaGrados: number, segmentos = 16): Punto[] {
+  const span = Math.abs(hastaGrados - desdeGrados)
+  if (segmentos < 1) throw new RangeError('segmentos debe ser >= 1')
+  if (span === 0 || span > 180) throw new RangeError('el span del sector debe estar en (0, 180] grados')
   const paso = (hastaGrados - desdeGrados) / segmentos
+  if (Math.abs(paso) >= 90) throw new RangeError('el paso angular debe ser < 90 grados')
   const r = radio / Math.cos((paso * Math.PI) / 360)
   const vertices: Punto[] = [centro]
   for (let i = 0; i <= segmentos; i++) {
