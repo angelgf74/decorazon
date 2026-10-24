@@ -1,6 +1,7 @@
 export const FORMATO_ACTUAL = 1
 export type TipoEstancia = 'dormitorio' | 'salon' | 'cocina'
-export interface Punto { x: number; y: number }
+import type { Punto } from '../geometria/vector'
+export type { Punto }
 export interface Estancia { tipo: TipoEstancia; alto: number; grosorPared: number; planta: Punto[]; colorParedes: string; colorSuelo: string }
 export interface Puerta { id: string; tipo: 'puerta'; pared: number; posicion: number; ancho: number; alto: number; hoja: 'abatible' | 'corredera'; bisagra: 'izquierda' | 'derecha'; abreHacia: 'dentro' | 'fuera' }
 export interface Ventana { id: string; tipo: 'ventana'; pared: number; posicion: number; ancho: number; alto: number; alturaSuelo: number; abreHaciaDentro: boolean }

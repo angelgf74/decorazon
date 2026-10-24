@@ -1,0 +1,32 @@
+import { describe, expect, it } from 'vitest'
+import { distanciaConvexos, penetracion } from './convexo'
+import { rectangulo } from './formas'
+import { TOLERANCIA_CM } from './tolerancia'
+
+const cuadrado = (x: number, y = 0) => rectangulo({ x, y }, 100, 100, 0)
+
+describe('convexo', () => {
+  it('penetración de cuadrados solapados 12', () => {
+    expect(penetracion(cuadrado(0), cuadrado(88))).toBeCloseTo(12, 9)
+  })
+  it('independiente del sentido de los vértices', () => {
+    expect(penetracion(cuadrado(0), [...cuadrado(88)].reverse())).toBeCloseTo(12, 9)
+  })
+  it('separados <= 0 y tocándose <= tolerancia', () => {
+    expect(penetracion(cuadrado(0), cuadrado(105))).toBeLessThanOrEqual(0)
+    expect(penetracion(cuadrado(0), cuadrado(100))).toBeLessThanOrEqual(TOLERANCIA_CM)
+  })
+  it('rectángulo rotado 90° pegado a otro', () => {
+    const a = rectangulo({ x: 0, y: 0 }, 100, 60, 90) // ocupa x -30..30
+    const b = rectangulo({ x: 60, y: 0 }, 60, 100, 0) // ocupa x 30..90
+    expect(penetracion(a, b)).toBeLessThanOrEqual(TOLERANCIA_CM)
+  })
+  it('distanciaConvexos', () => {
+    expect(distanciaConvexos(cuadrado(0), cuadrado(145))).toBeCloseTo(45, 9)
+    expect(distanciaConvexos(cuadrado(0), cuadrado(88))).toBe(0)
+    expect(distanciaConvexos(cuadrado(0), cuadrado(100))).toBe(0)
+  })
+  it('distancia en diagonal entre esquinas', () => {
+    expect(distanciaConvexos(cuadrado(0), cuadrado(130, 140))).toBeCloseTo(50, 9)
+  })
+})
