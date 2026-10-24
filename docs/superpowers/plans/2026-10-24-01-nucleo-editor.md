@@ -16,7 +16,7 @@
 
 - Medidas en **centímetros enteros**; rotaciones en **grados enteros** (§4.5).
 - Tolerancia geométrica única: `TOLERANCIA_CM = 0.1` (1 mm). Separación ≤ 1 mm no es conflicto; solape > 1 mm sí. Ante la duda, conflicto (§4.5).
-- Cifras de los mensajes de conflicto: redondeo **al centímetro hacia arriba** (`Math.ceil(x - 1e-6)`). El ancho de un paso estrecho se muestra redondeado **hacia abajo** (mostrar menos paso del real es lo conservador).
+- Cifras de los mensajes de conflicto: `cantidadMostrada(p) = redondearArriba(p - TOLERANCIA_CM)`, al centímetro hacia arriba descontando la tolerancia, para que la holgura de los sectores circunscritos (< 1 mm) no sume un centímetro; todo conflicto muestra ≥ 1 cm. El ancho de un paso estrecho se muestra redondeado **hacia abajo** (mostrar menos paso del real es lo conservador).
 - Mensaje de referencia, literal: `La puerta del armario choca con la cama: faltan 12 cm` (§4.5).
 - Conflictos **informan, no bloquean**; el paso estrecho es `aviso`, el resto `error`.
 - Formato del documento: `formato: 1` (§6.1). Elementos con `origen: { tipo: 'generico' }` (§6.3).
@@ -71,7 +71,7 @@ Los tests van junto al fichero (`*.test.ts`).
 - Create: `web/src/nucleo/geometria/tolerancia.ts`, `web/src/nucleo/geometria/tolerancia.test.ts`
 
 **Interfaces:**
-- Produces: `TOLERANCIA_CM: number` (= 0.1); `redondearArriba(cm: number): number` (= `Math.ceil(cm - 1e-6)`); `redondearAbajo(cm: number): number` (= `Math.floor(cm + 1e-6)`).
+- Produces: `TOLERANCIA_CM: number` (= 0.1); `redondearArriba(cm: number): number` (= `Math.ceil(cm - 1e-6)`); `redondearAbajo(cm: number): number` (= `Math.floor(cm + 1e-6)`); `cantidadMostrada(penetracion: number): number` (= `redondearArriba(penetracion - TOLERANCIA_CM)`).
 
 - [ ] **Step 1:** Crear la plantilla, `npm install`, `npm install -D vitest`, y comprobar que `tsconfig.app.json` tiene `"strict": true`.
 - [ ] **Step 2: Test que falla** (`tolerancia.test.ts`):
@@ -83,6 +83,9 @@ expect(redondearArriba(12.0000001)).toBe(12)
 expect(redondearArriba(11.2)).toBe(12)
 expect(redondearAbajo(44.9999999)).toBe(45)
 expect(redondearAbajo(45.7)).toBe(45)
+expect(cantidadMostrada(12.03)).toBe(12)
+expect(cantidadMostrada(11.2)).toBe(12)
+expect(cantidadMostrada(0.15)).toBe(1)
 ```
 
 - [ ] **Step 3:** `cd web && npm test` → FAIL (módulo inexistente).
@@ -148,7 +151,7 @@ export interface DocumentoDiseno { formato: 1; estancia: Estancia; aberturas: Ab
 - Produces (`vector.ts`): `Punto` (se mueve aquí; `documento.ts` lo reexporta), `sumar`, `restar`, `escalar(p, k)`, `punto(a, b)` (producto escalar), `cruz(a, b)`, `longitud`, `normalizar`, `rotar(p: Punto, grados: number): Punto` (horario en pantalla con y hacia abajo: `x' = x·cos − y·sin`, `y' = x·sin + y·cos`).
 - Produces (`poligono.ts`): `areaConSigno(p: Punto[]): number`, `esSimple(p: Punto[]): boolean`, `contienePunto(p: Punto[], q: Punto): boolean` (borde cuenta como dentro), `distanciaPuntoSegmento(q, a, b): number`, `distanciaAlBorde(p: Punto[], q: Punto): number`, `distanciaSegmentos(a1, a2, b1, b2): number`.
 - Produces (`convexo.ts`): `penetracion(a: Punto[], b: Punto[]): number`: profundidad mínima de solape por SAT entre dos convexos (≤ 0 si están separados o se tocan); `distanciaConvexos(a: Punto[], b: Punto[]): number`: 0 si se solapan o tocan, si no la distancia mínima entre bordes.
-- Produces (`formas.ts`): `rectangulo(centro: Punto, ancho: number, fondo: number, rotacion: number): Punto[]` (4 vértices en sentido horario); `sectorCircunscrito(centro: Punto, radio: number, desdeGrados: number, hastaGrados: number, segmentos = 16): Punto[]` (convexo: centro + vértices **por fuera** del arco, a distancia `radio / cos(paso/2)`, más los dos extremos exactos sobre los radios, para que el polígono contenga el sector real; ver "ante la duda, conflicto").
+- Produces (`formas.ts`): `rectangulo(centro: Punto, ancho: number, fondo: number, rotacion: number): Punto[]` (4 vértices en sentido horario); `sectorCircunscrito(centro: Punto, radio: number, desdeGrados: number, hastaGrados: number, segmentos = 16): Punto[]` (convexo: el centro más los vértices en los ángulos `desde, desde+paso, …, hasta`, todos a distancia `radio / cos(paso/2)`, de modo que cada arista es tangente al arco y el polígono contiene el sector real: "ante la duda, conflicto"; con 16 segmentos en 90° sobra < 0,04 cm por cada 50 cm de radio).
 
 - [ ] **Step 1: Tests que fallan:**
   - `areaConSigno` del rectángulo 400×330 de Task 2 = `132000`;
@@ -287,7 +290,7 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
 
 `ids[0]` es el elemento al que se le atribuye el conflicto (el que abre, el que se sale, el que tapa). Un elemento cuyo `tipo` no está en el catálogo se ignora.
 
-Reglas y mensajes (literales; N = `redondearArriba`, P = `redondearAbajo`; `A` y `B` con artículo vía `conArticulo`):
+Reglas y mensajes (literales; N = `cantidadMostrada` de la penetración o del solape en z, P = `redondearAbajo`; `A` y `B` con artículo vía `conArticulo`):
 
 | tipo | cuándo | mensaje |
 |---|---|---|
@@ -303,7 +306,7 @@ Reglas y mensajes (literales; N = `redondearArriba`, P = `redondearAbajo`; `A` y
 
 `{Zona}` = `capitalizar(zona.nombre)`. Los huecos < 20 cm no se avisan porque no se usan como paso (**decisión de este plan**). Los umbrales 20/60 van como constantes exportadas `PASO_MINIMO_CM = 60` y `HUECO_IGNORADO_CM = 20`. Las aperturas entre sí (dos puertas que se cruzan) no se comprueban en v1. La distancia a la pared es `distanciaAlBorde` mínima de los vértices de la huella y de los vértices de la planta a la huella.
 
-- [ ] **Step 1: Tests que fallan.** Estancia base: `documentoNuevo('dormitorio', 400, 330, 250)`, con elementos creados por un helper de test `elemento(tipo, x, y, rotacion, medidas?, variantes?)` que toma los valores por defecto del catálogo. Casos obligatorios de §8, cada uno con su mensaje exacto:
+- [ ] **Step 1: Tests que fallan.** Estancia base: `documentoNuevo('dormitorio', 400, 330, 250)`, con elementos creados por un helper de test `elemento(tipo, x, y, rotacion, medidas?, variantes?)` que toma los valores por defecto del catálogo. Cada test busca su conflicto filtrando por `tipo` (o con `toContainEqual`), para que los avisos de paso estrecho propios de la disposición no lo rompan; los casos "sin conflictos" colocan los muebles pegados a pared o a ≥ 60 cm. Casos obligatorios de §8, cada uno con su mensaje exacto:
   1. Armario (alto 240) bajo una viga de canto 20 → `El armario no cabe bajo la viga: sobran 10 cm`.
   2. Armario de 2 puertas pegado a la pared superior y cama con su borde a 38 cm del frente del armario (las puertas barren 50) → `La puerta del armario choca con la cama: faltan 12 cm`.
   3. Cómoda girada 180° con el frente a 30 cm de la pared → `El cajón de la cómoda choca con la pared: faltan 15 cm`.
@@ -313,7 +316,7 @@ Reglas y mensajes (literales; N = `redondearArriba`, P = `redondearAbajo`; `A` y
 
   Además:
   - cama de 45° cuya esquina sale 0,05 cm de la pared → sin `fueraDeEstancia`; si sale 3 cm → `La cama atraviesa la pared: sobran 3 cm` (Review Focus 3);
-  - armario girado 30° tapando la mitad del barrido de la puerta → `cantidadCm` igual a `redondearArriba(penetracion)` calculada a mano con `penetracion` (Review Focus 5);
+  - armario girado 30° tapando la mitad del barrido de la puerta → `cantidadCm` igual a `cantidadMostrada(penetracion)` calculada a mano con `penetracion` (Review Focus 5);
   - armario de alto 260 en una estancia de 250 → `El armario no cabe bajo el techo: sobran 10 cm`;
   - cómoda delante de una ventana con alturaSuelo 80 → `La cómoda tapa la ventana`; con alturaSuelo 90 → nada;
   - cómoda delante de un radiador → `La cómoda tapa el radiador`;
