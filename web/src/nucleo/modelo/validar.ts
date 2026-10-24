@@ -1,4 +1,5 @@
-import type { DocumentoDiseno, Punto } from './documento'
+import { areaConSigno, esSimple } from '../geometria/poligono'
+import { FORMATO_ACTUAL, type DocumentoDiseno, type Punto } from './documento'
 
 export type ResultadoValidacion =
   | { valido: true; documento: DocumentoDiseno }
@@ -68,6 +69,7 @@ class Validador {
     this.noNegativo(o.posicion, `${ruta}.posicion`)
     this.positivo(o.ancho, `${ruta}.ancho`)
     const n = this.planta.length
+    if (n < 3) return // planta no usable: ya está señalada, sin errores en cascada
     if (!esEntero(o.pared) || o.pared < 0 || o.pared >= n) {
       this.err(`${ruta}.pared`, `debe ser un entero entre 0 y ${Math.max(n - 1, 0)}`)
       return
@@ -87,13 +89,16 @@ class Validador {
     this.texto(o.colorSuelo, 'estancia.colorSuelo')
     this.plantaForma(o.planta)
   }
-  // Unico punto donde se comprueba la planta: aqui se anadira la forma simple y horaria.
+  // Unico punto donde se comprueba la planta. Solo es usable (this.planta) si es simple y horaria.
   plantaForma(v: unknown) {
     const l = this.lista(v, 'estancia.planta')
     if (!l) return
     const pts = l.map((p, i) => this.punto(p, `estancia.planta[${i}]`))
     if (l.length < 3) this.err('estancia.planta', 'debe tener al menos 3 vértices')
-    if (pts.every((p): p is Punto => p !== null)) this.planta = pts
+    if (l.length < 3 || !pts.every((p): p is Punto => p !== null)) return
+    if (!esSimple(pts)) { this.err('estancia.planta', 'no puede cruzarse consigo misma'); return }
+    if (areaConSigno(pts) <= 0) { this.err('estancia.planta', 'debe recorrerse en sentido horario en pantalla'); return }
+    this.planta = pts
   }
 
   aberturas(v: unknown) {
@@ -161,7 +166,7 @@ class Validador {
       const va = this.objeto(o.variantes, `${r}.variantes`)
       if (va) {
         for (const [k, x] of Object.entries(va)) {
-          if (!['string', 'number', 'boolean'].includes(typeof x)) this.err(`${r}.variantes.${k}`, 'debe ser texto, número o booleano')
+          if (!(typeof x === 'string' || typeof x === 'boolean' || (typeof x === 'number' && Number.isFinite(x)))) this.err(`${r}.variantes.${k}`, 'debe ser texto, número finito o booleano')
         }
       }
       const co = this.objeto(o.colores, `${r}.colores`)
@@ -177,7 +182,7 @@ export function validarDocumento(dato: unknown): ResultadoValidacion {
     const v = new Validador()
     const o = v.objeto(dato, 'documento')
     if (!o) return { valido: false, errores: v.errores }
-    if (o.formato !== 1) v.err('formato', 'debe ser 1')
+    if (o.formato !== FORMATO_ACTUAL) v.err('formato', `debe ser ${FORMATO_ACTUAL}`)
     v.estancia(o.estancia)
     v.aberturas(o.aberturas)
     v.estructura(o.estructura)
