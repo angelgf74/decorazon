@@ -19,8 +19,8 @@ export const armario: DefinicionTipo = {
   zonasApertura(e) {
     const puertas = valorVariante(armario, e, 'puertas')
     if (puertas !== 'abatibles') return []
-    const modulosVar = valorVariante(armario, e, 'modulos')
-    const modulos = Number(modulosVar)
+    // valorVariante garantiza uno de los valores numéricos de la definición (1–4).
+    const modulos = Number(valorVariante(armario, e, 'modulos'))
     const { ancho, fondo, alto } = e.medidas
     const n = 2 * modulos
     const w = ancho / n

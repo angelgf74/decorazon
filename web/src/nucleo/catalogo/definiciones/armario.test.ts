@@ -46,4 +46,11 @@ describe('armario', () => {
   it('modulos 2: 4 puertas', () => {
     expect(armario.zonasApertura(elementoDe('armario', 0, 0, 0, 200, 60, 220, { modulos: 2 }))).toHaveLength(4)
   })
+  it('variantes fuera de la definición usan el defecto', () => {
+    const zonas = (variantes: Record<string, string | number | boolean>) => armario.zonasApertura(elementoDe('armario', 0, 0, 0, 100, 60, 220, variantes))
+    expect(zonas({ modulos: 0 })).toHaveLength(2)
+    expect(zonas({ modulos: 'abc' })).toHaveLength(2)
+    expect(zonas({ modulos: '2' })).toHaveLength(2)
+    expect(zonas({ puertas: 'Abatibles' })).toHaveLength(2)
+  })
 })

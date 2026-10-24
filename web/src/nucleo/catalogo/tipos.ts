@@ -41,11 +41,10 @@ export function capitalizar(texto: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
-/** Valor de una variante del elemento; si falta, el defecto de la definición. */
+/** Valor de una variante del elemento; si falta o no es uno de los valores de la definición, su defecto. */
 export function valorVariante(def: DefinicionTipo, e: Elemento, clave: string): string | number | boolean {
-  const v = e.variantes[clave]
-  if (v !== undefined) return v
   const d = def.variantes.find((x) => x.clave === clave)
   if (!d) throw new Error(`variante desconocida: ${clave}`)
-  return d.defecto
+  const v = e.variantes[clave]
+  return v !== undefined && d.valores.includes(v) ? v : d.defecto
 }
