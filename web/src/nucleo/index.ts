@@ -1,0 +1,7 @@
+export * from './modelo/documento'
+export { documentoNuevo } from './modelo/crear'
+export { validarDocumento } from './modelo/validar'
+export { catalogoBase } from './catalogo/catalogoBase'
+export type { Catalogo, DefinicionTipo } from './catalogo/tipos'
+export { detectarConflictos, PASO_MINIMO_CM, HUECO_IGNORADO_CM } from './conflictos/detectar'
+export type { Conflicto, TipoConflicto } from './conflictos/tipos'
