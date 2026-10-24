@@ -17,7 +17,13 @@ describe('obstaculosDeEstancia', () => {
   it('puerta corredera: solo la franja', () => {
     const doc = documentoNuevo('dormitorio', 400, 330, 250)
     doc.aberturas.push({ id: 'p1', tipo: 'puerta', pared: 0, posicion: 20, ancho: 80, alto: 210, hoja: 'corredera', bisagra: 'izquierda', abreHacia: 'dentro' })
-    expect(obstaculosDeEstancia(doc).aperturas).toHaveLength(1)
+    const { aperturas } = obstaculosDeEstancia(doc)
+    expect(aperturas).toHaveLength(1)
+    // Franja de paso: el ancho del hueco por PASO_MINIMO_CM (60) hacia dentro.
+    expect(Math.min(...aperturas[0].huella.map((p) => p.x))).toBeCloseTo(20, 9)
+    expect(Math.max(...aperturas[0].huella.map((p) => p.x))).toBeCloseTo(100, 9)
+    expect(Math.min(...aperturas[0].huella.map((p) => p.y))).toBeCloseTo(0, 9)
+    expect(Math.max(...aperturas[0].huella.map((p) => p.y))).toBeCloseTo(60, 9)
   })
 
   it('puerta con bisagra derecha gira desde el borde lejano', () => {

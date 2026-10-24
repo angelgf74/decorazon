@@ -49,6 +49,22 @@ describe('detectarConflictos', () => {
     expect(c[0].ids).toEqual(['p1', 'a1'])
   })
 
+  it('puerta corredera con un armario a 15 cm delante: el hueco necesita 60 cm de paso', () => {
+    // Hueco x 20..100; franja de paso x 20..100, y 0..60. Armario 100×60 en (60, 45): x 10..110, y 15..75.
+    // Eje y: min(60 - 15, 75 - 0) = 45; eje x: min(100 - 10, 110 - 20) = 90 -> 45 -> ceil(45 - 0.1) = 45.
+    const doc = base()
+    doc.aberturas.push({ id: 'p1', tipo: 'puerta', pared: 0, posicion: 20, ancho: 80, alto: 210, hoja: 'corredera', bisagra: 'izquierda', abreHacia: 'dentro' })
+    doc.elementos.push(elemento('armario', 60, 45, 0, {}, {}, 'a1'))
+    expect(de(doc, 'apertura')).toEqual([{ tipo: 'apertura', gravedad: 'error', ids: ['p1', 'a1'], cantidadCm: 45, mensaje: 'La puerta choca con el armario: faltan 45 cm' }])
+  })
+
+  it('puerta abatible hacia fuera: también deja 60 cm de paso', () => {
+    const doc = base()
+    doc.aberturas.push({ id: 'p1', tipo: 'puerta', pared: 0, posicion: 20, ancho: 80, alto: 210, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'fuera' })
+    doc.elementos.push(elemento('armario', 60, 45, 0, {}, {}, 'a1'))
+    expect(mensajes(doc, 'apertura')).toEqual(['La puerta choca con el armario: faltan 45 cm'])
+  })
+
   it('5. cama que atraviesa una columna', () => {
     const doc = base()
     doc.estructura.push({ id: 'k1', tipo: 'columna', centro: { x: 162, y: 100 }, ancho: 40, fondo: 40, rotacion: 0 })

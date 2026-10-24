@@ -4,6 +4,7 @@ import { distanciaConvexos } from '../geometria/convexo'
 import { distanciaSegmentos } from '../geometria/poligono'
 import { penetracion3D, solapeZ, type Prisma } from '../geometria/prisma'
 import { cantidadMostrada, redondearAbajo, TOLERANCIA_CM } from '../geometria/tolerancia'
+import { HUECO_IGNORADO_CM, PASO_MINIMO_CM } from './constantes'
 import { obstaculosDeEstancia, penetracionEnParedes } from './estancia'
 import {
   mensajeAperturaEstancia, mensajeAperturaMueble, mensajeFueraDeEstancia, mensajePasoEstrecho, mensajeSolape,
@@ -13,10 +14,7 @@ import type { Conflicto } from './tipos'
 
 export { type Conflicto, type TipoConflicto } from './tipos'
 
-/** Un paso de menos de esto es estrecho (decisión de este plan: 60 cm). */
-export const PASO_MINIMO_CM = 60
-/** Un hueco de menos de esto no se usa como paso, así que no se avisa. */
-export const HUECO_IGNORADO_CM = 20
+export { HUECO_IGNORADO_CM, PASO_MINIMO_CM } from './constantes'
 
 interface Pieza { e: Elemento; def: DefinicionTipo; ref: Ref; volumenes: Prisma[]; zonas: ZonaApertura[] }
 

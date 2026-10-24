@@ -3,6 +3,7 @@ import type { ZonaApertura } from '../catalogo/tipos'
 import { rectangulo, sectorCircunscrito } from '../geometria/formas'
 import { areaConSigno, contienePunto, distanciaAlBorde } from '../geometria/poligono'
 import type { Prisma } from '../geometria/prisma'
+import { PASO_MINIMO_CM } from './constantes'
 import { TOLERANCIA_CM } from '../geometria/tolerancia'
 import { cruz, escalar, longitud, normalizar, restar, sumar, type Punto } from '../geometria/vector'
 
@@ -13,6 +14,7 @@ export interface ObstaculosEstancia {
   aperturas: (ZonaApertura & { id: string })[]
 }
 
+/** Fondo de la franja protegida delante de ventanas y radiadores. */
 const FRANJA_CM = 10
 
 const angulo = (v: Punto): number => (Math.atan2(v.y, v.x) * 180) / Math.PI
@@ -57,7 +59,8 @@ export function obstaculosDeEstancia(doc: DocumentoDiseno): ObstaculosEstancia {
     const h = hueco(planta, a.pared, a.posicion)
     if (a.tipo === 'puerta') {
       const z = { zMin: 0, zMax: a.alto }
-      aperturas.push({ id: a.id, nombre: 'la puerta', huella: franja(h, a.ancho, 0, FRANJA_CM), ...z })
+      // Toda puerta (corredera o abatible, hacia dentro o hacia fuera) necesita un paso libre delante del hueco.
+      aperturas.push({ id: a.id, nombre: 'la puerta', huella: franja(h, a.ancho, 0, PASO_MINIMO_CM), ...z })
       if (a.hoja === 'abatible' && a.abreHacia === 'dentro') {
         const ang = angulo(h.d)
         const sector = a.bisagra === 'izquierda'
