@@ -1,4 +1,4 @@
-import type { DefinicionTipo, ZonaApertura } from '../tipos'
+import { valorVariante, type DefinicionTipo, type ZonaApertura } from '../tipos'
 import { aMundo, cajaMundo } from '../transformar'
 import { sectorCircunscrito } from '../../geometria/formas'
 
@@ -17,10 +17,10 @@ export const armario: DefinicionTipo = {
     return [cajaMundo(e, -ancho / 2, -fondo / 2, ancho / 2, fondo / 2, 0, alto)]
   },
   zonasApertura(e) {
-    const puertas = e.variantes.puertas ?? 'abatibles'
+    const puertas = valorVariante(armario, e, 'puertas')
     if (puertas !== 'abatibles') return []
-    const modulosVar = e.variantes.modulos ?? 1
-    const modulos = typeof modulosVar === 'number' ? modulosVar : 1
+    const modulosVar = valorVariante(armario, e, 'modulos')
+    const modulos = Number(modulosVar)
     const { ancho, fondo, alto } = e.medidas
     const n = 2 * modulos
     const w = ancho / n

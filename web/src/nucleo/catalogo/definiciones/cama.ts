@@ -1,4 +1,4 @@
-import type { DefinicionTipo } from '../tipos'
+import { valorVariante, type DefinicionTipo } from '../tipos'
 import { cajaMundo } from '../transformar'
 
 export const cama: DefinicionTipo = {
@@ -14,7 +14,7 @@ export const cama: DefinicionTipo = {
   volumenes(e) {
     const { ancho, fondo, alto } = e.medidas
     const base = cajaMundo(e, -ancho / 2, -fondo / 2, ancho / 2, fondo / 2, 0, alto)
-    const cabecero = e.variantes.cabecero ?? true
+    const cabecero = valorVariante(cama, e, 'cabecero') === true
     if (!cabecero) return [base]
     return [base, cajaMundo(e, -ancho / 2, -fondo / 2, ancho / 2, -fondo / 2 + 6, 0, 100)]
   },

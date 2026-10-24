@@ -23,6 +23,18 @@ describe('armario', () => {
     expect(Math.max(...todas)).toBeLessThan(150.5)
     expect(Math.max(...todas)).toBeGreaterThan(149)
   })
+  it('bisagras: puerta 0 a la izquierda, puerta 1 a la derecha', () => {
+    const [z0, z1] = armario.zonasApertura(elementoDe('armario', 100, 100, 0, 100, 60, 220))
+    const cerca = (h: { x: number; y: number }[], x: number, y: number) => h.some((p) => Math.hypot(p.x - x, p.y - y) < 1e-6)
+    expect(cerca(z0.huella, 50, 130)).toBe(true)
+    expect(Math.min(...xs(z0.huella))).toBeGreaterThanOrEqual(50 - 1e-9)
+    expect(Math.max(...xs(z0.huella))).toBeLessThan(100.5)
+    expect(Math.max(...xs(z0.huella))).toBeGreaterThan(99.5)
+    expect(cerca(z1.huella, 150, 130)).toBe(true)
+    expect(Math.max(...xs(z1.huella))).toBeLessThanOrEqual(150 + 1e-9)
+    expect(Math.min(...xs(z1.huella))).toBeGreaterThan(99.5)
+    expect(Math.min(...xs(z1.huella))).toBeLessThan(100.5)
+  })
   it('rotado 90° las zonas quedan en x ≤ 70', () => {
     const zonas = armario.zonasApertura(elementoDe('armario', 100, 100, 90, 100, 60, 220))
     expect(zonas).toHaveLength(2)
