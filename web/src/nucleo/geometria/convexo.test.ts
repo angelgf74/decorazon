@@ -21,6 +21,11 @@ describe('convexo', () => {
     const b = rectangulo({ x: 60, y: 0 }, 60, 100, 0) // ocupa x 30..90
     expect(penetracion(a, b)).toBeLessThanOrEqual(TOLERANCIA_CM)
   })
+  it('contención: caja 40×40 dentro de una 200×200 concéntrica -> 120 (lo que hay que moverla para separarlas)', () => {
+    // Eje x: min(maxA - minB, maxB - minA) = min(20 - (-100), 100 - (-20)) = 120; igual en y.
+    expect(penetracion(rectangulo({ x: 0, y: 0 }, 40, 40, 0), rectangulo({ x: 0, y: 0 }, 200, 200, 0))).toBeCloseTo(120, 9)
+    expect(penetracion(rectangulo({ x: 0, y: 0 }, 200, 200, 0), rectangulo({ x: 0, y: 0 }, 40, 40, 0))).toBeCloseTo(120, 9)
+  })
   it('distanciaConvexos', () => {
     expect(distanciaConvexos(cuadrado(0), cuadrado(145))).toBeCloseTo(45, 9)
     expect(distanciaConvexos(cuadrado(0), cuadrado(88))).toBe(0)

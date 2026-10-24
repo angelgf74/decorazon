@@ -11,7 +11,11 @@ function proyeccion(p: Punto[], eje: Punto): [number, number] {
   return [min, max]
 }
 
-/** Profundidad mínima de solape por SAT (<= 0 si están separados o se tocan). Vale con cualquier sentido de vértices. */
+/**
+ * Profundidad de penetración por SAT: la menor traslación, sobre los ejes de separación, que separa las dos
+ * huellas (<= 0 si están separadas o se tocan). Por eje, min(maxA - minB, maxB - minA), que también cuenta bien
+ * la contención (una caja dentro de otra). Vale con cualquier sentido de vértices.
+ */
 export function penetracion(a: Punto[], b: Punto[]): number {
   let minimo = Infinity
   for (const poli of [a, b]) {
@@ -21,7 +25,7 @@ export function penetracion(a: Punto[], b: Punto[]): number {
       const eje = normalizar({ x: -arista.y, y: arista.x })
       const [minA, maxA] = proyeccion(a, eje)
       const [minB, maxB] = proyeccion(b, eje)
-      minimo = Math.min(minimo, Math.min(maxA, maxB) - Math.max(minA, minB))
+      minimo = Math.min(minimo, maxA - minB, maxB - minA)
     }
   }
   return minimo === Infinity ? 0 : minimo

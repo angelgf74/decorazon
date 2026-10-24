@@ -3,9 +3,6 @@ import { documentoNuevo } from '../modelo/crear'
 import type { DocumentoDiseno } from '../modelo/documento'
 import { catalogoBase } from '../catalogo/catalogoBase'
 import { elemento } from '../catalogo/definiciones/ayuda.test-util'
-import { penetracion } from '../geometria/convexo'
-import { cantidadMostrada } from '../geometria/tolerancia'
-import { obstaculosDeEstancia } from './estancia'
 import { detectarConflictos, HUECO_IGNORADO_CM, PASO_MINIMO_CM } from './detectar'
 import type { TipoConflicto } from './tipos'
 
@@ -82,17 +79,16 @@ describe('detectarConflictos', () => {
   })
 
   it('armario girado 30° tapando parte del barrido de la puerta', () => {
+    // Puerta de 80 con bisagra en (20, 0) y barrido de radio 80. Armario 100×60 en (80, 100) girado 30°:
+    // su esquina trasera izquierda es (80, 100) + rotar((-50, -30), 30°) = (51.70, 49.02), a 58.38 cm de la
+    // bisagra (ángulo 57.1°). El eje de separación más corto del barrido es el radial que pasa por esa esquina:
+    // 80 - 58.38 = 21.62 cm (los demás ejes dan más: y 30.98, ejes del armario 28.04 y 42.68, x 78.30).
+    // La franja del hueco (y 0..60) da 60 - 49.02 = 10.98. Máximo 21.62 -> se muestra ceil(21.62 - 0.1) = 22.
     const doc = base()
     doc.aberturas.push({ id: 'p1', tipo: 'puerta', pared: 0, posicion: 20, ancho: 80, alto: 210, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' })
-    const a = elemento('armario', 80, 100, 30, {}, {}, 'a1')
-    doc.elementos.push(a)
-    const vol = catalogoBase.get('armario')!.volumenes(a)[0]
-    const esperado = Math.max(...obstaculosDeEstancia(doc).aperturas.map((z) => cantidadMostrada(penetracion(z.huella, vol.huella))))
+    doc.elementos.push(elemento('armario', 80, 100, 30, {}, {}, 'a1'))
     const c = de(doc, 'apertura').filter((x) => x.ids[0] === 'p1')
-    expect(c).toHaveLength(1)
-    expect(c[0].cantidadCm).toBe(esperado)
-    expect(esperado).toBeGreaterThan(0)
-    expect(c[0].mensaje).toBe(`La puerta choca con el armario: faltan ${esperado} cm`)
+    expect(c).toEqual([{ tipo: 'apertura', gravedad: 'error', ids: ['p1', 'a1'], cantidadCm: 22, mensaje: 'La puerta choca con el armario: faltan 22 cm' }])
   })
 
   it('armario más alto que el techo', () => {
