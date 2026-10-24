@@ -29,8 +29,20 @@ describe('sectorCircunscrito', () => {
     for (const p of s) expect(longitud(restar(p, o))).toBeLessThanOrEqual(50 + TOLERANCIA_CM)
   })
   it('empieza en el centro y tiene segmentos + 2 vértices', () => {
+    // Radio 50, 90°: con 16 segmentos la holgura es 50·(1/cos(2.8125°) − 1) = 0.060 > 0.05; con 17, 0.053;
+    // con 18 (paso 5°), 50·(1/cos(2.5°) − 1) = 0.048 -> 18 segmentos, 20 vértices.
     expect(s[0]).toEqual(o)
-    expect(s).toHaveLength(18)
+    expect(s).toHaveLength(20)
+    expect(sectorCircunscrito(o, 50, 0, 90, 16)).toHaveLength(18)
+  })
+  it('radio 200, 90°: ningún vértice a más de 200.05 del centro', () => {
+    const grande = sectorCircunscrito(o, 200, 0, 90)
+    for (const p of grande) expect(longitud(restar(p, o))).toBeLessThanOrEqual(200.05)
+    // 200·(1/cos(paso/2) − 1) <= 0.05 pide paso <= 2.5626° -> 36 segmentos (paso 2.5°), 38 vértices.
+    expect(grande).toHaveLength(38)
+  })
+  it('radio pequeño: al menos 16 segmentos', () => {
+    expect(sectorCircunscrito(o, 10, 0, 90)).toHaveLength(18)
   })
 })
 
