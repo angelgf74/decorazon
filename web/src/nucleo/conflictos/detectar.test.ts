@@ -28,9 +28,9 @@ describe('detectarConflictos', () => {
   it('2. puerta del armario contra la cama', () => {
     const doc = base()
     doc.elementos.push(elemento('armario', 100, 30, 0, {}, {}, 'a1'), elemento('cama', 100, 198, 0, {}, {}, 'c1'))
-    const c = de(doc, 'apertura')
-    expect(c.map((x) => x.mensaje)).toContain('La puerta del armario choca con la cama: faltan 12 cm')
-    expect(c[0]).toMatchObject({ gravedad: 'error', ids: ['a1', 'c1'] })
+    const c = de(doc, 'apertura').filter((x) => x.ids[0] === 'a1')
+    expect(c.length).toBeGreaterThan(0)
+    for (const x of c) expect(x).toMatchObject({ gravedad: 'error', ids: ['a1', 'c1'], mensaje: 'La puerta del armario choca con la cama: faltan 12 cm' })
   })
 
   it('3. cómoda girada 180° con el frente a 30 cm de la pared', () => {
@@ -160,14 +160,24 @@ describe('detectarConflictos', () => {
     const doc = base()
     doc.elementos.push(elemento('cama', 115, 100, 0, {}, {}, 'c1'))
     const c = de(doc, 'pasoEstrecho')
-    expect(c).toEqual([{ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: ['c1'], cantidadCm: 40, mensaje: 'Paso estrecho entre la cama y la pared: 40 cm' }])
+    expect(c).toEqual([{ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: ['c1', 'pared:3'], cantidadCm: 40, mensaje: 'Paso estrecho entre la cama y la pared: 40 cm' }])
+  })
+
+  it('paso estrecho contra dos tramos de pared: ids distintos por tramo', () => {
+    // Armario 100×60 en (90, 70): x 40..140, y 40..100 -> 40 cm a la pared 0 (arriba) y a la 3 (izquierda).
+    const doc = base()
+    doc.elementos.push(elemento('armario', 90, 70, 0, {}, {}, 'a1'))
+    expect(de(doc, 'pasoEstrecho')).toEqual([
+      { tipo: 'pasoEstrecho', gravedad: 'aviso', ids: ['a1', 'pared:0'], cantidadCm: 40, mensaje: 'Paso estrecho entre el armario y la pared: 40 cm' },
+      { tipo: 'pasoEstrecho', gravedad: 'aviso', ids: ['a1', 'pared:3'], cantidadCm: 40, mensaje: 'Paso estrecho entre el armario y la pared: 40 cm' },
+    ])
   })
 
   it('paso estrecho entre un mueble y un radiador', () => {
     const doc = base()
     doc.estructura.push({ id: 'r1', tipo: 'radiador', pared: 0, posicion: 100, ancho: 80, alto: 60, fondo: 10, alturaSuelo: 20 })
     doc.elementos.push(elemento('armario', 140, 80, 0, {}, {}, 'a1'))
-    expect(de(doc, 'pasoEstrecho').filter((x) => x.ids.length === 2)).toEqual([
+    expect(de(doc, 'pasoEstrecho').filter((x) => x.ids[1] === 'r1')).toEqual([
       { tipo: 'pasoEstrecho', gravedad: 'aviso', ids: ['a1', 'r1'], cantidadCm: 40, mensaje: 'Paso estrecho entre el armario y el radiador: 40 cm' },
     ])
   })

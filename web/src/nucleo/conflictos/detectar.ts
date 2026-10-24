@@ -171,15 +171,16 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
         conflictos.push({ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: [a.e.id, o.id], cantidadCm: p, mensaje: mensajePasoEstrecho(a.ref, refDe(o), p) })
       }
     }
-    for (let i = 0; i < planta.length; i++) {
-      const s1 = planta[i], s2 = planta[(i + 1) % planta.length]
+    // Cada tramo de pared por separado; el id 'pared:<índice>' los distingue.
+    for (let tramo = 0; tramo < planta.length; tramo++) {
+      const s1 = planta[tramo], s2 = planta[(tramo + 1) % planta.length]
       let dp = Infinity
       for (const v of a.volumenes) {
         for (let k = 0; k < v.huella.length; k++) dp = Math.min(dp, distanciaSegmentos(s1, s2, v.huella[k], v.huella[(k + 1) % v.huella.length]))
       }
       if (estrecho(dp)) {
         const p = redondearAbajo(dp)
-        conflictos.push({ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: [a.e.id], cantidadCm: p, mensaje: mensajePasoEstrecho(a.ref, PARED, p) })
+        conflictos.push({ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: [a.e.id, `pared:${tramo}`], cantidadCm: p, mensaje: mensajePasoEstrecho(a.ref, PARED, p) })
       }
     }
   }
