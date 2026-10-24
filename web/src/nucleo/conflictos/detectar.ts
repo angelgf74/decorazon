@@ -1,7 +1,7 @@
 import type { DocumentoDiseno, Elemento } from '../modelo/documento'
 import type { Catalogo, DefinicionTipo, ZonaApertura } from '../catalogo/tipos'
 import { distanciaConvexos } from '../geometria/convexo'
-import { contienePunto, distanciaAlBorde } from '../geometria/poligono'
+import { distanciaSegmentos } from '../geometria/poligono'
 import { penetracion3D, solapeZ, type Prisma } from '../geometria/prisma'
 import { cantidadMostrada, redondearAbajo, TOLERANCIA_CM } from '../geometria/tolerancia'
 import { obstaculosDeEstancia, penetracionEnParedes } from './estancia'
@@ -152,7 +152,7 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
 
   // Pasos estrechos (aviso).
   const bloquean = piezas.filter((p) => p.def.bloqueaPaso)
-  const estrecho = (d: number) => d >= HUECO_IGNORADO_CM && d < PASO_MINIMO_CM
+  const estrecho = (d: number) => d >= HUECO_IGNORADO_CM - 1e-6 && d < PASO_MINIMO_CM
   for (let i = 0; i < bloquean.length; i++) {
     const a = bloquean[i]
     for (let j = i + 1; j < bloquean.length; j++) {
@@ -165,7 +165,7 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
       }
     }
     for (const o of obstaculos.fisicos) {
-      if (o.nombre !== 'columna') continue
+      if (o.nombre !== 'columna' && o.nombre !== 'radiador') continue
       let d = Infinity
       for (const v of a.volumenes) d = Math.min(d, distanciaConvexos(v.huella, o.prisma.huella))
       if (estrecho(d)) {
@@ -173,14 +173,16 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
         conflictos.push({ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: [a.e.id, o.id], cantidadCm: p, mensaje: mensajePasoEstrecho(a.ref, refDe(o), p) })
       }
     }
-    let dp = Infinity
-    for (const v of a.volumenes) {
-      for (const q of v.huella) if (contienePunto(planta, q)) dp = Math.min(dp, distanciaAlBorde(planta, q))
-      for (const q of planta) if (!contienePunto(v.huella, q)) dp = Math.min(dp, distanciaAlBorde(v.huella, q))
-    }
-    if (estrecho(dp)) {
-      const p = redondearAbajo(dp)
-      conflictos.push({ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: [a.e.id], cantidadCm: p, mensaje: mensajePasoEstrecho(a.ref, PARED, p) })
+    for (let i = 0; i < planta.length; i++) {
+      const s1 = planta[i], s2 = planta[(i + 1) % planta.length]
+      let dp = Infinity
+      for (const v of a.volumenes) {
+        for (let k = 0; k < v.huella.length; k++) dp = Math.min(dp, distanciaSegmentos(s1, s2, v.huella[k], v.huella[(k + 1) % v.huella.length]))
+      }
+      if (estrecho(dp)) {
+        const p = redondearAbajo(dp)
+        conflictos.push({ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: [a.e.id], cantidadCm: p, mensaje: mensajePasoEstrecho(a.ref, PARED, p) })
+      }
     }
   }
 

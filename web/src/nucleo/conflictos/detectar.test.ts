@@ -143,6 +143,22 @@ describe('detectarConflictos', () => {
     expect(mensajes(c, 'pasoEstrecho')).toContain('Paso estrecho entre el armario y la pared: 40 cm')
   })
 
+  it('paso estrecho por tramo de pared: cabecero pegado arriba, 40 cm a la pared lateral', () => {
+    const doc = base()
+    doc.elementos.push(elemento('cama', 115, 100, 0, {}, {}, 'c1'))
+    const c = de(doc, 'pasoEstrecho')
+    expect(c).toEqual([{ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: ['c1'], cantidadCm: 40, mensaje: 'Paso estrecho entre la cama y la pared: 40 cm' }])
+  })
+
+  it('paso estrecho entre un mueble y un radiador', () => {
+    const doc = base()
+    doc.estructura.push({ id: 'r1', tipo: 'radiador', pared: 0, posicion: 100, ancho: 80, alto: 60, fondo: 10, alturaSuelo: 20 })
+    doc.elementos.push(elemento('armario', 140, 80, 0, {}, {}, 'a1'))
+    expect(de(doc, 'pasoEstrecho').filter((x) => x.ids.length === 2)).toEqual([
+      { tipo: 'pasoEstrecho', gravedad: 'aviso', ids: ['a1', 'r1'], cantidadCm: 40, mensaje: 'Paso estrecho entre el armario y el radiador: 40 cm' },
+    ])
+  })
+
   it('alfombra bajo la cama: sin conflictos', () => {
     const doc = base()
     doc.elementos.push(elemento('cama', 75, 100, 0), elemento('alfombra', 75, 100, 0, { ancho: 100, fondo: 100 }))
