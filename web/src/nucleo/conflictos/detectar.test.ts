@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { documentoNuevo } from '../modelo/crear'
 import type { DocumentoDiseno } from '../modelo/documento'
+import { validarDocumento } from '../modelo/validar'
 import { catalogoBase } from '../catalogo/catalogoBase'
 import { elemento } from '../catalogo/definiciones/ayuda.test-util'
 import { detectarConflictos, HUECO_IGNORADO_CM, PASO_MINIMO_CM } from './detectar'
@@ -181,5 +182,30 @@ describe('detectarConflictos', () => {
     lejos.aberturas = doc.aberturas
     lejos.elementos.push(elemento('comoda', 300, 100, 90, {}, {}, 'm1'))
     expect(de(lejos, 'apertura')).toEqual([])
+  })
+
+  describe('tabique que entra desde la pared inferior (x 190..210, hasta y = 100)', () => {
+    const conTabique = () => {
+      const doc = base()
+      doc.estancia.planta = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 300 }, { x: 210, y: 300 }, { x: 210, y: 100 }, { x: 190, y: 100 }, { x: 190, y: 300 }, { x: 0, y: 300 }]
+      return doc
+    }
+    it('la planta con tabique es válida', () => {
+      expect(validarDocumento(conTabique())).toMatchObject({ valido: true })
+    })
+    it('cama por defecto centrada sobre el tabique: atraviesa la pared', () => {
+      // Cama x 125..275, y 100..300: las rectas x = 190 y x = 210 la cortan; min(65, 85) = 65 -> 65 cm.
+      const doc = conTabique()
+      doc.elementos.push(elemento('cama', 200, 200, 0, {}, {}, 'c1'))
+      expect(de(doc, 'fueraDeEstancia')).toEqual([{ tipo: 'fueraDeEstancia', gravedad: 'error', ids: ['c1'], cantidadCm: 65, mensaje: 'La cama atraviesa la pared: sobran 65 cm' }])
+    })
+    it('cómoda cuya zona de cajones cruza el tabique: el cajón choca con la pared', () => {
+      // Cómoda girada 270° (frente hacia +x) en (165, 200): cuerpo x 140..190, cajones x 190..235, y 150..250.
+      // x = 190 es borde de la zona (0); x = 210 la corta: min(20, 25) = 20 -> 20 cm.
+      const doc = conTabique()
+      doc.elementos.push(elemento('comoda', 165, 200, 270, {}, {}, 'm1'))
+      expect(de(doc, 'fueraDeEstancia')).toEqual([])
+      expect(de(doc, 'apertura')).toEqual([{ tipo: 'apertura', gravedad: 'error', ids: ['m1'], cantidadCm: 20, mensaje: 'El cajón de la cómoda choca con la pared: faltan 20 cm' }])
+    })
   })
 })

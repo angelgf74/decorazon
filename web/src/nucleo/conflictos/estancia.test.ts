@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { documentoNuevo } from '../modelo/crear'
-import { contienePunto } from '../geometria/poligono'
+import { areaConSigno, contienePunto, esSimple } from '../geometria/poligono'
 import { rectangulo } from '../geometria/formas'
 import { obstaculosDeEstancia, penetracionEnParedes } from './estancia'
 
@@ -76,5 +76,21 @@ describe('penetracionEnParedes', () => {
   it('L: vértice de la huella fuera', () => {
     expect(penetracionEnParedes(L, rectangulo({ x: 300, y: 150 }, 100, 100, 0))).toBeCloseTo(0, 5)
     expect(penetracionEnParedes(L, rectangulo({ x: 380, y: 150 }, 100, 100, 0))).toBeCloseTo(30)
+  })
+})
+
+describe('penetracionEnParedes: tabique que corta la huella (regla c)', () => {
+  // Tabique de 20 cm (x 190..210) que sube desde la pared inferior hasta y = 100.
+  const tabique = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 300 }, { x: 210, y: 300 }, { x: 210, y: 100 }, { x: 190, y: 100 }, { x: 190, y: 300 }, { x: 0, y: 300 }]
+  it('la planta es simple y horaria', () => {
+    expect(esSimple(tabique)).toBe(true)
+    expect(areaConSigno(tabique)).toBeGreaterThan(0)
+  })
+  it('caja 150×200 centrada sobre el tabique: ningún vértice fuera, pero lo atraviesa', () => {
+    // x 125..275, y 100..300. Recta x = 190: 65 a la izquierda, 85 a la derecha -> 65; x = 210: 85 / 65 -> 65.
+    expect(penetracionEnParedes(tabique, rectangulo({ x: 200, y: 200 }, 150, 200, 0))).toBeCloseTo(65, 9)
+  })
+  it('un tramo que solo toca el borde no cuenta', () => {
+    expect(penetracionEnParedes(tabique, rectangulo({ x: 165, y: 200 }, 50, 100, 0))).toBeCloseTo(0, 9)
   })
 })
