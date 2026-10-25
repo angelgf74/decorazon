@@ -1,5 +1,6 @@
 using Decorazon.Aplicacion.Contrasenas;
 using Decorazon.Aplicacion.Cuentas;
+using Decorazon.Aplicacion.Disenos;
 using Decorazon.Aplicacion.Limpieza;
 using Decorazon.Aplicacion.Registro;
 using Decorazon.Aplicacion.Salud;
@@ -21,6 +22,7 @@ public static class InyeccionDeDependencias
         servicios.AddScoped<RestablecerContrasena>();
         servicios.AddScoped<CambiarContrasena>();
         servicios.AddScoped<BorrarCuenta>();
+        servicios.AddScoped<GestionDeDisenos>();
         servicios.AddScoped<LimpiarCaducados>();
 
         return servicios;
