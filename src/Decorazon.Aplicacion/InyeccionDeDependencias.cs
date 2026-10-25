@@ -1,0 +1,21 @@
+using Decorazon.Aplicacion.Cuentas;
+using Decorazon.Aplicacion.Registro;
+using Decorazon.Aplicacion.Salud;
+using Decorazon.Aplicacion.Sesiones;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Decorazon.Aplicacion;
+
+public static class InyeccionDeDependencias
+{
+    public static IServiceCollection AddAplicacion(this IServiceCollection servicios)
+    {
+        servicios.AddScoped<ConsultarSalud>();
+        servicios.AddScoped<SolicitarRegistro>();
+        servicios.AddScoped<CompletarRegistro>();
+        servicios.AddScoped<IniciarSesion>();
+        servicios.AddScoped<ConsultarMiCuenta>();
+
+        return servicios;
+    }
+}
