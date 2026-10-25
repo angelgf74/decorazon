@@ -54,6 +54,7 @@ public sealed record ContenidoDeDiseno
 
             using var documento = JsonDocument.Parse(Estricta.GetBytes(json));
             var raiz = documento.RootElement;
+            ComprobarTextos(raiz);
 
             if (raiz.ValueKind != JsonValueKind.Object)
             {
@@ -79,9 +80,39 @@ public sealed record ContenidoDeDiseno
             contenido = new ContenidoDeDiseno(json);
             return ResultadoDeContenido.Valido;
         }
-        catch (Exception e) when (e is JsonException or ArgumentException)
+        catch (Exception e) when (e is JsonException or ArgumentException or InvalidOperationException)
         {
             return ResultadoDeContenido.NoEsJson;
+        }
+    }
+
+    /// <summary>
+    /// Fuerza la lectura de cada cadena y nombre de propiedad. El analizador acepta un
+    /// escape de sustituto suelto (<c>"\uD800"</c>) y solo falla al materializar el texto;
+    /// jsonb de PostgreSQL tampoco lo admite. Mejor descubrirlo aquí que al guardar.
+    /// </summary>
+    private static void ComprobarTextos(JsonElement elemento)
+    {
+        switch (elemento.ValueKind)
+        {
+            case JsonValueKind.String:
+                _ = elemento.GetString();
+                break;
+            case JsonValueKind.Array:
+                foreach (var hijo in elemento.EnumerateArray())
+                {
+                    ComprobarTextos(hijo);
+                }
+
+                break;
+            case JsonValueKind.Object:
+                foreach (var propiedad in elemento.EnumerateObject())
+                {
+                    _ = propiedad.Name;
+                    ComprobarTextos(propiedad.Value);
+                }
+
+                break;
         }
     }
 

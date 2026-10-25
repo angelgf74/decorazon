@@ -18,6 +18,13 @@ public interface IRepositorioDeUsuarios
 
     Task<bool> ExisteConCorreoAsync(CorreoElectronico correo, CancellationToken cancelacion = default);
 
+    /// <summary>
+    /// Añade el usuario y <b>guarda</b> la unidad de trabajo. En producción todos los
+    /// repositorios comparten el mismo <c>DbContext</c> (uno por petición), así que este
+    /// guardado confirma también lo que otros repositorios hayan rastreado antes
+    /// (p. ej. el diseño nuevo y la solicitud consumida de <c>CompletarRegistro</c>):
+    /// todo en una sola transacción. Un adaptador que no comparta contexto no da esa garantía.
+    /// </summary>
     Task AnadirAsync(Usuario usuario, CancellationToken cancelacion = default);
 
     /// <summary>Persiste los cambios sobre un usuario ya existente.</summary>

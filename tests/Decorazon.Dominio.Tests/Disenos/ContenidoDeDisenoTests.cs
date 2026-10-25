@@ -80,6 +80,26 @@ public class ContenidoDeDisenoTests
         Assert.Null(contenido);
     }
 
+    [Theory]
+    [InlineData("""{"formato":1,"estancia":{"nota":"\uD800"},"aberturas":[],"estructura":[],"elementos":[]}""")]
+    [InlineData("""{"formato":1,"estancia":{"\uDC00":1},"aberturas":[],"estructura":[],"elementos":[]}""")]
+    [InlineData("""{"formato":1,"estancia":{},"aberturas":[],"estructura":[],"elementos":[["\uD83D x"]]}""")]
+    public void Validar_rechaza_un_escape_de_sustituto_suelto_en_valores_y_nombres(string json)
+    {
+        // Es texto JSON bien formado, pero jsonb de PostgreSQL no admite ese escape:
+        // hay que pararlo aquí, o el guardado fallaría con un error de base de datos.
+        Assert.Equal(ResultadoDeContenido.NoEsJson, ContenidoDeDiseno.Validar(json, out var contenido));
+        Assert.Null(contenido);
+    }
+
+    [Fact]
+    public void Validar_admite_un_par_de_sustitutos_escrito_como_escape()
+    {
+        var json = """{"formato":1,"estancia":{"nota":"\uD83D\uDE00"},"aberturas":[],"estructura":[],"elementos":[]}""";
+
+        Assert.Equal(ResultadoDeContenido.Valido, ContenidoDeDiseno.Validar(json, out _));
+    }
+
     [Fact]
     public void Validar_rechaza_anidamiento_de_mas_de_64_niveles()
     {
