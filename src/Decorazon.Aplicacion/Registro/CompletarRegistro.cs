@@ -57,22 +57,23 @@ public sealed class CompletarRegistro(
         {
             // Se persiste el consumo igualmente: el token ya se ha gastado y no
             // debe poder reintentarse.
+            solicitud.DescartarDiseno();
             await solicitudes.GuardarCambiosAsync(cancelacion);
             return ResultadoDeCompletarRegistro.EnlaceNoValido;
         }
 
         var usuario = Usuario.Crear(solicitud.Correo, nombre, hasheador.Hashear(contrasena), reloj.Ahora);
 
-        // El diseño pendiente pasa a ser del usuario nuevo. Se añade antes que el
-        // usuario y se descarta de la solicitud antes de guardar: todos los
-        // repositorios comparten el mismo DbContext, así que un único guardado
-        // confirma a la vez el usuario, su diseño, el consumo del token y la
-        // solicitud sin diseño. Ninguna de esas cosas puede quedar a medias.
+        // El diseño pendiente pasa a ser del usuario nuevo. Anadir solo lo rastrea, igual
+        // que DescartarDiseno: nada se persiste hasta usuarios.AnadirAsync, que en producción
+        // guarda el DbContext compartido por todos los repositorios, como en jornal. Ese único
+        // guardado confirma a la vez usuario, diseño, consumo del token y solicitud sin diseño,
+        // y no puede quedar ninguno a medias. solicitudes.GuardarCambiosAsync va después y es la
+        // red de seguridad si algún adaptador no comparte contexto.
         if (solicitud.Diseno is { } pendiente)
         {
-            await disenos.AnadirAsync(
-                Diseno.Crear(usuario.Id, pendiente.Nombre, pendiente.Tipo, pendiente.Contenido, reloj.Ahora),
-                cancelacion);
+            disenos.Anadir(
+                Diseno.Crear(usuario.Id, pendiente.Nombre, pendiente.Tipo, pendiente.Contenido, reloj.Ahora));
             solicitud.DescartarDiseno();
         }
 

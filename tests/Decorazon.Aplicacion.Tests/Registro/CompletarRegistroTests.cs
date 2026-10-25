@@ -200,6 +200,27 @@ public class CompletarRegistroTests
         Assert.NotNull(Assert.Single(_solicitudes.Todas).Diseno);
     }
 
+    [Fact]
+    public async Task UsuarioCreadoEntreSolicitudYFinalizacion_EnlaceNoValidoYElTokenQuedaGastado()
+    {
+        var token = await PedirAltaDe("alguien@ejemplo.com", new PeticionDeDiseno("A", "salon", ContenidoA));
+        var guardadosAntes = _solicitudes.GuardadosSolicitados;
+        var otro = Usuario.Crear(CorreoElectronico.Crear("alguien@ejemplo.com"), NombreDeUsuario.Crear("Otro"), "hash", _reloj.Ahora);
+        await _usuarios.AnadirAsync(otro);
+        var casoDeUso = CasoDeUso;
+
+        var resultado = await casoDeUso.EjecutarAsync(token, NombreValido, ContrasenaValida);
+
+        Assert.Equal(ResultadoDeCompletarRegistro.EnlaceNoValido, resultado);
+        Assert.Single(_usuarios.Todos);
+        Assert.Empty(_disenos.Todos);
+        Assert.Equal(guardadosAntes + 1, _solicitudes.GuardadosSolicitados);
+        var solicitud = Assert.Single(_solicitudes.Todas);
+        Assert.True(solicitud.EstaConsumida);
+        Assert.Null(solicitud.Diseno);
+        Assert.Equal(ResultadoDeCompletarRegistro.EnlaceNoValido, await casoDeUso.EjecutarAsync(token, NombreValido, ContrasenaValida));
+    }
+
     private static Contrasena CrearContrasena(string valor)
     {
         Assert.True(Contrasena.TryCrear(valor, out var contrasena));

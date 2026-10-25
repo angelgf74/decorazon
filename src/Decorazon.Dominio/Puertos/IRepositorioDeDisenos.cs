@@ -16,7 +16,11 @@ public interface IRepositorioDeDisenos
 
     Task<int> ContarAsync(Guid usuarioId, CancellationToken cancelacion = default);
 
-    Task AnadirAsync(Diseno diseno, CancellationToken cancelacion = default);
+    /// <summary>
+    /// Solo rastrea el diseño: no lo persiste. <see cref="GuardarCambiosAsync"/> lo guarda
+    /// (o el guardado de otro repositorio que comparta la misma unidad de trabajo).
+    /// </summary>
+    void Anadir(Diseno diseno);
 
     void Borrar(Diseno diseno);
 

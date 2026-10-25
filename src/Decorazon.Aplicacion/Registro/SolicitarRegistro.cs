@@ -12,7 +12,8 @@ namespace Decorazon.Aplicacion.Registro;
 /// <remarks>
 /// Que el correo ya tenga cuenta <b>no</b> cambia la respuesta: si lo hiciera,
 /// este endpoint sería un comprobador de qué direcciones están registradas.
-/// Por eso el límite de solicitudes por hora se aplica antes de mirar si hay cuenta.
+/// Por eso un correo con cuenta también deja una solicitud (inutilizable) que cuenta para el
+/// límite de solicitudes por hora: si no, el límite respondería distinto según haya cuenta o no.
 /// </remarks>
 public sealed class SolicitarRegistro(
     IRepositorioDeUsuarios usuarios,
@@ -66,8 +67,17 @@ public sealed class SolicitarRegistro(
 
         if (await usuarios.ExisteConCorreoAsync(correo, cancelacion))
         {
-            // El dueño del buzón se entera del intento; quien lo hizo, no. El diseño
-            // no se guarda: no hay alta que lo reciba.
+            // Se registra una solicitud sin diseño, con un token que nunca se envía, y se
+            // invalida al instante: no sirve para nada, pero cuenta para el límite por hora
+            // igual que la de un correo nuevo. Sin ella, un correo con cuenta nunca llegaría
+            // al límite y se podría distinguir de uno nuevo (y spamear al dueño con avisos).
+            var descartada = SolicitudDeRegistro.Crear(
+                correo, generadorDeTokens.Hashear(generadorDeTokens.GenerarToken()), null, ahora);
+            descartada.Invalidar(ahora);
+            await solicitudes.AnadirAsync(descartada, cancelacion);
+            await solicitudes.GuardarCambiosAsync(cancelacion);
+
+            // El dueño del buzón se entera del intento; quien lo hizo, no.
             await enviadorDeCorreo.EnviarAvisoDeCuentaExistenteAsync(correo, cancelacion);
             return ResultadoDeSolicitud.Aceptada;
         }
@@ -82,6 +92,7 @@ public sealed class SolicitarRegistro(
         var solicitud = SolicitudDeRegistro.Crear(correo, generadorDeTokens.Hashear(token), diseno, ahora);
 
         await solicitudes.AnadirAsync(solicitud, cancelacion);
+        await solicitudes.GuardarCambiosAsync(cancelacion);
 
         // El envío va dentro del caso de uso a propósito: si Brevo falla, el usuario
         // debe enterarse ahora, no quedarse esperando un correo que nunca llega.

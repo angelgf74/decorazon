@@ -26,13 +26,16 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
     public Task<int> ContarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
         Task.FromResult(_disenos.Count(diseno => diseno.UsuarioId == usuarioId));
 
-    public Task AnadirAsync(Diseno diseno, CancellationToken cancelacion = default)
-    {
-        _disenos.Add(diseno);
-        return Task.CompletedTask;
-    }
+    public void Anadir(Diseno diseno) => _disenos.Add(diseno);
 
     public void Borrar(Diseno diseno) => _disenos.Remove(diseno);
 
-    public Task GuardarCambiosAsync(CancellationToken cancelacion = default) => Task.CompletedTask;
+    /// <summary>Cuántas veces se ha pedido guardar.</summary>
+    public int GuardadosSolicitados { get; private set; }
+
+    public Task GuardarCambiosAsync(CancellationToken cancelacion = default)
+    {
+        GuardadosSolicitados++;
+        return Task.CompletedTask;
+    }
 }

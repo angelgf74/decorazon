@@ -52,14 +52,14 @@ public class SolicitarRegistroTests
     }
 
     [Fact]
-    public async Task CorreoYaRegistrado_AvisaAlDuenoYNoCreaSolicitud()
+    public async Task CorreoYaRegistrado_AvisaAlDuenoYNoDejaSolicitudUtilizableNiDiseno()
     {
         await DarDeAltaUsuario("existente@ejemplo.com");
 
         var resultado = await CasoDeUso.EjecutarAsync("existente@ejemplo.com", null, Enlace);
 
         Assert.Equal(ResultadoDeSolicitud.Aceptada, resultado);
-        Assert.Empty(_solicitudes.Todas);
+        Assert.DoesNotContain(_solicitudes.Todas, solicitud => solicitud.EstaVigente(_reloj.Ahora) || solicitud.Diseno is not null);
         Assert.Empty(_correo.EnlacesDeAlta);
         Assert.Single(_correo.AvisosDeCuentaExistente);
     }
@@ -161,6 +161,29 @@ public class SolicitarRegistroTests
         Assert.Equal(ResultadoDeSolicitud.DemasiadasSolicitudes, cuarta);
         Assert.Equal(3, _solicitudes.Todas.Count);
         Assert.Equal(3, _correo.EnlacesDeAlta.Count);
+    }
+
+    /// <summary>
+    /// Si solo contaran los correos nuevos, la cuarta petición daría 429 para un correo
+    /// nuevo y 200 para uno con cuenta: otra forma de averiguar quién está registrado.
+    /// </summary>
+    [Fact]
+    public async Task CorreoConCuenta_TambienAlcanzaElLimite_ComoUnoNuevo()
+    {
+        await DarDeAltaUsuario("existente@ejemplo.com");
+        var casoDeUso = CasoDeUso;
+
+        for (var i = 0; i < 3; i++)
+        {
+            Assert.Equal(ResultadoDeSolicitud.Aceptada, await casoDeUso.EjecutarAsync("existente@ejemplo.com", null, Enlace));
+        }
+
+        var cuarta = await casoDeUso.EjecutarAsync("existente@ejemplo.com", Diseno(), Enlace);
+
+        Assert.Equal(ResultadoDeSolicitud.DemasiadasSolicitudes, cuarta);
+        Assert.Equal(3, _correo.AvisosDeCuentaExistente.Count);
+        Assert.Empty(_correo.EnlacesDeAlta);
+        Assert.DoesNotContain(_solicitudes.Todas, solicitud => solicitud.EstaVigente(_reloj.Ahora) || solicitud.Diseno is not null);
     }
 
     [Fact]

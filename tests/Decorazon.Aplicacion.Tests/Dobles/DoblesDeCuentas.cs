@@ -74,6 +74,9 @@ public sealed class RepositorioDeSolicitudesEnMemoria : IRepositorioDeSolicitude
 {
     private readonly List<SolicitudDeRegistro> _solicitudes = [];
 
+    /// <summary>Cuántas veces se ha pedido guardar: permite afirmar que un cambio llegó a persistirse.</summary>
+    public int GuardadosSolicitados { get; private set; }
+
     public IReadOnlyList<SolicitudDeRegistro> Todas => _solicitudes;
 
     public Task<SolicitudDeRegistro?> BuscarPorHashDelTokenAsync(
@@ -100,7 +103,11 @@ public sealed class RepositorioDeSolicitudesEnMemoria : IRepositorioDeSolicitude
         return Task.CompletedTask;
     }
 
-    public Task GuardarCambiosAsync(CancellationToken cancelacion = default) => Task.CompletedTask;
+    public Task GuardarCambiosAsync(CancellationToken cancelacion = default)
+    {
+        GuardadosSolicitados++;
+        return Task.CompletedTask;
+    }
 }
 
 /// <summary>Registra los envíos en lugar de hacerlos, para poder afirmar sobre ellos.</summary>
