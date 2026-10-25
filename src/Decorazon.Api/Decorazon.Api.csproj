@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Decorazon.Aplicacion\Decorazon.Aplicacion.csproj" />
+    <ProjectReference Include="..\Decorazon.Contratos\Decorazon.Contratos.csproj" />
+    <ProjectReference Include="..\Decorazon.Infraestructura\Decorazon.Infraestructura.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

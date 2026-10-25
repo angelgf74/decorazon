@@ -1,0 +1,41 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,md}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+# Convenciones de la constitución: PascalCase para tipos y miembros,
+# camelCase para locales y parámetros, interfaces con prefijo I.
+dotnet_naming_rule.tipos_en_pascal_case.severity = warning
+dotnet_naming_rule.tipos_en_pascal_case.symbols = tipos
+dotnet_naming_rule.tipos_en_pascal_case.style = pascal_case
+dotnet_naming_symbols.tipos.applicable_kinds = class,struct,enum,property,method,event,delegate
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_rule.interfaces_con_i.severity = warning
+dotnet_naming_rule.interfaces_con_i.symbols = interfaces
+dotnet_naming_rule.interfaces_con_i.style = prefijo_i
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_style.prefijo_i.required_prefix = I
+dotnet_naming_style.prefijo_i.capitalization = pascal_case
+
+dotnet_naming_rule.locales_en_camel_case.severity = warning
+dotnet_naming_rule.locales_en_camel_case.symbols = locales
+dotnet_naming_rule.locales_en_camel_case.style = camel_case
+dotnet_naming_symbols.locales.applicable_kinds = local,parameter
+dotnet_naming_style.camel_case.capitalization = camel_case
+
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_sort_system_directives_first = true

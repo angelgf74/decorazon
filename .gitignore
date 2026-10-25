@@ -1,3 +1,7 @@
 .superpowers/
 node_modules/
 web/dist/
+bin/
+obj/
+appsettings.Development.json
+*.user
