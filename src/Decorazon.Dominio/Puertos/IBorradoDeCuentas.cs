@@ -12,8 +12,8 @@ namespace Decorazon.Dominio.Puertos;
 public interface IBorradoDeCuentas
 {
     /// <summary>
-    /// Borra el usuario y sus solicitudes de contraseña y de alta. Los diseños
-    /// se suman a esto cuando exista su borrado.
+    /// Borra los diseños del usuario y el propio usuario en una sola transacción,
+    /// junto con sus solicitudes de contraseña y de alta.
     /// </summary>
     Task BorrarAsync(Guid usuarioId, CorreoElectronico correo, CancellationToken cancelacion = default);
 }

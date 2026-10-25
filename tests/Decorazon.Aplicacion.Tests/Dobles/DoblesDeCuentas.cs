@@ -217,3 +217,35 @@ public sealed class EmisorDeAccesoFalso : IEmisorDeAcceso
     public AccesoEmitido Emitir(Usuario usuario) =>
         new($"acceso-de-{usuario.Correo.Valor}", DateTimeOffset.UtcNow.AddDays(1));
 }
+
+public sealed class BorradoEspia : IBorradoDeCuentas
+{
+    public List<(Guid UsuarioId, string Correo)> Borradas { get; } = [];
+
+    public Task BorrarAsync(Guid usuarioId, CorreoElectronico correo, CancellationToken cancelacion = default)
+    {
+        Borradas.Add((usuarioId, correo.Valor));
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class LimpiezaEspia : ILimpiezaDeCaducados
+{
+    public DateTimeOffset? Limite { get; private set; }
+
+    public DateTimeOffset? AhoraDeDescarte { get; private set; }
+
+    public int DisenosPorDescartar { get; set; }
+
+    public Task<ResultadoDeLimpieza> BorrarTerminadasAntesDeAsync(DateTimeOffset limite, CancellationToken cancelacion = default)
+    {
+        Limite = limite;
+        return Task.FromResult(new ResultadoDeLimpieza(0, 0));
+    }
+
+    public Task<int> DescartarDisenosCaducadosAsync(DateTimeOffset ahora, CancellationToken cancelacion = default)
+    {
+        AhoraDeDescarte = ahora;
+        return Task.FromResult(DisenosPorDescartar);
+    }
+}

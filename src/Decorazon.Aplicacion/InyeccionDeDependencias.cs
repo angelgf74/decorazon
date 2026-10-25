@@ -1,4 +1,6 @@
+using Decorazon.Aplicacion.Contrasenas;
 using Decorazon.Aplicacion.Cuentas;
+using Decorazon.Aplicacion.Limpieza;
 using Decorazon.Aplicacion.Registro;
 using Decorazon.Aplicacion.Salud;
 using Decorazon.Aplicacion.Sesiones;
@@ -15,6 +17,11 @@ public static class InyeccionDeDependencias
         servicios.AddScoped<CompletarRegistro>();
         servicios.AddScoped<IniciarSesion>();
         servicios.AddScoped<ConsultarMiCuenta>();
+        servicios.AddScoped<SolicitarRestablecerContrasena>();
+        servicios.AddScoped<RestablecerContrasena>();
+        servicios.AddScoped<CambiarContrasena>();
+        servicios.AddScoped<BorrarCuenta>();
+        servicios.AddScoped<LimpiarCaducados>();
 
         return servicios;
     }
