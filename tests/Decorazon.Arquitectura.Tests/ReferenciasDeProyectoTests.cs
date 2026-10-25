@@ -16,6 +16,13 @@ namespace Decorazon.Arquitectura.Tests;
 /// </summary>
 public class ReferenciasDeProyectoTests
 {
+    private static readonly string[] PaquetesDeInfraestructura =
+    [
+        "Microsoft.EntityFrameworkCore",
+        "Microsoft.AspNetCore",
+        "Npgsql"
+    ];
+
     private static readonly string[] PaquetesProhibidosEnElDominio =
     [
         "Microsoft.EntityFrameworkCore",
@@ -54,6 +61,38 @@ public class ReferenciasDeProyectoTests
 
         Assert.DoesNotContain("Decorazon.Infraestructura", referencias);
         Assert.DoesNotContain("Decorazon.Api", referencias);
+    }
+
+    [Fact]
+    public void Aplicacion_SoloReferenciaAlDominio()
+    {
+        // Exactamente el dominio: ni Contratos (el contrato público no es asunto del caso de uso),
+        // ni Infraestructura, ni la Api.
+        var referencias = ProyectosReferenciadosPor("src/Decorazon.Aplicacion/Decorazon.Aplicacion.csproj");
+
+        Assert.Equal(["Decorazon.Dominio"], referencias);
+    }
+
+    [Fact]
+    public void Aplicacion_NoDeclaraPaquetesDeInfraestructura()
+    {
+        // Microsoft.Extensions.DependencyInjection sí se permite aquí: los casos de uso se registran con métodos AddX.
+        var prohibidos = PaquetesDe("src/Decorazon.Aplicacion/Decorazon.Aplicacion.csproj")
+            .Where(paquete => PaquetesDeInfraestructura.Any(prohibido =>
+                paquete.StartsWith(prohibido, StringComparison.OrdinalIgnoreCase)))
+            .ToArray();
+
+        Assert.True(
+            prohibidos.Length == 0,
+            $"Decorazon.Aplicacion no puede declarar paquetes de infraestructura: {string.Join(", ", prohibidos)}.");
+    }
+
+    [Fact]
+    public void Infraestructura_SoloReferenciaAlDominio()
+    {
+        var referencias = ProyectosReferenciadosPor("src/Decorazon.Infraestructura/Decorazon.Infraestructura.csproj");
+
+        Assert.Equal(["Decorazon.Dominio"], referencias);
     }
 
     [Fact]

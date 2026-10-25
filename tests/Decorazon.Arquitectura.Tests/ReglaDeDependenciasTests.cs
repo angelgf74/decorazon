@@ -26,7 +26,8 @@ public class ReglaDeDependenciasTests
     public void Dominio_NoDependeDeInfraestructura()
     {
         var prohibidas = ReferenciasDe(Dominio)
-            .Where(EsInfraestructura)
+            .Where(nombre => EsInfraestructura(nombre)
+                || nombre.StartsWith("Microsoft.Extensions.DependencyInjection", StringComparison.Ordinal))
             .ToArray();
 
         Assert.True(
