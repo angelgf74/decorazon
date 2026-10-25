@@ -54,10 +54,13 @@ public sealed class Diseno
     {
         // Se recorta la base, no el sufijo: la copia debe seguir distinguiéndose.
         var baseDelNombre = Nombre.Valor.Length + SufijoDeCopia.Length > NombreDeDiseno.LongitudMaxima
-            ? Nombre.Valor[..(NombreDeDiseno.LongitudMaxima - SufijoDeCopia.Length)]
+            ? RecortarSinPartirPares(Nombre.Valor, NombreDeDiseno.LongitudMaxima - SufijoDeCopia.Length)
             : Nombre.Valor;
 
         NombreDeDiseno.TryCrear(baseDelNombre + SufijoDeCopia, out var nombre);
         return new Diseno(UsuarioId, nombre, Tipo, Contenido, ahora);
     }
+
+    private static string RecortarSinPartirPares(string texto, int longitud) =>
+        char.IsHighSurrogate(texto[longitud - 1]) ? texto[..(longitud - 1)] : texto[..longitud];
 }

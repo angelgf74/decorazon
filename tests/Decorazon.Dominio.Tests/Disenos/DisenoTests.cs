@@ -72,4 +72,18 @@ public class DisenoTests
         Assert.Equal(100, copia.Nombre.Valor.Length);
         Assert.EndsWith(" (copia)", copia.Nombre.Valor);
     }
+
+    [Fact]
+    public void Duplicar_no_parte_un_par_sustituto_al_recortar()
+    {
+        // El emoji ocupa los caracteres 91 y 92 (índices 90 y 91): cortar en 92 lo partiría.
+        var nombre = new string('x', 91) + "😀" + new string('y', 7);
+        var d = Diseno.Crear(Guid.NewGuid(), Nombre(nombre), TipoDeEstancia.Salon, Contenido(), T0);
+
+        var copia = d.Duplicar(T0).Nombre.Valor;
+
+        Assert.EndsWith(" (copia)", copia);
+        Assert.True(copia.Length <= NombreDeDiseno.LongitudMaxima);
+        Assert.False(char.IsHighSurrogate(copia[^9]));
+    }
 }

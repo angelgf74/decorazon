@@ -25,6 +25,8 @@ public sealed record ContenidoDeDiseno
 
     public static readonly IReadOnlySet<int> FormatosAdmitidos = new HashSet<int> { 1 };
 
+    private static readonly UTF8Encoding Estricta = new(false, true);
+
     private ContenidoDeDiseno(string json) => Json = json;
 
     public string Json { get; }
@@ -42,14 +44,15 @@ public sealed record ContenidoDeDiseno
             return ResultadoDeContenido.Vacio;
         }
 
-        if (Encoding.UTF8.GetByteCount(json) > TamanoMaximoEnBytes)
-        {
-            return ResultadoDeContenido.Demasiado;
-        }
-
         try
         {
-            using var documento = JsonDocument.Parse(json);
+            // Estricto: un sustituto suelto no es texto válido y no se codifica.
+            if (Estricta.GetByteCount(json) > TamanoMaximoEnBytes)
+            {
+                return ResultadoDeContenido.Demasiado;
+            }
+
+            using var documento = JsonDocument.Parse(Estricta.GetBytes(json));
             var raiz = documento.RootElement;
 
             if (raiz.ValueKind != JsonValueKind.Object)
@@ -76,7 +79,7 @@ public sealed record ContenidoDeDiseno
             contenido = new ContenidoDeDiseno(json);
             return ResultadoDeContenido.Valido;
         }
-        catch (JsonException)
+        catch (Exception e) when (e is JsonException or ArgumentException)
         {
             return ResultadoDeContenido.NoEsJson;
         }

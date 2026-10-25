@@ -61,4 +61,42 @@ public class ContenidoDeDisenoTests
 
         Assert.Equal(ResultadoDeContenido.Demasiado, ContenidoDeDiseno.Validar(json, out _));
     }
+
+    [Theory]
+    [InlineData("\uFEFF{\"formato\":1,\"estancia\":{},\"aberturas\":[],\"estructura\":[],\"elementos\":[]}")]
+    [InlineData("{\"formato\":1,\"estancia\":{},\"aberturas\":[],\"estructura\":[],\"elementos\":[]} basura")]
+    public void Validar_no_lanza_con_entradas_hostiles_de_texto(string json)
+    {
+
+        Assert.Equal(ResultadoDeContenido.NoEsJson.ToString(), Resultado(json));
+    }
+
+    [Fact]
+    public void Validar_rechaza_un_sustituto_suelto_en_un_valor()
+    {
+        var json = "{\"formato\":1,\"estancia\":{},\"aberturas\":[],\"estructura\":[],\"elementos\":[],\"x\":\"" + '\uD800' + "\"}";
+
+        Assert.Equal(ResultadoDeContenido.NoEsJson, ContenidoDeDiseno.Validar(json, out var contenido));
+        Assert.Null(contenido);
+    }
+
+    [Fact]
+    public void Validar_rechaza_anidamiento_de_mas_de_64_niveles()
+    {
+        var json = new string('[', 100) + new string(']', 100);
+
+        Assert.Equal(ResultadoDeContenido.NoEsJson, ContenidoDeDiseno.Validar(json, out _));
+    }
+
+    [Theory]
+    [InlineData("1e400")]
+    [InlineData("1.0")]
+    public void Validar_exige_un_formato_entero(string formato)
+    {
+        var json = "{\"formato\":" + formato + ",\"estancia\":{},\"aberturas\":[],\"estructura\":[],\"elementos\":[]}";
+
+        Assert.Equal(ResultadoDeContenido.FormatoNoAdmitido, ContenidoDeDiseno.Validar(json, out _));
+    }
+
+    private static string Resultado(string json) => ContenidoDeDiseno.Validar(json, out _).ToString();
 }
