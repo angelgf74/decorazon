@@ -1,8 +1,9 @@
 import type { DocumentoDiseno, Elemento } from '../modelo/documento'
 import type { Catalogo, DefinicionTipo, ZonaApertura } from '../catalogo/tipos'
-import { distanciaConvexos } from '../geometria/convexo'
+import { distanciaConvexos, interseccionConvexos } from '../geometria/convexo'
 import { distanciaSegmentos } from '../geometria/poligono'
 import { penetracion3D, solapeZ, type Prisma } from '../geometria/prisma'
+import type { Punto } from '../geometria/vector'
 import { cantidadMostrada, redondearAbajo, TOLERANCIA_CM } from '../geometria/tolerancia'
 import { HUECO_IGNORADO_CM, PASO_MINIMO_CM } from './constantes'
 import { obstaculosDeEstancia, penetracionEnParedes } from './estancia'
@@ -18,11 +19,24 @@ export { HUECO_IGNORADO_CM, PASO_MINIMO_CM } from './constantes'
 
 interface Pieza { e: Elemento; def: DefinicionTipo; ref: Ref; volumenes: Prisma[]; zonas: ZonaApertura[] }
 
-/** Mayor penetración 3D entre dos conjuntos de volúmenes. */
-function maxPenetracion(a: Prisma[], b: Prisma[]): number {
-  let max = -Infinity
-  for (const p of a) for (const q of b) max = Math.max(max, penetracion3D(p, q))
-  return max
+interface Par { p: number; a: Prisma; b: Prisma }
+
+/** Mayor penetración 3D entre dos conjuntos de volúmenes, con el par que la da (undefined si alguno está vacío). */
+function maxPenetracion(a: Prisma[], b: Prisma[]): Par | undefined {
+  let mejor: Par | undefined
+  for (const x of a) {
+    for (const y of b) {
+      const p = penetracion3D(x, y)
+      if (!mejor || p > mejor.p) mejor = { p, a: x, b: y }
+    }
+  }
+  return mejor
+}
+
+/** Zona en planta de un choque: intersección de las huellas del par; si saliera vacía por ruido numérico, la huella del primero. */
+function zonaDe(par: Par): Punto[] {
+  const z = interseccionConvexos(par.a.huella, par.b.huella)
+  return z.length > 0 ? z : par.a.huella
 }
 
 export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Conflicto[] {
@@ -44,18 +58,25 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
   for (const a of piezas) {
     // Fuera de la estancia.
     let sale = 0
-    for (const v of a.volumenes) sale = Math.max(sale, penetracionEnParedes(planta, v.huella))
-    if (sale > TOLERANCIA_CM) {
+    let saleVol: Prisma | undefined
+    for (const v of a.volumenes) {
+      const s = penetracionEnParedes(planta, v.huella)
+      if (s > sale) { sale = s; saleVol = v }
+    }
+    if (sale > TOLERANCIA_CM && saleVol) {
       const n = cantidadMostrada(sale)
-      conflictos.push({ tipo: 'fueraDeEstancia', gravedad: 'error', ids: [a.e.id], cantidadCm: n, mensaje: mensajeFueraDeEstancia(a.ref, n) })
+      conflictos.push({ tipo: 'fueraDeEstancia', gravedad: 'error', ids: [a.e.id], cantidadCm: n, mensaje: mensajeFueraDeEstancia(a.ref, n), zona: saleVol.huella })
     }
 
     // Techo.
     let sobra = 0
-    for (const v of a.volumenes) sobra = Math.max(sobra, v.zMax - alto)
-    if (sobra > TOLERANCIA_CM) {
+    let sobraVol: Prisma | undefined
+    for (const v of a.volumenes) {
+      if (v.zMax - alto > sobra) { sobra = v.zMax - alto; sobraVol = v }
+    }
+    if (sobra > TOLERANCIA_CM && sobraVol) {
       const n = cantidadMostrada(sobra)
-      conflictos.push({ tipo: 'techo', gravedad: 'error', ids: [a.e.id], cantidadCm: n, mensaje: mensajeTecho(a.ref, n) })
+      conflictos.push({ tipo: 'techo', gravedad: 'error', ids: [a.e.id], cantidadCm: n, mensaje: mensajeTecho(a.ref, n), zona: sobraVol.huella })
     }
 
     // Vigas.
@@ -65,18 +86,19 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
       for (const v of a.volumenes) {
         if (penetracion3D(v, viga.prisma) > TOLERANCIA_CM) { choca = true; z = Math.max(z, solapeZ(v, viga.prisma)) }
       }
-      if (choca) {
+      const par = maxPenetracion(a.volumenes, [viga.prisma])
+      if (choca && par) {
         const n = cantidadMostrada(z)
-        conflictos.push({ tipo: 'viga', gravedad: 'error', ids: [a.e.id, viga.id], cantidadCm: n, mensaje: mensajeViga(a.ref, n) })
+        conflictos.push({ tipo: 'viga', gravedad: 'error', ids: [a.e.id, viga.id], cantidadCm: n, mensaje: mensajeViga(a.ref, n), zona: zonaDe(par) })
       }
     }
 
     // Solape con columnas y radiadores.
     for (const o of fisicosNoViga) {
-      const p = maxPenetracion(a.volumenes, [o.prisma])
-      if (p > TOLERANCIA_CM) {
-        const n = cantidadMostrada(p)
-        conflictos.push({ tipo: 'solape', gravedad: 'error', ids: [a.e.id, o.id], cantidadCm: n, mensaje: mensajeSolape(a.ref, refDe(o), n) })
+      const par = maxPenetracion(a.volumenes, [o.prisma])
+      if (par && par.p > TOLERANCIA_CM) {
+        const n = cantidadMostrada(par.p)
+        conflictos.push({ tipo: 'solape', gravedad: 'error', ids: [a.e.id, o.id], cantidadCm: n, mensaje: mensajeSolape(a.ref, refDe(o), n), zona: zonaDe(par) })
       }
     }
 
@@ -84,11 +106,11 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
     for (const o of obstaculos.protegidos) {
       const esVentana = o.nombre === 'ventana'
       if (esVentana && a.def.sobreVentana) continue
-      const p = maxPenetracion(a.volumenes, [o.prisma])
-      if (p > TOLERANCIA_CM) {
+      const par = maxPenetracion(a.volumenes, [o.prisma])
+      if (par && par.p > TOLERANCIA_CM) {
         conflictos.push({
-          tipo: esVentana ? 'tapaVentana' : 'tapaRadiador', gravedad: 'error', ids: [a.e.id, o.id], cantidadCm: cantidadMostrada(p),
-          mensaje: esVentana ? mensajeTapaVentana(a.ref) : mensajeTapaRadiador(a.ref),
+          tipo: esVentana ? 'tapaVentana' : 'tapaRadiador', gravedad: 'error', ids: [a.e.id, o.id], cantidadCm: cantidadMostrada(par.p),
+          mensaje: esVentana ? mensajeTapaVentana(a.ref) : mensajeTapaRadiador(a.ref), zona: zonaDe(par),
         })
       }
     }
@@ -97,23 +119,23 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
     for (const zona of a.zonas) {
       for (const b of piezas) {
         if (b === a || b.def.pisable) continue
-        const p = maxPenetracion([zona], b.volumenes)
-        if (p > TOLERANCIA_CM) {
-          const n = cantidadMostrada(p)
-          conflictos.push({ tipo: 'apertura', gravedad: 'error', ids: [a.e.id, b.e.id], cantidadCm: n, mensaje: mensajeAperturaMueble(zona.nombre, a.ref, b.ref, n) })
+        const par = maxPenetracion([zona], b.volumenes)
+        if (par && par.p > TOLERANCIA_CM) {
+          const n = cantidadMostrada(par.p)
+          conflictos.push({ tipo: 'apertura', gravedad: 'error', ids: [a.e.id, b.e.id], cantidadCm: n, mensaje: mensajeAperturaMueble(zona.nombre, a.ref, b.ref, n), zona: zonaDe(par) })
         }
       }
       for (const o of obstaculos.fisicos) {
         const p = penetracion3D(zona, o.prisma)
         if (p > TOLERANCIA_CM) {
           const n = cantidadMostrada(p)
-          conflictos.push({ tipo: 'apertura', gravedad: 'error', ids: [a.e.id, o.id], cantidadCm: n, mensaje: mensajeAperturaMueble(zona.nombre, a.ref, refDe(o), n) })
+          conflictos.push({ tipo: 'apertura', gravedad: 'error', ids: [a.e.id, o.id], cantidadCm: n, mensaje: mensajeAperturaMueble(zona.nombre, a.ref, refDe(o), n), zona: zonaDe({ p, a: zona, b: o.prisma }) })
         }
       }
       const sale = penetracionEnParedes(planta, zona.huella)
       if (sale > TOLERANCIA_CM) {
         const n = cantidadMostrada(sale)
-        conflictos.push({ tipo: 'apertura', gravedad: 'error', ids: [a.e.id], cantidadCm: n, mensaje: mensajeAperturaMueble(zona.nombre, a.ref, PARED, n) })
+        conflictos.push({ tipo: 'apertura', gravedad: 'error', ids: [a.e.id], cantidadCm: n, mensaje: mensajeAperturaMueble(zona.nombre, a.ref, PARED, n), zona: zona.huella })
       }
     }
   }
@@ -123,29 +145,29 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
     for (let j = i + 1; j < piezas.length; j++) {
       const a = piezas[i], b = piezas[j]
       if (a.def.pisable || b.def.pisable) continue
-      const p = maxPenetracion(a.volumenes, b.volumenes)
-      if (p > TOLERANCIA_CM) {
-        const n = cantidadMostrada(p)
-        conflictos.push({ tipo: 'solape', gravedad: 'error', ids: [a.e.id, b.e.id], cantidadCm: n, mensaje: mensajeSolape(a.ref, b.ref, n) })
+      const par = maxPenetracion(a.volumenes, b.volumenes)
+      if (par && par.p > TOLERANCIA_CM) {
+        const n = cantidadMostrada(par.p)
+        conflictos.push({ tipo: 'solape', gravedad: 'error', ids: [a.e.id, b.e.id], cantidadCm: n, mensaje: mensajeSolape(a.ref, b.ref, n), zona: zonaDe(par) })
       }
     }
   }
 
   // Aperturas de la estancia (puertas y ventanas): una vez por zona de apertura y elemento, con la mayor penetración.
-  const estancia = new Map<string, { id: string; zona: ZonaApertura; b: Pieza; p: number }>()
+  const estancia = new Map<string, { id: string; zona: ZonaApertura; b: Pieza; par: Par }>()
   for (const ap of obstaculos.aperturas) {
     for (const b of piezas) {
       if (b.def.pisable) continue
-      const p = maxPenetracion([ap], b.volumenes)
-      if (p <= TOLERANCIA_CM) continue
+      const par = maxPenetracion([ap], b.volumenes)
+      if (!par || par.p <= TOLERANCIA_CM) continue
       const clave = `${ap.id}|${b.e.id}`
       const previo = estancia.get(clave)
-      if (!previo || p > previo.p) estancia.set(clave, { id: ap.id, zona: ap, b, p })
+      if (!previo || par.p > previo.par.p) estancia.set(clave, { id: ap.id, zona: ap, b, par })
     }
   }
-  for (const { id, zona, b, p } of estancia.values()) {
-    const n = cantidadMostrada(p)
-    conflictos.push({ tipo: 'apertura', gravedad: 'error', ids: [id, b.e.id], cantidadCm: n, mensaje: mensajeAperturaEstancia(zona.nombre, b.ref, n) })
+  for (const { id, zona, b, par } of estancia.values()) {
+    const n = cantidadMostrada(par.p)
+    conflictos.push({ tipo: 'apertura', gravedad: 'error', ids: [id, b.e.id], cantidadCm: n, mensaje: mensajeAperturaEstancia(zona.nombre, b.ref, n), zona: zonaDe(par) })
   }
 
   // Pasos estrechos (aviso).

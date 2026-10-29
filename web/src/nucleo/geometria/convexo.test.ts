@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { distanciaConvexos, penetracion } from './convexo'
+import { distanciaConvexos, interseccionConvexos, penetracion } from './convexo'
+import { areaConSigno } from './poligono'
 import { rectangulo } from './formas'
 import { TOLERANCIA_CM } from './tolerancia'
 
@@ -44,5 +45,30 @@ describe('convexo oblicuo', () => {
   })
   it('rombo separado <= 0', () => {
     expect(penetracion(base, rombo(50 + 70.71 + 5))).toBeLessThanOrEqual(0)
+  })
+  describe('interseccionConvexos', () => {
+    it('cuadrados 100×100 desplazados 88: área 1200', () => {
+      expect(areaConSigno(interseccionConvexos(cuadrado(0), cuadrado(88)))).toBeCloseTo(1200, 6)
+    })
+    it('separados: vacía', () => {
+      expect(interseccionConvexos(cuadrado(0), cuadrado(105))).toEqual([])
+    })
+    it('uno contenido en otro: el interior', () => {
+      const dentro = rectangulo({ x: 0, y: 0 }, 40, 40, 0)
+      const fuera = rectangulo({ x: 0, y: 0 }, 200, 200, 0)
+      expect(areaConSigno(interseccionConvexos(dentro, fuera))).toBeCloseTo(1600, 6)
+      expect(areaConSigno(interseccionConvexos(fuera, dentro))).toBeCloseTo(1600, 6)
+    })
+    it('cuadrado girado 45° sobre otro: octógono horario', () => {
+      const r = interseccionConvexos(rectangulo({ x: 0, y: 0 }, 100, 100, 0), rectangulo({ x: 0, y: 0 }, 100, 100, 45))
+      expect(r).toHaveLength(8)
+      expect(areaConSigno(r)).toBeCloseTo(8284.27, 1) // 2·(√2−1)·100²
+    })
+    it('mismo resultado con los vértices invertidos', () => {
+      const a = rectangulo({ x: 0, y: 0 }, 100, 100, 0), b = rectangulo({ x: 0, y: 0 }, 100, 100, 45)
+      const r = interseccionConvexos([...a].reverse(), [...b].reverse())
+      expect(r).toHaveLength(8)
+      expect(areaConSigno(r)).toBeCloseTo(areaConSigno(interseccionConvexos(a, b)), 6)
+    })
   })
 })
