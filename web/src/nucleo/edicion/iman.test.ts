@@ -134,3 +134,36 @@ describe('imantar', () => {
     })
   })
 })
+
+describe('imantar entre muebles: solo los que chocan', () => {
+  const de = (tipo: string, posicion: Punto, id: string): Elemento => elementoNuevo(catalogoBase.get(tipo)!, { ...posicion }, id)
+
+  it('un módulo alto soltado sobre un módulo bajo, solapando 10 cm en un borde, no se desplaza', () => {
+    const doc = sala()
+    doc.elementos.push(de('modulo-bajo', { x: 100, y: 165 }, 'bajo'))
+    const r = imantar(doc, catalogoBase, de('modulo-alto', { x: 150, y: 165 }, 'alto'), { libre: false })
+    expect(r.posicion).toEqual({ x: 150, y: 165 })
+    expect(r.pegadoA).toEqual([])
+  })
+  it('un mueble junto a una alfombra no se pega a su borde', () => {
+    const doc = sala()
+    doc.elementos.push(de('alfombra', { x: 200, y: 165 }, 'alfombra'))
+    const r = imantar(doc, catalogoBase, armario({ x: 200, y: 273 }, 0, 'a'), { libre: false })
+    expect(r.posicion).toEqual({ x: 200, y: 273 })
+    expect(r.pegadoA).toEqual([])
+  })
+  it('ni una alfombra se pega a un mueble', () => {
+    const doc = sala()
+    doc.elementos.push(armario({ x: 200, y: 273 }, 0, 'a'))
+    const r = imantar(doc, catalogoBase, de('alfombra', { x: 200, y: 165 }, 'alfombra'), { libre: false })
+    expect(r.posicion).toEqual({ x: 200, y: 165 })
+    expect(r.pegadoA).toEqual([])
+  })
+  it('dos módulos bajos sí se siguen pegando', () => {
+    const doc = sala()
+    doc.elementos.push(de('modulo-bajo', { x: 100, y: 165 }, 'b1'))
+    const r = imantar(doc, catalogoBase, de('modulo-bajo', { x: 168, y: 165 }, 'b2'), { libre: false })
+    expect(r.posicion).toEqual({ x: 160, y: 165 })
+    expect(r.pegadoA).toEqual(['b1'])
+  })
+})

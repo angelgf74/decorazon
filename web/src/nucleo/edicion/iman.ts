@@ -54,11 +54,12 @@ export function paredesTocadas(doc: DocumentoDiseno, e: Elemento): number[] {
 
 /**
  * Ajusta el giro y la posición de `e` (ya colocado donde lo pide el usuario): lo pega a la pared más cercana, y a una
- * segunda perpendicular para encajarlo en la esquina, y por los ejes que queden libres a otro mueble con el mismo giro.
+ * segunda perpendicular para encajarlo en la esquina, y por los ejes que queden libres a otro mueble con el mismo giro
+ * con el que chocaría (ni pisable ni a otra altura).
  * Con `paredes`, lo pega a esas paredes (las que ya tocaba antes de editarlo) estén a la distancia que estén.
  */
 export function imantar(
-  doc: DocumentoDiseno, _catalogo: Catalogo, e: Elemento, opciones: { libre: boolean; paredes?: number[] },
+  doc: DocumentoDiseno, catalogo: Catalogo, e: Elemento, opciones: { libre: boolean; paredes?: number[] },
 ): { posicion: Punto; rotacion: number; pegadoA: string[] } {
   const { libre } = opciones
   const { ancho, fondo } = e.medidas
@@ -105,6 +106,12 @@ export function imantar(
     if (segunda) pegar(segunda)
   }
 
+  // Entre muebles solo atrae lo que chocaría: ni lo pisable (una alfombra) ni lo que va a otra altura (un módulo alto
+  // sobre uno bajo).
+  const pisable = (x: Elemento) => catalogo.get(x.tipo)?.pisable === true
+  const solapanEnAltura = (o: Elemento) =>
+    Math.min(e.alturaSuelo + e.medidas.alto, o.alturaSuelo + o.medidas.alto) - Math.max(e.alturaSuelo, o.alturaSuelo) > TOLERANCIA_CM
+  const objetivos = pisable(e) ? [] : doc.elementos.filter(o => o.id !== e.id && !pisable(o) && solapanEnAltura(o))
   const ejes = ejesLocales(rotacion)
   ejes.forEach((u, k) => {
     if (bloqueados.has(k)) return
@@ -113,8 +120,8 @@ export function imantar(
     const [a0, a1] = proyeccion(propio, u)
     const [c0, c1] = proyeccion(propio, v)
     let mejor: { id: string; desplazamiento: number } | undefined
-    for (const o of doc.elementos) {
-      if (o.id === e.id || !mismoGiroMod90(o.rotacion, rotacion)) continue
+    for (const o of objetivos) {
+      if (!mismoGiroMod90(o.rotacion, rotacion)) continue
       const otro = rectangulo(o.posicion, o.medidas.ancho, o.medidas.fondo, o.rotacion)
       const [b0, b1] = proyeccion(otro, u)
       const [d0, d1] = proyeccion(otro, v)
