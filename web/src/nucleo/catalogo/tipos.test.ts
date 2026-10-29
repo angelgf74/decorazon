@@ -15,8 +15,8 @@ describe('artículos', () => {
   })
 })
 describe('catálogo base y aMundo', () => {
-  it('tiene los catorce tipos', () => {
-    expect([...catalogoBase.keys()].sort()).toEqual(['alfombra', 'aparador', 'armario', 'cama', 'comoda', 'escritorio', 'estanteria', 'mesa', 'mesa-centro', 'mesita', 'mueble-tv', 'silla', 'sillon', 'sofa'])
+  it('tiene los veintisiete tipos', () => {
+    expect([...catalogoBase.keys()].sort()).toEqual(['alfombra', 'aparador', 'armario', 'cama', 'columna-cocina', 'comoda', 'cortina', 'cuadro', 'encimera', 'escritorio', 'estanteria', 'fregadero', 'frigorifico', 'lampara-pie', 'lavavajillas', 'mesa', 'mesa-centro', 'mesita', 'modulo-alto', 'modulo-bajo', 'mueble-tv', 'placa', 'planta', 'silla', 'sillon', 'sofa', 'taburete'])
   })
   it('aMundo rota en horario', () => {
     const p = aMundo(elementoDe('x', 10, 10, 90, 10, 10, 10), { x: 0, y: 5 })

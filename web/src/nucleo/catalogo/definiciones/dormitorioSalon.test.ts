@@ -29,6 +29,6 @@ describe('dormitorio y salón', () => {
     expect(def('alfombra').categoria).toBe('decoracion')
     expect(def('alfombra').estancias).toEqual(['dormitorio', 'salon', 'cocina'])
     expect(def('cama').categoria).toBe('mueble')
-    for (const d of catalogoBase.values()) expect(d.alturaSueloEditable).toBe(false)
+    expect(def('cama').alturaSueloEditable).toBe(false)
   })
 })

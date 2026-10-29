@@ -1,6 +1,6 @@
-import type { Elemento, Medidas } from '../modelo/documento'
+import type { Elemento, Medidas, TipoEstancia } from '../modelo/documento'
 import type { Punto } from '../geometria/vector'
-import type { DefinicionTipo } from './tipos'
+import type { Catalogo, DefinicionTipo } from './tipos'
 
 /** Elemento recién colocado: medidas, variantes y colores por defecto. */
 export function elementoNuevo(def: DefinicionTipo, posicion: Punto, id: string = crypto.randomUUID()): Elemento {
@@ -18,4 +18,17 @@ export function elementoNuevo(def: DefinicionTipo, posicion: Punto, id: string =
 export function ajustarMedidas(def: DefinicionTipo, m: Medidas): Medidas {
   const aj = (v: number, r: { min: number; max: number }) => Math.min(r.max, Math.max(r.min, Math.round(v)))
   return { ancho: aj(m.ancho, def.medidas.ancho), fondo: aj(m.fondo, def.medidas.fondo), alto: aj(m.alto, def.medidas.alto) }
+}
+
+const porNombre = (a: DefinicionTipo, b: DefinicionTipo) => a.nombre.localeCompare(b.nombre, 'es')
+
+/** Catálogo para la paleta: muebles de la estancia, el resto de muebles y la decoración, cada grupo por nombre. */
+export function catalogoDeEstancia(catalogo: Catalogo, tipo: TipoEstancia): { deLaEstancia: DefinicionTipo[]; otros: DefinicionTipo[]; decoracion: DefinicionTipo[] } {
+  const todos = [...catalogo.values()]
+  const muebles = todos.filter((d) => d.categoria === 'mueble')
+  return {
+    deLaEstancia: muebles.filter((d) => d.estancias.includes(tipo)).sort(porNombre),
+    otros: muebles.filter((d) => !d.estancias.includes(tipo)).sort(porNombre),
+    decoracion: todos.filter((d) => d.categoria === 'decoracion').sort(porNombre),
+  }
 }
