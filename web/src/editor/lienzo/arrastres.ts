@@ -37,18 +37,18 @@ export function arrastrar(ev: PointerEventReact<Element>, alMover: (e: PointerEv
     movido = true
     alMover(e)
   }
+  // Perder la captura (la pieza desaparece, otra ventana roba el puntero…) también suelta.
+  const finales = ['pointerup', 'pointercancel', 'lostpointercapture'] as const
   const soltar = (evento: Event) => {
     if ((evento as PointerEvent).pointerId !== pointerId) return
     el.removeEventListener('pointermove', mover)
-    el.removeEventListener('pointerup', soltar)
-    el.removeEventListener('pointercancel', soltar)
+    for (const tipo of finales) el.removeEventListener(tipo, soltar)
     enCurso = false
     if (movido) almacen.getState().terminarGrupo()
     alSoltar?.()
   }
   el.addEventListener('pointermove', mover)
-  el.addEventListener('pointerup', soltar)
-  el.addEventListener('pointercancel', soltar)
+  for (const tipo of finales) el.addEventListener(tipo, soltar)
 }
 
 /** Arrastra un punto entero (un extremo, un centro) siguiendo al puntero desde donde se pulsó. */

@@ -13,6 +13,8 @@ export function useAtajos(): void {
   useEffect(() => {
     function alPulsar(e: KeyboardEvent) {
       if (enCampo(e.target) || document.querySelector('dialog[open]') !== null) return
+      // Mientras una pieza sigue al puntero, solo Escape actúa: lo que edita espera a que se suelte.
+      if (hayArrastre() && e.key !== 'Escape') return
       const e0 = almacen.getState()
       const mando = e.ctrlKey || e.metaKey
       const tecla = e.key.toLowerCase()
@@ -26,7 +28,6 @@ export function useAtajos(): void {
         e0.seleccionar(null)
       } else if (e0.paso === 2 && e0.seleccion?.tipo === 'elemento') {
         const id = e0.seleccion.id
-        if (hayArrastre()) return
         if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault()
           borrar(id)

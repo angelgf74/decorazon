@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { anadirElemento, catalogoBase } from '../nucleo'
 import { almacen, reiniciarAlmacen } from './estado/almacen'
+import { hayArrastre } from './lienzo/arrastres'
 import Lienzo from './lienzo/Lienzo'
 import { useAtajos } from './usarAtajos'
 
@@ -161,5 +162,62 @@ describe('usarAtajos durante un arrastre', () => {
     fireEvent.pointerUp(huella, { pointerId: 1 })
     fireEvent.keyDown(window, { key: 'r' })
     expect(almacen.getState().documento!.elementos[0]!.rotacion).toBe(90)
+  })
+})
+
+describe('usarAtajos durante un arrastre: todo lo que edita espera', () => {
+  it('Ctrl+Z y Ctrl+Y no actúan hasta soltar', () => {
+    const r = anadirElemento(almacen.getState().documento!, catalogoBase, 'mesa', { x: 200, y: 165 })
+    almacen.getState().cambiar(() => r.documento)
+    almacen.getState().irAPaso(2)
+    render(<><Sonda /><Lienzo /></>)
+    const huella = document.querySelector(`[data-elemento="${r.id}"] polygon`)
+    if (!huella) throw new Error('sin huella')
+    const posicion = () => almacen.getState().documento!.elementos[0]!.posicion
+    // Con algo que rehacer, pulsar sin mover ya es arrastre: Ctrl+Y espera.
+    almacen.getState().cambiar((d) => ({ ...d, estancia: { ...d.estancia, alto: 270 } }))
+    almacen.getState().deshacer()
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 200, clientY: 165 })
+    fireEvent.keyDown(window, { key: 'y', ctrlKey: true })
+    expect(almacen.getState().documento!.estancia.alto).toBe(260)
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 230, clientY: 165 })
+    expect(posicion()).toEqual({ x: 230, y: 165 })
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    expect(posicion()).toEqual({ x: 230, y: 165 })
+    fireEvent.pointerUp(huella, { pointerId: 1 })
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    expect(posicion()).toEqual({ x: 200, y: 165 })
+  })
+
+  it('Supr del paso 1 no quita la abertura que se está arrastrando', () => {
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      aberturas: [{ id: 'v', tipo: 'ventana', pared: 0, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false }],
+    }))
+    render(<><Sonda /><Lienzo /></>)
+    const vano = document.querySelector('[data-abertura="v"] polygon')
+    if (!vano) throw new Error('sin vano')
+    fireEvent.pointerDown(vano, { pointerId: 1, clientX: 100, clientY: 0 })
+    fireEvent.keyDown(window, { key: 'Delete' })
+    expect(almacen.getState().documento!.aberturas).toHaveLength(1)
+    fireEvent.pointerUp(vano, { pointerId: 1 })
+    fireEvent.keyDown(window, { key: 'Delete' })
+    expect(almacen.getState().documento!.aberturas).toHaveLength(0)
+  })
+
+  it('perder la captura del puntero cuenta como soltar', () => {
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      aberturas: [{ id: 'v', tipo: 'ventana', pared: 0, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false }],
+    }))
+    render(<><Sonda /><Lienzo /></>)
+    const vano = document.querySelector('[data-abertura="v"] polygon')
+    if (!vano) throw new Error('sin vano')
+    fireEvent.pointerDown(vano, { pointerId: 1, clientX: 100, clientY: 0 })
+    expect(hayArrastre()).toBe(true)
+    fireEvent.lostPointerCapture(vano, { pointerId: 1 })
+    expect(hayArrastre()).toBe(false)
+    fireEvent.keyDown(window, { key: 'Delete' })
+    expect(almacen.getState().documento!.aberturas).toHaveLength(0)
   })
 })
