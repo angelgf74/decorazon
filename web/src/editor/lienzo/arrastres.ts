@@ -37,18 +37,26 @@ export function arrastrar(ev: PointerEventReact<Element>, alMover: (e: PointerEv
     movido = true
     alMover(e)
   }
-  // Perder la captura (la pieza desaparece, otra ventana roba el puntero…) también suelta.
+  // Perder la captura (otra ventana roba el puntero…) también suelta. Si la pieza se desmonta a mitad (Escape quita
+  // el tirador), sus eventos ya no llegan: la ventana y el documento también escuchan, y el cierre solo actúa una vez.
   const finales = ['pointerup', 'pointercancel', 'lostpointercapture'] as const
+  const enVentana = ['pointerup', 'pointercancel'] as const
+  let cerrado = false
   const soltar = (evento: Event) => {
-    if ((evento as PointerEvent).pointerId !== pointerId) return
+    if (cerrado || (evento as PointerEvent).pointerId !== pointerId) return
+    cerrado = true
     el.removeEventListener('pointermove', mover)
     for (const tipo of finales) el.removeEventListener(tipo, soltar)
+    for (const tipo of enVentana) window.removeEventListener(tipo, soltar)
+    document.removeEventListener('lostpointercapture', soltar)
     enCurso = false
     if (movido) almacen.getState().terminarGrupo()
     alSoltar?.()
   }
   el.addEventListener('pointermove', mover)
   for (const tipo of finales) el.addEventListener(tipo, soltar)
+  for (const tipo of enVentana) window.addEventListener(tipo, soltar)
+  document.addEventListener('lostpointercapture', soltar)
 }
 
 /** Arrastra un punto entero (un extremo, un centro) siguiendo al puntero desde donde se pulsó. */

@@ -221,3 +221,41 @@ describe('usarAtajos durante un arrastre: todo lo que edita espera', () => {
     expect(almacen.getState().documento!.aberturas).toHaveLength(0)
   })
 })
+
+describe('usarAtajos: un arrastre cuya pieza desaparece', () => {
+  it('Escape durante el giro desmonta el tirador y soltar en la ventana termina el arrastre', () => {
+    const r = anadirElemento(almacen.getState().documento!, catalogoBase, 'mesa', { x: 200, y: 165 })
+    almacen.getState().cambiar(() => r.documento)
+    almacen.getState().irAPaso(2)
+    almacen.getState().seleccionar({ tipo: 'elemento', id: r.id })
+    render(<><Sonda /><Lienzo /></>)
+    const tirador = document.querySelector('[data-giro]')
+    if (!tirador) throw new Error('sin tirador')
+    const giro = () => almacen.getState().documento!.elementos[0]!.rotacion
+    const { x, y } = { x: Number(tirador.getAttribute('cx')), y: Number(tirador.getAttribute('cy')) }
+    fireEvent.pointerDown(tirador, { pointerId: 1, clientX: x, clientY: y })
+    fireEvent.pointerMove(tirador, { pointerId: 1, clientX: 110, clientY: 165 })
+    expect(giro()).toBe(90)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(document.querySelector('[data-giro]')).toBeNull()
+    fireEvent.pointerUp(window, { pointerId: 1 })
+    expect(hayArrastre()).toBe(false)
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    expect(giro()).toBe(0)
+  })
+
+  it('otro puntero que se suelta en la ventana no termina el arrastre', () => {
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      aberturas: [{ id: 'v', tipo: 'ventana', pared: 0, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false }],
+    }))
+    render(<><Sonda /><Lienzo /></>)
+    const vano = document.querySelector('[data-abertura="v"] polygon')
+    if (!vano) throw new Error('sin vano')
+    fireEvent.pointerDown(vano, { pointerId: 1, clientX: 100, clientY: 0 })
+    fireEvent.pointerUp(window, { pointerId: 2 })
+    expect(hayArrastre()).toBe(true)
+    fireEvent.pointerCancel(window, { pointerId: 1 })
+    expect(hayArrastre()).toBe(false)
+  })
+})
