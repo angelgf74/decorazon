@@ -62,6 +62,17 @@ public class RestablecerContrasenaTests
     }
 
     [Fact]
+    public async Task SiElMismoEnlaceSeUsaALaVezYElOtroGuardaAntes_EnlaceNoValido()
+    {
+        var (_, token) = await PedirRestablecimiento();
+        _usuarios.OtroSeAdelanta = true;
+
+        var resultado = await CasoDeUso.EjecutarAsync(token, ContrasenaNueva);
+
+        Assert.Equal(ResultadoDeRestablecerContrasena.EnlaceNoValido, resultado);
+    }
+
+    [Fact]
     public async Task TokenCaducado_NoCambiaNada()
     {
         var (usuario, token) = await PedirRestablecimiento();

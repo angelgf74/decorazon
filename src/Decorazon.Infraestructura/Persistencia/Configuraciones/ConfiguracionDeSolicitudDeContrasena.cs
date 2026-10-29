@@ -48,7 +48,11 @@ public sealed class ConfiguracionDeSolicitudDeContrasena : IEntityTypeConfigurat
             .HasColumnName("fecha_de_caducidad")
             .IsRequired();
 
+        // Token de concurrencia: consumir o invalidar añade "WHERE fecha_de_consumo IS NULL"
+        // al UPDATE. Dos usos simultáneos del mismo enlace pasan los dos la comprobación en
+        // memoria, pero solo el primero escribe; el segundo falla y el adaptador lo traduce.
         constructor.Property(solicitud => solicitud.FechaDeConsumo)
-            .HasColumnName("fecha_de_consumo");
+            .HasColumnName("fecha_de_consumo")
+            .IsConcurrencyToken();
     }
 }

@@ -34,9 +34,9 @@ public sealed class RepositorioDeSolicitudesDeRegistroEf(DecorazonDbContext cont
 
         // Guarda también las invalidaciones de solicitudes anteriores que el caso
         // de uso haya hecho sobre entidades ya rastreadas por el contexto.
-        await contexto.SaveChangesAsync(cancelacion);
+        await GuardadoDeSolicitudes.GuardarNuevaAsync(contexto, cancelacion);
     }
 
-    public Task GuardarCambiosAsync(CancellationToken cancelacion = default) =>
-        contexto.SaveChangesAsync(cancelacion);
+    public Task<bool> GuardarCambiosAsync(CancellationToken cancelacion = default) =>
+        GuardadoDeSolicitudes.GuardarConsumoAsync(contexto, cancelacion);
 }

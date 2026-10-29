@@ -52,7 +52,7 @@ public sealed class CompletarRegistro(
 
         // Carrera posible: dos solicitudes vivas para el mismo correo completadas a la vez.
         // La comprobación cubre el caso normal; el índice único de la base de datos
-        // es la red de seguridad ante la simultaneidad real.
+        // es la red de seguridad ante la simultaneidad real (AnadirAsync devuelve false).
         if (await usuarios.ExisteConCorreoAsync(solicitud.Correo, cancelacion))
         {
             // Se persiste el consumo igualmente: el token ya se ha gastado y no
@@ -77,7 +77,13 @@ public sealed class CompletarRegistro(
             solicitud.DescartarDiseno();
         }
 
-        await usuarios.AnadirAsync(usuario, cancelacion);
+        // false: otra alta del mismo correo, o el mismo enlace usado a la vez, llegó antes.
+        // No se ha escrito nada, y para quien llama es un enlace que ya no sirve.
+        if (!await usuarios.AnadirAsync(usuario, cancelacion))
+        {
+            return ResultadoDeCompletarRegistro.EnlaceNoValido;
+        }
+
         await solicitudes.GuardarCambiosAsync(cancelacion);
 
         return ResultadoDeCompletarRegistro.Completado;

@@ -30,15 +30,33 @@ public sealed class RepositorioDeUsuariosEnMemoria : IRepositorioDeUsuarios
     public Task<int?> ObtenerVersionDeCredencialesAsync(Guid id, CancellationToken cancelacion = default) =>
         Task.FromResult((int?)_usuarios.FirstOrDefault(usuario => usuario.Id == id)?.VersionDeCredenciales);
 
-    public Task AnadirAsync(Usuario usuario, CancellationToken cancelacion = default)
+    /// <summary>
+    /// Si está a <c>true</c>, el próximo guardado simula que otro se adelantó (otra alta
+    /// del mismo correo, el enlace ya usado, la cuenta borrada): devuelve <c>false</c> y no guarda.
+    /// </summary>
+    public bool OtroSeAdelanta { get; set; }
+
+    public Task<bool> AnadirAsync(Usuario usuario, CancellationToken cancelacion = default)
     {
+        if (Adelantado())
+        {
+            return Task.FromResult(false);
+        }
+
         _usuarios.Add(usuario);
-        return Task.CompletedTask;
+        return Task.FromResult(true);
     }
 
     /// <summary>Los objetos son los mismos que guarda la lista: mutarlos ya los "persiste".</summary>
-    public Task ActualizarAsync(Usuario usuario, CancellationToken cancelacion = default) =>
-        Task.CompletedTask;
+    public Task<bool> ActualizarAsync(Usuario usuario, CancellationToken cancelacion = default) =>
+        Task.FromResult(!Adelantado());
+
+    private bool Adelantado()
+    {
+        var adelantado = OtroSeAdelanta;
+        OtroSeAdelanta = false;
+        return adelantado;
+    }
 
     /// <summary>Simula que la cuenta desaparece entre dos pasos de un flujo.</summary>
     public void Quitar(Usuario usuario) => _usuarios.Remove(usuario);
@@ -67,7 +85,7 @@ public sealed class RepositorioDeSolicitudesDeContrasenaEnMemoria : IRepositorio
         return Task.CompletedTask;
     }
 
-    public Task GuardarCambiosAsync(CancellationToken cancelacion = default) => Task.CompletedTask;
+    public Task<bool> GuardarCambiosAsync(CancellationToken cancelacion = default) => Task.FromResult(true);
 }
 
 public sealed class RepositorioDeSolicitudesEnMemoria : IRepositorioDeSolicitudesDeRegistro
@@ -103,10 +121,10 @@ public sealed class RepositorioDeSolicitudesEnMemoria : IRepositorioDeSolicitude
         return Task.CompletedTask;
     }
 
-    public Task GuardarCambiosAsync(CancellationToken cancelacion = default)
+    public Task<bool> GuardarCambiosAsync(CancellationToken cancelacion = default)
     {
         GuardadosSolicitados++;
-        return Task.CompletedTask;
+        return Task.FromResult(true);
     }
 }
 

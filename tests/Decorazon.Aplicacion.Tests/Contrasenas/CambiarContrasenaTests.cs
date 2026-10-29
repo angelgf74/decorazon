@@ -60,6 +60,18 @@ public class CambiarContrasenaTests
     }
 
     [Fact]
+    public async Task SiLaCuentaSeBorraAntesDeGuardar_CredencialesIncorrectasYSinAviso()
+    {
+        var usuario = await DarDeAltaUsuario();
+        _usuarios.OtroSeAdelanta = true;
+
+        var resultado = await CasoDeUso.EjecutarAsync(usuario.Id, ContrasenaActual, ContrasenaNueva);
+
+        Assert.Equal(ResultadoDeCambioDeContrasena.CredencialesIncorrectas, resultado);
+        Assert.Empty(_correo.ConfirmacionesDeCambioDeContrasena);
+    }
+
+    [Fact]
     public async Task UsuarioInexistente_RespondeLoMismoQueUnaContrasenaIncorrecta()
     {
         var resultado = await CasoDeUso.EjecutarAsync(Guid.NewGuid(), ContrasenaActual, ContrasenaNueva);

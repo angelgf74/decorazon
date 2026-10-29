@@ -71,6 +71,18 @@ public class CompletarRegistroTests
     }
 
     [Fact]
+    public async Task SiOtraAltaDelMismoCorreoLlegaAntesAlGuardar_EnlaceNoValido()
+    {
+        var token = await PedirAltaDe("alguien@ejemplo.com");
+        _usuarios.OtroSeAdelanta = true;
+
+        var resultado = await CasoDeUso.EjecutarAsync(token, NombreValido, ContrasenaValida);
+
+        Assert.Equal(ResultadoDeCompletarRegistro.EnlaceNoValido, resultado);
+        Assert.Empty(_usuarios.Todos);
+    }
+
+    [Fact]
     public async Task TokenCaducado_NoCreaCuenta()
     {
         var token = await PedirAltaDe("alguien@ejemplo.com");

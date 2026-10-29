@@ -59,7 +59,12 @@ public sealed class CambiarContrasena(
         }
 
         usuario.CambiarContrasena(hasheador.Hashear(nueva), reloj.Ahora);
-        await usuarios.ActualizarAsync(usuario, cancelacion);
+
+        // false: la cuenta se borró entre leerla y guardarla. Igual que si no existiera.
+        if (!await usuarios.ActualizarAsync(usuario, cancelacion))
+        {
+            return ResultadoDeCambioDeContrasena.CredencialesIncorrectas;
+        }
 
         await AvisarAsync(usuario.Correo, cancelacion);
 

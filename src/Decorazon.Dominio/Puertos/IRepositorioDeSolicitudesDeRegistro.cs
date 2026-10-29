@@ -31,5 +31,6 @@ public interface IRepositorioDeSolicitudesDeRegistro
     /// reordenar dos líneas del caso de uso dejaría un token consumido sin registrar,
     /// reutilizable para crear una segunda cuenta.
     /// </summary>
-    Task GuardarCambiosAsync(CancellationToken cancelacion = default);
+    /// <returns><c>false</c> si otro consumió o invalidó la solicitud entretanto: no se guardó nada.</returns>
+    Task<bool> GuardarCambiosAsync(CancellationToken cancelacion = default);
 }

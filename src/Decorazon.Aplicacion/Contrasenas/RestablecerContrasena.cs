@@ -57,7 +57,13 @@ public sealed class RestablecerContrasena(
         // que este guardado escribe también el consumo del token, en una sola
         // transacción. La llamada siguiente es explícita para que la atomicidad no
         // dependa de ese detalle del adaptador.
-        await usuarios.ActualizarAsync(usuario, cancelacion);
+        if (!await usuarios.ActualizarAsync(usuario, cancelacion))
+        {
+            // El mismo enlace se usó a la vez en otra petición, que llegó antes, o la cuenta
+            // se borró entretanto. No se ha cambiado nada.
+            return ResultadoDeRestablecerContrasena.EnlaceNoValido;
+        }
+
         await solicitudes.GuardarCambiosAsync(cancelacion);
 
         return ResultadoDeRestablecerContrasena.Restablecida;

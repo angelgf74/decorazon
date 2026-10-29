@@ -89,6 +89,7 @@ namespace Decorazon.Infraestructura.Migrations
                         .HasColumnName("fecha_de_caducidad");
 
                     b.Property<DateTimeOffset?>("FechaDeConsumo")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_de_consumo");
 
@@ -146,6 +147,7 @@ namespace Decorazon.Infraestructura.Migrations
                         .HasColumnName("fecha_de_caducidad");
 
                     b.Property<DateTimeOffset?>("FechaDeConsumo")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_de_consumo");
 

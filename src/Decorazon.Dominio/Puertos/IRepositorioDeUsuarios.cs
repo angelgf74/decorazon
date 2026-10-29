@@ -25,8 +25,17 @@ public interface IRepositorioDeUsuarios
     /// (p. ej. el diseño nuevo y la solicitud consumida de <c>CompletarRegistro</c>):
     /// todo en una sola transacción. Un adaptador que no comparta contexto no da esa garantía.
     /// </summary>
-    Task AnadirAsync(Usuario usuario, CancellationToken cancelacion = default);
+    /// <returns>
+    /// <c>false</c> si no se guardó nada: ya existe una cuenta con ese correo (otra alta
+    /// simultánea llegó antes) o algo de lo que se guardaba a la vez lo cambió otro
+    /// entretanto (p. ej. el enlace ya se consumió).
+    /// </returns>
+    Task<bool> AnadirAsync(Usuario usuario, CancellationToken cancelacion = default);
 
     /// <summary>Persiste los cambios sobre un usuario ya existente.</summary>
-    Task ActualizarAsync(Usuario usuario, CancellationToken cancelacion = default);
+    /// <returns>
+    /// <c>false</c> si no se guardó nada: la cuenta se borró entretanto, o algo de lo que
+    /// se guardaba a la vez lo cambió otro (p. ej. el enlace de contraseña ya se consumió).
+    /// </returns>
+    Task<bool> ActualizarAsync(Usuario usuario, CancellationToken cancelacion = default);
 }
