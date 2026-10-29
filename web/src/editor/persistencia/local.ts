@@ -70,6 +70,8 @@ export function conectarPersistencia(a: StoreApi<EstadoEditor>, st: Storage | nu
     a.getState().marcarGuardado(guardarDisenoLocal(st, a.getState().documento) ? 'guardado' : 'error')
   }
 
+  if (st === null) a.getState().marcarGuardado('error')
+
   const desuscribir = a.subscribe((estado, previo) => {
     if (estado.documento === previo.documento) return
     pendiente = true
@@ -86,7 +88,7 @@ export function conectarPersistencia(a: StoreApi<EstadoEditor>, st: Storage | nu
 
   return () => {
     desuscribir()
-    clearTimeout(temporizador)
+    guardarYa()
     globalThis.removeEventListener?.('pagehide', guardarYa)
     globalThis.document?.removeEventListener('visibilitychange', alOcultar)
   }

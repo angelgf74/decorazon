@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { documentoNuevo } from '../../nucleo'
 import { crearAlmacen } from '../estado/almacen'
@@ -20,8 +21,18 @@ function falso(): Storage & { escrituras: number } {
 const doc = documentoNuevo('salon', 400, 300, 250)
 const alto = (n: number) => (d: typeof doc): typeof doc => ({ ...d, estancia: { ...d.estancia, alto: n } })
 
+const desconectadores: Array<() => void> = []
+const conectar: typeof conectarPersistencia = (...args) => {
+  const d = conectarPersistencia(...args)
+  desconectadores.push(d)
+  return d
+}
+
 beforeEach(() => vi.useFakeTimers())
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+  desconectadores.splice(0).forEach((d) => d())
+  vi.useRealTimers()
+})
 
 describe('local', () => {
   it('guardar y leer da el mismo documento', () => {
@@ -62,7 +73,7 @@ describe('local', () => {
     st.setItem = () => { throw new DOMException('lleno', 'QuotaExceededError') }
     expect(guardarDisenoLocal(st, doc)).toBe(false)
     const a = crearAlmacen()
-    conectarPersistencia(a, st)
+    conectar(a, st)
     a.getState().crear('salon', 400, 300, 250)
     vi.advanceTimersByTime(500)
     expect(a.getState().guardado).toBe('error')
@@ -71,7 +82,7 @@ describe('local', () => {
   it('agrupa cambios: una escritura 500 ms después del último', () => {
     const st = falso()
     const a = crearAlmacen()
-    const desconectar = conectarPersistencia(a, st)
+    const desconectar = conectar(a, st)
     a.getState().crear('salon', 400, 300, 250)
     vi.advanceTimersByTime(100)
     a.getState().cambiar(alto(260))
@@ -90,12 +101,56 @@ describe('local', () => {
   it('descartar borra la clave', () => {
     const st = falso()
     const a = crearAlmacen()
-    conectarPersistencia(a, st)
+    conectar(a, st)
     a.getState().crear('salon', 400, 300, 250)
     vi.advanceTimersByTime(500)
     expect(st.getItem(CLAVE_DISENO)).not.toBeNull()
     a.getState().descartar()
     vi.advanceTimersByTime(500)
     expect(st.getItem(CLAVE_DISENO)).toBeNull()
+  })
+
+  it('desconectar con un cambio pendiente guarda sin esperar', () => {
+    const st = falso()
+    const a = crearAlmacen()
+    const desconectar = conectar(a, st)
+    a.getState().crear('salon', 400, 300, 250)
+    a.getState().cambiar(alto(280))
+    desconectar()
+    expect(leerDisenoLocal(st)?.estancia.alto).toBe(280)
+    expect(a.getState().guardado).toBe('guardado')
+    vi.advanceTimersByTime(1000)
+    expect(st.escrituras).toBe(1)
+  })
+
+  it('sin almacenamiento, conectar marca error', () => {
+    const a = crearAlmacen()
+    conectar(a, null)
+    expect(a.getState().guardado).toBe('error')
+  })
+
+  it('pagehide guarda al momento', () => {
+    const st = falso()
+    const a = crearAlmacen()
+    conectar(a, st)
+    a.getState().crear('salon', 400, 300, 250)
+    expect(st.escrituras).toBe(0)
+    globalThis.dispatchEvent(new Event('pagehide'))
+    expect(st.escrituras).toBe(1)
+    expect(a.getState().guardado).toBe('guardado')
+  })
+
+  it('visibilitychange a hidden guarda al momento; a visible no', () => {
+    const st = falso()
+    const a = crearAlmacen()
+    conectar(a, st)
+    a.getState().crear('salon', 400, 300, 250)
+    let estado: DocumentVisibilityState = 'visible'
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => estado)
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(st.escrituras).toBe(0)
+    estado = 'hidden'
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(st.escrituras).toBe(1)
   })
 })
