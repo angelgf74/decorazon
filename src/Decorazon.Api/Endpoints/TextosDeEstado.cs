@@ -40,6 +40,8 @@ public static class TextosDeEstado
             "Este formato de diseño no se admite. Recarga la página e inténtalo de nuevo.",
         ResultadoDeContenido.FaltanPartes =>
             "Al contenido del diseño le faltan partes: estancia, aberturas, estructura o elementos.",
+        ResultadoDeContenido.NumeroNoAdmitido =>
+            $"El diseño tiene un número que no se admite: sin exponente y de {ContenidoDeDiseno.LongitudMaximaDeNumero} caracteres como mucho.",
         _ => "El contenido del diseño no es válido."
     };
 }

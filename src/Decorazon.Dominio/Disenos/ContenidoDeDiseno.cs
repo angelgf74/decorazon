@@ -12,6 +12,9 @@ public enum ResultadoDeContenido
     NoEsObjeto,
     FormatoNoAdmitido,
     FaltanPartes,
+
+    /// <summary>Un número con exponente o de más de <see cref="ContenidoDeDiseno.LongitudMaximaDeNumero"/> caracteres.</summary>
+    NumeroNoAdmitido,
 }
 
 /// <summary>
@@ -22,6 +25,9 @@ public enum ResultadoDeContenido
 public sealed record ContenidoDeDiseno
 {
     public const int TamanoMaximoEnBytes = 1_048_576;
+
+    /// <summary>Caracteres del texto crudo de un número, signo y punto incluidos.</summary>
+    public const int LongitudMaximaDeNumero = 32;
 
     public static readonly IReadOnlySet<int> FormatosAdmitidos = new HashSet<int> { 1 };
 
@@ -66,7 +72,10 @@ public sealed record ContenidoDeDiseno
 
             using var documento = JsonDocument.Parse(Estricta.GetBytes(json));
             var raiz = documento.RootElement;
-            ComprobarTextos(raiz);
+            if (!ComprobarValores(raiz))
+            {
+                return ResultadoDeContenido.NumeroNoAdmitido;
+            }
 
             if (raiz.ValueKind != JsonValueKind.Object)
             {
@@ -99,35 +108,56 @@ public sealed record ContenidoDeDiseno
     }
 
     /// <summary>
-    /// Fuerza la lectura de cada cadena y nombre de propiedad. El analizador acepta un
-    /// escape de sustituto suelto (<c>"\uD800"</c>) y solo falla al materializar el texto;
-    /// jsonb de PostgreSQL tampoco lo admite, ni el carácter nulo (<c>"0000"</c>).
+    /// Recorre todo el documento. Fuerza la lectura de cada cadena y nombre de propiedad:
+    /// el analizador acepta un escape de sustituto suelto (<c>"\uD800"</c>) y solo falla al
+    /// materializar el texto, y jsonb de PostgreSQL tampoco lo admite, ni el escape del
+    /// carácter nulo (<c>"\u0000"</c>). Esos casos lanzan <see cref="JsonException"/>.
     /// Mejor descubrirlo aquí que al guardar.
     /// </summary>
-    private static void ComprobarTextos(JsonElement elemento)
+    /// <returns>
+    /// <c>false</c> si hay un número que no se admite. jsonb guarda cada número como
+    /// <c>numeric</c> exacto: <c>1e200000</c> se expandiría a doscientos mil dígitos o
+    /// haría fallar el guardado (22003). El editor solo escribe cotas en notación
+    /// decimal corta, así que basta con rechazar el exponente y los textos largos.
+    /// </returns>
+    private static bool ComprobarValores(JsonElement elemento)
     {
         switch (elemento.ValueKind)
         {
             case JsonValueKind.String:
                 SinNulo(elemento.GetString());
-                break;
+                return true;
+            case JsonValueKind.Number:
+                return EsNumeroAdmitido(elemento.GetRawText());
             case JsonValueKind.Array:
                 foreach (var hijo in elemento.EnumerateArray())
                 {
-                    ComprobarTextos(hijo);
+                    if (!ComprobarValores(hijo))
+                    {
+                        return false;
+                    }
                 }
 
-                break;
+                return true;
             case JsonValueKind.Object:
                 foreach (var propiedad in elemento.EnumerateObject())
                 {
                     SinNulo(propiedad.Name);
-                    ComprobarTextos(propiedad.Value);
+                    if (!ComprobarValores(propiedad.Value))
+                    {
+                        return false;
+                    }
                 }
 
-                break;
+                return true;
+            default:
+                return true;
         }
     }
+
+    private static bool EsNumeroAdmitido(string textoCrudo) =>
+        textoCrudo.Length <= LongitudMaximaDeNumero
+        && textoCrudo.IndexOfAny(['e', 'E']) < 0;
 
     private static void SinNulo(string? texto)
     {

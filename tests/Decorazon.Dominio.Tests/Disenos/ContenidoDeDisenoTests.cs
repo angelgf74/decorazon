@@ -111,13 +111,55 @@ public class ContenidoDeDisenoTests
     }
 
     [Theory]
-    [InlineData("1e400")]
     [InlineData("1.0")]
     public void Validar_exige_un_formato_entero(string formato)
     {
         var json = "{\"formato\":" + formato + ",\"estancia\":{},\"aberturas\":[],\"estructura\":[],\"elementos\":[]}";
 
         Assert.Equal(ResultadoDeContenido.FormatoNoAdmitido, ContenidoDeDiseno.Validar(json, out _));
+    }
+
+    // PostgreSQL convierte cada número a numeric al guardar en jsonb: "1e200000" son
+    // doscientos mil dígitos (o un error 22003), y eso no debe llegar a la base de datos.
+    [Theory]
+    [InlineData("1e200000")]
+    [InlineData("1E5")]
+    [InlineData("2.5e-3")]
+    [InlineData("1234567890123456789012345678901234567890")]
+    public void Validar_rechaza_numeros_con_exponente_o_demasiado_largos(string numero)
+    {
+        var json = "{\"formato\":1,\"estancia\":{\"ancho\":" + numero + "},\"aberturas\":[],\"estructura\":[],\"elementos\":[]}";
+
+        Assert.Equal(ResultadoDeContenido.NumeroNoAdmitido, ContenidoDeDiseno.Validar(json, out var contenido));
+        Assert.Null(contenido);
+    }
+
+    [Fact]
+    public void Validar_rechaza_un_formato_con_exponente_como_numero_no_admitido()
+    {
+        var json = """{"formato":1e400,"estancia":{},"aberturas":[],"estructura":[],"elementos":[]}""";
+
+        Assert.Equal(ResultadoDeContenido.NumeroNoAdmitido, ContenidoDeDiseno.Validar(json, out _));
+    }
+
+    [Fact]
+    public void Validar_rechaza_numeros_no_admitidos_tambien_dentro_de_arrays()
+    {
+        var json = """{"formato":1,"estancia":{},"aberturas":[],"estructura":[],"elementos":[{"x":[1,2,3e2]}]}""";
+
+        Assert.Equal(ResultadoDeContenido.NumeroNoAdmitido, ContenidoDeDiseno.Validar(json, out _));
+    }
+
+    [Theory]
+    [InlineData("-12.5")]
+    [InlineData("0")]
+    [InlineData("400")]
+    [InlineData("12345678901234567890123456789012")]
+    public void Validar_acepta_numeros_normales(string numero)
+    {
+        var json = "{\"formato\":1,\"estancia\":{\"ancho\":" + numero + "},\"aberturas\":[],\"estructura\":[],\"elementos\":[]}";
+
+        Assert.Equal(ResultadoDeContenido.Valido, ContenidoDeDiseno.Validar(json, out _));
     }
 
     private static string Resultado(string json) => ContenidoDeDiseno.Validar(json, out _).ToString();

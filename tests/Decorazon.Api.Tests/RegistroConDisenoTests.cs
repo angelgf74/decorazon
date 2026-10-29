@@ -85,6 +85,8 @@ public class RegistroConDisenoTests(ApiConPostgresFixture api) : IClassFixture<A
     [InlineData("""{"tipoEstancia":"salon","contenido":{"formato":2,"estancia":{},"aberturas":[],"estructura":[],"elementos":[]}}""")]
     [InlineData("""{"tipoEstancia":"salon","contenido":{"formato":1,"estancia":{"n":"\uD800"},"aberturas":[],"estructura":[],"elementos":[]}}""")]
     [InlineData("""{"tipoEstancia":"salon","contenido":{"formato":1,"estancia":{"n":"\u0000"},"aberturas":[],"estructura":[],"elementos":[]}}""")]
+    [InlineData("""{"tipoEstancia":"salon","contenido":{"formato":1,"estancia":{"ancho":1e200000},"aberturas":[],"estructura":[],"elementos":[]}}""")]
+    [InlineData("""{"tipoEstancia":"salon","contenido":{"formato":1,"estancia":{"ancho":1234567890123456789012345678901234567890},"aberturas":[],"estructura":[],"elementos":[]}}""")]
     public async Task DisenoNoValido_Responde400ConMensaje_YNoEnviaCorreo(string diseno)
     {
         var correo = CorreoUnico();

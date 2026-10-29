@@ -250,6 +250,19 @@ public class DisenosTests(ApiConPostgresFixture api) : IClassFixture<ApiConPostg
         Assert.True(MismoJson(DisenosDePrueba.ContenidoMinimo, actual.Contenido.GetRawText()));
     }
 
+    [Fact]
+    public async Task NumeroConExponente_Responde400ConUnMensajeQueLoNombra()
+    {
+        var cliente = await CuentasDePrueba.ConSesionAsync(api);
+
+        var respuesta = await cliente.PostAsync("/disenos", DisenosDePrueba.CuerpoCrudo(
+            """{"nombre":"Exponente","tipoEstancia":"salon","contenido":{"formato":1,"estancia":{"ancho":1e200000},"aberturas":[],"estructura":[],"elementos":[]}}"""));
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        var error = await respuesta.Content.ReadFromJsonAsync<RespuestaDeError>();
+        Assert.Contains("número", error!.Mensaje);
+    }
+
     public static TheoryData<string> ContenidosHostiles()
     {
         const string Envoltorio = """{"nombre":"Hostil","tipoEstancia":"salon","contenido":%}""";
@@ -269,6 +282,10 @@ public class DisenosTests(ApiConPostgresFixture api) : IClassFixture<ApiConPostg
             Con("""{"formato":1,"estancia":{"nota":"\uD800"},"aberturas":[],"estructura":[],"elementos":[]}"""),
             Con("""{"formato":1,"estancia":{"nota":"a\u0000b"},"aberturas":[],"estructura":[],"elementos":[]}"""),
             Con("""{"formato":1,"estancia":{"\u0000":1},"aberturas":[],"estructura":[],"elementos":[]}"""),
+            // jsonb expandiría el exponente a numeric: sin el filtro del dominio era un 500.
+            Con("""{"formato":1,"estancia":{"ancho":1e200000},"aberturas":[],"estructura":[],"elementos":[]}"""),
+            Con("""{"formato":1,"estancia":{"ancho":1E5},"aberturas":[],"estructura":[],"elementos":[]}"""),
+            Con("""{"formato":1,"estancia":{"ancho":1234567890123456789012345678901234567890},"aberturas":[],"estructura":[],"elementos":[]}"""),
             Con(DisenosDePrueba.ContenidoDeTamano(ContenidoDeDiseno.TamanoMaximoEnBytes + 1)),
         };
     }
