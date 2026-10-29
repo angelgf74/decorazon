@@ -23,6 +23,8 @@ public sealed class SolicitarRestablecerContrasena(
     IEnviadorDeCorreo enviadorDeCorreo,
     IReloj reloj)
 {
+    public const int MaximoDeSolicitudesPorHora = 3;
+
     public async Task<ResultadoDeSolicitudDeContrasena> EjecutarAsync(
         string correoIndicado,
         Func<string, string> construirEnlace,
@@ -44,6 +46,14 @@ public sealed class SolicitarRestablecerContrasena(
         }
 
         var ahora = reloj.Ahora;
+
+        // Tres enlaces por hora y cuenta, para que nadie llene un buzón ajeno. Al pasarse
+        // se responde lo mismo que siempre, sin enviar nada: un rechazo solo podría darse
+        // con cuenta, así que delataría que la dirección está registrada.
+        if (await solicitudes.ContarCreadasDesdeAsync(usuario.Id, ahora.AddHours(-1), cancelacion) >= MaximoDeSolicitudesPorHora)
+        {
+            return ResultadoDeSolicitudDeContrasena.Aceptada;
+        }
 
         // Pedirlo otra vez invalida los enlaces anteriores: solo el último sirve.
         foreach (var anterior in await solicitudes.BuscarVivasPorUsuarioAsync(usuario.Id, cancelacion))

@@ -79,6 +79,13 @@ public sealed class RepositorioDeSolicitudesDeContrasenaEnMemoria : IRepositorio
         Task.FromResult<IReadOnlyCollection<SolicitudDeContrasena>>(
             _solicitudes.Where(solicitud => solicitud.UsuarioId == usuarioId && !solicitud.EstaConsumida).ToList());
 
+    public Task<int> ContarCreadasDesdeAsync(
+        Guid usuarioId,
+        DateTimeOffset desde,
+        CancellationToken cancelacion = default) =>
+        Task.FromResult(_solicitudes.Count(solicitud =>
+            solicitud.UsuarioId == usuarioId && solicitud.FechaDeCreacion >= desde));
+
     public Task AnadirAsync(SolicitudDeContrasena solicitud, CancellationToken cancelacion = default)
     {
         _solicitudes.Add(solicitud);

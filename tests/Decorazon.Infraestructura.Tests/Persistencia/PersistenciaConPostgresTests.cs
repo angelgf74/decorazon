@@ -287,6 +287,24 @@ public sealed class PersistenciaConPostgresTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task Contar_las_solicitudes_de_contrasena_cuenta_por_usuario_y_desde_la_fecha()
+    {
+        var (cadena, ana) = await BaseConUsuarioAsync();
+        var luis = NuevoUsuario("luis@example.com");
+        await using var contexto = PostgresFixture.Contexto(cadena);
+        await new RepositorioDeUsuariosEf(contexto).AnadirAsync(luis);
+        var repositorio = new RepositorioDeSolicitudesDeContrasenaEf(contexto);
+
+        await repositorio.AnadirAsync(SolicitudDeContrasena.Crear(ana.Id, "h1", Ahora.AddMinutes(-90)));
+        await repositorio.AnadirAsync(SolicitudDeContrasena.Crear(ana.Id, "h2", Ahora.AddMinutes(-30)));
+        await repositorio.AnadirAsync(SolicitudDeContrasena.Crear(ana.Id, "h3", Ahora));
+        await repositorio.AnadirAsync(SolicitudDeContrasena.Crear(luis.Id, "h4", Ahora));
+
+        Assert.Equal(2, await repositorio.ContarCreadasDesdeAsync(ana.Id, Ahora.AddHours(-1)));
+        Assert.Equal(3, await repositorio.ContarCreadasDesdeAsync(ana.Id, Ahora.AddHours(-2)));
+    }
+
+    [Fact]
     public async Task Contar_las_solicitudes_creadas_cuenta_por_correo_y_desde_la_fecha()
     {
         var cadena = await postgres.NuevaBaseAsync();

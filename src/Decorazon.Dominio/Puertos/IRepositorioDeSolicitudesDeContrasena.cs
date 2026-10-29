@@ -13,6 +13,15 @@ public interface IRepositorioDeSolicitudesDeContrasena
         Guid usuarioId,
         CancellationToken cancelacion = default);
 
+    /// <summary>
+    /// Solicitudes creadas para ese usuario desde <paramref name="desde"/>, vigentes o no:
+    /// cuenta los intentos para limitar cuántos enlaces se le mandan por hora.
+    /// </summary>
+    Task<int> ContarCreadasDesdeAsync(
+        Guid usuarioId,
+        DateTimeOffset desde,
+        CancellationToken cancelacion = default);
+
     Task AnadirAsync(SolicitudDeContrasena solicitud, CancellationToken cancelacion = default);
 
     /// <summary>

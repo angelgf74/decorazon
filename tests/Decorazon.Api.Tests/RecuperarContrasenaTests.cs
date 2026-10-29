@@ -85,6 +85,30 @@ public class RecuperarContrasenaTests(ApiConPostgresFixture api) : IClassFixture
             await sinCuenta.Content.ReadAsStringAsync());
     }
 
+    /// <summary>
+    /// Tres enlaces por hora y cuenta. Al pasarse se responde lo mismo de siempre,
+    /// sin enviar nada: un 429 solo podría darse con cuenta, y la delataría.
+    /// </summary>
+    [Fact]
+    public async Task CuartaSolicitudEnUnaHora_RespondeIgualPeroNoEnviaOtroEnlace()
+    {
+        var cliente = api.CreateClient();
+        var correo = CorreoUnico();
+        await CrearCuentaAsync(cliente, correo);
+
+        var respuestas = new List<HttpResponseMessage>();
+        for (var i = 0; i < 4; i++)
+        {
+            respuestas.Add(await cliente.PostAsJsonAsync("/cuentas/contrasena/olvido",
+                new PeticionDeOlvidoDeContrasena { Correo = correo }));
+        }
+
+        Assert.All(respuestas, respuesta => Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode));
+        var textos = await Task.WhenAll(respuestas.Select(respuesta => respuesta.Content.ReadAsStringAsync()));
+        Assert.Single(textos.Distinct());
+        Assert.Equal(3, api.Correo.EnlacesDeContrasena.Count(envio => envio.Destinatario == correo));
+    }
+
     [Fact]
     public async Task ACorreoSinCuenta_NoSeLeEnviaNada()
     {

@@ -45,6 +45,41 @@ public class SolicitarRestablecerContrasenaTests
     }
 
     [Fact]
+    public async Task CuartaSolicitudEnUnaHora_RespondeAceptadaPeroNoCreaNiEnvia()
+    {
+        await DarDeAltaUsuario("alguien@ejemplo.com");
+        var casoDeUso = CasoDeUso;
+
+        for (var i = 0; i < SolicitarRestablecerContrasena.MaximoDeSolicitudesPorHora; i++)
+        {
+            Assert.Equal(ResultadoDeSolicitudDeContrasena.Aceptada, await casoDeUso.EjecutarAsync("alguien@ejemplo.com", Enlace));
+        }
+
+        var cuarta = await casoDeUso.EjecutarAsync("alguien@ejemplo.com", Enlace);
+
+        // La misma respuesta que siempre: un 429 aquí delataría que el correo tiene cuenta.
+        Assert.Equal(ResultadoDeSolicitudDeContrasena.Aceptada, cuarta);
+        Assert.Equal(3, _solicitudes.Todas.Count);
+        Assert.Equal(3, _correo.EnlacesDeContrasena.Count);
+    }
+
+    [Fact]
+    public async Task PasadaLaHora_VuelveAEnviar()
+    {
+        await DarDeAltaUsuario("alguien@ejemplo.com");
+        var casoDeUso = CasoDeUso;
+        for (var i = 0; i < SolicitarRestablecerContrasena.MaximoDeSolicitudesPorHora; i++)
+        {
+            await casoDeUso.EjecutarAsync("alguien@ejemplo.com", Enlace);
+        }
+
+        _reloj.Avanzar(TimeSpan.FromHours(1) + TimeSpan.FromMinutes(1));
+        await casoDeUso.EjecutarAsync("alguien@ejemplo.com", Enlace);
+
+        Assert.Equal(4, _correo.EnlacesDeContrasena.Count);
+    }
+
+    [Fact]
     public async Task CorreoSinCuenta_NoCreaNadaNiEnviaNada()
     {
         var resultado = await CasoDeUso.EjecutarAsync("desconocido@ejemplo.com", Enlace);
