@@ -19,7 +19,8 @@ export interface EscenaEstancia {
   suelo: Punto[]
   muros: (Pieza3D & { pared: number })[]
   huecos: (Pieza3D & { pared: number })[]
-  estructura: Pieza3D[]
+  /** Las piezas pegadas a una pared (radiadores) llevan `pared` para ocultarse con ella. */
+  estructura: (Pieza3D & { pared?: number })[]
 }
 
 const giro = (d: Punto): number => 0 - Math.atan2(d.y, d.x)
@@ -127,7 +128,7 @@ export function escenaEstancia(doc: DocumentoDiseno): EscenaEstancia {
   const huecos = doc.aberturas.flatMap((ab) =>
     piezasHueco(hueco(planta, ab.pared, ab.posicion), ab, grosorPared).map((p) => ({ ...p, pared: ab.pared })))
 
-  const estructura = doc.estructura.map((e): Pieza3D => {
+  const estructura = doc.estructura.map((e): Pieza3D & { pared?: number } => {
     if (e.tipo === 'columna') {
       return {
         forma: 'caja', ...pared, giroY: 0 - (e.rotacion * Math.PI) / 180,
@@ -143,7 +144,7 @@ export function escenaEstancia(doc: DocumentoDiseno): EscenaEstancia {
       }
     }
     const h = hueco(planta, e.pared, e.posicion)
-    return cajaEnPared(h, 0, e.ancho, 0, e.fondo, e.alturaSuelo, e.alturaSuelo + e.alto, RADIADOR)
+    return { ...cajaEnPared(h, 0, e.ancho, 0, e.fondo, e.alturaSuelo, e.alturaSuelo + e.alto, RADIADOR), pared: e.pared }
   })
 
   return { suelo: planta, muros, huecos, estructura }

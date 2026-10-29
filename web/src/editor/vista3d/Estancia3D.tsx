@@ -6,7 +6,7 @@ import Pieza, { type EventosPieza } from './Pieza'
 
 interface Props {
   doc: DocumentoDiseno
-  /** Paredes que no se pintan (ni sus huecos). */
+  /** Paredes que no se pintan (ni sus huecos ni lo que va pegado a ellas). */
   ocultas: ReadonlySet<number>
 }
 
@@ -24,7 +24,7 @@ export default function Estancia3D({ doc, ocultas }: Props) {
     <group>
       <mesh receiveShadow geometry={geometriaDelSuelo} material={materialDe('suelo', doc.estancia.colorSuelo)} />
       {[...muros, ...huecos].map((p, k) => (ocultas.has(p.pared) ? null : <Pieza key={k} pieza={p} eventos={OCLUSOR} />))}
-      {estructura.map((p, k) => <Pieza key={`e${k}`} pieza={p} eventos={OCLUSOR} />)}
+      {estructura.map((p, k) => (p.pared !== undefined && ocultas.has(p.pared) ? null : <Pieza key={`e${k}`} pieza={p} eventos={OCLUSOR} />))}
     </group>
   )
 }

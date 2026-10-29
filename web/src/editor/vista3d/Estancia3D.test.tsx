@@ -72,6 +72,21 @@ describe('Estancia3D: paredes ocultas', () => {
     expect(mallas.some((m) => (m.instance as Mesh).material === materialDe('cristal', '#cfe3ea'))).toBe(false)
     expect(mallas.some((m) => (m.instance as Mesh).material === materialDe('madera', '#d9c7a8'))).toBe(true)
   })
+
+  it('el radiador se oculta con su pared; la columna, que no está pegada a ninguna, sigue', async () => {
+    const doc = documentoNuevo('salon', 400, 330, 250)
+    doc.estructura.push(
+      { id: 'c1', tipo: 'columna', centro: { x: 100, y: 100 }, ancho: 30, fondo: 20, rotacion: 0 },
+      { id: 'r1', tipo: 'radiador', pared: 2, posicion: 100, ancho: 80, alto: 60, fondo: 10, alturaSuelo: 15 },
+    )
+    const radiador = (m: { instance: unknown }) => (m.instance as Mesh).material === materialDe('metal', '#f2f2f2')
+    const visible = await ReactThreeTestRenderer.create(<Estancia3D doc={doc} ocultas={new Set([0])} />)
+    expect(visible.scene.findAll((n) => n.type === 'Mesh').filter(radiador)).toHaveLength(1)
+    const oculta = await ReactThreeTestRenderer.create(<Estancia3D doc={doc} ocultas={new Set([2])} />)
+    const mallas = oculta.scene.findAll((n) => n.type === 'Mesh')
+    expect(mallas.filter(radiador)).toHaveLength(0)
+    expect(mallas.some((m) => m.instance.position.distanceTo(new Vector3(1, 1.25, 1)) < 1e-9)).toBe(true)
+  })
 })
 
 describe('geometrías', () => {

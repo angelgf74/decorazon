@@ -174,6 +174,7 @@ describe('escenaEstancia: estructura', () => {
     expect(col.centro).toEqual([1, 1.25, 1])
     expect(col.tamano).toEqual([0.3, 2.5, 0.2])
     expect(col.giroY).toBeCloseTo(-Math.PI / 2)
+    expect(col).not.toHaveProperty('pared')
   })
 
   it('radiador pegado a la cara interior con su altura', () => {
@@ -183,7 +184,7 @@ describe('escenaEstancia: estructura', () => {
     expect(muros.filter((m) => m.pared === 0)).toHaveLength(1)
     const [r] = estructura
     if (r.forma !== 'caja') throw new Error('forma')
-    expect(r).toMatchObject({ material: 'metal', color: '#f2f2f2' })
+    expect(r).toMatchObject({ material: 'metal', color: '#f2f2f2', pared: 0 })
     expect(r.centro[0]).toBeCloseTo(1.4)
     expect(r.centro[1]).toBeCloseTo(0.45)
     expect(r.centro[2]).toBeCloseTo(0.05)
