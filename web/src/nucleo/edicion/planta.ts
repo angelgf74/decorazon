@@ -51,10 +51,17 @@ function aplicar(doc: DocumentoDiseno, planta: Punto[], reubicar: Reubicar = h =
     estructura: doc.estructura.map(e => (esRadiador(e) ? mover(e) : e)),
   }
   if (motivo !== null) return falla(motivo)
+  return comprobarEstancia(nuevo)
+}
+
+/** Reglas comunes de toda edición de la estancia: planta simple, paredes ≥ 10 cm, huecos dentro de su pared y documento válido. */
+export function comprobarEstancia(nuevo: DocumentoDiseno): ResultadoEdicion {
+  const planta = nuevo.estancia.planta
   if (!planta.every(p => Number.isFinite(p.x) && Number.isFinite(p.y))) return falla(textos.edicion.cambioNoValido)
   if (!esSimple(planta) || areaConSigno(planta) <= 0) return falla(textos.edicion.plantaCruzada)
   if (planta.some((_, i) => longitudPared(planta, i) < PARED_MINIMA_CM)) return falla(textos.edicion.paredCorta)
-  const cabe = (h: EnPared) => indiceValido(planta, h.pared) && h.posicion + h.ancho <= longitudPared(planta, h.pared) + EPS
+  const cabe = (h: EnPared) =>
+    indiceValido(planta, h.pared) && h.posicion >= 0 && h.posicion + h.ancho <= longitudPared(planta, h.pared) + EPS
   if (!huecos(nuevo).every(cabe)) return falla(textos.edicion.noCabeEnPared)
   if (!validarDocumento(nuevo).valido) return falla(textos.edicion.cambioNoValido)
   return { ok: true, documento: nuevo }
