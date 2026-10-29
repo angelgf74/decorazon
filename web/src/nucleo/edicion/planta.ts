@@ -36,8 +36,25 @@ export function esRectangular(planta: Punto[]): boolean {
   })
 }
 
+const mismoPunto = (a: Punto, b: Punto) => Math.abs(a.x - b.x) < EPS && Math.abs(a.y - b.y) < EPS
+
+/**
+ * Con la misma cantidad de vértices, cada hueco se ancla al extremo de su pared que no se mueve: si se movió solo
+ * el inicio, la posición (medida desde el inicio) se corrige con lo que cambió la longitud; si no, se conserva.
+ */
+function anclarAlExtremoFijo(antes: Punto[], despues: Punto[]): Reubicar {
+  return h => {
+    if (!indiceValido(antes, h.pared) || antes.length !== despues.length) return { pared: h.pared, posicion: h.posicion }
+    const j = (h.pared + 1) % antes.length
+    const inicioMovido = !mismoPunto(antes[h.pared], despues[h.pared])
+    const finalMovido = !mismoPunto(antes[j], despues[j])
+    if (!inicioMovido || finalMovido) return { pared: h.pared, posicion: h.posicion }
+    return { pared: h.pared, posicion: Math.round(h.posicion + longitudPared(despues, h.pared) - longitudPared(antes, h.pared)) }
+  }
+}
+
 /** Aplica la planta nueva y la reubicación de huecos, y comprueba las reglas comunes. Nunca muta `doc`. */
-function aplicar(doc: DocumentoDiseno, planta: Punto[], reubicar: Reubicar = h => ({ pared: h.pared, posicion: h.posicion })): ResultadoEdicion {
+function aplicar(doc: DocumentoDiseno, planta: Punto[], reubicar: Reubicar = anclarAlExtremoFijo(doc.estancia.planta, planta)): ResultadoEdicion {
   let motivo: string | null = null
   const mover = <T extends EnPared>(h: T): T => {
     const r = reubicar(h)

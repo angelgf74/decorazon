@@ -40,6 +40,12 @@ function motivo(r: ResultadoEdicion): string {
   return r.motivo
 }
 const extremos = (planta: Punto[], i: number): [Punto, Punto] => [planta[i], planta[(i + 1) % planta.length]]
+/** Punto físico donde empieza un hueco: planta[pared] avanzando `posicion` hacia el final de la pared. */
+function inicioFisico(planta: Punto[], h: { pared: number; posicion: number }): Punto {
+  const [a, b] = extremos(planta, h.pared)
+  const l = Math.hypot(b.x - a.x, b.y - a.y)
+  return { x: a.x + ((b.x - a.x) * h.posicion) / l, y: a.y + ((b.y - a.y) * h.posicion) / l }
+}
 
 describe('consultas', () => {
   it('esRectangular y longitudPared', () => {
@@ -74,6 +80,52 @@ describe('redimensionarRectangulo', () => {
   })
   it('falla si la estancia no es rectangular', () => {
     expect(motivo(redimensionarRectangulo(ele(), 500, 300))).toBe(textos.edicion.noRectangular)
+  })
+})
+
+describe('los huecos se anclan al extremo de su pared que no se mueve', () => {
+  it('al ensanchar, una puerta en la pared 2 conserva su x física', () => {
+    const doc = sala()
+    doc.aberturas.push(puerta('p', 2, 100))
+    const r = documento(redimensionarRectangulo(doc, 500, 330))
+    expect(r.aberturas[0].posicion).toBe(200)
+    expect(inicioFisico(r.estancia.planta, r.aberturas[0])).toEqual(inicioFisico(doc.estancia.planta, doc.aberturas[0]))
+  })
+  it('al cambiar el largo, una puerta en la pared 3 y un radiador siguen en su sitio', () => {
+    const doc = sala()
+    doc.aberturas.push(puerta('p', 3, 100))
+    doc.estructura.push(radiador('r', 3, 200))
+    const r = documento(redimensionarRectangulo(doc, 400, 400))
+    expect(r.aberturas[0].posicion).toBe(170)
+    expect((r.estructura[0] as Radiador).posicion).toBe(270)
+    expect(inicioFisico(r.estancia.planta, r.aberturas[0])).toEqual(inicioFisico(doc.estancia.planta, doc.aberturas[0]))
+  })
+  it('al estrechar, una puerta junto a la esquina fija sigue cabiendo', () => {
+    const doc = sala()
+    doc.aberturas.push(puerta('p', 2, 300))
+    const r = documento(redimensionarRectangulo(doc, 350, 330))
+    expect(r.aberturas[0].posicion).toBe(250)
+    expect(inicioFisico(r.estancia.planta, r.aberturas[0])).toEqual({ x: 100, y: 330 })
+  })
+  it('una pared que se traslada entera conserva la posición', () => {
+    const doc = sala()
+    doc.aberturas.push(puerta('p', 2, 100))
+    const r = documento(cambiarLongitudPared(doc, 1, 400))
+    expect(r.aberturas[0].posicion).toBe(100)
+    expect(inicioFisico(r.estancia.planta, r.aberturas[0])).toEqual({ x: 300, y: 400 })
+  })
+  it('moverVertice del inicio de una pared con hueco lo deja en su sitio', () => {
+    const doc = sala()
+    doc.aberturas.push(puerta('p', 2, 100))
+    const r = documento(moverVertice(doc, 2, { x: 450, y: 330 }))
+    expect(r.aberturas[0].posicion).toBe(150)
+    expect(inicioFisico(r.estancia.planta, r.aberturas[0])).toEqual({ x: 300, y: 330 })
+  })
+  it('si se mueve el final, la posición se conserva', () => {
+    const doc = sala()
+    doc.aberturas.push(puerta('p', 1, 100))
+    const r = documento(moverVertice(doc, 2, { x: 400, y: 300 }))
+    expect(r.aberturas[0].posicion).toBe(100)
   })
 })
 
