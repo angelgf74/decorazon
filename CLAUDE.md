@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Estructura
 
 ```
-web/                     editor en TypeScript; el núcleo (geometría y reglas) vive en web/src/nucleo
+web/                     editor en TypeScript: web/src/editor es la interfaz (React) y web/src/nucleo/edicion son las operaciones puras; el núcleo (geometría y reglas) vive en web/src/nucleo
 src/Decorazon.Dominio    núcleo de la API: entidades, invariantes, puertos. Sin dependencias.
 src/Decorazon.Aplicacion casos de uso. → Dominio
 src/Decorazon.Infraestructura  EF Core + PostgreSQL, adaptadores. → Dominio
@@ -39,6 +39,7 @@ dotnet build Decorazon.slnx -warnaserror
 dotnet test Decorazon.slnx                                  # necesita Docker (Testcontainers)
 dotnet test Decorazon.slnx --filter "Categoria!=Integracion" # sin Docker
 cd web && npm test                                          # tests del núcleo TS
+cd web && npm run e2e                                      # recorrido de extremo a extremo con Playwright (compila y sirve en el 5322)
 ```
 
 Los tests de integración llevan `[Trait("Categoria","Integracion")]`; de ahí el filtro.
@@ -65,6 +66,7 @@ Los tests de integración llevan `[Trait("Categoria","Integracion")]`; de ahí e
 - `IRepositorioDeDisenos.Anadir` solo hace seguimiento; `IRepositorioDeUsuarios.AnadirAsync` guarda el `DbContext` compartido.
 - Cambiar la contraseña invalida el token de quien la cambia.
 - El contenido rechaza números con exponente o de más de 32 caracteres: jsonb los guarda como `numeric` exacto y `1e200000` reventaba al guardar.
+- El diseño anónimo vive en `localStorage` bajo `decorazon.disenoAnonimo`, y todo número se redondea a 2 decimales al guardar para que `JSON.stringify` nunca emita exponentes.
 - Los adaptadores traducen la concurrencia de EF y los errores 23505/23503 de PostgreSQL a resultados del puerto (`false`); la aplicación nunca ve tipos de EF ni de Npgsql. La fecha de consumo de las solicitudes es token de concurrencia: un enlace solo se usa una vez aunque lleguen dos peticiones a la vez.
 
 ## Núcleo TS

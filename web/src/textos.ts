@@ -96,6 +96,10 @@ export const textos = {
     otros: 'Otros muebles',
     ayuda: 'Pulsa un mueble para ponerlo en el centro o arrástralo al plano',
   },
+  avisos: {
+    titulo: 'Avisos',
+    todoBien: 'Todo cabe y se abre',
+  },
   comun: {
     aceptar: 'Aceptar',
     cancelar: 'Cancelar',

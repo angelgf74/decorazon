@@ -5,3 +5,5 @@ bin/
 obj/
 appsettings.Development.json
 *.user
+web/test-results/
+web/playwright-report/

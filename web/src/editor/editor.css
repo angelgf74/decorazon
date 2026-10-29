@@ -84,3 +84,9 @@
 .panel-catalogo__tipo { display: flex; width: 100%; justify-content: space-between; align-items: baseline; gap: 0.5rem; padding: 0.4rem 0.6rem; cursor: grab; text-align: left; }
 .panel-catalogo__tipo small { color: var(--gris); white-space: nowrap; }
 .panel-catalogo__tipo:hover { background: var(--amarillo); }
+
+.lista-avisos h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.lista-avisos ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.lista-avisos__aviso { display: flex; gap: 0.5rem; align-items: baseline; width: 100%; text-align: left; font: inherit; padding: 0.4rem 0.5rem; border: 1px solid var(--salmon); border-radius: 0.4rem; background: #fff; cursor: pointer; }
+.lista-avisos__punto { flex: none; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: #d62828; }
+.lista-avisos__punto--aviso { background: #e0a100; }
