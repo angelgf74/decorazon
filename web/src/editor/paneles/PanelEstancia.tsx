@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import {
-  anadirAbertura, anadirEstructura, editarEstancia, esRectangular, redimensionarRectangulo,
+  anadirAbertura, anadirEstructura, cajaPlanta, editarEstancia, esRectangular, redimensionarRectangulo,
   type DocumentoDiseno, type Estancia, type ResultadoEdicion, type TipoEstancia,
 } from '../../nucleo'
 import { textos } from '../../textos'
@@ -62,9 +62,9 @@ export default function PanelEstancia() {
   const idTipo = useId()
   if (!estancia) return null
   const { planta } = estancia
-  const xs = planta.map((p) => p.x), ys = planta.map((p) => p.y)
-  const ancho = Math.round(Math.max(...xs) - Math.min(...xs))
-  const largo = Math.round(Math.max(...ys) - Math.min(...ys))
+  const caja = cajaPlanta(planta)
+  const ancho = Math.round(caja.maxX - caja.minX)
+  const largo = Math.round(caja.maxY - caja.minY)
   const intentar = almacen.getState().intentar
 
   return (

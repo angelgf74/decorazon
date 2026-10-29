@@ -1,4 +1,4 @@
-import type { Punto } from '../../nucleo'
+import { cajaPlanta, type Punto } from '../../nucleo'
 
 /** `escala` en px por cm; `x`, `y`: posición en px del origen del plano. */
 export interface Vista2D { x: number; y: number; escala: number }
@@ -9,8 +9,7 @@ export const ESCALA_MAX = 10
 const recortar = (escala: number): number => Math.min(ESCALA_MAX, Math.max(ESCALA_MIN, escala))
 
 export function encuadrar(planta: Punto[], anchoPx: number, altoPx: number, margenPx = 48): Vista2D {
-  const xs = planta.map((p) => p.x), ys = planta.map((p) => p.y)
-  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys)
+  const { minX, maxX, minY, maxY } = cajaPlanta(planta)
   const ancho = Math.max(maxX - minX, 1), alto = Math.max(maxY - minY, 1)
   const libreX = Math.max(anchoPx - 2 * margenPx, 1), libreY = Math.max(altoPx - 2 * margenPx, 1)
   const escala = recortar(Math.min(libreX / ancho, libreY / alto))

@@ -84,3 +84,11 @@ export function desplazarPoligono(p: Punto[], d: number): Punto[] {
     return { x: v.x + k * (n1.x + n2.x), y: v.y + k * (n1.y + n2.y) }
   })
 }
+
+export interface Caja { minX: number; minY: number; maxX: number; maxY: number }
+
+/** Caja envolvente de la planta, alineada con los ejes. */
+export function cajaPlanta(planta: Punto[]): Caja {
+  const xs = planta.map(p => p.x), ys = planta.map(p => p.y)
+  return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) }
+}

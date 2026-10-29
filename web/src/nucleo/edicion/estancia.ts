@@ -1,4 +1,5 @@
 import { textos } from '../../textos'
+import { cajaPlanta } from '../geometria/poligono'
 import type { Abertura, Columna, DocumentoDiseno, Estructura, Puerta, Radiador, Ventana, Viga } from '../modelo/documento'
 import { comprobarEstancia, longitudPared } from './planta'
 import type { ResultadoEdicion } from './resultado'
@@ -33,13 +34,12 @@ export function anadirEstructura(doc: DocumentoDiseno, tipo: 'columna' | 'viga' 
     if (posicion === null) return falla(textos.edicion.cambioNoValido)
     nueva = { id, tipo, pared, posicion, ancho: 80, alto: 60, fondo: 10, alturaSuelo: 15 }
   } else {
-    const xs = doc.estancia.planta.map(p => p.x)
-    const ys = doc.estancia.planta.map(p => p.y)
-    const cx = Math.round((Math.min(...xs) + Math.max(...xs)) / 2)
-    const cy = Math.round((Math.min(...ys) + Math.max(...ys)) / 2)
+    const caja = cajaPlanta(doc.estancia.planta)
+    const cx = Math.round((caja.minX + caja.maxX) / 2)
+    const cy = Math.round((caja.minY + caja.maxY) / 2)
     nueva = tipo === 'columna'
       ? { id, tipo, centro: { x: cx, y: cy }, ancho: 30, fondo: 30, rotacion: 0 }
-      : { id, tipo, desde: { x: cx, y: Math.min(...ys) }, hasta: { x: cx, y: Math.max(...ys) }, ancho: 20, canto: 30 }
+      : { id, tipo, desde: { x: cx, y: caja.minY }, hasta: { x: cx, y: caja.maxY }, ancho: 20, canto: 30 }
   }
   return comprobarEstancia({ ...doc, estructura: [...doc.estructura, nueva] })
 }

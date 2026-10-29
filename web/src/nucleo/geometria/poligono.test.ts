@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areaConSigno, contienePunto, distanciaAlBorde, distanciaPuntoSegmento, desplazarPoligono, distanciaSegmentos, esSimple } from './poligono'
+import { areaConSigno, cajaPlanta, contienePunto, distanciaAlBorde, distanciaPuntoSegmento, desplazarPoligono, distanciaSegmentos, esSimple } from './poligono'
 
 const sala = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 0, y: 330 }]
 
@@ -40,5 +40,13 @@ describe('poligono', () => {
   it('desplazarPoligono: aristas colineales usan el punto desplazado', () => {
     const conPuntoIntermedio = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 0, y: 330 }]
     expect(desplazarPoligono(conPuntoIntermedio, 10)[1]).toEqual({ x: 200, y: -10 })
+  })
+})
+
+describe('cajaPlanta', () => {
+  it('da los extremos de la caja envolvente, también de una L', () => {
+    expect(cajaPlanta(sala)).toEqual({ minX: 0, minY: 0, maxX: 400, maxY: 330 })
+    const ele = [{ x: -50, y: 10 }, { x: 300, y: 10 }, { x: 300, y: 150 }, { x: 150, y: 150 }, { x: 150, y: 400 }, { x: -50, y: 400 }]
+    expect(cajaPlanta(ele)).toEqual({ minX: -50, minY: 10, maxX: 300, maxY: 400 })
   })
 })

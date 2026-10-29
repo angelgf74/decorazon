@@ -1,5 +1,5 @@
 import { useId, type DragEvent } from 'react'
-import { capitalizar, catalogoBase, catalogoDeEstancia, type DefinicionTipo, type Punto } from '../../nucleo'
+import { cajaPlanta, capitalizar, catalogoBase, catalogoDeEstancia, type DefinicionTipo, type Punto } from '../../nucleo'
 import { textos } from '../../textos'
 import { anadirTipo } from '../estado/elementos'
 import { useEditor } from '../estado/almacen'
@@ -8,8 +8,8 @@ import { MIME_TIPO } from '../lienzo/arrastres'
 const t = textos.catalogo
 
 function centroDeCaja(planta: Punto[]): Punto {
-  const xs = planta.map((p) => p.x), ys = planta.map((p) => p.y)
-  return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 }
+  const c = cajaPlanta(planta)
+  return { x: (c.minX + c.maxX) / 2, y: (c.minY + c.maxY) / 2 }
 }
 
 function Grupo({ titulo, tipos, centro }: { titulo: string; tipos: DefinicionTipo[]; centro: Punto }) {
