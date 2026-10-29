@@ -1,6 +1,6 @@
 import type { Abertura, DocumentoDiseno, Punto } from '../modelo/documento'
 import { desplazarPoligono } from '../geometria/poligono'
-import { escalar, longitud, punto, restar, sumar } from '../geometria/vector'
+import { cruz, escalar, longitud, punto, restar, sumar } from '../geometria/vector'
 import { hueco, type Hueco } from '../conflictos/estancia'
 import { aEscena } from './escena'
 import type { MaterialPBR, Pieza3D } from './tipos'
@@ -23,7 +23,26 @@ export interface EscenaEstancia {
 }
 
 const giro = (d: Punto): number => 0 - Math.atan2(d.y, d.x)
-const enPlano = (p: Punto): [number, number] => [p.x / 100, p.y / 100]
+function enPlano(p: Punto): [number, number] {
+  const [x, , z] = aEscena(p, 0)
+  return [x, z]
+}
+
+/** Recorta un polígono convexo al semiplano f ≥ 0 (f lineal). */
+function recortar(poligono: Punto[], f: (p: Punto) => number): Punto[] {
+  const salida: Punto[] = []
+  poligono.forEach((p, k) => {
+    const q = poligono[(k + 1) % poligono.length]
+    const fp = f(p), fq = f(q)
+    if (fp >= 0) salida.push(p)
+    if ((fp < 0) !== (fq < 0)) salida.push(sumar(p, escalar(restar(q, p), fp / (fp - fq))))
+  })
+  return salida
+}
+
+/** Quita vértices repetidos, también el último si repite el primero. */
+const sinRepetidos = (ps: Punto[]): Punto[] =>
+  ps.filter((p, k) => longitud(restar(p, ps[(k + ps.length - 1) % ps.length])) > EPS)
 
 /** Caja alineada con la pared: de `s0` a `s1` a lo largo, de `n0` a `n1` según la normal interior (negativo: dentro del muro) y de `z0` a `z1`. */
 function cajaEnPared(
@@ -66,19 +85,20 @@ function murosDePared(doc: DocumentoDiseno, exterior: Punto[], i: number): Pieza
   const ea = exterior[i], eb = exterior[(i + 1) % n]
   const L = longitud(restar(b, a))
   const { d } = hueco(planta, i, 0)
-  // Cara exterior parametrizada por la misma coordenada a lo largo que la interior.
+  // Huella entera de la pared: trapecio con los ingletes; si la pared es más corta que sus dos ingletes
+  // entrantes (se cruzarían), triángulo hasta el punto donde se cortan.
   const t0 = punto(restar(ea, a), d), t1 = punto(restar(eb, a), d)
-  const interior = (s: number): Punto => sumar(a, escalar(d, s))
-  const exteriorEn = (s: number): Punto => {
-    if (s <= EPS) return ea
-    if (s >= L - EPS) return eb
-    return sumar(ea, escalar(d, Math.min(Math.max(s, t0), t1) - t0))
-  }
+  const u = restar(ea, a), v = restar(eb, b)
+  const entera = t0 > t1
+    ? [a, b, sumar(a, escalar(u, cruz(restar(b, a), v) / cruz(u, v)))]
+    : [a, b, eb, ea]
+  const aLoLargo = (p: Punto): number => punto(restar(p, a), d)
+  // Cortes perpendiculares a la pared; en los extremos de la pared manda el inglete.
   const tramo = (s0: number, s1: number, z0: number, z1: number): Pieza3D => {
-    const huella = [interior(s0), interior(s1), exteriorEn(s1), exteriorEn(s0)]
-      .filter((p, k, ps) => k === 0 || longitud(restar(p, ps[k - 1])) > EPS)
-      .map(enPlano)
-    return { forma: 'prisma', material: 'pared', color: colorParedes, huella, y0: z0 / 100, y1: z1 / 100 }
+    let huella = entera
+    if (s0 > EPS) huella = recortar(huella, (p) => aLoLargo(p) - s0)
+    if (s1 < L - EPS) huella = recortar(huella, (p) => s1 - aLoLargo(p))
+    return { forma: 'prisma', material: 'pared', color: colorParedes, huella: sinRepetidos(huella).map(enPlano), y0: z0 / 100, y1: z1 / 100 }
   }
 
   const aberturas = doc.aberturas.filter((ab) => ab.pared === i).sort((p, q) => p.posicion - q.posicion)

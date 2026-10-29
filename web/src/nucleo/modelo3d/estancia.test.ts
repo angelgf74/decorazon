@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { documentoNuevo } from '../modelo/crear'
 import type { DocumentoDiseno, Punto } from '../modelo/documento'
-import { areaConSigno, desplazarPoligono } from '../geometria/poligono'
+import { areaConSigno, desplazarPoligono, esSimple } from '../geometria/poligono'
 import { escenaEstancia } from './estancia'
 import type { Pieza3D } from './tipos'
 
@@ -12,6 +12,9 @@ const prisma = (p: Pieza3D) => {
   if (p.forma !== 'prisma') throw new Error('forma')
   return p
 }
+
+const deLaPared = (muros: (Pieza3D & { pared: number })[], i: number) => muros.filter((m) => m.pared === i).map(prisma)
+const minimo = (p: { huella: [number, number][] }, eje: 0 | 1): number => Math.min(...p.huella.map((v) => v[eje]))
 
 function conPlanta(planta: Punto[]): DocumentoDiseno {
   const doc = documentoNuevo('salon', 400, 330, 250)
@@ -95,6 +98,42 @@ describe('escenaEstancia: muros', () => {
     expect(cristal.centro[2]).toBeCloseTo(1)
     expect(cristal.giroY).toBeCloseTo(-Math.PI / 2)
     expect(cristal.tamano[2]).toBeCloseTo(0.01)
+  })
+
+  it('esquina entrante: los cortes junto al inglete siguen perpendiculares y no invaden el hueco', () => {
+    const planta = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 200 }, { x: 250, y: 200 }, { x: 250, y: 330 }, { x: 0, y: 330 }]
+    const doc = conPlanta(planta)
+    doc.aberturas.push(
+      // Pared 3: (250,200)→(250,330), arranca en la esquina entrante; su inglete llega a 10 cm a lo largo.
+      { id: 'p1', tipo: 'puerta', pared: 3, posicion: 5, ancho: 82, alto: 203, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' },
+      // Pared 2: (400,200)→(250,200), acaba en la esquina entrante; el hueco termina a 5 cm del final.
+      { id: 'p2', tipo: 'puerta', pared: 2, posicion: 63, ancho: 82, alto: 203, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' },
+    )
+    const { muros } = escenaEstancia(doc)
+    const pared3 = deLaPared(muros, 3)
+    const lateral3 = pared3.filter((p) => p.y0 === 0).sort((p, q) => minimo(p, 1) - minimo(q, 1))[0]
+    for (const [, z] of lateral3.huella) expect(z).toBeLessThanOrEqual(2.05 + 1e-9)
+    const lateral2 = deLaPared(muros, 2).filter((p) => p.y0 === 0).sort((p, q) => minimo(p, 0) - minimo(q, 0))[0]
+    for (const [x] of lateral2.huella) expect(x).toBeLessThanOrEqual(2.55 + 1e-9)
+    // El dintel de la pared 3 cruza el final del inglete: pentágono.
+    expect(pared3.find((p) => p.y0 === 2.03)!.huella).toHaveLength(5)
+    const suma = muros.reduce((s, m) => s + areaHuella(prisma(m).huella), 0)
+    expect(Math.abs(suma - areaAnillo(planta, 10))).toBeLessThan(1e-6)
+  })
+
+  it('pared más corta que sus dos ingletes entrantes: triángulo hasta donde se cortan', () => {
+    // Lengüeta de 15 cm de ancho que entra en la estancia; su punta es la pared 4.
+    const planta = [
+      { x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 200, y: 330 },
+      { x: 200, y: 250 }, { x: 185, y: 250 }, { x: 185, y: 330 }, { x: 0, y: 330 },
+    ]
+    const punta = deLaPared(escenaEstancia(conPlanta(planta)).muros, 4)
+    expect(punta).toHaveLength(1)
+    const { huella } = punta[0]
+    expect(huella).toHaveLength(3)
+    expect(esSimple(huella.map(([x, y]) => ({ x, y })))).toBe(true)
+    expect(areaHuella(huella)).toBeCloseTo((15 * 7.5) / 2 / 10000, 9)
+    expect(Math.max(...huella.map(([, z]) => z))).toBeCloseTo(2.575)
   })
 
   it('aberturas pegadas a los extremos y ventana hasta el techo: ningún trozo vacío', () => {
