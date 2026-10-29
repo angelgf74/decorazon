@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { catalogoBase, elementoNuevo } from '../../nucleo'
@@ -52,5 +52,20 @@ describe('PanelEstancia', () => {
     render(<PanelEstancia />)
     expect(screen.queryByLabelText('Ancho')).toBeNull()
     expect(screen.getByText(textos.edicion.noRectangular)).toBeTruthy()
+  })
+
+  it('dos elecciones en el selector de color son dos pasos de deshacer', () => {
+    render(<PanelEstancia />)
+    const color = screen.getByLabelText('Color de las paredes')
+    const inicial = almacen.getState().documento!.estancia.colorParedes
+    fireEvent.input(color, { target: { value: '#111111' } })
+    fireEvent.input(color, { target: { value: '#222222' } })
+    fireEvent.change(color)
+    fireEvent.input(color, { target: { value: '#333333' } })
+    fireEvent.blur(color)
+    almacen.getState().deshacer()
+    expect(almacen.getState().documento!.estancia.colorParedes).toBe('#222222')
+    almacen.getState().deshacer()
+    expect(almacen.getState().documento!.estancia.colorParedes).toBe(inicial)
   })
 })

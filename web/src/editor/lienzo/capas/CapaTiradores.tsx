@@ -1,11 +1,11 @@
 import type { PointerEvent } from 'react'
 import {
-  alinearVertice, editarEstructura, escalar, hueco, longitudPared, moverVertice, partirPared, sumar,
-  type DocumentoDiseno, type Punto, type Viga,
+  alinearVertice, editarEstructura, escalar, hueco, longitudPared, moverVertice, partirPared, rotar, sumar,
+  type DocumentoDiseno, type Elemento, type Punto, type Viga,
 } from '../../../nucleo'
 import { textos } from '../../../textos'
 import { almacen, type Seleccion } from '../../estado/almacen'
-import { arrastrar, arrastrarPunto } from '../arrastres'
+import { arrastrar, arrastrarPunto, girarElemento, type AlArrastrarElemento } from '../arrastres'
 import { usePuntoDelPlano } from '../usarPuntoDelPlano'
 
 interface Props { documento: DocumentoDiseno; seleccion: Seleccion; escala: number }
@@ -87,4 +87,27 @@ export default function CapaTiradores({ documento, seleccion, escala }: Props) {
 
 function editarExtremo(d: DocumentoDiseno, id: string, extremo: 'desde' | 'hasta', p: Punto) {
   return editarEstructura(d, id, extremo === 'desde' ? { desde: p } : { hasta: p })
+}
+
+/** Distancia del tirador de giro al frente del elemento, en cm. */
+const SEPARACION_GIRO_CM = 30
+const RADIO_GIRO_PX = 7
+
+/** Paso 2: tirador de giro del elemento seleccionado, por delante de su frente. */
+export function TiradorGiro({ elemento: e, escala, avisar }: { elemento: Elemento; escala: number; avisar: AlArrastrarElemento }) {
+  const aPlano = usePuntoDelPlano()
+  const frente = sumar(e.posicion, rotar({ x: 0, y: e.medidas.fondo / 2 }, e.rotacion))
+  const c = sumar(e.posicion, rotar({ x: 0, y: e.medidas.fondo / 2 + SEPARACION_GIRO_CM }, e.rotacion))
+  const pulsar = (ev: PointerEvent<SVGCircleElement>) => {
+    ev.stopPropagation()
+    girarElemento(aPlano, e.id, ev, avisar)
+  }
+  return (
+    <g className="capa-tiradores">
+      <line className="capa-tiradores__brazo" x1={frente.x} y1={frente.y} x2={c.x} y2={c.y} />
+      <circle data-giro={e.id} className="capa-tiradores__giro" cx={c.x} cy={c.y} r={RADIO_GIRO_PX / escala} onPointerDown={pulsar}>
+        <title>{textos.lienzo.girar}</title>
+      </circle>
+    </g>
+  )
 }

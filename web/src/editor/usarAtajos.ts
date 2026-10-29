@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { quitarDeEstancia, quitarVertice } from '../nucleo'
 import { almacen } from './estado/almacen'
+import { borrar, duplicar, girar90 } from './estado/elementos'
 
 function enCampo(destino: EventTarget | null): boolean {
   if (!(destino instanceof Element)) return false
@@ -22,6 +23,18 @@ export function useAtajos(): void {
         e0.rehacer()
       } else if (e.key === 'Escape') {
         e0.seleccionar(null)
+      } else if (e0.paso === 2 && e0.seleccion?.tipo === 'elemento') {
+        const id = e0.seleccion.id
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault()
+          borrar(id)
+        } else if (tecla === 'r' && !mando && !e.altKey) {
+          e.preventDefault()
+          girar90(id, e.shiftKey ? -1 : 1)
+        } else if (tecla === 'd' && mando) {
+          e.preventDefault()
+          duplicar(id)
+        }
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         const s = e0.seleccion
         if (s?.tipo === 'abertura' || s?.tipo === 'estructura') {

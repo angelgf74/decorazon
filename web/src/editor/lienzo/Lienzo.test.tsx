@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render } from '@testing-library/react'
+import { createEvent, fireEvent, render } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { catalogoBase, elementoNuevo, longitudPared, type Abertura, type Punto } from '../../nucleo'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
@@ -212,5 +212,76 @@ describe('Lienzo: paso 1', () => {
     const { container } = render(<Lienzo />)
     expect(container.querySelector('[data-vertice]')).toBeNull()
     expect(container.querySelector('[data-cota]')).toBeNull()
+  })
+})
+
+describe('Lienzo: paso 2', () => {
+  const pieza = (container: HTMLElement, selector: string) => {
+    const n = container.querySelector(selector)
+    if (!n) throw new Error(`sin ${selector}`)
+    return n
+  }
+  const armario = () => almacen.getState().documento!.elementos.find((e) => e.id === 'a')!
+
+  it('arrastrar un mueble lo mueve, muestra sus cotas mientras tanto y se deshace de una vez', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    const { container } = render(<Lienzo />)
+    const huella = pieza(container, '[data-elemento="a"] polygon')
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 200, clientY: 165 })
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: 'a' })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 215, clientY: 170 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 230.4, clientY: 180 })
+    expect(armario().posicion).toEqual({ x: 230, y: 180 })
+    // Armario de 100 × 60 en (230, 180): 180 cm a la izquierda, 150 por arriba.
+    const cotas = [...container.querySelectorAll('[data-cota-elemento]')].map((n) => n.textContent)
+    expect(cotas.sort()).toEqual(['120 cm', '120 cm', '150 cm', '180 cm'])
+    fireEvent.pointerUp(huella, { pointerId: 1 })
+    expect(container.querySelector('[data-cota-elemento]')).toBeNull()
+    expect(almacen.getState().grupo).toBeNull()
+    almacen.getState().deshacer()
+    expect(armario().posicion).toEqual({ x: 200, y: 165 })
+  })
+
+  it('cerca de una pared el mueble se pega y la pared se resalta', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    const { container } = render(<Lienzo />)
+    const huella = pieza(container, '[data-elemento="a"] polygon')
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 200, clientY: 165 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 200, clientY: 45 })
+    expect(armario().posicion).toEqual({ x: 200, y: 30 })
+    expect(container.querySelector('[data-pared-pegada="0"]')).not.toBeNull()
+    fireEvent.pointerUp(huella, { pointerId: 1 })
+    expect(container.querySelector('[data-pared-pegada]')).toBeNull()
+  })
+
+  it('el tirador de giro gira de 90° en 90° y, con Mayúsculas, libre', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a' })
+    const { container } = render(<Lienzo />)
+    const tirador = pieza(container, '[data-giro]')
+    // 30 cm por delante del frente: 165 + 30 + 30.
+    expect([tirador.getAttribute('cx'), tirador.getAttribute('cy')]).toEqual(['200', '225'])
+    fireEvent.pointerDown(tirador, { pointerId: 1, clientX: 200, clientY: 225 })
+    fireEvent.pointerMove(tirador, { pointerId: 1, clientX: 110, clientY: 180 })
+    expect(armario().rotacion).toBe(90)
+    fireEvent.pointerMove(tirador, { pointerId: 1, clientX: 100, clientY: 265, shiftKey: true })
+    expect(armario().rotacion).toBe(45)
+    fireEvent.pointerUp(tirador, { pointerId: 1 })
+    expect(almacen.getState().grupo).toBeNull()
+    almacen.getState().deshacer()
+    expect(armario().rotacion).toBe(0)
+  })
+
+  it('soltar un tipo del catálogo lo añade en ese punto y lo selecciona', () => {
+    const { container } = render(<Lienzo />)
+    const svg = pieza(container, 'svg')
+    const suelta = createEvent.drop(svg, { dataTransfer: { getData: (m: string) => (m === 'application/x-decorazon-tipo' ? 'cama' : ''), types: ['application/x-decorazon-tipo'] } })
+    Object.defineProperty(suelta, 'clientX', { value: 200 })
+    Object.defineProperty(suelta, 'clientY', { value: 165 })
+    fireEvent(svg, suelta)
+    const { documento, seleccion } = almacen.getState()
+    expect(documento!.elementos).toHaveLength(1)
+    expect(documento!.elementos[0]).toMatchObject({ tipo: 'cama', posicion: { x: 200, y: 165 } })
+    expect(seleccion).toEqual({ tipo: 'elemento', id: documento!.elementos[0]!.id })
   })
 })

@@ -1,6 +1,6 @@
 import type { PointerEvent as PointerEventReact } from 'react'
 import {
-  editarAbertura, editarEstructura, hueco, longitudPared, restar, sumar,
+  catalogoBase, editarAbertura, editarEstructura, hueco, longitudPared, moverElemento, restar, sumar,
   type DocumentoDiseno, type Punto, type ResultadoEdicion,
 } from '../../nucleo'
 import { almacen } from '../estado/almacen'
@@ -8,15 +8,18 @@ import { almacen } from '../estado/almacen'
 /** Px que hay que mover el puntero para que un toque sobre una pieza pase a ser un arrastre. */
 export const UMBRAL_ARRASTRE_PX = 3
 
+/** Tipo de `dataTransfer` con el que el catálogo arrastra un tipo de elemento al plano. */
+export const MIME_TIPO = 'application/x-decorazon-tipo'
+
 export type APlano = (ev: PointerEvent | PointerEventReact) => Punto
 
 const redondear = (p: Punto): Punto => ({ x: Math.round(p.x), y: Math.round(p.y) })
 
 /**
  * Sigue el puntero capturado por la pieza pulsada hasta soltarlo. `alMover` recibe cada movimiento pasado el umbral;
- * al soltar se cierra el grupo de deshacer, para que todo el arrastre sea un solo paso.
+ * al soltar se cierra el grupo de deshacer, para que todo el arrastre sea un solo paso, y se llama a `alSoltar`.
  */
-export function arrastrar(ev: PointerEventReact<Element>, alMover: (e: PointerEvent) => void): void {
+export function arrastrar(ev: PointerEventReact<Element>, alMover: (e: PointerEvent) => void, alSoltar?: () => void): void {
   const el = ev.currentTarget
   const { pointerId, clientX, clientY } = ev
   let movido = false
@@ -34,6 +37,7 @@ export function arrastrar(ev: PointerEventReact<Element>, alMover: (e: PointerEv
     el.removeEventListener('pointerup', soltar)
     el.removeEventListener('pointercancel', soltar)
     if (movido) almacen.getState().terminarGrupo()
+    alSoltar?.()
   }
   el.addEventListener('pointermove', mover)
   el.addEventListener('pointerup', soltar)
@@ -97,4 +101,40 @@ export function pulsarEstructura(aPlano: APlano, id: string, ev: PointerEventRea
     arrastrarPunto(ev, aPlano, e.centro, `estructura:${id}`, (d, centro) => editarEstructura(d, id, { centro }))
   }
   // Una viga se estira por sus extremos, con los tiradores de `CapaTiradores`.
+}
+
+/** Avisa de qué elemento se está arrastrando (null al soltar), para dibujar sus cotas. */
+export type AlArrastrarElemento = (id: string | null) => void
+
+/** Paso 2: pulsar un elemento lo selecciona y empieza a moverlo; el imán actúa en cada movimiento. */
+export function pulsarElemento(aPlano: APlano, id: string, ev: PointerEventReact<Element>, avisar: AlArrastrarElemento): void {
+  const { documento, seleccionar } = almacen.getState()
+  seleccionar({ tipo: 'elemento', id })
+  const e = documento?.elementos.find((x) => x.id === id)
+  if (!e) return
+  const p0 = aPlano(ev)
+  arrastrar(ev, (m) => {
+    avisar(id)
+    const p = redondear(sumar(e.posicion, restar(aPlano(m), p0)))
+    almacen.getState().cambiar((d) => moverElemento(d, catalogoBase, id, p, e.rotacion, false), `mover:${id}`)
+  }, () => avisar(null))
+}
+
+/** Giro, en grados, que deja el frente (+y local) mirando desde `centro` hacia `p`. */
+export function giroHacia(centro: Punto, p: Punto): number {
+  const v = restar(p, centro)
+  return (Math.atan2(-v.x, v.y) * 180) / Math.PI
+}
+
+/** Paso 2: el tirador de giro orienta el elemento hacia el puntero, de 90° en 90° o, con Mayúsculas, libre. */
+export function girarElemento(aPlano: APlano, id: string, ev: PointerEventReact<Element>, avisar: AlArrastrarElemento): void {
+  const e = almacen.getState().documento?.elementos.find((x) => x.id === id)
+  if (!e) return
+  arrastrar(ev, (m) => {
+    avisar(id)
+    const angulo = giroHacia(e.posicion, aPlano(m))
+    const libre = m.shiftKey
+    const giro = libre ? Math.round(angulo) : Math.round(angulo / 90) * 90
+    almacen.getState().cambiar((d) => moverElemento(d, catalogoBase, id, e.posicion, ((giro % 360) + 360) % 360, libre), `girar:${id}`)
+  }, () => avisar(null))
 }

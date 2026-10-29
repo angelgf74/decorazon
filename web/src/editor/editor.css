@@ -78,3 +78,9 @@
 .selector-color input[type='color'] { width: 2.2rem; height: 2rem; padding: 0; border: 1px solid var(--gris); border-radius: 0.4rem; background: none; }
 .selector-color__muestra { width: 1.6rem; height: 1.6rem; padding: 0; border: 1px solid var(--gris); border-radius: 50%; }
 .selector-color__muestra[aria-pressed='true'] { outline: 2px solid var(--terracota); outline-offset: 2px; }
+
+.panel-catalogo__grupo h2 { margin: 1rem 0 0.4rem; font-size: 1rem; }
+.panel-catalogo__grupo ul { display: flex; flex-direction: column; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+.panel-catalogo__tipo { display: flex; width: 100%; justify-content: space-between; align-items: baseline; gap: 0.5rem; padding: 0.4rem 0.6rem; cursor: grab; text-align: left; }
+.panel-catalogo__tipo small { color: var(--gris); white-space: nowrap; }
+.panel-catalogo__tipo:hover { background: var(--amarillo); }

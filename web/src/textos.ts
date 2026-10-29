@@ -38,6 +38,7 @@ export const textos = {
     plano: 'Plano de la estancia',
     canto: 'canto',
     partir: 'Partir esta pared',
+    girar: 'Arrastra para girar; con Mayúsculas, sin saltos de 90°',
   },
   estancia: {
     tipo: 'Tipo de estancia',
@@ -55,6 +56,11 @@ export const textos = {
   },
   propiedades: {
     nada: 'Pulsa una pared, una esquina, una puerta o una ventana del plano para ver sus medidas',
+    nadaElemento: 'Pulsa un mueble del plano para ver sus medidas',
+    duplicar: 'Duplicar',
+    borrar: 'Borrar',
+    si: 'Sí',
+    no: 'No',
     pared: 'Pared',
     longitud: 'Longitud',
     partir: 'Partir pared',
@@ -82,6 +88,13 @@ export const textos = {
     desdeY: 'Desde y',
     hastaX: 'Hasta x',
     hastaY: 'Hasta y',
+  },
+  catalogo: {
+    paraTu: 'Para tu',
+    estancias: { dormitorio: 'dormitorio', salon: 'salón', cocina: 'cocina' },
+    decoracion: 'Decoración',
+    otros: 'Otros muebles',
+    ayuda: 'Pulsa un mueble para ponerlo en el centro o arrástralo al plano',
   },
   comun: {
     aceptar: 'Aceptar',

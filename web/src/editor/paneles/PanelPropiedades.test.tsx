@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { longitudPared, type Abertura } from '../../nucleo'
+import { anadirElemento, catalogoBase, longitudPared, type Abertura } from '../../nucleo'
 import { textos } from '../../textos'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import PanelPropiedades from './PanelPropiedades'
@@ -56,5 +56,75 @@ describe('PanelPropiedades en el paso 1', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Quitar' }))
     expect(almacen.getState().documento!.aberturas).toHaveLength(0)
     expect(almacen.getState().seleccion).toBeNull()
+  })
+})
+
+function colocar(tipo: string): string {
+  const r = anadirElemento(almacen.getState().documento!, catalogoBase, tipo, { x: 200, y: 165 })
+  almacen.getState().cambiar(() => r.documento)
+  almacen.getState().irAPaso(2)
+  almacen.getState().seleccionar({ tipo: 'elemento', id: r.id })
+  return r.id
+}
+
+describe('PanelPropiedades con un elemento', () => {
+  const elemento = () => almacen.getState().documento!.elementos[0]!
+
+  it('un ancho fuera de rango se ajusta al máximo del tipo', async () => {
+    colocar('armario')
+    render(<PanelPropiedades />)
+    expect(screen.getByRole('heading', { name: 'Armario' })).toBeTruthy()
+    await escribir('Ancho', '9999')
+    expect(elemento().medidas.ancho).toBe(400)
+  })
+
+  it('con puertas correderas el armario no tiene zonas de apertura', async () => {
+    colocar('armario')
+    render(<PanelPropiedades />)
+    await userEvent.selectOptions(screen.getByLabelText('Puertas'), 'correderas')
+    expect(elemento().variantes.puertas).toBe('correderas')
+    expect(catalogoBase.get('armario')!.zonasApertura(elemento())).toEqual([])
+    expect((screen.getByRole('option', { name: 'Correderas' }) as HTMLOptionElement).selected).toBe(true)
+  })
+
+  it('"Duplicar" añade una copia y "Borrar" quita el elemento y la selección', async () => {
+    colocar('armario')
+    render(<PanelPropiedades />)
+    await userEvent.click(screen.getByRole('button', { name: 'Duplicar' }))
+    expect(almacen.getState().documento!.elementos).toHaveLength(2)
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar' }))
+    expect(almacen.getState().documento!.elementos).toHaveLength(1)
+    act(() => almacen.getState().seleccionar({ tipo: 'elemento', id: elemento().id }))
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar' }))
+    expect(almacen.getState().documento!.elementos).toHaveLength(0)
+    expect(almacen.getState().seleccion).toBeNull()
+  })
+
+  it('solo los tipos con altura editable tienen el campo de altura desde el suelo', () => {
+    colocar('armario')
+    const { unmount } = render(<PanelPropiedades />)
+    expect(screen.queryByLabelText('Altura desde el suelo')).toBeNull()
+    unmount()
+    colocar('cuadro')
+    render(<PanelPropiedades />)
+    expect(screen.getByLabelText('Altura desde el suelo')).toBeTruthy()
+    expect(screen.getByText('0–210 cm')).toBeTruthy()
+  })
+
+  it('cada elección de color es un paso de deshacer', () => {
+    colocar('armario')
+    render(<PanelPropiedades />)
+    const color = screen.getByLabelText('Cuerpo')
+    const inicial = elemento().colores.cuerpo
+    fireEvent.input(color, { target: { value: '#111111' } })
+    fireEvent.input(color, { target: { value: '#222222' } })
+    fireEvent.change(color)
+    fireEvent.input(color, { target: { value: '#333333' } })
+    fireEvent.blur(color)
+    expect(elemento().colores.cuerpo).toBe('#333333')
+    almacen.getState().deshacer()
+    expect(elemento().colores.cuerpo).toBe('#222222')
+    almacen.getState().deshacer()
+    expect(elemento().colores.cuerpo).toBe(inicial)
   })
 })

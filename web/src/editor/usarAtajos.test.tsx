@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { anadirElemento, catalogoBase } from '../nucleo'
 import { almacen, reiniciarAlmacen } from './estado/almacen'
 import { useAtajos } from './usarAtajos'
 
@@ -78,5 +79,45 @@ describe('usarAtajos', () => {
     fireEvent.keyDown(window, { key: 'Delete' })
     expect(almacen.getState().documento?.estancia.planta).toHaveLength(3)
     expect(almacen.getState().seleccion).toBeNull()
+  })
+})
+
+describe('usarAtajos en el paso 2', () => {
+  const elementos = () => almacen.getState().documento!.elementos
+
+  beforeEach(() => {
+    const r = anadirElemento(almacen.getState().documento!, catalogoBase, 'mesa', { x: 200, y: 165 })
+    almacen.getState().cambiar(() => r.documento)
+    almacen.getState().irAPaso(2)
+    almacen.getState().seleccionar({ tipo: 'elemento', id: r.id })
+  })
+
+  it('R gira el elemento 90°', () => {
+    render(<Sonda />)
+    expect(elementos()[0]!.rotacion).toBe(0)
+    fireEvent.keyDown(window, { key: 'r' })
+    expect(elementos()[0]!.rotacion).toBe(90)
+  })
+
+  it('Mayúsculas+R lo gira −90°', () => {
+    render(<Sonda />)
+    fireEvent.keyDown(window, { key: 'R', shiftKey: true })
+    expect(elementos()[0]!.rotacion).toBe(270)
+  })
+
+  it('Supr borra el elemento seleccionado', () => {
+    render(<Sonda />)
+    fireEvent.keyDown(window, { key: 'Delete' })
+    expect(elementos()).toHaveLength(0)
+    expect(almacen.getState().seleccion).toBeNull()
+  })
+
+  it('Ctrl+D lo duplica y selecciona la copia', () => {
+    render(<Sonda />)
+    const original = elementos()[0]!.id
+    fireEvent.keyDown(window, { key: 'd', ctrlKey: true })
+    expect(elementos()).toHaveLength(2)
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: elementos()[1]!.id })
+    expect(elementos()[1]!.id).not.toBe(original)
   })
 })

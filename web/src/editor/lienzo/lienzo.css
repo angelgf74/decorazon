@@ -17,7 +17,8 @@
 .capa-estructura__contorno { stroke: var(--tinta); stroke-width: 1; }
 .capa-estructura__radiador .capa-estructura__contorno { fill: #b9b4ae; }
 .capa-estructura__viga .capa-estructura__contorno { fill: rgb(43 38 34 / 0.12); }
-.capa-estructura__viga:not(.lienzo--pulsable) { pointer-events: none; }
+/* Lo que no se puede pulsar en el paso actual no tapa lo que sí: los muebles en el paso 1, la estancia en el 2. */
+:is(.capa-elementos__pieza, .capa-aberturas__pieza, [data-estructura]):not(.lienzo--pulsable) { pointer-events: none; }
 .lienzo--seleccionado .capa-estructura__contorno { stroke: var(--terracota); stroke-width: 2; }
 
 .capa-elementos__huella { stroke: var(--tinta); stroke-width: 1; }
@@ -50,3 +51,10 @@
 .capa-tiradores__mas circle { fill: #fff; stroke: var(--salmon); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .capa-tiradores__mas line { stroke: var(--terracota); stroke-width: 2; }
 .capa-tiradores__mas:hover circle { fill: var(--amarillo); }
+
+.capa-tiradores__brazo { stroke: var(--terracota); stroke-width: 1; stroke-dasharray: 3 3; pointer-events: none; }
+.capa-tiradores__giro { fill: #fff; stroke: var(--terracota); stroke-width: 2; cursor: grab; vector-effect: non-scaling-stroke; }
+.capa-tiradores__giro:hover { fill: var(--amarillo); }
+
+.capa-cotas--elemento, .capa-cotas--elemento .lienzo__texto { pointer-events: none; }
+.capa-cotas__pegada { stroke: var(--amarillo); stroke-width: 6; stroke-linecap: round; }

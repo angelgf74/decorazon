@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type PointerEvent, type ReactNode } from 'react'
 import { desplazarPoligono } from '../../nucleo'
 import { textos } from '../../textos'
 import { useConflictos } from '../estado/conflictos'
 import { almacen, useEditor } from '../estado/almacen'
-import { pulsarAbertura, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano } from './arrastres'
+import { anadirTipo } from '../estado/elementos'
+import { MIME_TIPO, pulsarAbertura, pulsarElemento, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano } from './arrastres'
 import CapaAberturas from './capas/CapaAberturas'
-import CapaCotas from './capas/CapaCotas'
+import CapaCotas, { CotasElemento } from './capas/CapaCotas'
 import CapaConflictos from './capas/CapaConflictos'
 import CapaElementos from './capas/CapaElementos'
 import CapaEstructura from './capas/CapaEstructura'
 import CapaPlanta from './capas/CapaPlanta'
-import CapaTiradores from './capas/CapaTiradores'
+import CapaTiradores, { TiradorGiro } from './capas/CapaTiradores'
 import type { AlPulsar } from './capas/comun'
 import { ContextoLienzo, puntoDelPlano } from './usarPuntoDelPlano'
 import { encuadrar, zoomEn, type Vista2D } from './vista'
@@ -22,11 +23,11 @@ const VISTA_INICIAL: Vista2D = { x: 0, y: 0, escala: 1 }
 
 interface Arrastre { id: number; x: number; y: number; vista: Vista2D; movido: boolean }
 
-const pulsarElemento: AlPulsar = (id) => almacen.getState().seleccionar({ tipo: 'elemento', id })
 const pulsarPared = (indice: number) => almacen.getState().seleccionar({ tipo: 'pared', indice })
 
 /**
- * Plano 2D en SVG. Todo se dibuja en cm dentro del `<g>` transformado. En el paso 1 lleva las cotas y los tiradores de la estancia.
+ * Plano 2D en SVG. Todo se dibuja en cm dentro del `<g>` transformado. En el paso 1 lleva las cotas y los tiradores de la estancia;
+ * en el paso 2, los muebles se mueven y giran, y recibe los tipos que se sueltan desde el catálogo.
  * `children` va encima de las capas, en las mismas coordenadas (el punto del puntero sale de `usePuntoDelPlano`).
  */
 export default function Lienzo({ children }: { children?: ReactNode }) {
@@ -40,12 +41,14 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
   const [vista, setVista] = useState<Vista2D>(VISTA_INICIAL)
   const [arrastrando, setArrastrando] = useState(false)
   const arrastre = useRef<Arrastre | null>(null)
+  const [arrastrado, setArrastrado] = useState<string | null>(null)
   const contexto = useMemo(() => ({ plano, vista: vistaActual }), [])
   // Paso 1: pulsar una abertura o una pieza de estructura la selecciona y empieza a arrastrarla.
   const aPlano: APlano = (ev) => puntoDelPlano(contexto, ev)
-  const pulsar: Record<'abertura' | 'estructura', AlPulsar> = {
+  const pulsar: Record<'abertura' | 'estructura' | 'elemento', AlPulsar> = {
     abertura: (id, ev) => pulsarAbertura(aPlano, id, ev),
     estructura: (id, ev) => pulsarEstructura(aPlano, id, ev),
+    elemento: (id, ev) => pulsarElemento(aPlano, id, ev, setArrastrado),
   }
 
   const aplicar = useCallback((f: (v: Vista2D) => Vista2D) => {
@@ -110,7 +113,22 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
     if (!a.movido && !cancelado) almacen.getState().seleccionar(null)
   }
 
+  // Paso 2: un tipo arrastrado desde el catálogo se añade donde se suelta.
+  const alPasarPorEncima = (ev: DragEvent<SVGSVGElement>) => {
+    if (paso !== 2 || !ev.dataTransfer.types.includes(MIME_TIPO)) return
+    ev.preventDefault()
+    ev.dataTransfer.dropEffect = 'copy'
+  }
+  const alSoltarTipo = (ev: DragEvent<SVGSVGElement>) => {
+    const tipo = ev.dataTransfer.getData(MIME_TIPO)
+    if (paso !== 2 || !tipo) return
+    ev.preventDefault()
+    anadirTipo(tipo, puntoDelPlano(contexto, ev.nativeEvent))
+  }
+
   if (!documento) return null
+  const elegido = seleccion?.tipo === 'elemento' ? documento.elementos.find((e) => e.id === seleccion.id) : undefined
+  const enArrastre = arrastrado === null ? undefined : documento.elementos.find((e) => e.id === arrastrado)
 
   return (
     <div className="lienzo">
@@ -123,6 +141,8 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
         onPointerMove={alMover}
         onPointerUp={(ev) => alSoltar(ev, false)}
         onPointerCancel={(ev) => alSoltar(ev, true)}
+        onDragOver={alPasarPorEncima}
+        onDrop={alSoltarTipo}
       >
         <defs>
           <pattern id="lienzo-rayado" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
@@ -136,7 +156,7 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
             <CapaPlanta documento={documento} seleccion={seleccion} alPulsarPared={paso === 1 ? pulsarPared : undefined} />
             <CapaEstructura documento={documento} seleccion={seleccion} vigas={false} alPulsar={paso === 1 ? pulsar.estructura : undefined} />
             <CapaAberturas documento={documento} seleccion={seleccion} alPulsar={paso === 1 ? pulsar.abertura : undefined} />
-            <CapaElementos documento={documento} conflictos={conflictos} seleccion={seleccion} alPulsar={paso === 2 ? pulsarElemento : undefined} />
+            <CapaElementos documento={documento} conflictos={conflictos} seleccion={seleccion} alPulsar={paso === 2 ? pulsar.elemento : undefined} />
             {/* Las vigas van por el techo: encima de los muebles. */}
             <CapaEstructura documento={documento} seleccion={seleccion} vigas alPulsar={paso === 1 ? pulsar.estructura : undefined} />
             <CapaConflictos conflictos={conflictos} />
@@ -146,6 +166,8 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
                 <CapaTiradores documento={documento} seleccion={seleccion} escala={vista.escala} />
               </>
             )}
+            {paso === 2 && enArrastre && <CotasElemento documento={documento} elemento={enArrastre} />}
+            {paso === 2 && elegido && <TiradorGiro elemento={elegido} escala={vista.escala} avisar={setArrastrado} />}
             {children}
           </ContextoLienzo.Provider>
         </g>

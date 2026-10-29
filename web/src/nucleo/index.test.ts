@@ -17,7 +17,7 @@ describe('API pública del núcleo', () => {
       'desplazarPoligono', 'esRectangular', 'longitudPared', 'redimensionarRectangulo', 'cambiarLongitudPared', 'moverVertice', 'alinearVertice',
       'partirPared', 'quitarVertice', 'imantar', 'cotasAParedes', 'anadirElemento', 'moverElemento', 'editarElemento', 'duplicarElemento',
       'quitarElemento', 'anadirAbertura', 'anadirEstructura', 'editarAbertura', 'editarEstructura', 'quitarDeEstancia', 'redondearNumeros',
-      'serializarDocumento'] as const) {
+      'serializarDocumento', 'capitalizar', 'valorVariante', 'catalogoDeEstancia'] as const) {
       expect(typeof nucleo[f]).toBe('function')
     }
   })

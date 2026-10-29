@@ -5,6 +5,7 @@ import {
 } from '../../nucleo'
 import { textos } from '../../textos'
 import CampoNumero from '../comunes/CampoNumero'
+import EntradaColor from '../comunes/EntradaColor'
 import { almacen, useEditor } from '../estado/almacen'
 
 const t = textos.estancia
@@ -39,7 +40,7 @@ function SelectorColor({ etiqueta, valor, muestras, alCambiar }: {
     <div className="selector-color">
       <label htmlFor={id}>{etiqueta}</label>
       <div className="selector-color__fila">
-        <input id={id} type="color" value={valor} onChange={(e) => alCambiar(e.target.value, `color:${etiqueta}`)} />
+        <EntradaColor id={id} valor={valor} alCambiar={(c) => alCambiar(c, `color:${etiqueta}`)} />
         {muestras.map((m) => (
           <button
             key={m}
