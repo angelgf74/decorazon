@@ -1,0 +1,58 @@
+// @vitest-environment jsdom
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { almacen, reiniciarAlmacen } from '../estado/almacen'
+import Vista3D from './Vista3D'
+
+const fallo = vi.hoisted(() => ({ lanzar: false }))
+
+vi.mock('@react-three/fiber', async (original) => {
+  const real = await original<typeof import('@react-three/fiber')>()
+  return {
+    ...real,
+    Canvas: () => {
+      if (fallo.lanzar) throw new Error('Error creating WebGL context')
+      return <canvas />
+    },
+  }
+})
+
+vi.mock('@react-three/drei', () => ({ Environment: () => null, Lightformer: () => null, OrbitControls: () => null }))
+
+const SIN_WEBGL = 'Tu navegador no puede mostrar la vista 3D. El plano 2D sigue funcionando.'
+
+beforeEach(() => {
+  reiniciarAlmacen()
+  almacen.getState().crear('salon', 400, 330, 250)
+  almacen.getState().cambiarVista('3d')
+  fallo.lanzar = false
+})
+
+afterEach(() => vi.restoreAllMocks())
+
+describe('Vista3D', () => {
+  it('sin contexto WebGL avisa y "Volver al 2D" vuelve al plano', async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
+    render(<Vista3D />)
+    expect(screen.getByText(SIN_WEBGL)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Volver al 2D' }))
+    expect(almacen.getState().vista).toBe('2d')
+  })
+
+  it('si el lienzo falla al montarse, el mismo aviso', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as RenderingContext)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    fallo.lanzar = true
+    render(<Vista3D />)
+    expect(screen.getByText(SIN_WEBGL)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Volver al 2D' })).toBeInTheDocument()
+  })
+
+  it('con WebGL monta el lienzo', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as RenderingContext)
+    const { container } = render(<Vista3D />)
+    expect(screen.queryByText(SIN_WEBGL)).toBeNull()
+    expect(container.querySelector('canvas')).not.toBeNull()
+  })
+})

@@ -31,12 +31,14 @@ describe('BarraSuperior', () => {
     expect(screen.getByRole('button', { name: '2 Amueblar' })).toHaveAttribute('aria-current', 'step')
   })
 
-  it('el botón 3D está desactivado y explica por qué', () => {
+  it('el botón 3D está activado y cambia a la vista 3D', async () => {
     render(<BarraSuperior />)
     const b = screen.getByRole('button', { name: '3D' })
-    expect(b).toBeDisabled()
-    expect(b).toHaveAccessibleDescription('La vista 3D llega pronto')
-    expect(screen.getByText('La vista 3D llega pronto')).toBeVisible()
+    expect(b).toBeEnabled()
+    expect(screen.queryByText('La vista 3D llega pronto')).toBeNull()
+    await userEvent.click(b)
+    expect(almacen.getState().vista).toBe('3d')
+    expect(b).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('"Nuevo diseño" pide confirmación y descarta', async () => {

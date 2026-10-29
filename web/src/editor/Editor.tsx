@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { textos } from '../textos'
 import { almacen, useEditor } from './estado/almacen'
 import BarraSuperior, { type Hoja } from './paneles/BarraSuperior'
 import NuevaEstancia from './paneles/NuevaEstancia'
@@ -12,11 +13,14 @@ import './editor.css'
 
 const MS_AVISO = 4000
 
+const Vista3D = lazy(() => import('./vista3d/Vista3D'))
+
 export default function Editor() {
   useAtajos()
   const hayDocumento = useEditor((e) => e.documento !== null)
   const paso = useEditor((e) => e.paso)
   const aviso = useEditor((e) => e.aviso)
+  const vista = useEditor((e) => e.vista)
   const [hoja, setHoja] = useState<Hoja | null>(null)
 
   useEffect(() => {
@@ -36,7 +40,9 @@ export default function Editor() {
         <aside className={`editor__izquierda hoja${hoja === 'izquierda' ? ' hoja--abierta' : ''}`}>
           {paso === 1 ? <PanelEstancia /> : <PanelCatalogo />}
         </aside>
-        <div className="editor__lienzo"><Lienzo /></div>
+        <div className="editor__lienzo">
+          {vista === '3d' ? <Suspense fallback={textos.vista3d.cargando}><Vista3D /></Suspense> : <Lienzo />}
+        </div>
         <aside className={`editor__derecha hoja${hoja === 'derecha' ? ' hoja--abierta' : ''}`}>
           <PanelPropiedades />
           <ListaAvisos />
