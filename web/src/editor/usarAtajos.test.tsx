@@ -83,6 +83,25 @@ describe('usarAtajos', () => {
   })
 })
 
+describe('Supr del paso 1 fuera del paso 1', () => {
+  it('en el paso 2 no borra una abertura, estructura ni vértice que siguieran seleccionados', () => {
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      aberturas: [{ id: 'v', tipo: 'ventana', pared: 0, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false }],
+      estructura: [{ id: 'c', tipo: 'columna', centro: { x: 200, y: 165 }, ancho: 30, fondo: 30, rotacion: 0 }],
+    }))
+    render(<Sonda />)
+    for (const seleccion of [{ tipo: 'abertura', id: 'v' }, { tipo: 'estructura', id: 'c' }, { tipo: 'vertice', indice: 2 }] as const) {
+      almacen.setState({ paso: 2, seleccion })
+      fireEvent.keyDown(window, { key: 'Delete' })
+    }
+    const d = almacen.getState().documento!
+    expect(d.aberturas).toHaveLength(1)
+    expect(d.estructura).toHaveLength(1)
+    expect(d.estancia.planta).toHaveLength(4)
+  })
+})
+
 describe('usarAtajos en el paso 2', () => {
   const elementos = () => almacen.getState().documento!.elementos
 

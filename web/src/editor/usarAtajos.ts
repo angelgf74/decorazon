@@ -37,7 +37,7 @@ export function useAtajos(): void {
           e.preventDefault()
           duplicar(id)
         }
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      } else if (e0.paso === 1 && (e.key === 'Delete' || e.key === 'Backspace')) {
         const s = e0.seleccion
         if (s?.tipo === 'abertura' || s?.tipo === 'estructura') {
           e.preventDefault()

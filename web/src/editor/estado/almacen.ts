@@ -53,6 +53,9 @@ function seleccionValida(s: Seleccion, doc: DocumentoDiseno | null): Seleccion {
   }
 }
 
+/** Paso en el que se edita lo seleccionado: los elementos en el 2; la estancia en el 1. */
+const pasoDe = (s: NonNullable<Seleccion>): Paso => (s.tipo === 'elemento' ? 2 : 1)
+
 const vacio = () => ({ pasado: [], futuro: [], grupo: null, seleccion: null, aviso: null })
 
 export function crearAlmacen(): StoreApi<EstadoEditor> {
@@ -130,7 +133,7 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
     },
 
     seleccionar: (s) => set({ seleccion: seleccionValida(s, get().documento) }),
-    irAPaso: (paso) => set({ paso }),
+    irAPaso: (paso) => set((e) => ({ paso, seleccion: e.seleccion !== null && pasoDe(e.seleccion) !== paso ? null : e.seleccion })),
     cambiarVista: (vista) => set({ vista }),
     marcarGuardado: (guardado) => set({ guardado }),
   }))
