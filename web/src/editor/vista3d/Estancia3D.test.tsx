@@ -22,17 +22,23 @@ describe('Estancia3D', () => {
     }
   })
 
-  it('el cristal de la ventana recibe sombra pero no la proyecta', async () => {
+  it('muros, marcos, hojas y cristal reciben sombra pero no la proyectan; la estructura sí', async () => {
+    // La sombra de un muro con el sol a 45° cubría media estancia (y una frontera recta en el suelo) y tapaba la de los muebles;
+    // además cambiaba al ocultar la pared al orbitar.
     const doc = documentoNuevo('salon', 400, 330, 250)
-    doc.aberturas.push({ id: 'v1', tipo: 'ventana', pared: 1, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false })
+    doc.aberturas.push(
+      { id: 'v1', tipo: 'ventana', pared: 1, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false },
+      { id: 'p1', tipo: 'puerta', pared: 0, posicion: 159, ancho: 82, alto: 203, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' },
+    )
+    doc.estructura.push({ id: 'c1', tipo: 'columna', centro: { x: 100, y: 100 }, ancho: 30, fondo: 20, rotacion: 0 })
     const r = await ReactThreeTestRenderer.create(<Estancia3D doc={doc} ocultas={new Set()} />)
     const mallas = r.scene.findAll((n) => n.type === 'Mesh')
     const cristal = mallas.filter((m) => (m.instance as Mesh).material === materialDe('cristal', '#cfe3ea'))
     expect(cristal).toHaveLength(1)
-    expect(cristal[0].instance.castShadow).toBe(false)
-    expect(cristal[0].instance.receiveShadow).toBe(true)
-    const resto = mallas.filter((m) => m !== cristal[0] && m.instance.castShadow)
-    expect(resto).toHaveLength(mallas.length - 2)
+    const columna = mallas.filter((m) => m.instance.position.distanceTo(new Vector3(1, 1.25, 1)) < 1e-9)
+    expect(columna).toHaveLength(1)
+    expect(mallas.every((m) => m.instance.receiveShadow)).toBe(true)
+    expect(mallas.filter((m) => m.instance.castShadow)).toEqual(columna)
   })
 
   it('estructura: columna girada y radiador en su sitio', async () => {

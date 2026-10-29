@@ -17,10 +17,10 @@ function Prisma({ pieza: { huella, y0, y1 }, material, sombra, eventos }: { piez
   return <mesh castShadow={sombra} receiveShadow geometry={geometria} material={material} {...eventos} />
 }
 
-export default function Pieza({ pieza, estado = 'normal', eventos = {} }: { pieza: Pieza3D; estado?: EstadoPieza; eventos?: EventosPieza }) {
+export default function Pieza({ pieza, estado = 'normal', eventos = {}, proyecta = true }: { pieza: Pieza3D; estado?: EstadoPieza; eventos?: EventosPieza; proyecta?: boolean }) {
   const material = materialDe(pieza.material, pieza.color, estado)
   // El cristal de ventana deja pasar la luz: no proyecta sombra.
-  const sombra = pieza.material !== 'cristal'
+  const sombra = proyecta && pieza.material !== 'cristal'
   switch (pieza.forma) {
     case 'caja':
       return (

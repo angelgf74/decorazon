@@ -64,10 +64,11 @@ export default function Escena3D({ doc, ocultar, encuadres }: { doc: DocumentoDi
 
   return (
     <>
-      <ambientLight intensity={0.35} />
+      {/* Relleno (ambiente y entorno) moderado frente al sol: con más, la sombra de los muebles apenas se distinguía del suelo. */}
+      <ambientLight intensity={0.25} />
       <primitive object={objetivoSol} position={centro} />
       <directionalLight
-        intensity={1.6}
+        intensity={2}
         position={posicionSol}
         target={objetivoSol}
         castShadow
@@ -79,7 +80,7 @@ export default function Escena3D({ doc, ocultar, encuadres }: { doc: DocumentoDi
         shadow-camera-near={Math.max(0.1, DISTANCIA_SOL_M - radio)}
         shadow-camera-far={DISTANCIA_SOL_M + radio}
       />
-      <Environment resolution={64}>
+      <Environment resolution={64} environmentIntensity={0.7}>
         <Lightformer name="techo" form="rect" intensity={1.2} position={[0, 5, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
         <Lightformer name="ventana" form="rect" intensity={2} position={[sol[0] * 5, sol[1] * 5, sol[2] * 5]} scale={[4, 3, 1]} target={[0, 0, 0]} />
         <Lightformer name="relleno" form="rect" intensity={0.5} position={[-sol[0] * 5, 1, -sol[2] * 5]} scale={[6, 3, 1]} target={[0, 0, 0]} />
