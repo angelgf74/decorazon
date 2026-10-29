@@ -1,0 +1,63 @@
+:root {
+  --crema: #FFF8F0;
+  --terracota: #B9473A;
+  --salmon: #E9806A;
+  --amarillo: #FFD166;
+  --conflicto: #D62828;
+  --tinta: #2b2622;
+  --gris: #6f6862;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--tinta);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--crema);
+}
+
+button, .boton {
+  font: inherit;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--salmon);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--tinta);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+button.primario, .boton.primario {
+  background: var(--terracota);
+  border-color: var(--terracota);
+  color: #fff;
+}
+
+button.enlace {
+  border: 0;
+  background: none;
+  color: var(--terracota);
+  text-decoration: underline;
+}
+
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid var(--amarillo); outline-offset: 2px; }
+
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.confirmar { border: 1px solid var(--salmon); border-radius: 0.75rem; max-width: 28rem; }
+.confirmar::backdrop { background: rgb(43 38 34 / 0.4); }
+.confirmar__botones { display: flex; justify-content: flex-end; gap: 0.5rem; }
+
+.campo-numero { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.6rem 0; }
+.campo-numero input { font: inherit; padding: 0.4rem 0.5rem; border: 1px solid var(--gris); border-radius: 0.4rem; width: 8rem; }
+.campo-numero__ayuda { color: var(--gris); }

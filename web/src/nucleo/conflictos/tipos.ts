@@ -1,3 +1,5 @@
+import type { Punto } from '../geometria/vector'
+
 export type TipoConflicto = 'fueraDeEstancia' | 'solape' | 'techo' | 'viga' | 'apertura' | 'tapaVentana' | 'tapaRadiador' | 'pasoEstrecho'
 
 export interface Conflicto {
@@ -7,4 +9,6 @@ export interface Conflicto {
   ids: string[]
   cantidadCm: number
   mensaje: string
+  /** Polígono en planta (mundo) que choca, para pintarlo en rojo. Los pasos estrechos no lo llevan. */
+  zona?: Punto[]
 }

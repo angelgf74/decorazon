@@ -10,12 +10,15 @@ export interface DefinicionTipo {
   id: string
   nombre: string
   genero: 'm' | 'f'
+  categoria: 'mueble' | 'decoracion'
   estancias: TipoEstancia[]
   medidas: { ancho: Rango; fondo: Rango; alto: Rango }
   alturaSuelo: number
+  /** El panel deja cambiar la altura desde el suelo, entre 0 y `estancia.alto − alto`. */
+  alturaSueloEditable: boolean
   variantes: DefinicionVariante[]
   zonasColor: ZonaColor[]
-  /** Alfombra: no choca con muebles. */
+  /** No choca con muebles ni con aperturas (alfombra, cortina). */
   pisable: boolean
   /** Cuenta para el paso estrecho. */
   bloqueaPaso: boolean

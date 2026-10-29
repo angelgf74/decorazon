@@ -1,0 +1,23 @@
+.inicio {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.inicio h1 {
+  margin: 0;
+  font-size: 3rem;
+  color: var(--terracota);
+}
+
+.inicio p {
+  max-width: 32rem;
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.5;
+}

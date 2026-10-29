@@ -1,0 +1,93 @@
+.editor {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.editor__cuerpo {
+  display: grid;
+  grid-template-columns: 18rem 1fr 18rem;
+  min-height: 0;
+}
+
+.editor__lienzo { min-width: 0; min-height: 0; background: #fff; }
+.editor__izquierda, .editor__derecha { padding: 0.75rem; overflow: auto; background: var(--crema); }
+.editor__derecha { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--salmon);
+}
+
+.barra__grupo { display: flex; gap: 0.4rem; align-items: center; }
+.barra button[aria-current='step'], .barra button[aria-pressed='true'] { background: var(--amarillo); border-color: var(--terracota); }
+.barra__ayuda { color: var(--gris); font-size: 0.8rem; }
+.barra__movil { display: none; }
+.barra__guardado { margin: 0 0 0 auto; color: var(--gris); font-size: 0.9rem; }
+.barra__guardado--error { color: var(--conflicto); font-weight: 600; }
+
+.nueva-estancia { max-width: 26rem; margin: 3rem auto; padding: 0 1rem; }
+.nueva-estancia fieldset { border: 1px solid var(--salmon); border-radius: 0.5rem; }
+.nueva-estancia__tipo { margin-right: 1rem; }
+
+.editor__aviso {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 90vw;
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--tinta);
+  color: #fff;
+  z-index: 20;
+}
+
+@media (max-width: 767px) {
+  .editor__cuerpo { grid-template-columns: 1fr; }
+  .barra__movil { display: flex; }
+  .hoja {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 60vh;
+    border-top: 2px solid var(--salmon);
+    border-radius: 1rem 1rem 0 0;
+    transform: translateY(100%);
+    visibility: hidden;
+    transition: transform 0.2s, visibility 0.2s;
+    z-index: 10;
+  }
+  .hoja--abierta { transform: none; visibility: visible; }
+}
+
+.panel-propiedades h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.panel__campo { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.6rem 0; }
+.panel__campo select { font: inherit; padding: 0.35rem 0.4rem; border: 1px solid var(--gris); border-radius: 0.4rem; max-width: 12rem; }
+.panel__casilla { display: flex; gap: 0.4rem; align-items: center; margin: 0.6rem 0; }
+.panel__nota { color: var(--gris); font-size: 0.9rem; }
+.panel__botones { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.75rem 0; }
+
+.selector-color { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.6rem 0; }
+.selector-color__fila { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+.selector-color input[type='color'] { width: 2.2rem; height: 2rem; padding: 0; border: 1px solid var(--gris); border-radius: 0.4rem; background: none; }
+.selector-color__muestra { width: 1.6rem; height: 1.6rem; padding: 0; border: 1px solid var(--gris); border-radius: 50%; }
+.selector-color__muestra[aria-pressed='true'] { outline: 2px solid var(--terracota); outline-offset: 2px; }
+
+.panel-catalogo__grupo h2 { margin: 1rem 0 0.4rem; font-size: 1rem; }
+.panel-catalogo__grupo ul { display: flex; flex-direction: column; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+.panel-catalogo__tipo { display: flex; width: 100%; justify-content: space-between; align-items: baseline; gap: 0.5rem; padding: 0.4rem 0.6rem; cursor: grab; text-align: left; }
+.panel-catalogo__tipo small { color: var(--gris); white-space: nowrap; }
+.panel-catalogo__tipo:hover { background: var(--amarillo); }
+
+.lista-avisos h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.lista-avisos ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.lista-avisos__aviso { display: flex; gap: 0.5rem; align-items: baseline; width: 100%; text-align: left; font: inherit; padding: 0.4rem 0.5rem; border: 1px solid var(--salmon); border-radius: 0.4rem; background: #fff; cursor: pointer; }
+.lista-avisos__punto { flex: none; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: #d62828; }
+.lista-avisos__punto--aviso { background: #e0a100; }

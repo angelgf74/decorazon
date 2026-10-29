@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    setupFiles: ['src/pruebas/preparar.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    // Solo para leer editor.css con ?raw en su test; el resto de CSS sigue sin procesarse.
+    css: { include: [/editor\.css/] },
   },
 })

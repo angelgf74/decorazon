@@ -1,5 +1,5 @@
-import { distanciaSegmentos } from './poligono'
-import { longitud, normalizar, punto, restar, type Punto } from './vector'
+import { areaConSigno, distanciaSegmentos } from './poligono'
+import { cruz, longitud, normalizar, punto, restar, type Punto } from './vector'
 
 function proyeccion(p: Punto[], eje: Punto): [number, number] {
   let min = Infinity, max = -Infinity
@@ -41,4 +41,32 @@ export function distanciaConvexos(a: Punto[], b: Punto[]): number {
     }
   }
   return d
+}
+
+const horario = (p: Punto[]): Punto[] => (areaConSigno(p) < 0 ? [...p].reverse() : p)
+
+/**
+ * Polígono común de dos convexos (Sutherland–Hodgman), en sentido horario, o [] si no se solapan o solo se tocan.
+ * Vale con cualquier sentido de vértices.
+ */
+export function interseccionConvexos(a: Punto[], b: Punto[]): Punto[] {
+  const clip = horario(b)
+  let salida = horario(a)
+  for (let i = 0; i < clip.length && salida.length > 0; i++) {
+    const p1 = clip[i], p2 = clip[(i + 1) % clip.length]
+    const lado = restar(p2, p1)
+    const dentro = (q: Punto) => cruz(lado, restar(q, p1)) >= 0
+    const entrada = salida
+    salida = []
+    for (let j = 0; j < entrada.length; j++) {
+      const actual = entrada[j], previo = entrada[(j + entrada.length - 1) % entrada.length]
+      if (dentro(actual) !== dentro(previo)) {
+        const d = restar(actual, previo)
+        const t = cruz(lado, restar(p1, previo)) / cruz(lado, d)
+        salida.push({ x: previo.x + t * d.x, y: previo.y + t * d.y })
+      }
+      if (dentro(actual)) salida.push(actual)
+    }
+  }
+  return salida.length >= 3 && areaConSigno(salida) > 1e-9 ? salida : []
 }

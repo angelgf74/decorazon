@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areaConSigno, contienePunto, distanciaAlBorde, distanciaPuntoSegmento, distanciaSegmentos, esSimple } from './poligono'
+import { areaConSigno, cajaPlanta, contienePunto, distanciaAlBorde, distanciaPuntoSegmento, desplazarPoligono, distanciaSegmentos, esSimple, puntoInterior } from './poligono'
 
 const sala = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 0, y: 330 }]
 
@@ -27,5 +27,47 @@ describe('poligono', () => {
     expect(distanciaAlBorde(sala, { x: 100, y: 30 })).toBe(30)
     expect(distanciaSegmentos({ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }, { x: 10, y: 0 })).toBe(0)
     expect(distanciaSegmentos({ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 0, y: 5 }, { x: 10, y: 5 })).toBe(5)
+  })
+  it('desplazarPoligono: rectángulo', () => {
+    expect(desplazarPoligono(sala, 10)).toEqual([{ x: -10, y: -10 }, { x: 410, y: -10 }, { x: 410, y: 340 }, { x: -10, y: 340 }])
+  })
+  it('desplazarPoligono: el vértice reflejo de una L va hacia dentro de la L, en inglete', () => {
+    const ele = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 200, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 300 }, { x: 0, y: 300 }]
+    expect(desplazarPoligono(ele, 10)).toEqual([
+      { x: -10, y: -10 }, { x: 210, y: -10 }, { x: 210, y: 110 }, { x: 110, y: 110 }, { x: 110, y: 310 }, { x: -10, y: 310 },
+    ])
+  })
+  it('desplazarPoligono: aristas colineales usan el punto desplazado', () => {
+    const conPuntoIntermedio = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 0, y: 330 }]
+    expect(desplazarPoligono(conPuntoIntermedio, 10)[1]).toEqual({ x: 200, y: -10 })
+  })
+})
+
+describe('cajaPlanta', () => {
+  it('da los extremos de la caja envolvente, también de una L', () => {
+    expect(cajaPlanta(sala)).toEqual({ minX: 0, minY: 0, maxX: 400, maxY: 330 })
+    const ele = [{ x: -50, y: 10 }, { x: 300, y: 10 }, { x: 300, y: 150 }, { x: 150, y: 150 }, { x: 150, y: 400 }, { x: -50, y: 400 }]
+    expect(cajaPlanta(ele)).toEqual({ minX: -50, minY: 10, maxX: 300, maxY: 400 })
+  })
+})
+
+describe('puntoInterior', () => {
+  const ele = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 150 }, { x: 150, y: 150 }, { x: 150, y: 400 }, { x: 0, y: 400 }]
+
+  it('en un rectángulo es el centro de la caja, en cm enteros', () => {
+    expect(puntoInterior(sala)).toEqual({ x: 200, y: 165 })
+    expect(puntoInterior([{ x: 0, y: 0 }, { x: 401, y: 0 }, { x: 401, y: 331 }, { x: 0, y: 331 }])).toEqual({ x: 201, y: 166 })
+  })
+  it('en una L, donde el centro de la caja cae fuera, da un punto de dentro lejos del borde', () => {
+    const p = puntoInterior(ele)
+    expect(contienePunto(ele, p)).toBe(true)
+    expect(distanciaAlBorde(ele, p)).toBeGreaterThanOrEqual(50)
+    expect(Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true)
+  })
+  it('si el centro de la caja cae justo en el borde tampoco lo usa', () => {
+    const borde = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 200, y: 100 }, { x: 400, y: 100 }, { x: 400, y: 200 }, { x: 0, y: 200 }]
+    const p = puntoInterior(borde)
+    expect(p).not.toEqual({ x: 200, y: 100 })
+    expect(distanciaAlBorde(borde, p)).toBeGreaterThanOrEqual(1)
   })
 })

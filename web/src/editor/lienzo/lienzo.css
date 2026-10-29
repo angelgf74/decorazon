@@ -1,0 +1,60 @@
+.lienzo { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.lienzo__svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; cursor: grab; }
+.lienzo__svg--arrastrando { cursor: grabbing; }
+.lienzo__encuadrar { position: absolute; top: 0.75rem; right: 0.75rem; }
+.lienzo__svg line, .lienzo__svg polygon, .lienzo__svg path { vector-effect: non-scaling-stroke; }
+.lienzo__texto { font-size: calc(12px / var(--escala, 1)); text-anchor: middle; dominant-baseline: central; fill: var(--tinta); pointer-events: none; }
+.lienzo--pulsable { cursor: pointer; }
+
+.capa-planta__muros { fill: var(--tinta); }
+
+.capa-aberturas__trazo { stroke: var(--tinta); stroke-width: 1; }
+.capa-aberturas__hoja { stroke: var(--tinta); stroke-width: 2; }
+.capa-aberturas__barrido { fill: none; stroke: var(--tinta); stroke-width: 1; }
+.lienzo--seleccionado :is(.capa-aberturas__trazo, .capa-aberturas__hoja, .capa-aberturas__barrido) { stroke: var(--terracota); }
+.lienzo--seleccionado .capa-aberturas__trazo { stroke-width: 2; }
+
+.capa-estructura__contorno { stroke: var(--tinta); stroke-width: 1; }
+.capa-estructura__radiador .capa-estructura__contorno { fill: #b9b4ae; }
+.capa-estructura__viga .capa-estructura__contorno { fill: rgb(43 38 34 / 0.12); }
+/* Lo que no se puede pulsar en el paso actual no tapa lo que sí: los muebles en el paso 1, la estancia en el 2. */
+:is(.capa-elementos__pieza, .capa-aberturas__pieza, [data-estructura]):not(.lienzo--pulsable) { pointer-events: none; }
+.lienzo--seleccionado .capa-estructura__contorno { stroke: var(--terracota); stroke-width: 2; }
+
+.capa-elementos__huella { stroke: var(--tinta); stroke-width: 1; }
+.capa-elementos__apertura { fill: none; stroke: var(--gris); stroke-width: 1; pointer-events: none; }
+[data-conflicto] .capa-elementos__huella { stroke: var(--conflicto); stroke-width: 2; }
+.capa-elementos__halo { fill: none; stroke: var(--terracota); stroke-width: 8; stroke-opacity: 0.5; stroke-linejoin: round; pointer-events: none; }
+
+.capa-conflictos { pointer-events: none; }
+.capa-conflictos polygon { fill: var(--conflicto); fill-opacity: 0.35; stroke: var(--conflicto); stroke-width: 1; }
+
+.capa-planta__pared { fill: transparent; }
+.capa-planta__pared:hover { fill: rgb(233 128 106 / 0.35); }
+.capa-planta__pared.lienzo--seleccionado { fill: var(--terracota); }
+
+.capa-cotas__cota { cursor: pointer; }
+.capa-cotas__cota line { stroke: var(--gris); stroke-width: 1; }
+.capa-cotas__cota .lienzo__texto {
+  pointer-events: auto;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: calc(4px / var(--escala, 1));
+  stroke-linejoin: round;
+}
+.capa-cotas__cota.lienzo--seleccionado line { stroke: var(--terracota); }
+.capa-cotas__cota.lienzo--seleccionado .lienzo__texto { fill: var(--terracota); font-weight: 600; }
+
+.capa-tiradores__vertice { fill: #fff; stroke: var(--terracota); stroke-width: 2; cursor: move; vector-effect: non-scaling-stroke; }
+.capa-tiradores__vertice.lienzo--seleccionado { fill: var(--amarillo); }
+.capa-tiradores__mas { cursor: pointer; }
+.capa-tiradores__mas circle { fill: #fff; stroke: var(--salmon); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.capa-tiradores__mas line { stroke: var(--terracota); stroke-width: 2; }
+.capa-tiradores__mas:hover circle { fill: var(--amarillo); }
+
+.capa-tiradores__brazo { stroke: var(--terracota); stroke-width: 1; stroke-dasharray: 3 3; pointer-events: none; vector-effect: non-scaling-stroke; }
+.capa-tiradores__giro { fill: #fff; stroke: var(--terracota); stroke-width: 2; cursor: grab; vector-effect: non-scaling-stroke; }
+.capa-tiradores__giro:hover { fill: var(--amarillo); }
+
+.capa-cotas--elemento, .capa-cotas--elemento .lienzo__texto { pointer-events: none; }
+.capa-cotas__pegada { stroke: var(--amarillo); stroke-width: 6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
