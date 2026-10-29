@@ -285,3 +285,19 @@ describe('Lienzo: paso 2', () => {
     expect(seleccion).toEqual({ tipo: 'elemento', id: documento!.elementos[0]!.id })
   })
 })
+
+describe('Lienzo: paso 2, giro al mover', () => {
+  it.each([45, 90])('un armario a %i° movido conserva su giro', (giro) => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    almacen.getState().cambiar((d) => ({ ...d, elementos: d.elementos.map((e) => ({ ...e, rotacion: giro })) }))
+    const { container } = render(<Lienzo />)
+    const huella = container.querySelector('[data-elemento="a"] polygon')
+    if (!huella) throw new Error('sin huella')
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 200, clientY: 165 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 210, clientY: 170 })
+    fireEvent.pointerUp(huella, { pointerId: 1 })
+    const a = almacen.getState().documento!.elementos[0]!
+    expect(a.rotacion).toBe(giro)
+    expect(a.posicion).toEqual({ x: 210, y: 170 })
+  })
+})

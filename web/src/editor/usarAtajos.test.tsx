@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { anadirElemento, catalogoBase } from '../nucleo'
 import { almacen, reiniciarAlmacen } from './estado/almacen'
+import Lienzo from './lienzo/Lienzo'
 import { useAtajos } from './usarAtajos'
 
 function Sonda() {
@@ -119,5 +120,27 @@ describe('usarAtajos en el paso 2', () => {
     expect(elementos()).toHaveLength(2)
     expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: elementos()[1]!.id })
     expect(elementos()[1]!.id).not.toBe(original)
+  })
+})
+
+describe('usarAtajos durante un arrastre', () => {
+  it('R, Supr y Ctrl+D no actúan mientras se arrastra un mueble', () => {
+    const r = anadirElemento(almacen.getState().documento!, catalogoBase, 'mesa', { x: 200, y: 165 })
+    almacen.getState().cambiar(() => r.documento)
+    almacen.getState().irAPaso(2)
+    render(<><Sonda /><Lienzo /></>)
+    const huella = document.querySelector(`[data-elemento="${r.id}"] polygon`)
+    if (!huella) throw new Error('sin huella')
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 200, clientY: 165 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 210, clientY: 165 })
+    fireEvent.keyDown(window, { key: 'r' })
+    fireEvent.keyDown(window, { key: 'Delete' })
+    fireEvent.keyDown(window, { key: 'd', ctrlKey: true })
+    const elementos = almacen.getState().documento!.elementos
+    expect(elementos).toHaveLength(1)
+    expect(elementos[0]!.rotacion).toBe(0)
+    fireEvent.pointerUp(huella, { pointerId: 1 })
+    fireEvent.keyDown(window, { key: 'r' })
+    expect(almacen.getState().documento!.elementos[0]!.rotacion).toBe(90)
   })
 })

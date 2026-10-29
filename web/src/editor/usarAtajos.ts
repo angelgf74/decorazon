@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { quitarDeEstancia, quitarVertice } from '../nucleo'
 import { almacen } from './estado/almacen'
 import { borrar, duplicar, girar90 } from './estado/elementos'
+import { hayArrastre } from './lienzo/arrastres'
 
 function enCampo(destino: EventTarget | null): boolean {
   if (!(destino instanceof Element)) return false
@@ -25,6 +26,7 @@ export function useAtajos(): void {
         e0.seleccionar(null)
       } else if (e0.paso === 2 && e0.seleccion?.tipo === 'elemento') {
         const id = e0.seleccion.id
+        if (hayArrastre()) return
         if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault()
           borrar(id)

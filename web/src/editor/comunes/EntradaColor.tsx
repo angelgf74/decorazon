@@ -12,7 +12,8 @@ export default function EntradaColor({ id, valor, alCambiar }: { id: string; val
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    // El `onChange` de React escucha el evento input: el change nativo hay que pedirlo aparte.
+    // React atiende input y change en `onChange` y descarta el segundo si el valor no cambió; el change nativo, que
+    // llega al cerrar el selector, se escucha aparte para cerrar el grupo.
     el.addEventListener('change', terminar)
     return () => el.removeEventListener('change', terminar)
   }, [])

@@ -52,9 +52,9 @@
 .capa-tiradores__mas line { stroke: var(--terracota); stroke-width: 2; }
 .capa-tiradores__mas:hover circle { fill: var(--amarillo); }
 
-.capa-tiradores__brazo { stroke: var(--terracota); stroke-width: 1; stroke-dasharray: 3 3; pointer-events: none; }
+.capa-tiradores__brazo { stroke: var(--terracota); stroke-width: 1; stroke-dasharray: 3 3; pointer-events: none; vector-effect: non-scaling-stroke; }
 .capa-tiradores__giro { fill: #fff; stroke: var(--terracota); stroke-width: 2; cursor: grab; vector-effect: non-scaling-stroke; }
 .capa-tiradores__giro:hover { fill: var(--amarillo); }
 
 .capa-cotas--elemento, .capa-cotas--elemento .lienzo__texto { pointer-events: none; }
-.capa-cotas__pegada { stroke: var(--amarillo); stroke-width: 6; stroke-linecap: round; }
+.capa-cotas__pegada { stroke: var(--amarillo); stroke-width: 6; stroke-linecap: round; vector-effect: non-scaling-stroke; }

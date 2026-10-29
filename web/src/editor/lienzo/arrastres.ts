@@ -13,6 +13,11 @@ export const MIME_TIPO = 'application/x-decorazon-tipo'
 
 export type APlano = (ev: PointerEvent | PointerEventReact) => Punto
 
+let enCurso = false
+
+/** true mientras una pieza sigue al puntero: los atajos que editan esperan a que se suelte. */
+export const hayArrastre = (): boolean => enCurso
+
 const redondear = (p: Punto): Punto => ({ x: Math.round(p.x), y: Math.round(p.y) })
 
 /**
@@ -23,6 +28,7 @@ export function arrastrar(ev: PointerEventReact<Element>, alMover: (e: PointerEv
   const el = ev.currentTarget
   const { pointerId, clientX, clientY } = ev
   let movido = false
+  enCurso = true
   if (typeof el.setPointerCapture === 'function') el.setPointerCapture(pointerId)
   const mover = (evento: Event) => {
     const e = evento as PointerEvent
@@ -36,6 +42,7 @@ export function arrastrar(ev: PointerEventReact<Element>, alMover: (e: PointerEv
     el.removeEventListener('pointermove', mover)
     el.removeEventListener('pointerup', soltar)
     el.removeEventListener('pointercancel', soltar)
+    enCurso = false
     if (movido) almacen.getState().terminarGrupo()
     alSoltar?.()
   }
@@ -116,7 +123,8 @@ export function pulsarElemento(aPlano: APlano, id: string, ev: PointerEventReact
   arrastrar(ev, (m) => {
     avisar(id)
     const p = redondear(sumar(e.posicion, restar(aPlano(m), p0)))
-    almacen.getState().cambiar((d) => moverElemento(d, catalogoBase, id, p, e.rotacion, false), `mover:${id}`)
+    // Un giro libre se conserva; uno de 90° en 90° se sigue imantando así.
+    almacen.getState().cambiar((d) => moverElemento(d, catalogoBase, id, p, e.rotacion, e.rotacion % 90 !== 0), `mover:${id}`)
   }, () => avisar(null))
 }
 
