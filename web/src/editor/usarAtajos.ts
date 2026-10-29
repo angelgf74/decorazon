@@ -31,6 +31,8 @@ export function useAtajos(): void {
         if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault()
           borrar(id)
+        } else if (e0.vista === '3d') {
+          // Mover y girar solo se hace en 2D (§4.2).
         } else if (tecla === 'r' && !mando && !e.altKey) {
           e.preventDefault()
           girar90(id, e.shiftKey ? -1 : 1)

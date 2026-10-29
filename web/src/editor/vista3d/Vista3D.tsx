@@ -6,6 +6,7 @@ import { cajaPlanta, camaraInicial, direccionSol, type DocumentoDiseno, type Vec
 import { textos } from '../../textos'
 import { useEditor } from '../estado/almacen'
 import Estancia3D from './Estancia3D'
+import Mueble3D from './Mueble3D'
 import './vista3d.css'
 
 const t = textos.vista3d
@@ -86,6 +87,7 @@ function Escena({ doc }: { doc: DocumentoDiseno }) {
         maxPolarAngle={Math.PI / 2 - 0.05}
       />
       <Estancia3D doc={doc} />
+      {doc.elementos.map((e) => <Mueble3D key={e.id} elemento={e} />)}
     </>
   )
 }
@@ -93,6 +95,7 @@ function Escena({ doc }: { doc: DocumentoDiseno }) {
 export default function Vista3D() {
   const doc = useEditor((e) => e.documento)
   const cambiarVista = useEditor((e) => e.cambiarVista)
+  const seleccionar = useEditor((e) => e.seleccionar)
   const [conWebgl] = useState(hayWebgl)
   if (doc === null) return null
 
@@ -107,7 +110,7 @@ export default function Vista3D() {
     <div className="vista3d">
       {conWebgl ? (
         <SinFallos alternativa={aviso}>
-          <Canvas shadows frameloop="demand" dpr={[1, 2]} camera={{ fov: 45 }}>
+          <Canvas shadows frameloop="demand" dpr={[1, 2]} camera={{ fov: 45 }} onPointerMissed={() => seleccionar(null)}>
             <Escena doc={doc} />
           </Canvas>
         </SinFallos>
