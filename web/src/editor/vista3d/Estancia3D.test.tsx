@@ -1,6 +1,7 @@
 import ReactThreeTestRenderer from '@react-three/test-renderer'
 import { Box3, Vector3, type Mesh } from 'three'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import { documentoNuevo, escenaEstancia } from '../../nucleo'
 import Estancia3D from './Estancia3D'
 import { geometriaPrisma, geometriaSuelo } from './geometrias'
@@ -94,5 +95,34 @@ describe('geometrías', () => {
     expect(b.min.y).toBeCloseTo(0)
     expect(b.max.y).toBeCloseTo(0)
     expect(g.getAttribute('normal').getY(0)).toBeCloseTo(1)
+  })
+})
+
+describe('Estancia3D: muros y huecos tapan los clics', () => {
+  it('muros, marcos, hojas y estructura detienen el clic y el paso del ratón sin tocar la selección; el suelo no', async () => {
+    reiniciarAlmacen()
+    almacen.getState().crear('salon', 400, 330, 250)
+    const doc = documentoNuevo('salon', 400, 330, 250)
+    doc.aberturas.push(
+      { id: 'p1', tipo: 'puerta', pared: 0, posicion: 159, ancho: 82, alto: 203, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' },
+      { id: 'v1', tipo: 'ventana', pared: 1, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false },
+    )
+    doc.estructura.push({ id: 'c1', tipo: 'columna', centro: { x: 100, y: 100 }, ancho: 30, fondo: 20, rotacion: 0 })
+    almacen.getState().seleccionar({ tipo: 'pared', indice: 2 })
+    const r = await ReactThreeTestRenderer.create(<Estancia3D doc={doc} ocultas={new Set()} />)
+    const mallas = r.scene.findAll((n) => n.type === 'Mesh')
+    const suelo = mallas.filter((m) => (m.instance as Mesh).material === materialDe('suelo', doc.estancia.colorSuelo))
+    expect(suelo).toHaveLength(1)
+    expect(suelo[0]!.props.onClick).toBeUndefined()
+    const resto = mallas.filter((m) => m !== suelo[0])
+    expect(resto.length).toBeGreaterThan(10)
+    for (const m of resto) {
+      for (const evento of ['click', 'pointerOver'] as const) {
+        const parar = vi.fn()
+        await r.fireEvent(m, evento, { stopPropagation: parar })
+        expect(parar).toHaveBeenCalledTimes(1)
+      }
+    }
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'pared', indice: 2 })
   })
 })
