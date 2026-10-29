@@ -121,3 +121,12 @@ describe('paredesQueTapan', () => {
     expect(paredesQueTapan(planta, { x: -500, y: 1000 })).toEqual([2, 3])
   })
 })
+
+describe('piezasDeElemento: material y color propios de la pieza', () => {
+  it('anulan los de la zona y los del elemento', () => {
+    const e = { ...elementoNuevo(mesa, { x: 0, y: 0 }), colores: { tablero: '#123456' } }
+    const [p, q] = piezasDeElemento(e, conPiezas([{ ...caja(-10, 10), material: 'vidrio', color: '#1f1f1f' }, caja(-10, 10)]))
+    expect(p).toMatchObject({ material: 'vidrio', color: '#1f1f1f' })
+    expect(q).toMatchObject({ material: 'madera', color: '#123456' })
+  })
+})

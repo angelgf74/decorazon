@@ -1,5 +1,6 @@
 import type { DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
+import { cilindro } from '../modelos'
 
 export const lampara: DefinicionTipo = {
   id: 'lampara-pie', nombre: 'lámpara de pie', genero: 'f', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina'],
@@ -9,5 +10,14 @@ export const lampara: DefinicionTipo = {
   zonasColor: [{ clave: 'pantalla', etiqueta: 'Pantalla', material: 'tela', defecto: '#efe6d6' }, { clave: 'pie', etiqueta: 'Pie', material: 'metal', defecto: '#3a3a3a' }],
   pisable: false, bloqueaPaso: false, sobreVentana: false,
   volumenes: cajaEntera,
+  modelo3d(e) {
+    const { ancho, fondo, alto } = e.medidas
+    const lado = Math.min(ancho, fondo)
+    return [
+      cilindro(0, 0, lado * 0.35, 0, 2, 'pie'),
+      cilindro(0, 0, 1.5, 2, alto - 10, 'pie'),
+      cilindro(0, 0, lado / 2, alto - 30, alto, 'pantalla'),
+    ]
+  },
   zonasApertura: () => [],
 }

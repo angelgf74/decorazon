@@ -57,11 +57,17 @@ export function cajonesApilados(e: Elemento, n: number, zDesde: number, zHasta: 
   return Array.from({ length: n }, (_, i) => {
     const z0 = zDesde + i * (h + separacion)
     const zc = z0 + h / 2 - TIRADOR.alto / 2
+    const a = anchoTirador(ancho)
     return [
       caja(-ancho / 2, fondo / 2 - FRENTE_Y0, z0, ancho / 2, fondo / 2 - FRENTE_Y1, z0 + h, zona),
-      caja(-anchoTirador(ancho) / 2, fondo / 2 - TIRADOR.fondo, zc, anchoTirador(ancho) / 2, fondo / 2, zc + TIRADOR.alto, zona),
+      ...(a === 0 ? [] : [caja(-a / 2, fondo / 2 - TIRADOR.fondo, zc, a / 2, fondo / 2, zc + TIRADOR.alto, zona)]),
     ]
   }).flat()
+}
+
+/** Las mismas piezas desplazadas `dy` cm a lo fondo (negativo = hacia atrás). */
+export function desplazadasY(piezas: PiezaLocal[], dy: number): PiezaLocal[] {
+  return piezas.map((p) => (p.forma === 'caja' ? { ...p, y0: p.y0 + dy, y1: p.y1 + dy } : { ...p, cy: p.cy + dy }))
 }
 
 /** Cuerpo hueco por detrás de los frentes: llega a `fondo/2 − 3,5` si hay frentes y a `fondo/2` si no. */

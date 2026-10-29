@@ -1,5 +1,6 @@
 import type { DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
+import { caja } from '../modelos'
 
 export const encimera: DefinicionTipo = {
   id: 'encimera', nombre: 'encimera', genero: 'f', categoria: 'mueble', estancias: ['cocina'],
@@ -9,5 +10,6 @@ export const encimera: DefinicionTipo = {
   zonasColor: [{ clave: 'encimera', etiqueta: 'Encimera', material: 'ceramica', defecto: '#cfc9bd' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
+  modelo3d: (e) => [caja(-e.medidas.ancho / 2, -e.medidas.fondo / 2, 0, e.medidas.ancho / 2, e.medidas.fondo / 2, e.medidas.alto, 'encimera')],
   zonasApertura: () => [],
 }

@@ -19,8 +19,8 @@ export function piezasDeElemento(e: Elemento, def: DefinicionTipo): Pieza3D[] {
   const giroY = 0 - (e.rotacion * Math.PI) / 180
   return locales.map((p): Pieza3D => {
     const zona = def.zonasColor.find((z) => z.clave === p.zona)
-    const material = zona?.material ?? 'lacado'
-    const color = e.colores[p.zona] ?? zona?.defecto ?? '#cccccc'
+    const material = p.material ?? zona?.material ?? 'lacado'
+    const color = p.color ?? e.colores[p.zona] ?? zona?.defecto ?? '#cccccc'
     if (p.forma === 'caja') {
       const c = aMundo(e, { x: (p.x0 + p.x1) / 2, y: (p.y0 + p.y1) / 2 })
       return {

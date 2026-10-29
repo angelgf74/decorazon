@@ -3,6 +3,7 @@ import { catalogoBase } from './catalogoBase'
 import type { PiezaLocal } from '../modelo3d/tipos'
 import type { Elemento } from '../modelo/documento'
 import { elemento } from './definiciones/ayuda.test-util'
+import { cajonesApilados } from './modelos'
 
 const TIPOS = ['cama', 'armario', 'comoda', 'mesita', 'escritorio', 'silla', 'estanteria', 'sofa', 'sillon', 'mesa-centro', 'mueble-tv', 'mesa', 'aparador']
 
@@ -101,5 +102,14 @@ describe('generadores 3D de dormitorio y salón', () => {
         expect(z1, msg).toBeLessThanOrEqual(zMax + tol)
       }
     }
+  })
+})
+
+describe('cajonesApilados', () => {
+  it('sin sitio para el tirador no emite tiradores de ancho 0', () => {
+    const e = elemento('comoda', 0, 0, 0, { ancho: 3 })
+    const ps = cajonesApilados(e, 2, 1, 40, 'cuerpo')
+    expect(ps).toHaveLength(2)
+    expect(ps.every((p) => p.forma === 'caja' && p.x1 > p.x0 && p.y1 - p.y0 === 2)).toBe(true)
   })
 })
