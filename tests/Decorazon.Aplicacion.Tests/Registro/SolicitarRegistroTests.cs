@@ -42,6 +42,28 @@ public class SolicitarRegistroTests
     }
 
     [Fact]
+    public async Task SiElProveedorDeCorreoFalla_CorreoNoEnviado()
+    {
+        _correo.ProveedorCaido = true;
+
+        var resultado = await CasoDeUso.EjecutarAsync("nuevo@ejemplo.com", null, Enlace);
+
+        Assert.Equal(ResultadoDeSolicitud.CorreoNoEnviado, resultado);
+    }
+
+    [Fact]
+    public async Task SiElProveedorFallaConCuentaExistente_TambienCorreoNoEnviado()
+    {
+        await _usuarios.AnadirAsync(Usuario.Crear(
+            CorreoElectronico.Crear("ya@ejemplo.com"), NombreDeUsuario.Crear("Ana"), "hash", _reloj.Ahora));
+        _correo.ProveedorCaido = true;
+
+        var resultado = await CasoDeUso.EjecutarAsync("ya@ejemplo.com", null, Enlace);
+
+        Assert.Equal(ResultadoDeSolicitud.CorreoNoEnviado, resultado);
+    }
+
+    [Fact]
     public async Task CorreoInvalido_NoCreaNadaNiEnvia()
     {
         var resultado = await CasoDeUso.EjecutarAsync("esto-no-es-un-correo", null, Enlace);

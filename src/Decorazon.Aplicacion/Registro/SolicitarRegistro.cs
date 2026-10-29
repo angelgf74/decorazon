@@ -77,9 +77,9 @@ public sealed class SolicitarRegistro(
             await solicitudes.AnadirAsync(descartada, cancelacion);
             await solicitudes.GuardarCambiosAsync(cancelacion);
 
-            // El dueño del buzón se entera del intento; quien lo hizo, no.
-            await enviadorDeCorreo.EnviarAvisoDeCuentaExistenteAsync(correo, cancelacion);
-            return ResultadoDeSolicitud.Aceptada;
+            // El dueño del buzón se entera del intento; quien lo hizo, no. Si el correo no
+            // sale, la respuesta es la misma que con un correo nuevo: tampoco delata nada.
+            return await EnviarAsync(() => enviadorDeCorreo.EnviarAvisoDeCuentaExistenteAsync(correo, cancelacion));
         }
 
         // Pedir el alta otra vez invalida los enlaces anteriores (y su diseño): solo el último sirve.
@@ -96,9 +96,22 @@ public sealed class SolicitarRegistro(
 
         // El envío va dentro del caso de uso a propósito: si Brevo falla, el usuario
         // debe enterarse ahora, no quedarse esperando un correo que nunca llega.
-        await enviadorDeCorreo.EnviarEnlaceDeAltaAsync(correo, construirEnlace(token), cancelacion);
+        return await EnviarAsync(() => enviadorDeCorreo.EnviarEnlaceDeAltaAsync(correo, construirEnlace(token), cancelacion));
+    }
 
-        return ResultadoDeSolicitud.Aceptada;
+    private static async Task<ResultadoDeSolicitud> EnviarAsync(Func<Task> envio)
+    {
+        try
+        {
+            await envio();
+            return ResultadoDeSolicitud.Aceptada;
+        }
+        catch (CorreoNoEnviadoException)
+        {
+            // La solicitud ya está guardada y cuenta para el límite: reintentar luego es
+            // pedir otra, que invalida esta.
+            return ResultadoDeSolicitud.CorreoNoEnviado;
+        }
     }
 }
 
@@ -113,5 +126,8 @@ public enum ResultadoDeSolicitud
     DisenoNoValido,
 
     /// <summary>Ese correo ya ha pedido el alta demasiadas veces en la última hora.</summary>
-    DemasiadasSolicitudes
+    DemasiadasSolicitudes,
+
+    /// <summary>La solicitud se guardó, pero el proveedor de correo no aceptó el mensaje.</summary>
+    CorreoNoEnviado
 }

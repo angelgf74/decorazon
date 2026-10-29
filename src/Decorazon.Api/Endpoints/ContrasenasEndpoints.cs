@@ -63,6 +63,8 @@ public static class ContrasenasEndpoints
             ResultadoDeSolicitudDeContrasena.CorreoInvalido =>
                 Results.BadRequest(new RespuestaDeError("Ese correo electrónico no parece válido.")),
 
+            ResultadoDeSolicitudDeContrasena.CorreoNoEnviado => RegistroEndpoints.CorreoNoEnviado(),
+
             // Aceptada tenga cuenta o no: distinguirlos convertiría esto en un
             // comprobador de qué direcciones están registradas.
             _ => Results.Ok(new RespuestaDeError(MensajeDeSolicitudAceptada))

@@ -58,7 +58,14 @@ public sealed class SolicitarRestablecerContrasena(
 
         // El envío va dentro del caso de uso a propósito: si Brevo falla, el usuario
         // debe enterarse ahora, no quedarse esperando un correo que nunca llega.
-        await enviadorDeCorreo.EnviarEnlaceDeContrasenaAsync(correo, construirEnlace(token), cancelacion);
+        try
+        {
+            await enviadorDeCorreo.EnviarEnlaceDeContrasenaAsync(correo, construirEnlace(token), cancelacion);
+        }
+        catch (CorreoNoEnviadoException)
+        {
+            return ResultadoDeSolicitudDeContrasena.CorreoNoEnviado;
+        }
 
         return ResultadoDeSolicitudDeContrasena.Aceptada;
     }
@@ -69,5 +76,8 @@ public enum ResultadoDeSolicitudDeContrasena
     /// <summary>Solicitud admitida. No dice si el correo tenía cuenta.</summary>
     Aceptada,
 
-    CorreoInvalido
+    CorreoInvalido,
+
+    /// <summary>La solicitud se guardó, pero el proveedor de correo no aceptó el mensaje.</summary>
+    CorreoNoEnviado
 }

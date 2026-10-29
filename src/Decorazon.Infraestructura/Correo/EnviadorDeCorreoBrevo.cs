@@ -103,7 +103,20 @@ public sealed class EnviadorDeCorreoBrevo(
             }
         };
 
-        var respuesta = await cliente.PostAsJsonAsync("v3/smtp/email", peticion, cancelacion);
+        HttpResponseMessage respuesta;
+        try
+        {
+            respuesta = await cliente.PostAsJsonAsync("v3/smtp/email", peticion, cancelacion);
+        }
+        catch (Exception excepcion) when (
+            excepcion is HttpRequestException
+            || (excepcion is TaskCanceledException && !cancelacion.IsCancellationRequested))
+        {
+            // Sin conexión, o el tiempo de espera del HttpClient agotado (llega como una
+            // cancelación que nadie pidió). Si quien llama cancela, eso no se disfraza.
+            registro.LogError(excepcion, "No se pudo hablar con Brevo para enviar a {Destinatario}.", destinatario.Valor);
+            throw new CorreoNoEnviadoException("No se pudo contactar con Brevo.", excepcion);
+        }
 
         if (respuesta.IsSuccessStatusCode)
         {
@@ -121,7 +134,7 @@ public sealed class EnviadorDeCorreoBrevo(
             (int)respuesta.StatusCode,
             detalle);
 
-        throw new InvalidOperationException(
+        throw new CorreoNoEnviadoException(
             $"No se pudo enviar el correo (Brevo respondió {(int)respuesta.StatusCode}).");
     }
 }

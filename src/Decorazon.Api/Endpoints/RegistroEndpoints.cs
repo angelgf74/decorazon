@@ -20,6 +20,15 @@ public static class RegistroEndpoints
     private const string MensajeDeEnlaceNoValido =
         "Este enlace no es válido o ha caducado. Pide el alta de nuevo.";
 
+    /// <summary>
+    /// 503 cuando el proveedor de correo no acepta el mensaje: el fallo es pasajero y
+    /// ajeno a quien llama. Lo comparten el alta y el olvido de contraseña.
+    /// </summary>
+    internal static IResult CorreoNoEnviado() =>
+        Results.Json(
+            new RespuestaDeError("No hemos podido enviar el correo. Inténtalo dentro de un rato."),
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+
     public static void MapearEndpointsDeRegistro(this IEndpointRouteBuilder rutas)
     {
         var grupo = rutas.MapGroup("/cuentas/registro").WithTags("Registro");
@@ -60,6 +69,8 @@ public static class RegistroEndpoints
                 Results.Json(
                     new RespuestaDeError("Has pedido el alta demasiadas veces. Espera un rato antes de volver a intentarlo."),
                     statusCode: StatusCodes.Status429TooManyRequests),
+
+            ResultadoDeSolicitud.CorreoNoEnviado => CorreoNoEnviado(),
 
             // Aceptada tanto si se ha creado la solicitud como si el correo ya
             // tenía cuenta: distinguirlos convertiría esto en un comprobador de

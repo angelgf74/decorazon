@@ -150,11 +150,23 @@ public sealed class EnviadorDeCorreoEspia : IEnviadorDeCorreo
     /// <summary>Si está a <c>true</c>, el correo de la baja revienta: la baja debe sobrevivir.</summary>
     public bool FallaAlAvisarDeLaBaja { get; set; }
 
+    /// <summary>Si está a <c>true</c>, los enlaces y avisos fallan como un Brevo caído.</summary>
+    public bool ProveedorCaido { get; set; }
+
+    private void ComprobarProveedor()
+    {
+        if (ProveedorCaido)
+        {
+            throw new CorreoNoEnviadoException("Proveedor caído (simulado).");
+        }
+    }
+
     public Task EnviarEnlaceDeAltaAsync(
         CorreoElectronico destinatario,
         string enlace,
         CancellationToken cancelacion = default)
     {
+        ComprobarProveedor();
         EnlacesDeAlta.Add((destinatario.Valor, enlace));
         return Task.CompletedTask;
     }
@@ -163,6 +175,7 @@ public sealed class EnviadorDeCorreoEspia : IEnviadorDeCorreo
         CorreoElectronico destinatario,
         CancellationToken cancelacion = default)
     {
+        ComprobarProveedor();
         AvisosDeCuentaExistente.Add(destinatario.Valor);
         return Task.CompletedTask;
     }
@@ -172,6 +185,7 @@ public sealed class EnviadorDeCorreoEspia : IEnviadorDeCorreo
         string enlace,
         CancellationToken cancelacion = default)
     {
+        ComprobarProveedor();
         EnlacesDeContrasena.Add((destinatario.Valor, enlace));
         return Task.CompletedTask;
     }

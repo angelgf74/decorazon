@@ -5,6 +5,9 @@ namespace Decorazon.Dominio.Puertos;
 /// <summary>
 /// Entrega de correo. El dominio no sabe si detrás hay Brevo, SMTP o la consola.
 /// </summary>
+/// <remarks>
+/// Si el proveedor no acepta el mensaje, cada método lanza <see cref="CorreoNoEnviadoException"/>.
+/// </remarks>
 public interface IEnviadorDeCorreo
 {
     /// <summary>Enlace para completar un alta nueva.</summary>

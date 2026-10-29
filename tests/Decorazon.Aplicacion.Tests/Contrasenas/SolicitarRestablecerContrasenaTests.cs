@@ -34,6 +34,17 @@ public class SolicitarRestablecerContrasenaTests
     }
 
     [Fact]
+    public async Task SiElProveedorDeCorreoFalla_CorreoNoEnviado()
+    {
+        await DarDeAltaUsuario("alguien@ejemplo.com");
+        _correo.ProveedorCaido = true;
+
+        var resultado = await CasoDeUso.EjecutarAsync("alguien@ejemplo.com", Enlace);
+
+        Assert.Equal(ResultadoDeSolicitudDeContrasena.CorreoNoEnviado, resultado);
+    }
+
+    [Fact]
     public async Task CorreoSinCuenta_NoCreaNadaNiEnviaNada()
     {
         var resultado = await CasoDeUso.EjecutarAsync("desconocido@ejemplo.com", Enlace);
