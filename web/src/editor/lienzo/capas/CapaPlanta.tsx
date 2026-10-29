@@ -1,7 +1,7 @@
 import type { PointerEvent } from 'react'
 import { desplazarPoligono, type DocumentoDiseno, type Punto } from '../../../nucleo'
 import type { Seleccion } from '../../estado/almacen'
-import { puntos } from './comun'
+import { esBotonPrincipal, puntos } from './comun'
 
 interface Props {
   documento: DocumentoDiseno
@@ -30,6 +30,7 @@ export default function CapaPlanta({ documento, seleccion, alPulsarPared }: Prop
             className={`capa-planta__pared lienzo--pulsable${elegida ? ' lienzo--seleccionado' : ''}`}
             points={puntos([p, planta[j], exterior[j], exterior[i]])}
             onPointerDown={(ev: PointerEvent<SVGPolygonElement>) => {
+              if (!esBotonPrincipal(ev)) return
               ev.stopPropagation()
               alPulsarPared(i)
             }}

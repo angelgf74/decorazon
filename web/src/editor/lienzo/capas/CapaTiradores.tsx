@@ -7,6 +7,7 @@ import { textos } from '../../../textos'
 import { almacen, type Seleccion } from '../../estado/almacen'
 import { arrastrar, arrastrarPunto, girarElemento, type AlArrastrarElemento } from '../arrastres'
 import { usePuntoDelPlano } from '../usarPuntoDelPlano'
+import { esBotonPrincipal } from './comun'
 
 interface Props { documento: DocumentoDiseno; seleccion: Seleccion; escala: number }
 
@@ -26,6 +27,7 @@ export default function CapaTiradores({ documento, seleccion, escala }: Props) {
   const px = (n: number) => n / escala
 
   const pulsarVertice = (i: number) => (ev: PointerEvent<SVGCircleElement>) => {
+    if (!esBotonPrincipal(ev)) return
     ev.stopPropagation()
     almacen.getState().seleccionar({ tipo: 'vertice', indice: i })
     arrastrar(ev, (e) => {
@@ -34,6 +36,7 @@ export default function CapaTiradores({ documento, seleccion, escala }: Props) {
   }
 
   const pulsarMas = (i: number) => (ev: PointerEvent<SVGGElement>) => {
+    if (!esBotonPrincipal(ev)) return
     ev.stopPropagation()
     if (almacen.getState().intentar((d) => partirPared(d, i))) almacen.getState().seleccionar({ tipo: 'vertice', indice: i + 1 })
   }
@@ -42,6 +45,7 @@ export default function CapaTiradores({ documento, seleccion, escala }: Props) {
     ? documento.estructura.find((e): e is Viga => e.id === seleccion.id && e.tipo === 'viga')
     : undefined
   const pulsarExtremo = (v: Viga, extremo: 'desde' | 'hasta') => (ev: PointerEvent<SVGCircleElement>) => {
+    if (!esBotonPrincipal(ev)) return
     ev.stopPropagation()
     arrastrarPunto(ev, aPlano, v[extremo], `estructura:${v.id}`, (d, p) => editarExtremo(d, v.id, extremo, p))
   }
@@ -102,6 +106,7 @@ export function TiradorGiro({ elemento: e, escala, avisar }: { elemento: Element
   const frente = sumar(e.posicion, rotar({ x: 0, y: e.medidas.fondo / 2 }, e.rotacion))
   const c = sumar(e.posicion, rotar({ x: 0, y: e.medidas.fondo / 2 + SEPARACION_GIRO_CM }, e.rotacion))
   const pulsar = (ev: PointerEvent<SVGCircleElement>) => {
+    if (!esBotonPrincipal(ev)) return
     ev.stopPropagation()
     girarElemento(aPlano, e.id, ev, avisar)
   }

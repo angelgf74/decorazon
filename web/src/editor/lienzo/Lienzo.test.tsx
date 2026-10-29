@@ -317,3 +317,49 @@ describe('Lienzo: paso 2, giro al mover', () => {
     expect(a.posicion).toEqual({ x: 210, y: 170 })
   })
 })
+
+describe('Lienzo: solo el botón principal toma las piezas', () => {
+  const pieza = (container: HTMLElement, selector: string) => {
+    const n = container.querySelector(selector)
+    if (!n) throw new Error(`sin ${selector}`)
+    return n
+  }
+  const transformacion = (container: HTMLElement) => pieza(container, 'svg > g').getAttribute('transform')
+
+  it('el botón central sobre un mueble no lo toma: el lienzo hace pan', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    const { container } = render(<Lienzo />)
+    const huella = pieza(container, '[data-elemento="a"] polygon')
+    fireEvent.pointerDown(huella, { pointerId: 1, button: 1, clientX: 200, clientY: 165 })
+    fireEvent.pointerMove(huella, { pointerId: 1, button: 1, clientX: 220, clientY: 175 })
+    fireEvent.pointerUp(huella, { pointerId: 1, button: 1, clientX: 220, clientY: 175 })
+    expect(almacen.getState().seleccion).toBeNull()
+    expect(almacen.getState().documento!.elementos[0]!.posicion).toEqual({ x: 200, y: 165 })
+    expect(transformacion(container)).toBe('translate(20 10) scale(1)')
+  })
+
+  it('el botón derecho no toma un mueble, ni una columna, ni un vértice, ni el tirador de giro', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a' })
+    const { container, rerender } = render(<Lienzo />)
+    const derecho = (n: Element, x: number, y: number) => {
+      fireEvent.pointerDown(n, { pointerId: 1, button: 2, clientX: x, clientY: y })
+      fireEvent.pointerMove(n, { pointerId: 1, button: 2, clientX: x + 30, clientY: y + 20 })
+      fireEvent.pointerUp(n, { pointerId: 1, button: 2, clientX: x + 30, clientY: y + 20 })
+    }
+    derecho(pieza(container, '[data-giro]'), 200, 225)
+    derecho(pieza(container, '[data-elemento="a"] polygon'), 200, 165)
+    expect(almacen.getState().documento!.elementos[0]).toMatchObject({ posicion: { x: 200, y: 165 }, rotacion: 0 })
+
+    almacen.getState().cambiar((d) => ({ ...d, estructura: [{ id: 'col', tipo: 'columna', centro: { x: 100, y: 100 }, ancho: 30, fondo: 30, rotacion: 0 }] }))
+    almacen.getState().irAPaso(1)
+    almacen.getState().seleccionar(null)
+    rerender(<Lienzo />)
+    derecho(pieza(container, '[data-estructura="col"] polygon'), 100, 100)
+    derecho(pieza(container, '[data-vertice="2"]'), 400, 330)
+    const d = almacen.getState().documento!
+    expect(d.estructura[0]).toMatchObject({ centro: { x: 100, y: 100 } })
+    expect(d.estancia.planta[2]).toEqual({ x: 400, y: 330 })
+    expect(almacen.getState().seleccion).toBeNull()
+  })
+})

@@ -3,6 +3,7 @@ import {
   catalogoBase, cotasAParedes, escalar, hueco, imantar, longitudPared, rectangulo, sumar, type DocumentoDiseno, type Elemento,
 } from '../../../nucleo'
 import { almacen, type Seleccion } from '../../estado/almacen'
+import { esBotonPrincipal } from './comun'
 
 interface Props { documento: DocumentoDiseno; seleccion: Seleccion; escala: number }
 
@@ -15,6 +16,7 @@ export default function CapaCotas({ documento, seleccion, escala }: Props) {
   const fuera = grosorPared + SEPARACION_COTA_PX / escala
 
   const pulsar = (i: number) => (ev: PointerEvent<SVGGElement>) => {
+    if (!esBotonPrincipal(ev)) return
     ev.stopPropagation()
     almacen.getState().seleccionar({ tipo: 'pared', indice: i })
   }
