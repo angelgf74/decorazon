@@ -42,11 +42,18 @@ export function editarElemento(
     const pedida = Number.isFinite(cambios.alturaSuelo) ? Math.round(cambios.alturaSuelo!) : e.alturaSuelo
     alturaSuelo = Math.max(0, Math.min(doc.estancia.alto - medidas.alto, pedida))
   }
-  return reemplazar(doc, {
+  const editado: Elemento = {
     ...e, medidas, rotacion, alturaSuelo,
     variantes: { ...e.variantes, ...cambios.variantes },
     colores: { ...e.colores, ...cambios.colores },
-  })
+  }
+  // Si estaba pegado a alguna pared, sigue a ras de ellas con sus medidas o su giro nuevos.
+  const paredes = imantar(doc, catalogo, e, { libre: e.rotacion % 90 !== 0 }).pegadoA
+    .filter(x => x.startsWith('pared:'))
+    .map(x => Number(x.slice('pared:'.length)))
+  if (paredes.length === 0) return reemplazar(doc, editado)
+  const r = imantar(doc, catalogo, editado, { libre: rotacion % 90 !== 0, paredes })
+  return reemplazar(doc, { ...editado, posicion: r.posicion, rotacion: r.rotacion })
 }
 
 /** Copia desplazada e imantada. Con un id inexistente devuelve el documento sin cambios y el mismo id. */

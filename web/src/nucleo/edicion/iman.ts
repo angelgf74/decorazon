@@ -43,9 +43,10 @@ function hueco(t: Tramo, rect: Punto[], centro: Punto): number | null {
 /**
  * Ajusta el giro y la posición de `e` (ya colocado donde lo pide el usuario): lo pega a la pared más cercana, y a una
  * segunda perpendicular para encajarlo en la esquina, y por los ejes que queden libres a otro mueble con el mismo giro.
+ * Con `paredes`, lo pega a esas paredes (las que ya tocaba antes de editarlo) estén a la distancia que estén.
  */
 export function imantar(
-  doc: DocumentoDiseno, _catalogo: Catalogo, e: Elemento, opciones: { libre: boolean },
+  doc: DocumentoDiseno, _catalogo: Catalogo, e: Elemento, opciones: { libre: boolean; paredes?: number[] },
 ): { posicion: Punto; rotacion: number; pegadoA: string[] } {
   const { libre } = opciones
   const { ancho, fondo } = e.medidas
@@ -80,8 +81,12 @@ export function imantar(
   }
 
   const lista = tramos(doc.estancia.planta)
-  const primera = masCercano(lista.filter(t => alinear(t) !== null))
-  if (primera) {
+  const forzadas = (opciones.paredes ?? []).flatMap(i => lista[i] ?? []).filter(t => alinear(t) !== null)
+  const primera = forzadas.length > 0 ? undefined : masCercano(lista.filter(t => alinear(t) !== null))
+  if (forzadas.length > 0) {
+    rotacion = alinear(forzadas[0]) ?? rotacion
+    forzadas.forEach(pegar)
+  } else if (primera) {
     rotacion = alinear(primera) ?? rotacion
     pegar(primera)
     const segunda = masCercano(lista.filter(t => t !== primera && Math.abs(punto(t.d, primera.d)) < EPS))

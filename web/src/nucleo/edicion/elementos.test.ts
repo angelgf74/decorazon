@@ -3,6 +3,7 @@ import { catalogoBase } from '../catalogo/catalogoBase'
 import { documentoNuevo } from '../modelo/crear'
 import type { DocumentoDiseno } from '../modelo/documento'
 import { validarDocumento } from '../modelo/validar'
+import { detectarConflictos } from '../conflictos/detectar'
 import { anadirElemento, duplicarElemento, editarElemento, moverElemento, quitarElemento } from './elementos'
 
 const sala = (): DocumentoDiseno => documentoNuevo('dormitorio', 400, 330, 250)
@@ -85,5 +86,26 @@ describe('quitarElemento', () => {
     expect(quitarElemento(documento, id).elementos).toEqual([])
     expect(documento.elementos).toHaveLength(1)
     expect(quitarElemento(documento, 'no-existe')).toBe(documento)
+  })
+})
+
+describe('editarElemento con el elemento pegado a una pared', () => {
+  it('un armario a ras de la pared de arriba que crece de fondo sigue a ras y sin salirse', () => {
+    const { documento, id } = anadirElemento(sala(), catalogoBase, 'armario', { x: 200, y: 38 })
+    expect(documento.elementos[0].posicion).toEqual({ x: 200, y: 30 })
+    const r = editarElemento(documento, catalogoBase, id, { medidas: { fondo: 66 } })
+    expect(r.elementos[0].posicion).toEqual({ x: 200, y: 33 })
+    expect(detectarConflictos(r, catalogoBase).filter(c => c.tipo === 'fueraDeEstancia')).toEqual([])
+  })
+  it('al girarlo 90° también vuelve a quedar a ras', () => {
+    const { documento, id } = anadirElemento(sala(), catalogoBase, 'armario', { x: 200, y: 38 })
+    const r = editarElemento(documento, catalogoBase, id, { rotacion: 90 })
+    expect(r.elementos[0].rotacion).toBe(90)
+    expect(r.elementos[0].posicion).toEqual({ x: 200, y: 50 })
+  })
+  it('un elemento suelto no se mueve al cambiar sus medidas', () => {
+    const { documento, id } = conArmario()
+    const r = editarElemento(documento, catalogoBase, id, { medidas: { fondo: 66, ancho: 150 } })
+    expect(r.elementos[0].posicion).toEqual({ x: 200, y: 165 })
   })
 })
