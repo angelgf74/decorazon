@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { almacen, useEditor } from './estado/almacen'
 import BarraSuperior, { type Hoja } from './paneles/BarraSuperior'
 import NuevaEstancia from './paneles/NuevaEstancia'
+import Lienzo from './lienzo/Lienzo'
 import { useAtajos } from './usarAtajos'
 import './editor.css'
 
@@ -31,7 +32,7 @@ export default function Editor() {
         <aside className={`editor__izquierda hoja${hoja === 'izquierda' ? ' hoja--abierta' : ''}`}>
           {paso === 1 ? <div className="panel-estancia" /> : <div className="panel-catalogo" />}
         </aside>
-        <div className="editor__lienzo" />
+        <div className="editor__lienzo"><Lienzo /></div>
         <aside className={`editor__derecha hoja${hoja === 'derecha' ? ' hoja--abierta' : ''}`}>
           <div className="panel-propiedades" />
           <div className="lista-avisos" />

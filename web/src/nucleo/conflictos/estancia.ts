@@ -19,10 +19,10 @@ const FRANJA_CM = 10
 
 const angulo = (v: Punto): number => (Math.atan2(v.y, v.x) * 180) / Math.PI
 
-interface Hueco { cercano: Punto; d: Punto; n: Punto }
+export interface Hueco { cercano: Punto; d: Punto; n: Punto }
 
 /** Marco de una pared: punto cercano del hueco, dirección y normal interior. */
-function hueco(planta: Punto[], pared: number, posicion: number): Hueco {
+export function hueco(planta: Punto[], pared: number, posicion: number): Hueco {
   const a = planta[pared], b = planta[(pared + 1) % planta.length]
   const d = normalizar(restar(b, a))
   return { cercano: sumar(a, escalar(d, posicion)), d, n: { x: -d.y, y: d.x } }

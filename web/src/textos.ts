@@ -33,6 +33,11 @@ export const textos = {
     estancia: 'Estancia',
     propiedades: 'Propiedades',
   },
+  lienzo: {
+    encuadrar: 'Encuadrar',
+    plano: 'Plano de la estancia',
+    canto: 'canto',
+  },
   comun: {
     aceptar: 'Aceptar',
     cancelar: 'Cancelar',
