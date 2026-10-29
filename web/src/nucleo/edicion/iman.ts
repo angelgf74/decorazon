@@ -1,5 +1,6 @@
 import type { Catalogo } from '../catalogo/tipos'
 import { rectangulo } from '../geometria/formas'
+import { TOLERANCIA_CM } from '../geometria/tolerancia'
 import { escalar, longitud, normalizar, punto, restar, rotar, sumar, type Punto } from '../geometria/vector'
 import type { DocumentoDiseno, Elemento } from '../modelo/documento'
 import { redondearNumeros } from './serializar'
@@ -38,6 +39,17 @@ function hueco(t: Tramo, rect: Punto[], centro: Punto): number | null {
   if (hasta <= EPS || desde >= t.largo - EPS) return null
   if (punto(restar(centro, t.a), t.normal) <= 0) return null
   return Math.min(...rect.map(v => punto(restar(v, t.a), t.normal)))
+}
+
+/** Paredes que `e` toca: a no más de TOLERANCIA_CM, o metido en ellas hasta IMAN_CM. */
+export function paredesTocadas(doc: DocumentoDiseno, e: Elemento): number[] {
+  const rect = rectangulo(e.posicion, e.medidas.ancho, e.medidas.fondo, e.rotacion)
+  return tramos(doc.estancia.planta)
+    .filter(t => {
+      const h = hueco(t, rect, e.posicion)
+      return h !== null && h <= TOLERANCIA_CM && h >= -IMAN_CM
+    })
+    .map(t => t.i)
 }
 
 /**

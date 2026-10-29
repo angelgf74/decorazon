@@ -109,3 +109,32 @@ describe('editarElemento con el elemento pegado a una pared', () => {
     expect(r.elementos[0].posicion).toEqual({ x: 200, y: 165 })
   })
 })
+
+describe('editarElemento solo conserva a ras las paredes que el elemento toca', () => {
+  const armarioEn = (y: number) => {
+    const { documento, id } = conArmario()
+    const doc = { ...documento, elementos: documento.elementos.map(e => ({ ...e, posicion: { x: 200, y } })) }
+    return { documento: doc, id }
+  }
+
+  it('un armario a 10 cm de la pared no salta a ella al cambiar su color', () => {
+    const { documento, id } = armarioEn(40)
+    const r = editarElemento(documento, catalogoBase, id, { colores: { cuerpo: '#000000' } })
+    expect(r.elementos[0].posicion).toEqual({ x: 200, y: 40 })
+  })
+  it('ni al cambiar su fondo', () => {
+    const { documento, id } = armarioEn(40)
+    const r = editarElemento(documento, catalogoBase, id, { medidas: { fondo: 66 } })
+    expect(r.elementos[0].posicion).toEqual({ x: 200, y: 40 })
+  })
+  it('ligeramente solapado con la pared cuenta como tocarla', () => {
+    const { documento, id } = armarioEn(29.95)
+    const r = editarElemento(documento, catalogoBase, id, { medidas: { fondo: 66 } })
+    expect(r.elementos[0].posicion).toEqual({ x: 200, y: 33 })
+  })
+  it('si no cambian medidas ni giro no se re-imanta: cambiar solo variantes deja la posición tal cual', () => {
+    const { documento, id } = armarioEn(29.95)
+    const r = editarElemento(documento, catalogoBase, id, { variantes: { modulos: 3 } })
+    expect(r.elementos[0].posicion).toEqual({ x: 200, y: 29.95 })
+  })
+})

@@ -2,7 +2,7 @@ import { ajustarMedidas, elementoNuevo } from '../catalogo/elemento'
 import type { Catalogo } from '../catalogo/tipos'
 import type { Punto } from '../geometria/vector'
 import type { DocumentoDiseno, Elemento, Medidas } from '../modelo/documento'
-import { imantar, normalizarGiro } from './iman'
+import { imantar, normalizarGiro, paredesTocadas } from './iman'
 
 const DESPLAZAMIENTO_COPIA_CM = 20
 
@@ -47,10 +47,11 @@ export function editarElemento(
     variantes: { ...e.variantes, ...cambios.variantes },
     colores: { ...e.colores, ...cambios.colores },
   }
-  // Si estaba pegado a alguna pared, sigue a ras de ellas con sus medidas o su giro nuevos.
-  const paredes = imantar(doc, catalogo, e, { libre: e.rotacion % 90 !== 0 }).pegadoA
-    .filter(x => x.startsWith('pared:'))
-    .map(x => Number(x.slice('pared:'.length)))
+  // Colores, variantes o altura al suelo no mueven el elemento. Con medidas o giro nuevos, sigue a ras de las paredes
+  // que tocaba; las que solo tenía cerca no lo atraen.
+  const mismaForma = rotacion === e.rotacion
+    && (Object.keys(medidas) as (keyof Medidas)[]).every(k => medidas[k] === e.medidas[k])
+  const paredes = mismaForma ? [] : paredesTocadas(doc, e)
   if (paredes.length === 0) return reemplazar(doc, editado)
   const r = imantar(doc, catalogo, editado, { libre: rotacion % 90 !== 0, paredes })
   return reemplazar(doc, { ...editado, posicion: r.posicion, rotacion: r.rotacion })
