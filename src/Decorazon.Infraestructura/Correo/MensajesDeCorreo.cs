@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace Decorazon.Infraestructura.Correo;
 
 /// <summary>
@@ -13,6 +15,10 @@ namespace Decorazon.Infraestructura.Correo;
 /// </remarks>
 internal static class MensajesDeCorreo
 {
+    // Los enlaces los construye quien llama, pero van a un atributo y a un texto HTML:
+    // se codifican por si algún día llevan &, comillas o corchetes.
+    private static string Html(string enlace) => WebUtility.HtmlEncode(enlace);
+
     public const string AsuntoDeAlta = "Completa tu alta en Decorazon";
 
     public const string AsuntoDeCuentaExistente = "Alguien ha pedido crear una cuenta con tu correo";
@@ -21,9 +27,9 @@ internal static class MensajesDeCorreo
         $"""
          <p>Hola:</p>
          <p>Para terminar de crear tu cuenta en Decorazon, elige tu contraseña aquí:</p>
-         <p><a href="{enlace}">Elegir mi contraseña</a></p>
+         <p><a href="{Html(enlace)}">Elegir mi contraseña</a></p>
          <p>Si el botón no funciona, copia esta dirección en tu navegador:<br>
-         <span>{enlace}</span></p>
+         <span>{Html(enlace)}</span></p>
          <p>El enlace caduca en 24 horas y solo se puede usar una vez.</p>
          <p>Si no has pedido tú esta alta, ignora este mensaje: sin abrir el enlace no se crea ninguna cuenta.</p>
          """;
@@ -48,9 +54,9 @@ internal static class MensajesDeCorreo
         $"""
          <p>Hola:</p>
          <p>Has pedido volver a entrar en Decorazon. Elige aquí tu contraseña nueva:</p>
-         <p><a href="{enlace}">Elegir contraseña nueva</a></p>
+         <p><a href="{Html(enlace)}">Elegir contraseña nueva</a></p>
          <p>Si el botón no funciona, copia esta dirección en tu navegador:<br>
-         <span>{enlace}</span></p>
+         <span>{Html(enlace)}</span></p>
          <p>El enlace caduca en una hora y solo se puede usar una vez.</p>
          <p>Si no lo has pedido tú, ignora este mensaje: tu contraseña actual sigue funcionando y no hemos cambiado nada.</p>
          """;

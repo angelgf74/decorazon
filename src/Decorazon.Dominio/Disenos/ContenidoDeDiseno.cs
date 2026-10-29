@@ -32,6 +32,18 @@ public sealed record ContenidoDeDiseno
     public string Json { get; }
 
     /// <summary>
+    /// Solo para rehidratar desde el almacén un contenido que ya se validó al entrar.
+    /// No valida: jsonb devuelve el documento reformateado (espacios tras ':' y ',',
+    /// números expandidos) y puede pesar más que el límite de entrada; revalidarlo
+    /// haría ilegible un diseño correcto. Para datos externos, usar <see cref="Validar"/>.
+    /// </summary>
+    public static ContenidoDeDiseno Reconstruir(string json)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(json);
+        return new ContenidoDeDiseno(json);
+    }
+
+    /// <summary>
     /// Nunca lanza. El tamaño se mide antes de analizar para que un documento
     /// enorme no cueste memoria ni tiempo de análisis.
     /// </summary>
@@ -89,14 +101,15 @@ public sealed record ContenidoDeDiseno
     /// <summary>
     /// Fuerza la lectura de cada cadena y nombre de propiedad. El analizador acepta un
     /// escape de sustituto suelto (<c>"\uD800"</c>) y solo falla al materializar el texto;
-    /// jsonb de PostgreSQL tampoco lo admite. Mejor descubrirlo aquí que al guardar.
+    /// jsonb de PostgreSQL tampoco lo admite, ni el carácter nulo (<c>"0000"</c>).
+    /// Mejor descubrirlo aquí que al guardar.
     /// </summary>
     private static void ComprobarTextos(JsonElement elemento)
     {
         switch (elemento.ValueKind)
         {
             case JsonValueKind.String:
-                _ = elemento.GetString();
+                SinNulo(elemento.GetString());
                 break;
             case JsonValueKind.Array:
                 foreach (var hijo in elemento.EnumerateArray())
@@ -108,11 +121,19 @@ public sealed record ContenidoDeDiseno
             case JsonValueKind.Object:
                 foreach (var propiedad in elemento.EnumerateObject())
                 {
-                    _ = propiedad.Name;
+                    SinNulo(propiedad.Name);
                     ComprobarTextos(propiedad.Value);
                 }
 
                 break;
+        }
+    }
+
+    private static void SinNulo(string? texto)
+    {
+        if (texto is not null && texto.Contains('\0'))
+        {
+            throw new JsonException("El carácter nulo no se admite en jsonb.");
         }
     }
 

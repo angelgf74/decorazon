@@ -84,6 +84,8 @@ public class ContenidoDeDisenoTests
     [InlineData("""{"formato":1,"estancia":{"nota":"\uD800"},"aberturas":[],"estructura":[],"elementos":[]}""")]
     [InlineData("""{"formato":1,"estancia":{"\uDC00":1},"aberturas":[],"estructura":[],"elementos":[]}""")]
     [InlineData("""{"formato":1,"estancia":{},"aberturas":[],"estructura":[],"elementos":[["\uD83D x"]]}""")]
+    [InlineData("""{"formato":1,"estancia":{"nota":"a\u0000b"},"aberturas":[],"estructura":[],"elementos":[]}""")]
+    [InlineData("""{"formato":1,"estancia":{"\u0000":1},"aberturas":[],"estructura":[],"elementos":[]}""")]
     public void Validar_rechaza_un_escape_de_sustituto_suelto_en_valores_y_nombres(string json)
     {
         // Es texto JSON bien formado, pero jsonb de PostgreSQL no admite ese escape:

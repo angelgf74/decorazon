@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Decorazon.Aplicacion.Disenos;
 using Decorazon.Aplicacion.Registro;
 using Decorazon.Dominio.Disenos;
 using Decorazon.Dominio.Registro;
@@ -130,33 +131,64 @@ public sealed class PersistenciaConPostgresTests(PostgresFixture postgres)
         Assert.Equal(["Nuevo", "Viejo"], (await repositorio.ListarAsync(ana.Id)).Select(d => d.Nombre.Valor));
     }
 
-    [Fact]
-    public async Task Postgres_rechaza_un_escape_de_sustituto_suelto_en_jsonb_por_eso_el_dominio_lo_filtra()
+    [Theory]
+    [InlineData("""{"nota":"\uD800"}""", "22P02")]
+    [InlineData("""{"nota":"\u0000"}""", "22P05")]
+    [InlineData("""{"\u0000":1}""", "22P05")]
+    public async Task Postgres_rechaza_estos_escapes_en_jsonb_por_eso_el_dominio_los_filtra(string json, string estadoSql)
     {
         var cadena = await postgres.NuevaBaseAsync();
         await using var contexto = PostgresFixture.Contexto(cadena);
 
         // Texto con el escape (no el carácter), enviado como parámetro como en un guardado.
-        var json = """{"nota":"\uD800"}""";
         var excepcion = await Assert.ThrowsAsync<Npgsql.PostgresException>(() =>
             contexto.Database
                 .SqlQuery<string>($"SELECT CAST({json} AS jsonb)::text AS \"Value\"")
                 .ToListAsync());
 
-        Assert.Equal("22P02", excepcion.SqlState);  // invalid_text_representation
+        Assert.Equal(estadoSql, excepcion.SqlState);
+    }
+
+    [Theory]
+    [InlineData("""{"formato":1,"estancia":{"nota":"\uD800"},"aberturas":[],"estructura":[],"elementos":[]}""")]
+    [InlineData("""{"formato":1,"estancia":{"nota":"\u0000"},"aberturas":[],"estructura":[],"elementos":[]}""")]
+    [InlineData("""{"formato":1,"estancia":{"\u0000":1},"aberturas":[],"estructura":[],"elementos":[]}""")]
+    public async Task Crear_un_diseno_con_un_escape_que_jsonb_rechaza_se_responde_sin_tocar_la_base_de_datos(string json)
+    {
+        var (cadena, usuario) = await BaseConUsuarioAsync();
+        await using var contexto = PostgresFixture.Contexto(cadena);
+        var gestion = new GestionDeDisenos(new RepositorioDeDisenosEf(contexto), new RelojDelSistema());
+
+        var resultado = await gestion.CrearAsync(usuario.Id, new PeticionDeDiseno("Mi salón", "salon", json));
+
+        Assert.NotEqual(EstadoDeDiseno.Correcto, resultado.Estado);
+        Assert.Equal(0, await contexto.Disenos.CountAsync());
     }
 
     [Fact]
-    public void Un_escape_de_sustituto_suelto_en_el_contenido_no_llega_a_la_base_de_datos()
+    public async Task Un_diseno_cerca_del_limite_se_lee_y_se_lista_aunque_jsonb_lo_haga_crecer_por_encima()
     {
-        // El texto \uD800 (escape, no el carácter) lo rechaza jsonb de PostgreSQL:
-        // el dominio lo detecta antes, así que nunca se intenta guardar.
-        var json = """{"formato":1,"estancia":{"nota":"\uD800"},"aberturas":[],"estructura":[],"elementos":[]}""";
+        // Muchos números cortos en un array: jsonb añade un espacio tras cada coma, así
+        // que lo que vuelve de la base de datos pesa más que el límite de entrada.
+        var numeros = string.Join(',', Enumerable.Repeat("1", 520_000));
+        var json = $$"""{"formato":1,"estancia":{},"aberturas":[],"estructura":[],"elementos":[[{{numeros}}]]}""";
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(json) <= ContenidoDeDiseno.TamanoMaximoEnBytes);
 
-        var resultado = ContenidoDeDiseno.Validar(json, out var contenido);
+        var (cadena, usuario) = await BaseConUsuarioAsync();
+        await using (var contexto = PostgresFixture.Contexto(cadena))
+        {
+            var gestion = new GestionDeDisenos(new RepositorioDeDisenosEf(contexto), new RelojDelSistema());
+            var creado = await gestion.CrearAsync(usuario.Id, new PeticionDeDiseno("Grande", "salon", json));
+            Assert.Equal(EstadoDeDiseno.Correcto, creado.Estado);
+        }
 
-        Assert.Equal(ResultadoDeContenido.NoEsJson, resultado);
-        Assert.Null(contenido);
+        await using var lectura = PostgresFixture.Contexto(cadena);
+        var repositorio = new RepositorioDeDisenosEf(lectura);
+        var listado = await repositorio.ListarAsync(usuario.Id);
+
+        var leido = Assert.Single(listado);
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(leido.Contenido.Json) > ContenidoDeDiseno.TamanoMaximoEnBytes);
+        Assert.NotNull(await repositorio.ObtenerAsync(usuario.Id, leido.Id));
     }
 
     [Fact]

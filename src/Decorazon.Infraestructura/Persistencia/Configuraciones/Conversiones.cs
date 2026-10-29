@@ -19,9 +19,10 @@ internal static class Conversiones
 
     public static readonly ValueConverter<ContenidoDeDiseno, string> Contenido = new(
         contenido => contenido.Json,
-        json => ReconstruirContenido(json));
+        json => ContenidoDeDiseno.Reconstruir(json));
 
-    // Lo guardado ya se validó al entrar: si ahora no se puede leer, la base de datos
+    // El contenido no se revalida al leer (ver ContenidoDeDiseno.Reconstruir). Nombre y
+    // tipo sí: si lo guardado no se puede leer, la base de datos
     // está corrupta y es mejor fallar a gritos que inventar un valor.
     private static NombreDeDiseno ReconstruirNombre(string texto) =>
         NombreDeDiseno.TryCrear(texto, out var nombre)
@@ -32,9 +33,4 @@ internal static class Conversiones
         TiposDeEstancia.TryDesdeTexto(texto, out var tipo)
             ? tipo
             : throw new InvalidOperationException($"Tipo de estancia guardado no válido: '{texto}'.");
-
-    private static ContenidoDeDiseno ReconstruirContenido(string json) =>
-        ContenidoDeDiseno.Validar(json, out var contenido) == ResultadoDeContenido.Valido
-            ? contenido!
-            : throw new InvalidOperationException("Contenido de diseño guardado no válido.");
 }
