@@ -115,28 +115,31 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
       }
     }
 
-    // Aperturas del mueble.
+    // Aperturas del mueble: una vez por nombre de zona y por lo que choca (mueble, obstáculo o pared), con la mayor penetración.
+    const choques = new Map<string, { p: number; ids: string[]; zona: string; contra: Ref; huella: Punto[] }>()
+    const anotar = (p: number, otro: string | null, zona: ZonaApertura, contra: Ref, huella: () => Punto[]) => {
+      if (p <= TOLERANCIA_CM) return
+      const clave = `${otro ?? ''}|${zona.nombre}`
+      const previo = choques.get(clave)
+      if (!previo || p > previo.p) {
+        choques.set(clave, { p, ids: otro === null ? [a.e.id] : [a.e.id, otro], zona: zona.nombre, contra, huella: huella() })
+      }
+    }
     for (const zona of a.zonas) {
       for (const b of piezas) {
         if (b === a || b.def.pisable) continue
         const par = maxPenetracion([zona], b.volumenes)
-        if (par && par.p > TOLERANCIA_CM) {
-          const n = cantidadMostrada(par.p)
-          conflictos.push({ tipo: 'apertura', gravedad: 'error', ids: [a.e.id, b.e.id], cantidadCm: n, mensaje: mensajeAperturaMueble(zona.nombre, a.ref, b.ref, n), zona: zonaDe(par) })
-        }
+        if (par) anotar(par.p, b.e.id, zona, b.ref, () => zonaDe(par))
       }
       for (const o of obstaculos.fisicos) {
         const p = penetracion3D(zona, o.prisma)
-        if (p > TOLERANCIA_CM) {
-          const n = cantidadMostrada(p)
-          conflictos.push({ tipo: 'apertura', gravedad: 'error', ids: [a.e.id, o.id], cantidadCm: n, mensaje: mensajeAperturaMueble(zona.nombre, a.ref, refDe(o), n), zona: zonaDe({ p, a: zona, b: o.prisma }) })
-        }
+        anotar(p, o.id, zona, refDe(o), () => zonaDe({ p, a: zona, b: o.prisma }))
       }
-      const sale = penetracionEnParedes(planta, zona.huella)
-      if (sale > TOLERANCIA_CM) {
-        const n = cantidadMostrada(sale)
-        conflictos.push({ tipo: 'apertura', gravedad: 'error', ids: [a.e.id], cantidadCm: n, mensaje: mensajeAperturaMueble(zona.nombre, a.ref, PARED, n), zona: zona.huella })
-      }
+      anotar(penetracionEnParedes(planta, zona.huella), null, zona, PARED, () => zona.huella)
+    }
+    for (const { p, ids, zona, contra, huella } of choques.values()) {
+      const n = cantidadMostrada(p)
+      conflictos.push({ tipo: 'apertura', gravedad: 'error', ids, cantidadCm: n, mensaje: mensajeAperturaMueble(zona, a.ref, contra, n), zona: huella })
     }
   }
 

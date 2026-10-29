@@ -67,8 +67,17 @@ describe('detectarConflictos', () => {
     const doc = base()
     doc.elementos.push(elemento('armario', 100, 30, 0, {}, {}, 'a1'), elemento('cama', 100, 198, 0, {}, {}, 'c1'))
     const c = de(doc, 'apertura').filter((x) => x.ids[0] === 'a1')
-    expect(c.length).toBeGreaterThan(0)
-    for (const x of c) expect(x).toMatchObject({ gravedad: 'error', ids: ['a1', 'c1'], mensaje: 'La puerta del armario choca con la cama: faltan 12 cm' })
+    expect(c).toMatchObject([{ gravedad: 'error', ids: ['a1', 'c1'], cantidadCm: 12, mensaje: 'La puerta del armario choca con la cama: faltan 12 cm' }])
+  })
+
+  it('las dos hojas de un armario contra una columna o contra la pared dan un solo aviso', () => {
+    const conColumna = base()
+    conColumna.estructura.push({ id: 'col', tipo: 'columna', centro: { x: 100, y: 90 }, ancho: 100, fondo: 20, rotacion: 0 })
+    conColumna.elementos.push(elemento('armario', 100, 30, 0, {}, {}, 'a1'))
+    expect(de(conColumna, 'apertura').map((c) => c.ids)).toEqual([['a1', 'col']])
+    const contraPared = base()
+    contraPared.elementos.push(elemento('armario', 200, 60, 180, {}, {}, 'a1'))
+    expect(de(contraPared, 'apertura')).toMatchObject([{ ids: ['a1'], cantidadCm: 20, mensaje: 'La puerta del armario choca con la pared: faltan 20 cm' }])
   })
 
   it('3. cómoda girada 180° con el frente a 30 cm de la pared', () => {
