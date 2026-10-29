@@ -8,6 +8,8 @@ import PanelCatalogo from './paneles/PanelCatalogo'
 import PanelEstancia from './paneles/PanelEstancia'
 import PanelPropiedades from './paneles/PanelPropiedades'
 import Lienzo from './lienzo/Lienzo'
+import AvisoVista3D from './comunes/AvisoVista3D'
+import SinFallos from './comunes/SinFallos'
 import { useAtajos } from './usarAtajos'
 import './editor.css'
 
@@ -41,7 +43,11 @@ export default function Editor() {
           {paso === 1 ? <PanelEstancia /> : <PanelCatalogo />}
         </aside>
         <div className="editor__lienzo">
-          {vista === '3d' ? <Suspense fallback={textos.vista3d.cargando}><Vista3D /></Suspense> : <Lienzo />}
+          {vista === '3d' ? (
+            <SinFallos alternativa={<AvisoVista3D texto={textos.vista3d.sinCarga} />}>
+              <Suspense fallback={textos.vista3d.cargando}><Vista3D /></Suspense>
+            </SinFallos>
+          ) : <Lienzo />}
         </div>
         <aside className={`editor__derecha hoja${hoja === 'derecha' ? ' hoja--abierta' : ''}`}>
           <PanelPropiedades />

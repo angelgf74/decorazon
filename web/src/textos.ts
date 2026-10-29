@@ -102,6 +102,7 @@ export const textos = {
   vista3d: {
     cargando: 'Cargando la vista 3D…',
     sinWebgl: 'Tu navegador no puede mostrar la vista 3D. El plano 2D sigue funcionando.',
+    sinCarga: 'No se pudo cargar la vista 3D. El plano 2D sigue funcionando.',
     volver2d: 'Volver al 2D',
     ocultarParedes: 'Ocultar paredes delante',
     encuadrar: 'Encuadrar',
