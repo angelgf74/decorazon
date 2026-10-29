@@ -1,6 +1,6 @@
 import type { DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
-import { caja, patas4 } from '../modelos'
+import { mesaConPatas } from '../modelos'
 
 export const escritorio: DefinicionTipo = {
   id: 'escritorio', nombre: 'escritorio', genero: 'm', categoria: 'mueble', estancias: ['dormitorio', 'salon'],
@@ -10,9 +10,6 @@ export const escritorio: DefinicionTipo = {
   zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#c9a77c' }, { clave: 'patas', etiqueta: 'Patas', material: 'metal', defecto: '#3a3a3a' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
-  modelo3d(e) {
-    const { ancho, fondo, alto } = e.medidas
-    return [caja(-ancho / 2, -fondo / 2, alto - 3, ancho / 2, fondo / 2, alto, 'tablero'), ...patas4(e, 5, alto - 3, 'patas')]
-  },
+  modelo3d: (e) => mesaConPatas(e, 'tablero', 'patas'),
   zonasApertura: () => [],
 }

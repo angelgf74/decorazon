@@ -59,6 +59,17 @@ describe('generadores 3D de dormitorio y salón', () => {
     const horizontales = piezasDe(e).filter((p) => p.forma === 'caja' && p.x1 - p.x0 === e.medidas.ancho - 6)
     expect(horizontales).toHaveLength(6)
   })
+  it('los tiradores de frentes estrechos no se solapan ni salen del frente', () => {
+    for (const [w, modulos] of [[40, 2], [40, 4], [80, 4], [100, 1]]) {
+      const e = elemento('armario', 0, 0, 0, { ancho: w }, { modulos })
+      const ts = piezasDe(e).filter((p): p is Extract<PiezaLocal, { forma: 'caja' }> => p.forma === 'caja' && p.y1 === e.medidas.fondo / 2 && p.y1 - p.y0 === 1.5).sort((a, b) => a.x0 - b.x0)
+      for (let i = 0; i < ts.length; i++) {
+        expect(ts[i].x0, `${w}/${modulos}`).toBeGreaterThanOrEqual(-w / 2)
+        expect(ts[i].x1).toBeLessThanOrEqual(w / 2)
+        if (i > 0) expect(ts[i].x0).toBeGreaterThan(ts[i - 1].x1)
+      }
+    }
+  })
   it('cada zona usada existe en zonasColor', () => {
     for (const t of TIPOS) {
       const claves = catalogoBase.get(t)!.zonasColor.map((z) => z.clave)
@@ -69,7 +80,7 @@ describe('generadores 3D de dormitorio y salón', () => {
     const casos: [string, Partial<Elemento['medidas']>, Elemento['variantes']][] = []
     for (const t of TIPOS) casos.push([t, {}, {}])
     casos.push(['cama', {}, { cabecero: false }], ['cama', { alto: 20 }, {}], ['armario', {}, { puertas: 'correderas' }],
-      ['armario', { ancho: 400 }, { modulos: 4 }], ['sofa', {}, { chaise: 'izquierda' }], ['sofa', { ancho: 140, alto: 70 }, { chaise: 'derecha', plazas: 2 }],
+      ['armario', { ancho: 400 }, { modulos: 4 }], ['armario', { ancho: 40 }, { modulos: 4 }], ['armario', { ancho: 80 }, { modulos: 4 }], ['armario', { ancho: 40 }, { modulos: 2 }], ['sofa', {}, { chaise: 'izquierda' }], ['sofa', { ancho: 140, alto: 70 }, { chaise: 'derecha', plazas: 2 }],
       ['mesita', {}, { cajon: false }], ['mueble-tv', {}, { puertas: 0 }], ['comoda', { alto: 50 }, { cajones: 6 }])
     for (const [t, medidas, variantes] of casos) {
       const e = elemento(t, 0, 0, 0, medidas, variantes)

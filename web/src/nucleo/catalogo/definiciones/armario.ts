@@ -18,7 +18,7 @@ export const armario: DefinicionTipo = {
     const corredera = valorVariante(armario, e, 'puertas') === 'correderas'
     const cuerpo = caja(-ancho / 2, -fondo / 2, 0, ancho / 2, yFrenteCuerpo(e, true), alto, 'cuerpo')
     if (corredera) {
-      const y = fondo / 2 - 3.5
+      const y = yFrenteCuerpo(e, true)
       return [
         cuerpo,
         caja(-ancho / 2, y, 1, 2, y + 1, alto - 1, 'cuerpo'),

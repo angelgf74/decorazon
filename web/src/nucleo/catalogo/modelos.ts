@@ -32,13 +32,21 @@ export function frentes(e: Elemento, n: number, zDesde: number, zHasta: number, 
   })
 }
 
-/** Un tirador de 12×1,5×1,5 cm centrado en cada uno de los `n` frentes, con su base en `z`. */
+/** Ancho del tirador en un frente de ancho `w`: 12 cm como mucho y 1 cm de margen a cada lado; 0 si no cabe. */
+function anchoTirador(w: number): number {
+  const a = Math.min(TIRADOR.ancho, w - 2)
+  return a > 1 ? a : 0
+}
+
+/** Un tirador de 12×1,5×1,5 cm (más estrecho si el frente lo es) centrado en cada uno de los `n` frentes, con su base en `z`. */
 export function tiradores(e: Elemento, n: number, z: number, zona: string, separacion = 0.4): PiezaLocal[] {
   const { ancho, fondo } = e.medidas
   const w = (ancho - (n - 1) * separacion) / n
+  const a = anchoTirador(w)
+  if (a === 0) return []
   return Array.from({ length: n }, (_, i) => {
     const c = -ancho / 2 + i * (w + separacion) + w / 2
-    return caja(c - TIRADOR.ancho / 2, fondo / 2 - TIRADOR.fondo, z, c + TIRADOR.ancho / 2, fondo / 2, z + TIRADOR.alto, zona)
+    return caja(c - a / 2, fondo / 2 - TIRADOR.fondo, z, c + a / 2, fondo / 2, z + TIRADOR.alto, zona)
   })
 }
 
@@ -51,7 +59,7 @@ export function cajonesApilados(e: Elemento, n: number, zDesde: number, zHasta: 
     const zc = z0 + h / 2 - TIRADOR.alto / 2
     return [
       caja(-ancho / 2, fondo / 2 - FRENTE_Y0, z0, ancho / 2, fondo / 2 - FRENTE_Y1, z0 + h, zona),
-      caja(-TIRADOR.ancho / 2, fondo / 2 - TIRADOR.fondo, zc, TIRADOR.ancho / 2, fondo / 2, zc + TIRADOR.alto, zona),
+      caja(-anchoTirador(ancho) / 2, fondo / 2 - TIRADOR.fondo, zc, anchoTirador(ancho) / 2, fondo / 2, zc + TIRADOR.alto, zona),
     ]
   }).flat()
 }
@@ -59,6 +67,23 @@ export function cajonesApilados(e: Elemento, n: number, zDesde: number, zHasta: 
 /** Cuerpo hueco por detrás de los frentes: llega a `fondo/2 − 3,5` si hay frentes y a `fondo/2` si no. */
 export function yFrenteCuerpo(e: Elemento, conFrentes: boolean): number {
   return e.medidas.fondo / 2 - (conFrentes ? FRENTE_Y0 : 0)
+}
+
+/** Mueble bajo con zócalo de 8 cm, cuerpo y `puertas` frentes con tirador (sin puertas, el cuerpo llega al frente). */
+export function cuerpoConZocalo(e: Elemento, puertas: number, zona: string): PiezaLocal[] {
+  const { ancho, fondo, alto } = e.medidas
+  return [
+    caja(-ancho / 2 + 3, -fondo / 2 + 3, 0, ancho / 2 - 3, yFrenteCuerpo(e, true), 8, zona),
+    caja(-ancho / 2, -fondo / 2, 8, ancho / 2, yFrenteCuerpo(e, puertas > 0), alto, zona),
+    ...frentes(e, puertas, 9, alto - 1, zona),
+    ...tiradores(e, puertas, (alto + 8) / 2 - 0.75, zona),
+  ]
+}
+
+/** Tablero de 3 cm sobre cuatro patas de 5 cm. */
+export function mesaConPatas(e: Elemento, zonaTablero: string, zonaPatas: string): PiezaLocal[] {
+  const { ancho, fondo, alto } = e.medidas
+  return [caja(-ancho / 2, -fondo / 2, alto - 3, ancho / 2, fondo / 2, alto, zonaTablero), ...patas4(e, 5, alto - 3, zonaPatas)]
 }
 
 export type LadoChaise = 'no' | 'izquierda' | 'derecha'

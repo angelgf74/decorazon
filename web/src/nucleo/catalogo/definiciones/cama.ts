@@ -27,7 +27,7 @@ export const cama: DefinicionTipo = {
     const zSomier = Math.max(zColchon - 8, 0)
     return [
       ...(zSomier > 0 ? patas4(e, 6, zSomier, 'estructura', 2) : []),
-      caja(-ancho / 2, y0, zSomier, ancho / 2, fondo / 2, zColchon, 'estructura'),
+      ...(zColchon > 0 ? [caja(-ancho / 2, y0, zSomier, ancho / 2, fondo / 2, zColchon, 'estructura')] : []),
       caja(-ancho / 2, y0, zColchon, ancho / 2, fondo / 2, alto, 'ropa'),
       ...(cabecero ? [caja(-ancho / 2, -fondo / 2, 0, ancho / 2, -fondo / 2 + 6, 100, 'estructura')] : []),
     ]
