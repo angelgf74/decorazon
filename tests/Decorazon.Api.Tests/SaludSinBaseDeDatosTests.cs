@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Decorazon.Contratos.Salud;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -53,6 +54,28 @@ public class SaludSinBaseDeDatosTests
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         Assert.Contains("/disenos/{id}", await respuesta.Content.ReadAsStringAsync());
+    }
+
+    /// <summary>
+    /// Un operationId repetido rompe los generadores de clientes: cada operación
+    /// descrita debe tener el suyo.
+    /// </summary>
+    [Fact]
+    public async Task OpenApi_NoRepiteNingunOperationId()
+    {
+        using var api = new ApiSinBaseDeDatos();
+
+        using var documento = JsonDocument.Parse(await api.CreateClient().GetStringAsync("/openapi/v1.json"));
+
+        var ids = documento.RootElement.GetProperty("paths").EnumerateObject()
+            .SelectMany(ruta => ruta.Value.EnumerateObject())
+            .Where(operacion => operacion.Value.ValueKind == JsonValueKind.Object
+                && operacion.Value.TryGetProperty("operationId", out _))
+            .Select(operacion => operacion.Value.GetProperty("operationId").GetString())
+            .ToList();
+
+        Assert.Contains("Salud", ids);
+        Assert.Equal(ids.Count, ids.Distinct().Count());
     }
 
     private sealed class ApiSinBaseDeDatos : WebApplicationFactory<Program>
