@@ -40,6 +40,7 @@ dotnet test Decorazon.slnx                                  # necesita Docker (T
 dotnet test Decorazon.slnx --filter "Categoria!=Integracion" # sin Docker
 cd web && npm test                                          # tests del núcleo TS
 cd web && npm run e2e                                      # recorrido de extremo a extremo con Playwright (compila y sirve en el 5322)
+                                                            # incluye e2e/vista3d.spec.ts: el 3D con SwiftShader (sin GPU), canvas con contenido y sin errores de consola
 ```
 
 Los tests de integración llevan `[Trait("Categoria","Integracion")]`; de ahí el filtro.
@@ -72,6 +73,10 @@ Los tests de integración llevan `[Trait("Categoria","Integracion")]`; de ahí e
 ## Núcleo TS
 
 Coordenadas con x a la derecha e y hacia abajo, y tolerancia de 0,1 cm. Detalle en `docs/superpowers/plans/2026-10-24-01-nucleo-editor.md`.
+
+Paso del plano a la escena 3D (función única `aEscena`, en `nucleo/modelo3d`): cm a metros, y el eje y del plano pasa a ser el z de la escena (`x_escena = x/100`, `y_escena = z/100` hacia arriba, `z_escena = y/100`). El giro de `θ` grados en el plano es `giroY = −θ·π/180` en la escena.
+
+Lo que se pinta en 3D sale de `modelo3d` (`piezasDeElemento`, parametrizado por las variantes) y queda dentro de los `volumenes` del tipo, que son también los que usan los conflictos: lo que se ve es lo que choca. `modelos3dIntegridad.test.ts` lo comprueba para cada tipo. En 3D solo se selecciona, edita y borra; mover y girar es solo en 2D.
 
 ## Despliegue
 
