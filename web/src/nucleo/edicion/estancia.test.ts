@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { textos } from '../../textos'
+import { contienePunto, distanciaAlBorde } from '../geometria/poligono'
 import { documentoNuevo } from '../modelo/crear'
 import type { Columna, DocumentoDiseno, Puerta, Radiador, Ventana, Viga } from '../modelo/documento'
 import { anadirAbertura, anadirEstructura, editarAbertura, editarEstancia, editarEstructura, quitarDeEstancia } from './estancia'
@@ -138,5 +139,28 @@ describe('editarEstancia y el techo', () => {
   })
   it('un grosor no válido falla', () => {
     expect(motivo(editarEstancia(sala(), { grosorPared: 0 }))).toBe(textos.edicion.cambioNoValido)
+  })
+})
+
+describe('anadirEstructura en una L', () => {
+  const ele = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 150 }, { x: 150, y: 150 }, { x: 150, y: 400 }, { x: 0, y: 400 }]
+  const enEle = (): DocumentoDiseno => {
+    const d = documentoNuevo('dormitorio', 400, 400, 250)
+    return { ...d, estancia: { ...d.estancia, planta: ele } }
+  }
+
+  it('la columna queda dentro de la planta', () => {
+    const c = documento(anadirEstructura(enEle(), 'columna')).estructura[0] as Columna
+    expect(contienePunto(ele, c.centro)).toBe(true)
+    expect(distanciaAlBorde(ele, c.centro)).toBeGreaterThanOrEqual(15)
+  })
+  it('la viga cruza solo por dentro, de pared a pared', () => {
+    const v = documento(anadirEstructura(enEle(), 'viga')).estructura[0] as Viga
+    expect(v.desde.x).toBe(v.hasta.x)
+    for (let t = 0; t <= 1; t += 0.05) {
+      expect(contienePunto(ele, { x: v.desde.x, y: v.desde.y + t * (v.hasta.y - v.desde.y) })).toBe(true)
+    }
+    expect(distanciaAlBorde(ele, v.desde)).toBeLessThan(1)
+    expect(distanciaAlBorde(ele, v.hasta)).toBeLessThan(1)
   })
 })

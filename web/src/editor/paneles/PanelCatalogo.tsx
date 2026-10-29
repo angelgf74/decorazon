@@ -1,16 +1,11 @@
 import { useId, type DragEvent } from 'react'
-import { cajaPlanta, capitalizar, catalogoBase, catalogoDeEstancia, type DefinicionTipo, type Punto } from '../../nucleo'
+import { capitalizar, catalogoBase, catalogoDeEstancia, puntoInterior, type DefinicionTipo, type Punto } from '../../nucleo'
 import { textos } from '../../textos'
 import { anadirTipo } from '../estado/elementos'
 import { useEditor } from '../estado/almacen'
 import { MIME_TIPO } from '../lienzo/arrastres'
 
 const t = textos.catalogo
-
-function centroDeCaja(planta: Punto[]): Punto {
-  const c = cajaPlanta(planta)
-  return { x: (c.minX + c.maxX) / 2, y: (c.minY + c.maxY) / 2 }
-}
 
 function Grupo({ titulo, tipos, centro }: { titulo: string; tipos: DefinicionTipo[]; centro: Punto }) {
   const id = useId()
@@ -42,7 +37,7 @@ export default function PanelCatalogo() {
   const estancia = useEditor((e) => e.documento?.estancia)
   if (!estancia) return null
   const { deLaEstancia, otros, decoracion } = catalogoDeEstancia(catalogoBase, estancia.tipo)
-  const centro = centroDeCaja(estancia.planta)
+  const centro = puntoInterior(estancia.planta)
   return (
     <div className="panel-catalogo">
       <p className="panel__nota">{t.ayuda}</p>

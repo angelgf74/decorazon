@@ -2,6 +2,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { contienePunto } from '../../nucleo/geometria/poligono'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import PanelCatalogo from './PanelCatalogo'
 
@@ -32,5 +33,18 @@ describe('PanelCatalogo', () => {
     const armario = documento!.elementos[0]!
     expect(armario.tipo).toBe('armario')
     expect(seleccion).toEqual({ tipo: 'elemento', id: armario.id })
+  })
+})
+
+describe('PanelCatalogo en una L', () => {
+  it('pulsar un tipo lo añade dentro de la planta aunque el centro de la caja caiga fuera', async () => {
+    const ele = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 150 }, { x: 150, y: 150 }, { x: 150, y: 400 }, { x: 0, y: 400 }]
+    almacen.getState().crear('salon', 400, 400, 250)
+    almacen.getState().cambiar((d) => ({ ...d, estancia: { ...d.estancia, planta: ele } }))
+    almacen.getState().irAPaso(2)
+    render(<PanelCatalogo />)
+    await userEvent.click(within(screen.getByRole('region', { name: 'Otros muebles' })).getByRole('button', { name: /^Armario/ }))
+    const armario = almacen.getState().documento!.elementos[0]!
+    expect(contienePunto(ele, armario.posicion)).toBe(true)
   })
 })

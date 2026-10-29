@@ -92,3 +92,48 @@ export function cajaPlanta(planta: Punto[]): Caja {
   const xs = planta.map(p => p.x), ys = planta.map(p => p.y)
   return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) }
 }
+
+/** Lo que el centro de la caja tiene que apartarse del borde para servir como punto interior. */
+const MARGEN_INTERIOR_CM = 1
+const CELDAS_REJILLA = 20
+
+/**
+ * Punto de dentro de la planta, en cm enteros, donde poner algo nuevo: el centro de la caja si cae dentro y a 1 cm o
+ * más del borde; si no (una L), el de una rejilla de 20 × 20 sobre la caja que, dentro, queda más lejos del borde.
+ */
+export function puntoInterior(planta: Punto[]): Punto {
+  const c = cajaPlanta(planta)
+  const centro = { x: Math.round((c.minX + c.maxX) / 2), y: Math.round((c.minY + c.maxY) / 2) }
+  if (contienePunto(planta, centro) && distanciaAlBorde(planta, centro) >= MARGEN_INTERIOR_CM) return centro
+  let mejor = { p: centro, d: -Infinity }
+  for (let i = 0; i < CELDAS_REJILLA; i++) {
+    for (let j = 0; j < CELDAS_REJILLA; j++) {
+      const p = {
+        x: Math.round(c.minX + ((i + 0.5) * (c.maxX - c.minX)) / CELDAS_REJILLA),
+        y: Math.round(c.minY + ((j + 0.5) * (c.maxY - c.minY)) / CELDAS_REJILLA),
+      }
+      const d = distanciaAlBorde(planta, p)
+      if (d > mejor.d && contienePunto(planta, p)) mejor = { p, d }
+    }
+  }
+  return mejor.p
+}
+
+/**
+ * Tramo de la vertical x = p.x que queda dentro de la planta y contiene a p: de la pared de arriba a la de abajo, en cm
+ * enteros redondeados hacia dentro. Con p fuera de la planta, el tramo es el propio punto.
+ */
+export function tramoVertical(planta: Punto[], p: Punto): { desde: number; hasta: number } {
+  const cortes: number[] = []
+  for (let i = 0; i < planta.length; i++) {
+    const a = planta[i], b = planta[(i + 1) % planta.length]
+    // Semiabierto: un vértice sobre la vertical se cuenta una sola vez y las paredes verticales no cortan.
+    if ((a.x > p.x) !== (b.x > p.x)) cortes.push(a.y + ((p.x - a.x) * (b.y - a.y)) / (b.x - a.x))
+  }
+  cortes.sort((u, v) => u - v)
+  for (let k = 0; k + 1 < cortes.length; k += 2) {
+    // `+ 0` convierte el −0 de Math.ceil(−EPS) en 0.
+    if (cortes[k] <= p.y && p.y <= cortes[k + 1]) return { desde: Math.ceil(cortes[k] - EPS) + 0, hasta: Math.floor(cortes[k + 1] + EPS) + 0 }
+  }
+  return { desde: p.y, hasta: p.y }
+}

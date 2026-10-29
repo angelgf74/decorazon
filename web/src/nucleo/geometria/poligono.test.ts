@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areaConSigno, cajaPlanta, contienePunto, distanciaAlBorde, distanciaPuntoSegmento, desplazarPoligono, distanciaSegmentos, esSimple } from './poligono'
+import { areaConSigno, cajaPlanta, contienePunto, distanciaAlBorde, distanciaPuntoSegmento, desplazarPoligono, distanciaSegmentos, esSimple, puntoInterior } from './poligono'
 
 const sala = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 0, y: 330 }]
 
@@ -48,5 +48,26 @@ describe('cajaPlanta', () => {
     expect(cajaPlanta(sala)).toEqual({ minX: 0, minY: 0, maxX: 400, maxY: 330 })
     const ele = [{ x: -50, y: 10 }, { x: 300, y: 10 }, { x: 300, y: 150 }, { x: 150, y: 150 }, { x: 150, y: 400 }, { x: -50, y: 400 }]
     expect(cajaPlanta(ele)).toEqual({ minX: -50, minY: 10, maxX: 300, maxY: 400 })
+  })
+})
+
+describe('puntoInterior', () => {
+  const ele = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 150 }, { x: 150, y: 150 }, { x: 150, y: 400 }, { x: 0, y: 400 }]
+
+  it('en un rectángulo es el centro de la caja, en cm enteros', () => {
+    expect(puntoInterior(sala)).toEqual({ x: 200, y: 165 })
+    expect(puntoInterior([{ x: 0, y: 0 }, { x: 401, y: 0 }, { x: 401, y: 331 }, { x: 0, y: 331 }])).toEqual({ x: 201, y: 166 })
+  })
+  it('en una L, donde el centro de la caja cae fuera, da un punto de dentro lejos del borde', () => {
+    const p = puntoInterior(ele)
+    expect(contienePunto(ele, p)).toBe(true)
+    expect(distanciaAlBorde(ele, p)).toBeGreaterThanOrEqual(50)
+    expect(Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true)
+  })
+  it('si el centro de la caja cae justo en el borde tampoco lo usa', () => {
+    const borde = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 200, y: 100 }, { x: 400, y: 100 }, { x: 400, y: 200 }, { x: 0, y: 200 }]
+    const p = puntoInterior(borde)
+    expect(p).not.toEqual({ x: 200, y: 100 })
+    expect(distanciaAlBorde(borde, p)).toBeGreaterThanOrEqual(1)
   })
 })
