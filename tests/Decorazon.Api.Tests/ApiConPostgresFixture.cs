@@ -70,6 +70,8 @@ public class ApiConPostgresFixture : WebApplicationFactory<Program>, IAsyncLifet
         constructor.UseEnvironment("Testing");
         constructor.UseSetting("ConnectionStrings:Decorazon", _postgres.GetConnectionString());
         constructor.UseSetting("Jwt:ClaveDeFirma", ClaveDeFirmaDePrueba);
+        // appsettings.json trae Brevo activo (producción); los tests nunca mandan correo.
+        constructor.UseSetting("Correo:UsarBrevo", "false");
         constructor.UseSetting("Correo:BaseDeLaWeb", BaseDeLaWeb);
         // La web de desarrollo; appsettings.json solo trae la de producción.
         constructor.UseSetting("Cors:Origenes:0", "http://localhost:5321");

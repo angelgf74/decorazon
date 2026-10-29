@@ -12,6 +12,13 @@ public sealed class OpcionesDeCorreo
     /// </summary>
     public bool UsarBrevo { get; set; }
 
+    /// <summary>
+    /// Renuncia explícita a enviar correo fuera de desarrollo (p. ej. un entorno de
+    /// pruebas desplegado). Sin ella, la API no arranca allí con <see cref="UsarBrevo"/> a
+    /// <c>false</c>: los enlaces irían al log y nadie podría darse de alta.
+    /// </summary>
+    public bool Simulado { get; set; }
+
     /// <summary>Clave de API de Brevo. Secreto: nunca en el repositorio.</summary>
     public string ClaveDeApi { get; set; } = string.Empty;
 
@@ -35,6 +42,27 @@ public sealed class OpcionesDeCorreo
 
     /// <summary>Base pública de la web, para construir el enlace del correo.</summary>
     public string BaseDeLaWeb { get; set; } = "http://localhost:5321";
+
+    /// <summary>
+    /// Comprobaciones que solo valen fuera de Development y de los tests: allí el correo
+    /// simulado y la web en http://localhost son lo normal; en un despliegue, un error.
+    /// </summary>
+    public void ValidarFueraDeDesarrollo()
+    {
+        if (!UsarBrevo && !Simulado)
+        {
+            throw new InvalidOperationException(
+                $"'{Seccion}:UsarBrevo' debe ser true fuera de desarrollo: si no, los enlaces de alta y de " +
+                $"contraseña solo irían al log. Para no enviar correo a propósito, pon '{Seccion}:Simulado' a true.");
+        }
+
+        if (!Uri.TryCreate(BaseDeLaWeb, UriKind.Absolute, out var web) || web.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new InvalidOperationException(
+                $"'{Seccion}:BaseDeLaWeb' debe ser una URL absoluta https (p. ej. https://decorazon.angelgf.com.es): " +
+                $"es la base de los enlaces que llegan por correo. Valor actual: '{BaseDeLaWeb}'.");
+        }
+    }
 
     public void Validar()
     {

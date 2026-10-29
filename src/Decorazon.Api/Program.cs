@@ -6,6 +6,7 @@ using Decorazon.Api.Tareas;
 using Decorazon.Aplicacion;
 using Decorazon.Dominio.Puertos;
 using Decorazon.Infraestructura;
+using Decorazon.Infraestructura.Correo;
 using Decorazon.Infraestructura.Persistencia;
 using Decorazon.Infraestructura.Seguridad;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -23,6 +24,17 @@ constructor.Services
     .AddInfraestructura(constructor.Configuration);
 
 constructor.Services.AnadirLimitesDePeticiones(constructor.Configuration);
+
+// En un despliegue, el correo tiene que salir de verdad y los enlaces apuntar a la web
+// pública en https. Si no, el alta y el olvido de contraseña no funcionan para nadie y
+// ningún error lo delata: mejor no arrancar. Development y los tests (entorno Testing)
+// usan el correo simulado y la web local a propósito.
+if (!constructor.Environment.IsDevelopment() && !constructor.Environment.IsEnvironment("Testing"))
+{
+    var opcionesDeCorreo = new OpcionesDeCorreo();
+    constructor.Configuration.GetSection(OpcionesDeCorreo.Seccion).Bind(opcionesDeCorreo);
+    opcionesDeCorreo.ValidarFueraDeDesarrollo();
+}
 
 // Documento OpenAPI en /openapi/v1.json: el contrato que consume la web.
 constructor.Services.AddOpenApi();

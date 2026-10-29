@@ -75,6 +75,8 @@ public class CorsTests
             constructor.UseEnvironment("Testing");
             constructor.UseSetting("Jwt:ClaveDeFirma", ApiConPostgresFixture.ClaveDeFirmaDePrueba);
             constructor.UseSetting("Limpieza:Activa", "false");
+            // appsettings.json trae Brevo activo (producción); los tests nunca mandan correo.
+            constructor.UseSetting("Correo:UsarBrevo", "false");
             constructor.UseSetting(
                 "ConnectionStrings:Decorazon",
                 "Host=127.0.0.1;Port=1;Database=inexistente;Username=nadie;Password=nada;Timeout=1;Command Timeout=1");

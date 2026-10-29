@@ -62,6 +62,8 @@ public class SaludSinBaseDeDatosTests
             constructor.UseEnvironment("Testing");
             constructor.UseSetting("Jwt:ClaveDeFirma", ApiConPostgresFixture.ClaveDeFirmaDePrueba);
             constructor.UseSetting("Limpieza:Activa", "false");
+            // appsettings.json trae Brevo activo (producción); los tests nunca mandan correo.
+            constructor.UseSetting("Correo:UsarBrevo", "false");
 
             // Puerto sin nada escuchando: la conexión falla de inmediato.
             constructor.UseSetting(
