@@ -6,6 +6,8 @@ import { useConflictos } from '../estado/conflictos'
 import type { EstadoPieza } from './materiales3d'
 import Pieza, { type EventosPieza } from './Pieza'
 
+const UMBRAL_ARRASTRE_PX = 2
+
 function cursor(valor: string) {
   document.body.style.cursor = valor
 }
@@ -25,6 +27,8 @@ export default function Mueble3D({ elemento }: { elemento: Elemento }) {
 
   function alPulsar(ev: ThreeEvent<MouseEvent>) {
     ev.stopPropagation()
+    // R3F dispara el clic también al soltar tras orbitar.
+    if (ev.delta > UMBRAL_ARRASTRE_PX) return
     const e = almacen.getState()
     if (e.paso === 1) e.irAPaso(2)
     e.seleccionar({ tipo: 'elemento', id })

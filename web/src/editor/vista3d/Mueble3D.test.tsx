@@ -67,4 +67,14 @@ describe('Mueble3D', () => {
     expect(almacen.getState().paso).toBe(2)
     expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: 'a1' })
   })
+
+  it('un clic al final de un arrastre (orbitar) no selecciona ni cambia de paso', async () => {
+    const a = armario()
+    montar(a)
+    const r = await ReactThreeTestRenderer.create(<Mueble3D elemento={a} />)
+    const malla = r.scene.findAll((n) => n.type === 'Mesh')[0]!
+    await r.fireEvent(malla, 'click', { delta: 40 })
+    expect(almacen.getState().paso).toBe(1)
+    expect(almacen.getState().seleccion).toBeNull()
+  })
 })
