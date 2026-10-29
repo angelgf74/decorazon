@@ -5,6 +5,7 @@ import { Object3D } from 'three'
 import { cajaPlanta, camaraAPlano, camaraInicial, direccionSol, paredesQueTapan, type DocumentoDiseno, type Vec3 } from '../../nucleo'
 import Estancia3D from './Estancia3D'
 import Mueble3D from './Mueble3D'
+import { useContextoRestaurado } from './usarContextoRestaurado'
 
 const DISTANCIA_SOL_M = 15
 const MARGEN_SOMBRA_M = 1
@@ -30,6 +31,7 @@ export default function Escena3D({ doc, ocultar, encuadres }: { doc: DocumentoDi
   const controles = useRef<ComponentRef<typeof OrbitControls>>(null)
   const [ocultas, setOcultas] = useState(SIN_OCULTAS)
   const planta = doc.estancia.planta
+  useContextoRestaurado()
 
   // Paredes entre la cámara y la estancia; solo cambia el estado si cambia el conjunto.
   const actualizarOcultas = useCallback(() => {
