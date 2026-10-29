@@ -1,7 +1,7 @@
 import { textos } from '../../textos'
 import { areaConSigno, esSimple } from '../geometria/poligono'
 import { escalar, longitud, normalizar, punto, restar, sumar, type Punto } from '../geometria/vector'
-import type { DocumentoDiseno, Estructura, Radiador } from '../modelo/documento'
+import type { Abertura, DocumentoDiseno, Estructura, Radiador } from '../modelo/documento'
 import { validarDocumento } from '../modelo/validar'
 import type { ResultadoEdicion } from './resultado'
 
@@ -15,7 +15,7 @@ type Reubicar = (h: EnPared) => { pared: number; posicion: number } | string
 const falla = (motivo: string): ResultadoEdicion => ({ ok: false, motivo })
 const indiceValido = (planta: Punto[], i: number) => Number.isInteger(i) && i >= 0 && i < planta.length
 const esRadiador = (e: Estructura): e is Radiador => e.tipo === 'radiador'
-const huecos = (doc: DocumentoDiseno): EnPared[] => [...doc.aberturas, ...doc.estructura.filter(esRadiador)]
+const huecos = (doc: DocumentoDiseno): (Abertura | Radiador)[] => [...doc.aberturas, ...doc.estructura.filter(esRadiador)]
 
 export function longitudPared(planta: Punto[], i: number): number {
   return longitud(restar(planta[(i + 1) % planta.length], planta[i]))
@@ -71,7 +71,7 @@ function aplicar(doc: DocumentoDiseno, planta: Punto[], reubicar: Reubicar = anc
   return comprobarEstancia(nuevo)
 }
 
-/** Reglas comunes de toda edición de la estancia: planta simple, paredes ≥ 10 cm, huecos dentro de su pared y documento válido. */
+/** Reglas comunes de toda edición de la estancia: planta simple, paredes ≥ 10 cm, huecos dentro de su pared y bajo el techo, y documento válido. */
 export function comprobarEstancia(nuevo: DocumentoDiseno): ResultadoEdicion {
   const planta = nuevo.estancia.planta
   if (!planta.every(p => Number.isFinite(p.x) && Number.isFinite(p.y))) return falla(textos.edicion.cambioNoValido)
@@ -81,6 +81,9 @@ export function comprobarEstancia(nuevo: DocumentoDiseno): ResultadoEdicion {
     indiceValido(planta, h.pared) && h.posicion >= 0 && h.posicion + h.ancho <= longitudPared(planta, h.pared) + EPS
   if (!huecos(nuevo).every(cabe)) return falla(textos.edicion.noCabeEnPared)
   if (!validarDocumento(nuevo).valido) return falla(textos.edicion.cambioNoValido)
+  const techo = nuevo.estancia.alto + EPS
+  const bajoTecho = (h: Abertura | Radiador) => (h.tipo === 'puerta' ? h.alto : h.alturaSuelo + h.alto) <= techo
+  if (!huecos(nuevo).every(bajoTecho)) return falla(textos.edicion.porEncimaDelTecho)
   return { ok: true, documento: nuevo }
 }
 

@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import {
-  anadirAbertura, anadirEstructura, esRectangular, redimensionarRectangulo,
+  anadirAbertura, anadirEstructura, editarEstancia, esRectangular, redimensionarRectangulo,
   type DocumentoDiseno, type Estancia, type ResultadoEdicion, type TipoEstancia,
 } from '../../nucleo'
 import { textos } from '../../textos'
@@ -85,8 +85,8 @@ export default function PanelEstancia() {
       ) : (
         <p className="panel__nota">{textos.edicion.noRectangular}</p>
       )}
-      <CampoNumero etiqueta={t.alto} valor={estancia.alto} min={200} max={400} unidad="cm" alCambiar={(n) => cambiarEstancia({ alto: n })} />
-      <CampoNumero etiqueta={t.grosor} valor={estancia.grosorPared} min={5} max={50} unidad="cm" alCambiar={(n) => cambiarEstancia({ grosorPared: n })} />
+      <CampoNumero etiqueta={t.alto} valor={estancia.alto} min={200} max={400} unidad="cm" alCambiar={(n) => intentar((d) => editarEstancia(d, { alto: n }))} />
+      <CampoNumero etiqueta={t.grosor} valor={estancia.grosorPared} min={5} max={50} unidad="cm" alCambiar={(n) => intentar((d) => editarEstancia(d, { grosorPared: n }))} />
       <SelectorColor etiqueta={t.colorParedes} valor={estancia.colorParedes} muestras={MUESTRAS_PAREDES}
         alCambiar={(c, g) => cambiarEstancia({ colorParedes: c }, g)} />
       <SelectorColor etiqueta={t.colorSuelo} valor={estancia.colorSuelo} muestras={MUESTRAS_SUELO}

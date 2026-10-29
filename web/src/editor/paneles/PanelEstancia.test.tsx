@@ -68,4 +68,19 @@ describe('PanelEstancia', () => {
     almacen.getState().deshacer()
     expect(almacen.getState().documento!.estancia.colorParedes).toBe(inicial)
   })
+
+  it('un alto por debajo de una puerta se rechaza con aviso y el grosor también se valida', async () => {
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      aberturas: [{ id: 'p', tipo: 'puerta', pared: 0, posicion: 20, ancho: 80, alto: 210, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' }],
+    }))
+    render(<PanelEstancia />)
+    await escribir('Alto', '205')
+    expect(almacen.getState().documento!.estancia.alto).toBe(250)
+    expect(almacen.getState().aviso).toBe(textos.edicion.porEncimaDelTecho)
+    await escribir('Alto', '230')
+    expect(almacen.getState().documento!.estancia.alto).toBe(230)
+    await escribir('Grosor de pared', '20')
+    expect(almacen.getState().documento!.estancia.grosorPared).toBe(20)
+  })
 })

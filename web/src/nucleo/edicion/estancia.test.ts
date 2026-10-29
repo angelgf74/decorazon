@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { textos } from '../../textos'
 import { documentoNuevo } from '../modelo/crear'
 import type { Columna, DocumentoDiseno, Puerta, Radiador, Ventana, Viga } from '../modelo/documento'
-import { anadirAbertura, anadirEstructura, editarAbertura, editarEstructura, quitarDeEstancia } from './estancia'
+import { anadirAbertura, anadirEstructura, editarAbertura, editarEstancia, editarEstructura, quitarDeEstancia } from './estancia'
 import type { ResultadoEdicion } from './resultado'
 
 const sala = (): DocumentoDiseno => documentoNuevo('dormitorio', 400, 330, 250)
@@ -94,5 +94,44 @@ describe('editarEstructura y quitarDeEstancia', () => {
     expect(r.aberturas).toEqual([])
     expect(r.estructura).toEqual([])
     expect(doc.aberturas).toHaveLength(1)
+  })
+})
+
+describe('editarEstancia y el techo', () => {
+  const conHuecos = (): DocumentoDiseno => {
+    const d = sala()
+    d.aberturas.push(
+      { id: 'p', tipo: 'puerta', pared: 0, posicion: 20, ancho: 80, alto: 210, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' },
+      { id: 'v', tipo: 'ventana', pared: 1, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 100, abreHaciaDentro: true },
+    )
+    d.estructura.push({ id: 'r', tipo: 'radiador', pared: 2, posicion: 50, ancho: 60, alto: 60, fondo: 10, alturaSuelo: 15 })
+    return d
+  }
+  it('cambia el alto y el grosor si todo cabe bajo el techo', () => {
+    const r = documento(editarEstancia(conHuecos(), { alto: 220, grosorPared: 20 }))
+    expect(r.estancia.alto).toBe(220)
+    expect(r.estancia.grosorPared).toBe(20)
+  })
+  it('falla si una ventana quedaría por encima del techo y no muta', () => {
+    const doc = conHuecos()
+    const antes = JSON.stringify(doc)
+    expect(motivo(editarEstancia(doc, { alto: 215 }))).toBe(textos.edicion.porEncimaDelTecho)
+    expect(JSON.stringify(doc)).toBe(antes)
+  })
+  it('falla si una puerta es más alta que el techo', () => {
+    const doc = sala()
+    doc.aberturas.push({ id: 'p', tipo: 'puerta', pared: 0, posicion: 20, ancho: 80, alto: 210, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' })
+    expect(motivo(editarEstancia(doc, { alto: 205 }))).toBe(textos.edicion.porEncimaDelTecho)
+  })
+  it('falla si un radiador quedaría por encima del techo', () => {
+    const doc = sala()
+    doc.estructura.push({ id: 'r', tipo: 'radiador', pared: 2, posicion: 50, ancho: 60, alto: 60, fondo: 10, alturaSuelo: 200 })
+    expect(motivo(editarEstancia(doc, { alto: 255 }))).toBe(textos.edicion.porEncimaDelTecho)
+  })
+  it('editar una ventana para que pase del techo también falla', () => {
+    expect(motivo(editarAbertura(conHuecos(), 'v', { alturaSuelo: 140 }))).toBe(textos.edicion.porEncimaDelTecho)
+  })
+  it('un grosor no válido falla', () => {
+    expect(motivo(editarEstancia(sala(), { grosorPared: 0 }))).toBe(textos.edicion.cambioNoValido)
   })
 })

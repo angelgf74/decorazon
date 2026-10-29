@@ -56,6 +56,11 @@ export function editarEstructura(doc: DocumentoDiseno, id: string, cambios: Part
   return comprobarEstancia({ ...doc, estructura: doc.estructura.map(x => (x.id === id ? nueva : x)) })
 }
 
+/** Cambia el alto o el grosor de pared comprobando, como toda edición de la estancia, que todo sigue cabiendo. */
+export function editarEstancia(doc: DocumentoDiseno, cambios: { alto?: number; grosorPared?: number }): ResultadoEdicion {
+  return comprobarEstancia({ ...doc, estancia: { ...doc.estancia, ...cambios } })
+}
+
 export function quitarDeEstancia(doc: DocumentoDiseno, id: string): DocumentoDiseno {
   if (!doc.aberturas.some(a => a.id === id) && !doc.estructura.some(e => e.id === id)) return doc
   return { ...doc, aberturas: doc.aberturas.filter(a => a.id !== id), estructura: doc.estructura.filter(e => e.id !== id) }
