@@ -55,6 +55,8 @@ describe('Vista3D', () => {
     render(<Vista3D />)
     expect(screen.getByText(SIN_WEBGL)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Volver al 2D' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ocultar paredes delante' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Encuadrar' })).toBeNull()
   })
 
   it('el clic en el vacío del lienzo anula la selección', () => {
