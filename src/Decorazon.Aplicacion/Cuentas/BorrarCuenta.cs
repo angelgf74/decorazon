@@ -47,9 +47,11 @@ public sealed class BorrarCuenta(
 
         try
         {
-            await enviadorDeCorreo.EnviarConfirmacionDeBajaAsync(usuario.Correo, cancelacion);
+            // Sin el token de la petición: la baja ya está hecha y es irreversible, así que
+            // su confirmación sale aunque quien la pidió cierre la pestaña o se corte.
+            await enviadorDeCorreo.EnviarConfirmacionDeBajaAsync(usuario.Correo, CancellationToken.None);
         }
-        catch (Exception excepcion) when (excepcion is not OperationCanceledException)
+        catch (Exception excepcion)
         {
             // La cuenta ya no existe. Devolver un error haría creer que no se
             // borró, y no hay nada que reintentar.

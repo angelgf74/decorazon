@@ -38,6 +38,20 @@ public class BorrarCuentaTests
         Assert.Equal("pepa@ejemplo.com", Assert.Single(_correo.ConfirmacionesDeBaja));
     }
 
+    /// <summary>
+    /// La baja ya está hecha cuando sale el correo: que quien llama se vaya (y cancele
+    /// la petición) no debe dejar al dueño sin la confirmación.
+    /// </summary>
+    [Fact]
+    public async Task ElCorreoDeLaBaja_NoDependeDeLaCancelacionDeLaPeticion()
+    {
+        using var peticion = new CancellationTokenSource();
+
+        await Baja.EjecutarAsync(_pepa.Id, Contrasena, peticion.Token);
+
+        Assert.Equal(CancellationToken.None, _correo.CancelacionDeLaBaja);
+    }
+
     [Fact]
     public async Task ConContrasenaIncorrecta_NoBorraNiAvisa()
     {

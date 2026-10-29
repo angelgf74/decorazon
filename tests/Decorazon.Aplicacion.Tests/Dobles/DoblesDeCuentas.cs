@@ -160,6 +160,9 @@ public sealed class EnviadorDeCorreoEspia : IEnviadorDeCorreo
     /// <summary>Si está a <c>true</c>, los enlaces y avisos fallan como un Brevo caído.</summary>
     public bool ProveedorCaido { get; set; }
 
+    /// <summary>El token de cancelación con el que se pidió el último correo de baja.</summary>
+    public CancellationToken? CancelacionDeLaBaja { get; private set; }
+
     private void ComprobarProveedor()
     {
         if (ProveedorCaido)
@@ -214,6 +217,8 @@ public sealed class EnviadorDeCorreoEspia : IEnviadorDeCorreo
         CorreoElectronico destinatario,
         CancellationToken cancelacion = default)
     {
+        CancelacionDeLaBaja = cancelacion;
+
         if (FallaAlAvisarDeLaBaja)
         {
             throw new InvalidOperationException("Fallo simulado del envío de correo.");
