@@ -2,9 +2,9 @@ import { valorVariante, type DefinicionTipo } from '../tipos'
 import { cajaMundo } from '../transformar'
 
 export const cama: DefinicionTipo = {
-  id: 'cama', nombre: 'cama', genero: 'f', estancias: ['dormitorio'],
+  id: 'cama', nombre: 'cama', genero: 'f', categoria: 'mueble', estancias: ['dormitorio'],
   medidas: { ancho: { min: 80, max: 220, defecto: 150 }, fondo: { min: 180, max: 220, defecto: 200 }, alto: { min: 20, max: 70, defecto: 45 } },
-  alturaSuelo: 0,
+  alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [{ clave: 'cabecero', etiqueta: 'Cabecero', valores: [true, false], defecto: true }],
   zonasColor: [
     { clave: 'estructura', etiqueta: 'Estructura', material: 'madera', defecto: '#8b6b4a' },
