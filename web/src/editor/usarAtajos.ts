@@ -28,15 +28,14 @@ export function useAtajos(): void {
         e0.seleccionar(null)
       } else if (e0.paso === 2 && e0.seleccion?.tipo === 'elemento') {
         const id = e0.seleccion.id
+        // Mover y girar (R, Ctrl+D) solo se hace en 2D (§4.2).
         if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault()
           borrar(id)
-        } else if (e0.vista === '3d') {
-          // Mover y girar solo se hace en 2D (§4.2).
-        } else if (tecla === 'r' && !mando && !e.altKey) {
+        } else if (e0.vista !== '3d' && tecla === 'r' && !mando && !e.altKey) {
           e.preventDefault()
           girar90(id, e.shiftKey ? -1 : 1)
-        } else if (tecla === 'd' && mando) {
+        } else if (e0.vista !== '3d' && tecla === 'd' && mando) {
           e.preventDefault()
           duplicar(id)
         }

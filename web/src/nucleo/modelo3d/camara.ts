@@ -51,3 +51,8 @@ export function paredesQueTapan(planta: Punto[], camara: Punto): number[] {
   })
   return tapan
 }
+
+/** Posición de la cámara (metros de la escena) en el plano (cm). */
+export function camaraAPlano(v: Vec3): Punto {
+  return { x: v[0] * 100, y: v[2] * 100 }
+}

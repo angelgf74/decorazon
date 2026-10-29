@@ -4,14 +4,21 @@ import { geometriaSuelo } from './geometrias'
 import { materialDe } from './materiales3d'
 import Pieza from './Pieza'
 
-export default function Estancia3D({ doc }: { doc: DocumentoDiseno }) {
+interface Props {
+  doc: DocumentoDiseno
+  /** Paredes que no se pintan (ni sus huecos). */
+  ocultas: ReadonlySet<number>
+}
+
+export default function Estancia3D({ doc, ocultas }: Props) {
   const { suelo, muros, huecos, estructura } = useMemo(() => escenaEstancia(doc), [doc])
   const geometriaDelSuelo = useMemo(() => geometriaSuelo(suelo), [suelo])
   useEffect(() => () => geometriaDelSuelo.dispose(), [geometriaDelSuelo])
   return (
     <group>
       <mesh receiveShadow geometry={geometriaDelSuelo} material={materialDe('suelo', doc.estancia.colorSuelo)} />
-      {[...muros, ...huecos, ...estructura].map((p, k) => <Pieza key={k} pieza={p} />)}
+      {[...muros, ...huecos].map((p, k) => (ocultas.has(p.pared) ? null : <Pieza key={k} pieza={p} />))}
+      {estructura.map((p, k) => <Pieza key={`e${k}`} pieza={p} />)}
     </group>
   )
 }

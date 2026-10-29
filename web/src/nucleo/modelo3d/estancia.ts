@@ -18,7 +18,7 @@ const EPS = 1e-9
 export interface EscenaEstancia {
   suelo: Punto[]
   muros: (Pieza3D & { pared: number })[]
-  huecos: Pieza3D[]
+  huecos: (Pieza3D & { pared: number })[]
   estructura: Pieza3D[]
 }
 
@@ -124,7 +124,8 @@ export function escenaEstancia(doc: DocumentoDiseno): EscenaEstancia {
   const exterior = desplazarPoligono(planta, grosorPared)
 
   const muros = planta.flatMap((_, i) => murosDePared(doc, exterior, i).map((m) => ({ ...m, pared: i })))
-  const huecos = doc.aberturas.flatMap((ab) => piezasHueco(hueco(planta, ab.pared, ab.posicion), ab, grosorPared))
+  const huecos = doc.aberturas.flatMap((ab) =>
+    piezasHueco(hueco(planta, ab.pared, ab.posicion), ab, grosorPared).map((p) => ({ ...p, pared: ab.pared })))
 
   const estructura = doc.estructura.map((e): Pieza3D => {
     if (e.tipo === 'columna') {

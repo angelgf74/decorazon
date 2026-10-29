@@ -192,3 +192,13 @@ describe('escenaEstancia: estructura', () => {
     expect(r.tamano[2]).toBeCloseTo(0.1)
   })
 })
+
+describe('escenaEstancia: huecos', () => {
+  it('cada pieza de hueco lleva la pared de su abertura', () => {
+    const doc = documentoNuevo('salon', 400, 330, 250)
+    doc.aberturas.push({ id: 'v1', tipo: 'ventana', pared: 1, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false })
+    const { huecos } = escenaEstancia(doc)
+    expect(huecos.length).toBeGreaterThan(0)
+    expect(huecos.every((h) => h.pared === 1)).toBe(true)
+  })
+})

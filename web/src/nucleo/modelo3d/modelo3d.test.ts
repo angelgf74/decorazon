@@ -5,7 +5,7 @@ import { elementoNuevo } from '../catalogo/elemento'
 import type { DefinicionTipo } from '../catalogo/tipos'
 import { rectangulo } from '../geometria/formas'
 import { aEscena, modeloPorVolumenes, piezasDeElemento } from './escena'
-import { camaraInicial, direccionSol, paredesQueTapan } from './camara'
+import { camaraAPlano, camaraInicial, direccionSol, paredesQueTapan } from './camara'
 import { PBR } from './materiales'
 import type { PiezaLocal } from './tipos'
 
@@ -128,5 +128,11 @@ describe('piezasDeElemento: material y color propios de la pieza', () => {
     const [p, q] = piezasDeElemento(e, conPiezas([{ ...caja(-10, 10), material: 'vidrio', color: '#1f1f1f' }, caja(-10, 10)]))
     expect(p).toMatchObject({ material: 'vidrio', color: '#1f1f1f' })
     expect(q).toMatchObject({ material: 'madera', color: '#123456' })
+  })
+})
+
+describe('camaraAPlano', () => {
+  it('pasa metros de la escena (x, z) a cm del plano', () => {
+    expect(camaraAPlano([2, 3, 10])).toEqual({ x: 200, y: 1000 })
   })
 })

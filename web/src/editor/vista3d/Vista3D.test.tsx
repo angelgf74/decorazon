@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
@@ -11,9 +11,9 @@ vi.mock('@react-three/fiber', async (original) => {
   const real = await original<typeof import('@react-three/fiber')>()
   return {
     ...real,
-    Canvas: () => {
+    Canvas: ({ onPointerMissed }: { onPointerMissed?: () => void }) => {
       if (fallo.lanzar) throw new Error('Error creating WebGL context')
-      return <canvas />
+      return <canvas onClick={() => onPointerMissed?.()} />
     },
   }
 })
@@ -55,6 +55,24 @@ describe('Vista3D', () => {
     render(<Vista3D />)
     expect(screen.getByText(SIN_WEBGL)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Volver al 2D' })).toBeInTheDocument()
+  })
+
+  it('el clic en el vacío del lienzo anula la selección', () => {
+    conWebgl()
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'x' })
+    const { container } = render(<Vista3D />)
+    fireEvent.click(container.querySelector('canvas')!)
+    expect(almacen.getState().seleccion).toBeNull()
+  })
+
+  it('"Ocultar paredes delante" está activado por defecto y se alterna; "Encuadrar" existe', async () => {
+    conWebgl()
+    render(<Vista3D />)
+    const ocultar = screen.getByRole('button', { name: 'Ocultar paredes delante' })
+    expect(ocultar).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(ocultar)
+    expect(ocultar).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Encuadrar' })).toBeInTheDocument()
   })
 
   it('con WebGL monta el lienzo y libera el contexto de la comprobación', () => {
