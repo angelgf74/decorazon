@@ -290,6 +290,42 @@ public sealed class CarrerasConPostgresTests(PostgresFixture postgres)
         Assert.Equal(2, await lectura.SolicitudesDeContrasena.CountAsync());
     }
 
+    [Fact]
+    public async Task Dos_cambios_de_credenciales_sobre_la_misma_version_solo_aplican_uno_y_la_version_sube_una_vez()
+    {
+        var (cadena, usuario, _) = await BaseConDisenoAsync();
+        var carrera = new CarreraAntesDeGuardar(async () =>
+        {
+            await using var otro = PostgresFixture.Contexto(cadena);
+            var delOtro = await otro.Usuarios.SingleAsync();
+            delOtro.CambiarContrasena("hash del otro", Ahora);
+            Assert.True(await new RepositorioDeUsuariosEf(otro).ActualizarAsync(delOtro));
+        });
+        await using var contexto = PostgresFixture.Contexto(cadena, carrera);
+        var repositorio = new RepositorioDeUsuariosEf(contexto);
+        var mio = (await repositorio.BuscarPorIdAsync(usuario.Id))!;
+        mio.CambiarContrasena("hash mio", Ahora);
+
+        var guardado = await repositorio.ActualizarAsync(mio);
+
+        Assert.True(carrera.Ocurrio);
+        Assert.False(guardado);
+        await using var lectura = PostgresFixture.Contexto(cadena);
+        var final = await lectura.Usuarios.SingleAsync();
+        Assert.Equal("hash del otro", final.HashDeContrasena);
+        Assert.Equal(2, final.VersionDeCredenciales);
+    }
+
+    [Fact]
+    public void La_version_de_credenciales_es_token_de_concurrencia()
+    {
+        using var contexto = PostgresFixture.Contexto("Host=localhost");
+
+        var propiedad = contexto.Model.FindEntityType(typeof(Usuario))!.FindProperty(nameof(Usuario.VersionDeCredenciales))!;
+
+        Assert.True(propiedad.IsConcurrencyToken);
+    }
+
     [Theory]
     [InlineData(typeof(SolicitudDeRegistro))]
     [InlineData(typeof(SolicitudDeContrasena))]

@@ -211,6 +211,7 @@ namespace Decorazon.Infraestructura.Migrations
                         .HasColumnName("nombre");
 
                     b.Property<int>("VersionDeCredenciales")
+                        .IsConcurrencyToken()
                         .HasColumnType("integer")
                         .HasColumnName("version_de_credenciales");
 

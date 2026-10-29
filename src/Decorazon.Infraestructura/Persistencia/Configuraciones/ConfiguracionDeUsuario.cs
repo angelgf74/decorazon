@@ -54,8 +54,12 @@ public sealed class ConfiguracionDeUsuario : IEntityTypeConfiguration<Usuario>
             .HasColumnName("fecha_de_cambio_de_contrasena");
 
         // Empieza en 1, nunca en 0: así un JWT sin este claim nunca coincide por accidente.
+        // Token de concurrencia: dos cambios de credenciales sobre la misma versión leída no
+        // pueden ganar los dos; el UPDATE del segundo no encuentra la fila y el adaptador lo
+        // traduce a "no guardado".
         constructor.Property(usuario => usuario.VersionDeCredenciales)
             .HasColumnName("version_de_credenciales")
+            .IsConcurrencyToken()
             .IsRequired();
     }
 }
