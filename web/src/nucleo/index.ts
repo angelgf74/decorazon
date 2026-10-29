@@ -9,7 +9,11 @@ export { TOLERANCIA_CM } from './geometria/tolerancia'
 export { rectangulo } from './geometria/formas'
 export { rotar } from './geometria/vector'
 export { interseccionConvexos } from './geometria/convexo'
-export { distanciaAlBorde } from './geometria/poligono'
+export { desplazarPoligono, distanciaAlBorde } from './geometria/poligono'
 export { obstaculosDeEstancia, type Obstaculo, type ObstaculosEstancia } from './conflictos/estancia'
 export { detectarConflictos, PASO_MINIMO_CM, HUECO_IGNORADO_CM } from './conflictos/detectar'
 export type { Conflicto, TipoConflicto } from './conflictos/tipos'
+export type { ResultadoEdicion } from './edicion/resultado'
+export {
+  alinearVertice, cambiarLongitudPared, esRectangular, longitudPared, moverVertice, partirPared, quitarVertice, redimensionarRectangulo,
+} from './edicion/planta'

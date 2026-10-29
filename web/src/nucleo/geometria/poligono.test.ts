@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areaConSigno, contienePunto, distanciaAlBorde, distanciaPuntoSegmento, distanciaSegmentos, esSimple } from './poligono'
+import { areaConSigno, contienePunto, distanciaAlBorde, distanciaPuntoSegmento, desplazarPoligono, distanciaSegmentos, esSimple } from './poligono'
 
 const sala = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 0, y: 330 }]
 
@@ -27,5 +27,18 @@ describe('poligono', () => {
     expect(distanciaAlBorde(sala, { x: 100, y: 30 })).toBe(30)
     expect(distanciaSegmentos({ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }, { x: 10, y: 0 })).toBe(0)
     expect(distanciaSegmentos({ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 0, y: 5 }, { x: 10, y: 5 })).toBe(5)
+  })
+  it('desplazarPoligono: rectángulo', () => {
+    expect(desplazarPoligono(sala, 10)).toEqual([{ x: -10, y: -10 }, { x: 410, y: -10 }, { x: 410, y: 340 }, { x: -10, y: 340 }])
+  })
+  it('desplazarPoligono: el vértice reflejo de una L va hacia dentro de la L, en inglete', () => {
+    const ele = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 200, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 300 }, { x: 0, y: 300 }]
+    expect(desplazarPoligono(ele, 10)).toEqual([
+      { x: -10, y: -10 }, { x: 210, y: -10 }, { x: 210, y: 110 }, { x: 110, y: 110 }, { x: 110, y: 310 }, { x: -10, y: 310 },
+    ])
+  })
+  it('desplazarPoligono: aristas colineales usan el punto desplazado', () => {
+    const conPuntoIntermedio = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 0, y: 330 }]
+    expect(desplazarPoligono(conPuntoIntermedio, 10)[1]).toEqual({ x: 200, y: -10 })
   })
 })

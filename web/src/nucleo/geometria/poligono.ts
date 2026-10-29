@@ -1,4 +1,4 @@
-import { cruz, longitud, restar, type Punto } from './vector'
+import { cruz, longitud, normalizar, punto, restar, type Punto } from './vector'
 
 const EPS = 1e-9
 
@@ -67,4 +67,20 @@ export function contienePunto(p: Punto[], q: Punto): boolean {
     if ((a.y > q.y) !== (b.y > q.y) && q.x < ((b.x - a.x) * (q.y - a.y)) / (b.y - a.y) + a.x) dentro = !dentro
   }
   return dentro
+}
+
+/** Desplaza cada arista d hacia fuera (planta horaria) y une las rectas consecutivas en inglete. */
+export function desplazarPoligono(p: Punto[], d: number): Punto[] {
+  const n = p.length
+  const normal = (i: number): Punto => {
+    const u = normalizar(restar(p[(i + 1) % n], p[i]))
+    return { x: u.y, y: -u.x }
+  }
+  return p.map((v, i) => {
+    const n1 = normal((i - 1 + n) % n)
+    const n2 = normal(i)
+    if (Math.abs(cruz(n1, n2)) < EPS) return { x: v.x + d * n2.x, y: v.y + d * n2.y }
+    const k = d / (1 + punto(n1, n2))
+    return { x: v.x + k * (n1.x + n2.x), y: v.y + k * (n1.y + n2.y) }
+  })
 }
