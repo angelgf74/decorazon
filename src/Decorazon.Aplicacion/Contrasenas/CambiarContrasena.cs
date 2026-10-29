@@ -26,6 +26,7 @@ public enum ResultadoDeCambioDeContrasena
 /// </summary>
 public sealed class CambiarContrasena(
     IRepositorioDeUsuarios usuarios,
+    IRepositorioDeSolicitudesDeContrasena solicitudes,
     IHasheadorDeContrasenas hasheador,
     IEnviadorDeCorreo enviadorDeCorreo,
     IReloj reloj,
@@ -58,7 +59,15 @@ public sealed class CambiarContrasena(
             return ResultadoDeCambioDeContrasena.ContrasenaNoValida;
         }
 
-        usuario.CambiarContrasena(hasheador.Hashear(nueva), reloj.Ahora);
+        var ahora = reloj.Ahora;
+        usuario.CambiarContrasena(hasheador.Hashear(nueva), ahora);
+
+        // Los enlaces pedidos antes del cambio dejan de servir: quien los tuviera (un buzón
+        // comprometido) no puede deshacerlo. Va en el mismo guardado que la contraseña.
+        foreach (var viva in await solicitudes.BuscarVivasPorUsuarioAsync(usuario.Id, cancelacion))
+        {
+            viva.Invalidar(ahora);
+        }
 
         // false: la cuenta se borró entre leerla y guardarla. Igual que si no existiera.
         if (!await usuarios.ActualizarAsync(usuario, cancelacion))

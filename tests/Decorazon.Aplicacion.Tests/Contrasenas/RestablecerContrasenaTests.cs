@@ -154,6 +154,21 @@ public class RestablecerContrasenaTests
         Assert.Equal(_reloj.Ahora, usuario.FechaDeCambioDeContrasena);
     }
 
+    [Fact]
+    public async Task AlRestablecer_InvalidaLosDemasEnlacesVivosDelUsuario()
+    {
+        var (usuario, primero) = await PedirRestablecimiento();
+        var otra = SolicitudDeContrasena.Crear(usuario.Id, "hash(otro-token)", _reloj.Ahora);
+        await _solicitudes.AnadirAsync(otra);
+
+        await CasoDeUso.EjecutarAsync(primero, ContrasenaNueva);
+
+        Assert.False(otra.EstaVigente(_reloj.Ahora));
+        Assert.Equal(
+            ResultadoDeRestablecerContrasena.EnlaceNoValido,
+            await CasoDeUso.EjecutarAsync("otro-token", "otra frase distinta"));
+    }
+
     private async Task<(Usuario Usuario, string Token)> PedirRestablecimiento(
         string correo = "alguien@ejemplo.com")
     {

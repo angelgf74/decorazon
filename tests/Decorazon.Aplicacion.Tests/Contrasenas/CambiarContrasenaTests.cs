@@ -15,12 +15,13 @@ public class CambiarContrasenaTests
     private const string CorreoDelUsuario = "alguien@ejemplo.com";
 
     private readonly RepositorioDeUsuariosEnMemoria _usuarios = new();
+    private readonly RepositorioDeSolicitudesDeContrasenaEnMemoria _solicitudes = new();
     private readonly EnviadorDeCorreoEspia _correo = new();
     private readonly HasheadorFalso _hasheador = new();
     private readonly RelojFalso _reloj = new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
 
     private CambiarContrasena CasoDeUso =>
-        new(_usuarios, _hasheador, _correo, _reloj, NullLogger<CambiarContrasena>.Instance);
+        new(_usuarios, _solicitudes, _hasheador, _correo, _reloj, NullLogger<CambiarContrasena>.Instance);
 
     [Fact]
     public async Task ConLaActualCorrecta_CambiaLaContrasena()
@@ -126,6 +127,30 @@ public class CambiarContrasenaTests
         await CasoDeUso.EjecutarAsync(usuario.Id, ContrasenaActual, ContrasenaNueva);
 
         Assert.Equal(_reloj.Ahora, usuario.FechaDeCambioDeContrasena);
+    }
+
+    [Fact]
+    public async Task AlCambiar_InvalidaLosEnlacesDeRestablecimientoVivos()
+    {
+        var usuario = await DarDeAltaUsuario();
+        var solicitud = SolicitudDeContrasena.Crear(usuario.Id, "hash(token)", _reloj.Ahora);
+        await _solicitudes.AnadirAsync(solicitud);
+
+        await CasoDeUso.EjecutarAsync(usuario.Id, ContrasenaActual, ContrasenaNueva);
+
+        Assert.False(solicitud.EstaVigente(_reloj.Ahora));
+    }
+
+    [Fact]
+    public async Task ConLaActualIncorrecta_NoTocaLosEnlacesVivos()
+    {
+        var usuario = await DarDeAltaUsuario();
+        var solicitud = SolicitudDeContrasena.Crear(usuario.Id, "hash(token)", _reloj.Ahora);
+        await _solicitudes.AnadirAsync(solicitud);
+
+        await CasoDeUso.EjecutarAsync(usuario.Id, "esta no es", ContrasenaNueva);
+
+        Assert.True(solicitud.EstaVigente(_reloj.Ahora));
     }
 
     private async Task<Usuario> DarDeAltaUsuario()

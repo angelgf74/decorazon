@@ -118,6 +118,34 @@ public class CambioDeContrasenaTests(ApiConPostgresFixture api) : IClassFixture<
         Assert.Contains(correo, api.Correo.ConfirmacionesDeCambioDeContrasena);
     }
 
+    /// <summary>
+    /// Un enlace pedido antes de cambiar la contraseña con sesión no puede
+    /// deshacer el cambio después.
+    /// </summary>
+    [Fact]
+    public async Task AlCambiar_ElEnlaceDeRestablecimientoPedidoAntesYaNoSirve()
+    {
+        var (cliente, correo) = await CuentaAsync();
+        await cliente.PostAsJsonAsync("/cuentas/contrasena/olvido",
+            new PeticionDeOlvidoDeContrasena { Correo = correo });
+        var token = api.Correo.TokenDeContrasenaEnviadoA(correo);
+
+        var cambio = await cliente.PostAsJsonAsync("/cuentas/contrasena", new PeticionDeCambioDeContrasena
+        {
+            Actual = ContrasenaActual,
+            Nueva = ContrasenaNueva
+        });
+        Assert.Equal(HttpStatusCode.NoContent, cambio.StatusCode);
+
+        var restablecer = await api.CreateClient().PostAsJsonAsync("/cuentas/contrasena/restablecer",
+            new PeticionDeRestablecerContrasena { Token = token, Contrasena = "una-tercera-contrasena-larga" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, restablecer.StatusCode);
+        var conLaNueva = await api.CreateClient().PostAsJsonAsync("/sesiones",
+            new PeticionDeInicioDeSesion { Correo = correo, Contrasena = ContrasenaNueva });
+        Assert.Equal(HttpStatusCode.OK, conLaNueva.StatusCode);
+    }
+
     // ------------------------------------------------------------- Auxiliares
 
     private async Task<(HttpClient Cliente, string Correo)> CuentaAsync()

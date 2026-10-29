@@ -51,7 +51,14 @@ public sealed class RestablecerContrasena(
             return ResultadoDeRestablecerContrasena.EnlaceNoValido;
         }
 
-        usuario.CambiarContrasena(hasheador.Hashear(contrasena), reloj.Ahora);
+        var ahora = reloj.Ahora;
+        usuario.CambiarContrasena(hasheador.Hashear(contrasena), ahora);
+
+        // Además del enlace usado, caen los demás que siguieran vivos: solo uno cambia la contraseña.
+        foreach (var otra in await solicitudes.BuscarVivasPorUsuarioAsync(usuario.Id, cancelacion))
+        {
+            otra.Invalidar(ahora);
+        }
 
         // Con el adaptador de EF ambas entidades viven en el mismo contexto, así
         // que este guardado escribe también el consumo del token, en una sola
