@@ -25,6 +25,7 @@
 
 .barra__grupo { display: flex; gap: 0.4rem; align-items: center; }
 .barra button[aria-current='step'], .barra button[aria-pressed='true'] { background: var(--amarillo); border-color: var(--terracota); }
+.barra__ayuda { color: var(--gris); font-size: 0.8rem; }
 .barra__movil { display: none; }
 .barra__guardado { margin: 0 0 0 auto; color: var(--gris); font-size: 0.9rem; }
 .barra__guardado--error { color: var(--conflicto); font-weight: 600; }

@@ -38,6 +38,19 @@ describe('usarAtajos', () => {
     expect(almacen.getState().documento?.estancia.alto).toBe(260)
   })
 
+  it('con un diálogo abierto no actúa', () => {
+    almacen.getState().seleccionar({ tipo: 'pared', indice: 0 })
+    render(<Sonda />)
+    const d = document.createElement('dialog')
+    d.setAttribute('open', '')
+    document.body.appendChild(d)
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    d.remove()
+    expect(almacen.getState().documento?.estancia.alto).toBe(260)
+    expect(almacen.getState().seleccion).not.toBeNull()
+  })
+
   it('Escape anula la selección', () => {
     almacen.getState().seleccionar({ tipo: 'pared', indice: 0 })
     render(<Sonda />)

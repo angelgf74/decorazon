@@ -27,7 +27,7 @@ export default function CampoNumero({ etiqueta, valor, min, max, unidad, alCambi
       return
     }
     const n = Math.min(max, Math.max(min, Number(limpio)))
-    setTexto(String(n))
+    setTexto(String(valor))
     if (n !== valor) alCambiar(n)
   }
 
@@ -43,7 +43,10 @@ export default function CampoNumero({ etiqueta, valor, min, max, unidad, alCambi
         onChange={(e) => setTexto(e.target.value)}
         onBlur={confirmar}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') confirmar()
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            confirmar()
+          }
           else if (e.key === 'Escape') setTexto(String(valor))
         }}
       />

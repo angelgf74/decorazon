@@ -72,6 +72,16 @@ describe('CampoNumero', () => {
     expect((screen.getByLabelText('Ancho') as HTMLInputElement).value).toBe('150')
   })
 
+  it('si el padre ignora el cambio, vuelve al valor y no repite alCambiar en el blur', async () => {
+    const { alCambiar, campo } = montar()
+    await userEvent.clear(campo)
+    await userEvent.type(campo, '250{Enter}')
+    expect(campo.value).toBe('100')
+    await userEvent.tab()
+    expect(alCambiar).toHaveBeenCalledTimes(1)
+    expect(campo.value).toBe('100')
+  })
+
   it('muestra el rango como ayuda', () => {
     montar()
     expect(screen.getByText('40–400 cm')).toBeInTheDocument()

@@ -9,7 +9,7 @@ function enCampo(destino: EventTarget | null): boolean {
 export function useAtajos(): void {
   useEffect(() => {
     function alPulsar(e: KeyboardEvent) {
-      if (enCampo(e.target)) return
+      if (enCampo(e.target) || document.querySelector('dialog[open]') !== null) return
       const e0 = almacen.getState()
       const mando = e.ctrlKey || e.metaKey
       const tecla = e.key.toLowerCase()

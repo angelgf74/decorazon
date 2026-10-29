@@ -35,7 +35,7 @@ export default function BarraSuperior({ hojaAbierta = null, alAlternarHoja }: Pr
       <div className="barra__grupo" role="group" aria-label="Vista">
         <button type="button" aria-pressed={vista === '2d'} onClick={() => cambiarVista('2d')}>{t.vista2d}</button>
         <button type="button" aria-pressed={vista === '3d'} disabled aria-describedby="ayuda-3d">{t.vista3d}</button>
-        <span id="ayuda-3d" className="solo-lectores">{t.ayuda3d}</span>
+        <small id="ayuda-3d" className="barra__ayuda">{t.ayuda3d}</small>
       </div>
 
       <div className="barra__grupo">

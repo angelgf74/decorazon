@@ -22,6 +22,16 @@ describe('NuevaEstancia', () => {
     expect(doc?.estancia.alto).toBe(250)
   })
 
+  it('Intro en un campo confirma el valor sin enviar el formulario', async () => {
+    render(<NuevaEstancia />)
+    const ancho = screen.getByLabelText('Ancho')
+    await userEvent.clear(ancho)
+    await userEvent.type(ancho, '600{Enter}')
+    expect(almacen.getState().documento).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Crear estancia' }))
+    expect(almacen.getState().documento!.estancia.planta[1]!.x).toBe(600)
+  })
+
   it('crea con los valores por defecto', async () => {
     render(<NuevaEstancia />)
     await userEvent.click(screen.getByRole('button', { name: 'Crear estancia' }))

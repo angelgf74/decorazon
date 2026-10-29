@@ -36,6 +36,7 @@ describe('BarraSuperior', () => {
     const b = screen.getByRole('button', { name: '3D' })
     expect(b).toBeDisabled()
     expect(b).toHaveAccessibleDescription('La vista 3D llega pronto')
+    expect(screen.getByText('La vista 3D llega pronto')).toBeVisible()
   })
 
   it('"Nuevo diseño" pide confirmación y descarta', async () => {
