@@ -27,6 +27,11 @@ describe('anadirAbertura', () => {
     const v = documento(anadirAbertura(sala(), 'ventana', 1)).aberturas[0] as Ventana
     expect(v).toMatchObject({ tipo: 'ventana', pared: 1, posicion: 105, ancho: 120, alto: 120, alturaSuelo: 90, abreHaciaDentro: true })
   })
+  it('en una estancia de 200 cm de alto la puerta y la ventana se ajustan bajo el techo', () => {
+    const baja = documentoNuevo('dormitorio', 400, 330, 200)
+    expect(documento(anadirAbertura(baja, 'puerta', 0)).aberturas[0]).toMatchObject({ alto: 200 })
+    expect(documento(anadirAbertura(baja, 'ventana', 0)).aberturas[0]).toMatchObject({ alto: 110, alturaSuelo: 90 })
+  })
   it('falla si no cabe en la pared', () => {
     expect(motivo(anadirAbertura(documentoNuevo('dormitorio', 60, 330, 250), 'puerta', 0))).toBe(textos.edicion.noCabeEnPared)
   })

@@ -17,9 +17,11 @@ export function anadirAbertura(doc: DocumentoDiseno, tipo: 'puerta' | 'ventana',
   const posicion = centrada(doc, pared, ancho)
   if (posicion === null) return falla(textos.edicion.cambioNoValido)
   const id = crypto.randomUUID()
+  // Las medidas por defecto se recortan para que quepan bajo un techo bajo.
+  const techo = doc.estancia.alto
   const abertura: Abertura = tipo === 'puerta'
-    ? { id, tipo, pared, posicion, ancho, alto: 203, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' }
-    : { id, tipo, pared, posicion, ancho, alto: 120, alturaSuelo: 90, abreHaciaDentro: true }
+    ? { id, tipo, pared, posicion, ancho, alto: Math.min(203, techo), hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' }
+    : { id, tipo, pared, posicion, ancho, alto: Math.min(120, techo - 90), alturaSuelo: 90, abreHaciaDentro: true }
   return comprobarEstancia({ ...doc, aberturas: [...doc.aberturas, abertura] })
 }
 
