@@ -4,6 +4,8 @@ import { defineConfig } from 'vitest/config'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // El fragmento de la vista 3D (three y drei, ~1 MB) se carga bajo demanda al pulsar 3D; el index sigue muy por debajo.
+  build: { chunkSizeWarningLimit: 1100 },
   test: {
     environment: 'node',
     setupFiles: ['src/pruebas/preparar.ts'],

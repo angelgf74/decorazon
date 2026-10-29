@@ -15,7 +15,9 @@ const MARGEN_SOMBRA_M = 1
 function hayWebgl(): boolean {
   try {
     const lienzo = document.createElement('canvas')
-    return (lienzo.getContext('webgl2') ?? lienzo.getContext('webgl')) !== null
+    const contexto = lienzo.getContext('webgl2') ?? lienzo.getContext('webgl')
+    contexto?.getExtension('WEBGL_lose_context')?.loseContext()
+    return contexto !== null
   } catch {
     return false
   }
@@ -47,7 +49,8 @@ function Escena({ doc }: { doc: DocumentoDiseno }) {
   const c = cajaPlanta(doc.estancia.planta)
   const centro: Vec3 = [(c.minX + c.maxX) / 200, 0, (c.minY + c.maxY) / 200]
   // Esfera que envuelve la estancia: la cámara de sombras la abarca entera.
-  const radio = Math.hypot((c.maxX - c.minX) / 200 + MARGEN_SOMBRA_M, (c.maxY - c.minY) / 200 + MARGEN_SOMBRA_M, doc.estancia.alto / 100)
+  const ancho = (c.maxX - c.minX) / 100, fondo = (c.maxY - c.minY) / 100
+  const radio = Math.hypot(ancho / 2 + MARGEN_SOMBRA_M, fondo / 2 + MARGEN_SOMBRA_M, doc.estancia.alto / 100)
   const sol = direccionSol(doc)
   const posicionSol = centro.map((v, k) => v + sol[k] * DISTANCIA_SOL_M) as Vec3
 
@@ -104,7 +107,7 @@ export default function Vista3D() {
     <div className="vista3d">
       {conWebgl ? (
         <SinFallos alternativa={aviso}>
-          <Canvas shadows="soft" frameloop="demand" dpr={[1, 2]} camera={{ fov: 45 }}>
+          <Canvas shadows frameloop="demand" dpr={[1, 2]} camera={{ fov: 45 }}>
             <Escena doc={doc} />
           </Canvas>
         </SinFallos>

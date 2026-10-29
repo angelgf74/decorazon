@@ -31,6 +31,14 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks())
 
+/** Contexto WebGL de prueba: solo lo que usa la comprobación previa. */
+function conWebgl() {
+  const loseContext = vi.fn()
+  const contexto = { getExtension: (n: string) => (n === 'WEBGL_lose_context' ? { loseContext } : null) }
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(contexto as unknown as RenderingContext)
+  return loseContext
+}
+
 describe('Vista3D', () => {
   it('sin contexto WebGL avisa y "Volver al 2D" vuelve al plano', async () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
@@ -41,7 +49,7 @@ describe('Vista3D', () => {
   })
 
   it('si el lienzo falla al montarse, el mismo aviso', () => {
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as RenderingContext)
+    conWebgl()
     vi.spyOn(console, 'error').mockImplementation(() => {})
     fallo.lanzar = true
     render(<Vista3D />)
@@ -49,10 +57,11 @@ describe('Vista3D', () => {
     expect(screen.getByRole('button', { name: 'Volver al 2D' })).toBeInTheDocument()
   })
 
-  it('con WebGL monta el lienzo', () => {
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as RenderingContext)
+  it('con WebGL monta el lienzo y libera el contexto de la comprobación', () => {
+    const loseContext = conWebgl()
     const { container } = render(<Vista3D />)
     expect(screen.queryByText(SIN_WEBGL)).toBeNull()
     expect(container.querySelector('canvas')).not.toBeNull()
+    expect(loseContext).toHaveBeenCalledTimes(1)
   })
 })

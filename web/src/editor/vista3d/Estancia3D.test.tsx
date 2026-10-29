@@ -1,21 +1,56 @@
 import ReactThreeTestRenderer from '@react-three/test-renderer'
-import { Box3 } from 'three'
+import { Box3, Vector3, type Mesh } from 'three'
 import { describe, expect, it } from 'vitest'
 import { documentoNuevo, escenaEstancia } from '../../nucleo'
 import Estancia3D from './Estancia3D'
 import { geometriaPrisma, geometriaSuelo } from './geometrias'
+import { materialDe } from './materiales3d'
 
 describe('Estancia3D', () => {
   it('una malla por suelo, trozo de muro, pieza de hueco y estructura', async () => {
     const doc = documentoNuevo('salon', 400, 330, 250)
     doc.aberturas.push({ id: 'p1', tipo: 'puerta', pared: 0, posicion: 159, ancho: 82, alto: 203, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' })
     const { muros, huecos, estructura } = escenaEstancia(doc)
+    expect(huecos.length).toBeGreaterThan(0)
+    expect(muros.length).toBeGreaterThan(4)
     const r = await ReactThreeTestRenderer.create(<Estancia3D doc={doc} />)
     const mallas = r.scene.findAll((n) => n.type === 'Mesh')
     expect(mallas).toHaveLength(muros.length + huecos.length + estructura.length + 1)
     for (const m of mallas) {
       expect(m.props.castShadow || m.props.receiveShadow).toBe(true)
     }
+  })
+
+  it('el cristal de la ventana recibe sombra pero no la proyecta', async () => {
+    const doc = documentoNuevo('salon', 400, 330, 250)
+    doc.aberturas.push({ id: 'v1', tipo: 'ventana', pared: 1, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false })
+    const r = await ReactThreeTestRenderer.create(<Estancia3D doc={doc} />)
+    const mallas = r.scene.findAll((n) => n.type === 'Mesh')
+    const cristal = mallas.filter((m) => (m.instance as Mesh).material === materialDe('vidrio', '#cfe3ea'))
+    expect(cristal).toHaveLength(1)
+    expect(cristal[0].instance.castShadow).toBe(false)
+    expect(cristal[0].instance.receiveShadow).toBe(true)
+    const resto = mallas.filter((m) => m !== cristal[0] && m.instance.castShadow)
+    expect(resto).toHaveLength(mallas.length - 2)
+  })
+
+  it('estructura: columna girada y radiador en su sitio', async () => {
+    const doc = documentoNuevo('salon', 400, 330, 250)
+    doc.estructura.push(
+      { id: 'c1', tipo: 'columna', centro: { x: 100, y: 100 }, ancho: 30, fondo: 20, rotacion: 90 },
+      { id: 'r1', tipo: 'radiador', pared: 0, posicion: 100, ancho: 80, alto: 60, fondo: 10, alturaSuelo: 15 },
+    )
+    const { muros, estructura } = escenaEstancia(doc)
+    const r = await ReactThreeTestRenderer.create(<Estancia3D doc={doc} />)
+    const mallas = r.scene.findAll((n) => n.type === 'Mesh')
+    expect(mallas).toHaveLength(muros.length + estructura.length + 1)
+    const columna = mallas.find((m) => m.instance.position.distanceTo(new Vector3(1, 1.25, 1)) < 1e-9)!
+    expect(columna.instance.rotation.y).toBeCloseTo(-Math.PI / 2)
+    const caja = new Box3().setFromObject(columna.instance)
+    expect(caja.max.x - caja.min.x).toBeCloseTo(0.2)
+    expect(caja.max.z - caja.min.z).toBeCloseTo(0.3)
+    const radiador = mallas.find((m) => (m.instance as Mesh).material === materialDe('metal', '#f2f2f2'))!
+    expect(radiador.instance.position.toArray().map((v) => Number(v.toFixed(6)))).toEqual([1.4, 0.45, 0.05])
   })
 })
 
