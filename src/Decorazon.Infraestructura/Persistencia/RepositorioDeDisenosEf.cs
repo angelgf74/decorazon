@@ -37,6 +37,24 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
 
     public void Borrar(Diseno diseno) => contexto.Disenos.Remove(diseno);
 
-    public Task GuardarCambiosAsync(CancellationToken cancelacion = default) =>
-        contexto.SaveChangesAsync(cancelacion);
+    public async Task<bool> GuardarCambiosAsync(CancellationToken cancelacion = default)
+    {
+        try
+        {
+            await contexto.SaveChangesAsync(cancelacion);
+            return true;
+        }
+        catch (Exception excepcion) when (
+            excepcion is DbUpdateConcurrencyException
+            || (excepcion is DbUpdateException actualizacion && ErroresDePostgres.EsClaveForaneaViolada(actualizacion)))
+        {
+            // Concurrencia: el UPDATE o DELETE no encontró la versión leída (otro guardó o
+            // borró entretanto). Clave foránea: la cuenta se borró entre contar y guardar.
+            // Se olvida lo rastreado para que la relectura del caso de uso traiga lo que hay
+            // de verdad y no la copia en memoria que no se pudo guardar. El contexto es de la
+            // petición y en ella no hay nada más pendiente.
+            contexto.ChangeTracker.Clear();
+            return false;
+        }
+    }
 }

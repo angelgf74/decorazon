@@ -35,9 +35,26 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
     /// <summary>Cuántas veces se ha pedido guardar.</summary>
     public int GuardadosSolicitados { get; private set; }
 
-    public Task GuardarCambiosAsync(CancellationToken cancelacion = default)
+    /// <summary>
+    /// Si se fija, el próximo guardado simula que otro se coló: ejecuta esto (p. ej. quitar
+    /// el diseño, como haría un borrado concurrente) y devuelve <c>false</c> sin guardar.
+    /// </summary>
+    public Action? Carrera { get; set; }
+
+    public Task<bool> GuardarCambiosAsync(CancellationToken cancelacion = default)
     {
         GuardadosSolicitados++;
-        return Task.CompletedTask;
+
+        if (Carrera is { } carrera)
+        {
+            Carrera = null;
+            carrera();
+            return Task.FromResult(false);
+        }
+
+        return Task.FromResult(true);
     }
+
+    /// <summary>Lo que haría un borrado desde otra petición.</summary>
+    public void Quitar(Diseno diseno) => _disenos.Remove(diseno);
 }

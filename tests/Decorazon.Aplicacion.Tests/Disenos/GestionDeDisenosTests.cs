@@ -248,6 +248,37 @@ public class GestionDeDisenosTests
     }
 
     [Fact]
+    public async Task Borrar_SiOtroSeAdelantaAlGuardar_DevuelveFalse()
+    {
+        var diseno = await CrearUnoAsync();
+        _disenos.Carrera = () => { };
+
+        Assert.False(await CasoDeUso.BorrarAsync(_usuario, diseno.Id));
+    }
+
+    [Fact]
+    public async Task Actualizar_SiOtroLoBorraAntesDeGuardar_NoEncontrado()
+    {
+        var diseno = await CrearUnoAsync();
+        _disenos.Carrera = () => _disenos.Quitar(diseno);
+
+        var resultado = await CasoDeUso.ActualizarAsync(_usuario, diseno.Id, 1, Peticion("Otro"));
+
+        Assert.Equal(EstadoDeDiseno.NoEncontrado, resultado.Estado);
+    }
+
+    [Fact]
+    public async Task Crear_SiLaCuentaDesapareceAlGuardar_NoEncontrado()
+    {
+        _disenos.Carrera = () => { };
+
+        var resultado = await CasoDeUso.CrearAsync(_usuario, Peticion());
+
+        Assert.Equal(EstadoDeDiseno.NoEncontrado, resultado.Estado);
+        Assert.Null(resultado.Diseno);
+    }
+
+    [Fact]
     public async Task Borrar_DisenoAjeno_DevuelveFalseYLoDejaIntacto()
     {
         var ajeno = await CrearUnoAsync(Guid.NewGuid());

@@ -53,7 +53,12 @@ public sealed class GestionDeDisenos(IRepositorioDeDisenos disenos, IReloj reloj
 
         var diseno = Diseno.Crear(usuarioId, conversion.Nombre!, conversion.Tipo, conversion.Contenido!, reloj.Ahora);
         disenos.Anadir(diseno);
-        await disenos.GuardarCambiosAsync(cancelacion);
+
+        // Solo falla si la cuenta se ha borrado entretanto: para quien llama, ya no hay dónde crearlo.
+        if (!await disenos.GuardarCambiosAsync(cancelacion))
+        {
+            return new ResultadoDeDiseno(EstadoDeDiseno.NoEncontrado);
+        }
 
         return new ResultadoDeDiseno(EstadoDeDiseno.Correcto, diseno);
     }
@@ -79,7 +84,16 @@ public sealed class GestionDeDisenos(IRepositorioDeDisenos disenos, IReloj reloj
         }
 
         diseno.Actualizar(conversion.Nombre!, conversion.Tipo, conversion.Contenido!, reloj.Ahora);
-        await disenos.GuardarCambiosAsync(cancelacion);
+
+        if (!await disenos.GuardarCambiosAsync(cancelacion))
+        {
+            // Otro guardado o borrado se coló entre la lectura y la escritura. Se relee para
+            // responder igual que si hubiera llegado antes: 412 con el actual, o 404.
+            var actual = await disenos.ObtenerAsync(usuarioId, id, cancelacion);
+            return actual is null
+                ? new ResultadoDeDiseno(EstadoDeDiseno.NoEncontrado)
+                : new ResultadoDeDiseno(EstadoDeDiseno.VersionDistinta, actual);
+        }
 
         return new ResultadoDeDiseno(EstadoDeDiseno.Correcto, diseno);
     }
@@ -99,12 +113,19 @@ public sealed class GestionDeDisenos(IRepositorioDeDisenos disenos, IReloj reloj
 
         var copia = original.Duplicar(reloj.Ahora);
         disenos.Anadir(copia);
-        await disenos.GuardarCambiosAsync(cancelacion);
+
+        if (!await disenos.GuardarCambiosAsync(cancelacion))
+        {
+            return new ResultadoDeDiseno(EstadoDeDiseno.NoEncontrado);
+        }
 
         return new ResultadoDeDiseno(EstadoDeDiseno.Correcto, copia);
     }
 
-    /// <returns>False si no existe o es de otro usuario.</returns>
+    /// <returns>
+    /// False si no existe o es de otro usuario, o si otro lo borró o cambió mientras
+    /// tanto: en ese caso no se borra lo que el usuario no ha visto.
+    /// </returns>
     public async Task<bool> BorrarAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default)
     {
         var diseno = await disenos.ObtenerAsync(usuarioId, id, cancelacion);
@@ -114,9 +135,8 @@ public sealed class GestionDeDisenos(IRepositorioDeDisenos disenos, IReloj reloj
         }
 
         disenos.Borrar(diseno);
-        await disenos.GuardarCambiosAsync(cancelacion);
 
-        return true;
+        return await disenos.GuardarCambiosAsync(cancelacion);
     }
 
     private static ResultadoDeDiseno Rechazo(ConversionDeDiseno conversion) => conversion.Motivo switch

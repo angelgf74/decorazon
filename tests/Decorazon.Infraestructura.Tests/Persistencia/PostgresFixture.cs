@@ -1,6 +1,7 @@
 using Decorazon.Infraestructura;
 using Decorazon.Infraestructura.Persistencia;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
@@ -41,10 +42,10 @@ public sealed class PostgresFixture : IAsyncLifetime
         return cadena;
     }
 
-    public static DecorazonDbContext Contexto(string cadena)
+    public static DecorazonDbContext Contexto(string cadena, params IInterceptor[] interceptores)
     {
         var opciones = new DbContextOptionsBuilder<DecorazonDbContext>();
-        opciones.UsarPostgres(cadena);
+        opciones.UsarPostgres(cadena).AddInterceptors(interceptores);
         return new DecorazonDbContext(opciones.Options);
     }
 }

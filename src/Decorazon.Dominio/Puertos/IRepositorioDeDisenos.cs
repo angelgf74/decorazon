@@ -27,5 +27,13 @@ public interface IRepositorioDeDisenos
 
     void Borrar(Diseno diseno);
 
-    Task GuardarCambiosAsync(CancellationToken cancelacion = default);
+    /// <summary>
+    /// Persiste lo rastreado. Un fallo de concurrencia es un resultado, no una excepción.
+    /// </summary>
+    /// <returns>
+    /// <c>false</c> si no se guardó nada porque otro cambió o borró ese diseño entretanto
+    /// (su versión ya no es la leída), o porque la cuenta dueña ya no existe. Tras un
+    /// <c>false</c> se olvida lo rastreado: una nueva lectura trae lo que hay en el almacén.
+    /// </returns>
+    Task<bool> GuardarCambiosAsync(CancellationToken cancelacion = default);
 }
