@@ -92,6 +92,15 @@ describe('generadores 3D de cocina y decoración', () => {
     expect(maxFrente).toBe(28)
   })
 
+  it('en una hilera de cocina con el mismo fondo, frentes y tiradores quedan en el mismo plano (2 cm por detrás, por la encimera)', () => {
+    const tipos = ['modulo-bajo', 'lavavajillas', 'frigorifico', 'columna-cocina']
+    const sinEncimera = (tipo: string) => cajas(piezas(tipo, { fondo: 60 })).filter((p) => p.zona !== 'encimera')
+    const frente = (tipo: string) => Math.max(...sinEncimera(tipo).filter((p) => p.y1 - p.y0 === 2).map((p) => p.y1))
+    const delante = (tipo: string) => Math.max(...sinEncimera(tipo).map((p) => p.y1))
+    expect(tipos.map(frente)).toEqual(tipos.map(() => 26.5))
+    expect(tipos.map(delante)).toEqual(tipos.map(() => 28))
+  })
+
   it('columna con horno: cristal de vidrio #1f1f1f en z 85-145; con frigorífico, un frente entero', () => {
     const horno = piezas('columna-cocina').find((p) => p.material === 'vidrio')
     expect(horno).toMatchObject({ forma: 'caja', z0: 85, z1: 145, color: '#1f1f1f' })

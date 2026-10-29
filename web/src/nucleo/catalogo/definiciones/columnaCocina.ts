@@ -1,6 +1,6 @@
 import { valorVariante, type DefinicionTipo } from '../tipos'
 import { cajaEntera, puertaAbatibleAbajo, puertasAbatibles } from '../aperturas'
-import { caja, frentes, tiradores, yFrenteCuerpo } from '../modelos'
+import { caja, desplazadasY, frentes, tiradores, yFrenteCuerpo } from '../modelos'
 
 export const columnaCocina: DefinicionTipo = {
   id: 'columna-cocina', nombre: 'columna de cocina', genero: 'f', categoria: 'mueble', estancias: ['cocina'],
@@ -13,21 +13,22 @@ export const columnaCocina: DefinicionTipo = {
   modelo3d(e) {
     const { ancho, fondo, alto } = e.medidas
     const base = [
-      caja(-ancho / 2 + 3, -fondo / 2 + 3, 0, ancho / 2 - 3, yFrenteCuerpo(e, true), 8, 'cuerpo'),
-      caja(-ancho / 2, -fondo / 2, 8, ancho / 2, yFrenteCuerpo(e, true), alto, 'cuerpo'),
+      caja(-ancho / 2 + 3, -fondo / 2 + 3 + 2, 0, ancho / 2 - 3, yFrenteCuerpo(e, true), 8, 'cuerpo'),
+      caja(-ancho / 2, -fondo / 2 + 2, 8, ancho / 2, yFrenteCuerpo(e, true), alto, 'cuerpo'),
     ]
+    // 2 cm por detrás, como el módulo bajo, para que los frentes de la hilera queden en un plano.
     if (valorVariante(columnaCocina, e, 'integrado') === 'frigorifico') {
-      return [...base, ...frentes(e, 1, 9, alto - 1, 'cuerpo'), ...tiradores(e, 1, alto - 60, 'cuerpo')]
+      return desplazadasY([...base, ...frentes(e, 1, 9, alto - 1, 'cuerpo'), ...tiradores(e, 1, alto - 60, 'cuerpo')], -2)
     }
     const [horno] = frentes(e, 1, 85, 145, 'cuerpo')
-    return [
+    return desplazadasY([
       ...base,
       ...frentes(e, 1, 9, 84.8, 'cuerpo'),
       { ...horno, material: 'vidrio', color: '#1f1f1f' },
       ...frentes(e, 1, 145.2, alto - 1, 'cuerpo'),
       ...tiradores(e, 1, 78, 'cuerpo'),
       ...tiradores(e, 1, 148, 'cuerpo'),
-    ]
+    ], -2)
   },
   zonasApertura: (e) => valorVariante(columnaCocina, e, 'integrado') === 'horno' ? puertaAbatibleAbajo(e, 60, 85) : puertasAbatibles(e, 1),
 }
