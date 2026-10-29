@@ -7,10 +7,28 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <!-- Microsoft.AspNetCore.OpenApi arrastra Microsoft.OpenApi 2.0.0, con el aviso
+         de seguridad GHSA-v5pm-xwqc-g5wc (corregido en 2.7.5). Un aviso que se
+         ignora se convierte en costumbre. -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.11.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.10" />
+  </ItemGroup>
+
+  <!--
+    La configuración local no viaja al servidor. appsettings.Development.json
+    lleva la clave JWT y la contraseña de la base de desarrollo: en producción no
+    se cargaría, pero un secreto no debe salir de la máquina por si acaso. La
+    plantilla tampoco pinta nada allí; la configuración real va en el servidor.
+  -->
+  <ItemGroup>
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+    <Content Update="appsettings.Example.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
   <PropertyGroup>
