@@ -57,4 +57,26 @@ describe('usarAtajos', () => {
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(almacen.getState().seleccion).toBeNull()
   })
+  it('Supr quita la abertura seleccionada y Retroceso la columna', () => {
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      aberturas: [{ id: 'v', tipo: 'ventana', pared: 0, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false }],
+      estructura: [{ id: 'c', tipo: 'columna', centro: { x: 200, y: 165 }, ancho: 30, fondo: 30, rotacion: 0 }],
+    }))
+    render(<Sonda />)
+    almacen.getState().seleccionar({ tipo: 'abertura', id: 'v' })
+    fireEvent.keyDown(window, { key: 'Delete' })
+    expect(almacen.getState().documento?.aberturas).toHaveLength(0)
+    almacen.getState().seleccionar({ tipo: 'estructura', id: 'c' })
+    fireEvent.keyDown(window, { key: 'Backspace' })
+    expect(almacen.getState().documento?.estructura).toHaveLength(0)
+  })
+
+  it('Supr con un vértice seleccionado quita la esquina', () => {
+    almacen.getState().seleccionar({ tipo: 'vertice', indice: 2 })
+    render(<Sonda />)
+    fireEvent.keyDown(window, { key: 'Delete' })
+    expect(almacen.getState().documento?.estancia.planta).toHaveLength(3)
+    expect(almacen.getState().seleccion).toBeNull()
+  })
 })

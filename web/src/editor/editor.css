@@ -65,3 +65,16 @@
   }
   .hoja--abierta { transform: none; visibility: visible; }
 }
+
+.panel-propiedades h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.panel__campo { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.6rem 0; }
+.panel__campo select { font: inherit; padding: 0.35rem 0.4rem; border: 1px solid var(--gris); border-radius: 0.4rem; max-width: 12rem; }
+.panel__casilla { display: flex; gap: 0.4rem; align-items: center; margin: 0.6rem 0; }
+.panel__nota { color: var(--gris); font-size: 0.9rem; }
+.panel__botones { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.75rem 0; }
+
+.selector-color { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.6rem 0; }
+.selector-color__fila { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+.selector-color input[type='color'] { width: 2.2rem; height: 2rem; padding: 0; border: 1px solid var(--gris); border-radius: 0.4rem; background: none; }
+.selector-color__muestra { width: 1.6rem; height: 1.6rem; padding: 0; border: 1px solid var(--gris); border-radius: 50%; }
+.selector-color__muestra[aria-pressed='true'] { outline: 2px solid var(--terracota); outline-offset: 2px; }

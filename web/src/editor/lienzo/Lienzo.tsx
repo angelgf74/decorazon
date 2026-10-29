@@ -1,35 +1,33 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import { desplazarPoligono } from '../../nucleo'
 import { textos } from '../../textos'
 import { useConflictos } from '../estado/conflictos'
 import { almacen, useEditor } from '../estado/almacen'
+import { pulsarAbertura, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano } from './arrastres'
 import CapaAberturas from './capas/CapaAberturas'
+import CapaCotas from './capas/CapaCotas'
 import CapaConflictos from './capas/CapaConflictos'
 import CapaElementos from './capas/CapaElementos'
 import CapaEstructura from './capas/CapaEstructura'
 import CapaPlanta from './capas/CapaPlanta'
+import CapaTiradores from './capas/CapaTiradores'
 import type { AlPulsar } from './capas/comun'
-import { ContextoLienzo } from './usarPuntoDelPlano'
+import { ContextoLienzo, puntoDelPlano } from './usarPuntoDelPlano'
 import { encuadrar, zoomEn, type Vista2D } from './vista'
 import './lienzo.css'
 
-/** Px que hay que mover el puntero para que un toque en el fondo pase a ser un arrastre. */
-const UMBRAL_ARRASTRE_PX = 3
 const ZOOM_POR_PX_RUEDA = 0.0015
 const PX_POR_LINEA = 16
 const VISTA_INICIAL: Vista2D = { x: 0, y: 0, escala: 1 }
 
 interface Arrastre { id: number; x: number; y: number; vista: Vista2D; movido: boolean }
 
-const seleccionarPor = (tipo: 'elemento' | 'abertura' | 'estructura'): AlPulsar =>
-  (id) => almacen.getState().seleccionar({ tipo, id })
-const pulsarElemento = seleccionarPor('elemento')
-const pulsarAbertura = seleccionarPor('abertura')
-const pulsarEstructura = seleccionarPor('estructura')
+const pulsarElemento: AlPulsar = (id) => almacen.getState().seleccionar({ tipo: 'elemento', id })
+const pulsarPared = (indice: number) => almacen.getState().seleccionar({ tipo: 'pared', indice })
 
 /**
- * Plano 2D en SVG. Todo se dibuja en cm dentro del `<g>` transformado; `children` va encima de las capas,
- * en las mismas coordenadas, para los tiradores de las tareas siguientes (que obtienen el punto con `usePuntoDelPlano`).
+ * Plano 2D en SVG. Todo se dibuja en cm dentro del `<g>` transformado. En el paso 1 lleva las cotas y los tiradores de la estancia.
+ * `children` va encima de las capas, en las mismas coordenadas (el punto del puntero sale de `usePuntoDelPlano`).
  */
 export default function Lienzo({ children }: { children?: ReactNode }) {
   const documento = useEditor((e) => e.documento)
@@ -43,6 +41,12 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
   const [arrastrando, setArrastrando] = useState(false)
   const arrastre = useRef<Arrastre | null>(null)
   const contexto = useMemo(() => ({ plano, vista: vistaActual }), [])
+  // Paso 1: pulsar una abertura o una pieza de estructura la selecciona y empieza a arrastrarla.
+  const aPlano: APlano = (ev) => puntoDelPlano(contexto, ev)
+  const pulsar: Record<'abertura' | 'estructura', AlPulsar> = {
+    abertura: (id, ev) => pulsarAbertura(aPlano, id, ev),
+    estructura: (id, ev) => pulsarEstructura(aPlano, id, ev),
+  }
 
   const aplicar = useCallback((f: (v: Vista2D) => Vista2D) => {
     vistaActual.current = f(vistaActual.current)
@@ -126,15 +130,22 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
             <line x1="0" y1="0" x2="0" y2="6" stroke="#6f6862" strokeWidth="2" />
           </pattern>
         </defs>
-        <g ref={plano} transform={`translate(${vista.x} ${vista.y}) scale(${vista.escala})`}>
+        {/* --escala deja el texto del plano a tamaño constante en pantalla (lienzo.css). */}
+        <g ref={plano} transform={`translate(${vista.x} ${vista.y}) scale(${vista.escala})`} style={{ '--escala': vista.escala } as CSSProperties}>
           <ContextoLienzo.Provider value={contexto}>
-            <CapaPlanta documento={documento} />
-            <CapaEstructura documento={documento} seleccion={seleccion} vigas={false} alPulsar={paso === 1 ? pulsarEstructura : undefined} />
-            <CapaAberturas documento={documento} seleccion={seleccion} alPulsar={paso === 1 ? pulsarAbertura : undefined} />
+            <CapaPlanta documento={documento} seleccion={seleccion} alPulsarPared={paso === 1 ? pulsarPared : undefined} />
+            <CapaEstructura documento={documento} seleccion={seleccion} vigas={false} alPulsar={paso === 1 ? pulsar.estructura : undefined} />
+            <CapaAberturas documento={documento} seleccion={seleccion} alPulsar={paso === 1 ? pulsar.abertura : undefined} />
             <CapaElementos documento={documento} conflictos={conflictos} seleccion={seleccion} alPulsar={paso === 2 ? pulsarElemento : undefined} />
             {/* Las vigas van por el techo: encima de los muebles. */}
-            <CapaEstructura documento={documento} seleccion={seleccion} vigas alPulsar={paso === 1 ? pulsarEstructura : undefined} />
+            <CapaEstructura documento={documento} seleccion={seleccion} vigas alPulsar={paso === 1 ? pulsar.estructura : undefined} />
             <CapaConflictos conflictos={conflictos} />
+            {paso === 1 && (
+              <>
+                <CapaCotas documento={documento} seleccion={seleccion} escala={vista.escala} />
+                <CapaTiradores documento={documento} seleccion={seleccion} escala={vista.escala} />
+              </>
+            )}
             {children}
           </ContextoLienzo.Provider>
         </g>

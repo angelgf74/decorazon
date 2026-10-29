@@ -8,7 +8,7 @@ interface Props { documento: DocumentoDiseno; conflictos: Conflicto[]; seleccion
 const ANCHO_NOMBRE_CM = 40
 const COLOR_SIN_ZONA = '#d8d2ca'
 
-function Pieza({ e }: { e: Elemento }) {
+function Pieza({ e, elegido }: { e: Elemento; elegido: boolean }) {
   const def = catalogoBase.get(e.tipo)
   const huellas = def ? def.volumenes(e).map((v) => v.huella) : [rectangulo(e.posicion, e.medidas.ancho, e.medidas.fondo, e.rotacion)]
   const zona = def?.zonasColor[0]
@@ -16,6 +16,8 @@ function Pieza({ e }: { e: Elemento }) {
   const nombre = def ? def.nombre.charAt(0).toUpperCase() + def.nombre.slice(1) : e.tipo
   return (
     <>
+      {/* La selección es un halo por debajo: el contorno rojo de un conflicto sigue a la vista. */}
+      {elegido && huellas.map((h, i) => <polygon key={`h${i}`} className="capa-elementos__halo" points={puntos(h)} />)}
       {huellas.map((h, i) => <polygon key={i} className="capa-elementos__huella" points={puntos(h)} fill={relleno} />)}
       {def?.zonasApertura(e).map((z, i) => (
         <polygon key={`a${i}`} className="capa-elementos__apertura" points={puntos(z.huella)} strokeDasharray="6 4" />
@@ -44,7 +46,7 @@ export default function CapaElementos({ documento, conflictos, seleccion, alPuls
             className={`capa-elementos__pieza${elegido ? ' lienzo--seleccionado' : ''}${alPulsar ? ' lienzo--pulsable' : ''}`}
             onPointerDown={manejador(e.id, alPulsar)}
           >
-            <Pieza e={e} />
+            <Pieza e={e} elegido={elegido} />
           </g>
         )
       })}

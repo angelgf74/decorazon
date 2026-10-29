@@ -12,7 +12,7 @@ export const ContextoLienzo = createContext<ContextoLienzo | null>(null)
 
 type EventoConPosicion = PointerEvent | PointerEventReact | DragEvent
 
-function puntoDelPlano({ plano, vista }: ContextoLienzo, ev: EventoConPosicion): Punto {
+export function puntoDelPlano({ plano, vista }: ContextoLienzo, ev: EventoConPosicion): Punto {
   const g = plano.current
   const ctm = g?.getScreenCTM?.()
   if (ctm) {
