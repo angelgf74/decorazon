@@ -128,7 +128,7 @@ public sealed class PersistenciaConPostgresTests(PostgresFixture postgres)
 
         Assert.Null(await repositorio.ObtenerAsync(ana.Id, deLuis.Id));
         Assert.Equal(2, await repositorio.ContarAsync(ana.Id));
-        Assert.Equal(["Nuevo", "Viejo"], (await repositorio.ListarAsync(ana.Id)).Select(d => d.Nombre.Valor));
+        Assert.Equal(["Nuevo", "Viejo"], (await repositorio.ListarResumenesAsync(ana.Id)).Select(d => d.Nombre.Valor));
     }
 
     [Theory]
@@ -184,11 +184,35 @@ public sealed class PersistenciaConPostgresTests(PostgresFixture postgres)
 
         await using var lectura = PostgresFixture.Contexto(cadena);
         var repositorio = new RepositorioDeDisenosEf(lectura);
-        var listado = await repositorio.ListarAsync(usuario.Id);
+        var listado = await repositorio.ListarResumenesAsync(usuario.Id);
 
-        var leido = Assert.Single(listado);
+        var resumen = Assert.Single(listado);
+        var leido = await repositorio.ObtenerAsync(usuario.Id, resumen.Id);
+        Assert.NotNull(leido);
         Assert.True(System.Text.Encoding.UTF8.GetByteCount(leido.Contenido.Json) > ContenidoDeDiseno.TamanoMaximoEnBytes);
-        Assert.NotNull(await repositorio.ObtenerAsync(usuario.Id, leido.Id));
+    }
+
+    /// <summary>
+    /// El listado trae los mismos datos que el diseño salvo el contenido, y no deja
+    /// nada rastreado: es solo lectura.
+    /// </summary>
+    [Fact]
+    public async Task Los_resumenes_traen_los_datos_del_diseno_sin_rastrear_nada()
+    {
+        var (cadena, usuario) = await BaseConUsuarioAsync();
+        var diseno = Diseno.Crear(usuario.Id, Nombre("Cocina"), TipoDeEstancia.Cocina, Contenido(), Ahora);
+        await using (var contexto = PostgresFixture.Contexto(cadena))
+        {
+            var escritura = new RepositorioDeDisenosEf(contexto);
+            escritura.Anadir(diseno);
+            await escritura.GuardarCambiosAsync();
+        }
+
+        await using var lectura = PostgresFixture.Contexto(cadena);
+        var resumen = Assert.Single(await new RepositorioDeDisenosEf(lectura).ListarResumenesAsync(usuario.Id));
+
+        Assert.Equal(new ResumenDeDiseno(diseno.Id, Nombre("Cocina"), TipoDeEstancia.Cocina, Ahora, Ahora, 1), resumen);
+        Assert.Empty(lectura.ChangeTracker.Entries());
     }
 
     [Fact]

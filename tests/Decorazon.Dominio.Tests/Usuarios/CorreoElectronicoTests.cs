@@ -21,6 +21,9 @@ public class CorreoElectronicoTests
     [InlineData("sin@dominio")]
     [InlineData("dos@@arrobas.com")]
     [InlineData("con espacio@ejemplo.com")]
+    [InlineData("a\u0000@x.es")]
+    [InlineData("a@x\u0000.es")]
+    [InlineData("a\u0007@x.es")]
     public void Rechaza_CorreosInvalidos(string? entrada)
     {
         Assert.False(CorreoElectronico.TryCrear(entrada, out _));

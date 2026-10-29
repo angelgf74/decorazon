@@ -13,10 +13,19 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
             diseno => diseno.UsuarioId == usuarioId && diseno.Id == id,
             cancelacion);
 
-    public async Task<IReadOnlyList<Diseno>> ListarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
+    // Proyección: el SELECT no incluye la columna jsonb del contenido.
+    public async Task<IReadOnlyList<ResumenDeDiseno>> ListarResumenesAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
         await contexto.Disenos
+            .AsNoTracking()
             .Where(diseno => diseno.UsuarioId == usuarioId)
             .OrderByDescending(diseno => diseno.FechaDeModificacion)
+            .Select(diseno => new ResumenDeDiseno(
+                diseno.Id,
+                diseno.Nombre,
+                diseno.Tipo,
+                diseno.FechaDeCreacion,
+                diseno.FechaDeModificacion,
+                diseno.Version))
             .ToListAsync(cancelacion);
 
     public Task<int> ContarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>

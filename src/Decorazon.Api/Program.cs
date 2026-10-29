@@ -95,12 +95,24 @@ constructor.Services
 
 constructor.Services.AddAuthorization();
 
-// La web se sirve desde otro origen, así que necesita CORS explícito. Sin
-// origen configurado vale el de desarrollo; en producción se configura
-// Cors:Origenes con el dominio público.
+// La web se sirve desde otro origen, así que necesita CORS explícito.
+// appsettings.json trae el dominio de producción; la web local va en
+// appsettings.Development.json.
 const string PoliticaDeLaWeb = "web";
-var origenesPermitidos = constructor.Configuration
-    .GetSection("Cors:Origenes").Get<string[]>() ?? ["http://localhost:5321"];
+var origenesPermitidos = (constructor.Configuration.GetSection("Cors:Origenes").Get<string[]>() ?? [])
+    .Where(origen => !string.IsNullOrWhiteSpace(origen))
+    .ToArray();
+
+if (origenesPermitidos.Length == 0)
+{
+    // Solo en desarrollo hay un valor obvio. Fuera, una lista vacía es un
+    // despliegue mal configurado: la web no podría llamar a la API, y es mejor
+    // que no arranque a que falle en silencio en el navegador de cada usuario.
+    origenesPermitidos = constructor.Environment.IsDevelopment()
+        ? ["http://localhost:5321"]
+        : throw new InvalidOperationException(
+            "Falta 'Cors:Origenes': indica el origen de la web (p. ej. https://decorazon.angelgf.com.es).");
+}
 
 constructor.Services.AddCors(opciones =>
     opciones.AddPolicy(PoliticaDeLaWeb, politica => politica

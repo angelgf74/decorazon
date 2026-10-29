@@ -267,7 +267,7 @@ public class GestionDeDisenosTests
 
         var lista = await CasoDeUso.ListarAsync(_usuario);
 
-        Assert.Same(propio, Assert.Single(lista));
+        Assert.Equal(propio.Id, Assert.Single(lista).Id);
         Assert.Same(propio, await CasoDeUso.ObtenerAsync(_usuario, propio.Id));
         Assert.Null(await CasoDeUso.ObtenerAsync(_usuario, ajeno.Id));
     }

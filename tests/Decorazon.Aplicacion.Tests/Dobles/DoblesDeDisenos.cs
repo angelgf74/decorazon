@@ -17,10 +17,12 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
     public Task<Diseno?> ObtenerAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
         Task.FromResult(_disenos.FirstOrDefault(diseno => diseno.UsuarioId == usuarioId && diseno.Id == id));
 
-    public Task<IReadOnlyList<Diseno>> ListarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
-        Task.FromResult<IReadOnlyList<Diseno>>(
+    public Task<IReadOnlyList<ResumenDeDiseno>> ListarResumenesAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
+        Task.FromResult<IReadOnlyList<ResumenDeDiseno>>(
             _disenos.Where(diseno => diseno.UsuarioId == usuarioId)
                 .OrderByDescending(diseno => diseno.FechaDeModificacion)
+                .Select(diseno => new ResumenDeDiseno(
+                    diseno.Id, diseno.Nombre, diseno.Tipo, diseno.FechaDeCreacion, diseno.FechaDeModificacion, diseno.Version))
                 .ToList());
 
     public Task<int> ContarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>

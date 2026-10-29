@@ -13,6 +13,26 @@ public class NombreDeUsuarioTests
         Assert.False(NombreDeUsuario.TryCrear(entrada, out _));
     }
 
+    /// <summary>
+    /// PostgreSQL no admite el carácter nulo en texto (22021): mejor rechazarlo aquí que dar un 500.
+    /// Tabuladores y saltos de línea no llegan a contar: antes se normalizan a un espacio.
+    /// </summary>
+    [Theory]
+    [InlineData("Ana\u0000Pérez")]
+    [InlineData("Ana\u0007")]
+    [InlineData("\u001bAna")]
+    public void RechazaCaracteresDeControl(string entrada)
+    {
+        Assert.False(NombreDeUsuario.TryCrear(entrada, out _));
+    }
+
+    [Fact]
+    public void LosTabuladoresYSaltosDeLinea_SeNormalizanAUnEspacio()
+    {
+        Assert.True(NombreDeUsuario.TryCrear("Ana\tPérez\nGil", out var nombre));
+        Assert.Equal("Ana Pérez Gil", nombre.Valor);
+    }
+
     [Fact]
     public void RechazaUnNombreDemasiadoLargo()
     {

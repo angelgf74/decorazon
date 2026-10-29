@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using Decorazon.Contratos;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Decorazon.Api.Endpoints;
@@ -39,6 +40,13 @@ public static class LimitesDePeticiones
         servicios.AddRateLimiter(opciones =>
         {
             opciones.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            // Mismo cuerpo que cualquier otro error de la API (y que el 429 por
+            // correo del alta): la web enseña el mensaje sin casos especiales.
+            opciones.OnRejected = (contexto, cancelacion) =>
+                new ValueTask(contexto.HttpContext.Response.WriteAsJsonAsync(
+                    new RespuestaDeError("Demasiados intentos seguidos. Espera un rato antes de volver a probar."),
+                    cancelacion));
 
             opciones.AddPolicy(Registro, contexto =>
                 RateLimitPartition.GetFixedWindowLimiter(

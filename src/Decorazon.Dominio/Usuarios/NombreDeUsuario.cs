@@ -25,7 +25,10 @@ public sealed partial class NombreDeUsuario : IEquatable<NombreDeUsuario>
 
         var normalizado = EspaciosSeguidos().Replace(entrada.Trim(), " ");
 
-        if (normalizado.Length > LongitudMaxima)
+        // Se mira ya normalizado: tabuladores y saltos de línea son espacios y se
+        // han convertido en uno. Cualquier otro carácter de control se rechaza; el
+        // nulo, además, no cabe en una columna de texto de PostgreSQL (22021).
+        if (normalizado.Length > LongitudMaxima || normalizado.Any(char.IsControl))
         {
             return false;
         }

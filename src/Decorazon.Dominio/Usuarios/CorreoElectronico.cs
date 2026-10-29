@@ -29,7 +29,11 @@ public sealed partial class CorreoElectronico : IEquatable<CorreoElectronico>
 
         var normalizado = entrada.Trim().ToLowerInvariant();
 
-        if (normalizado.Length > LongitudMaxima || !FormatoDeCorreo().IsMatch(normalizado))
+        // El patrón es permisivo y deja pasar caracteres de control; el nulo
+        // llegaría a la consulta y PostgreSQL la rechazaría con un error (22021).
+        if (normalizado.Length > LongitudMaxima
+            || normalizado.Any(char.IsControl)
+            || !FormatoDeCorreo().IsMatch(normalizado))
         {
             return false;
         }

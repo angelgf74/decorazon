@@ -71,6 +71,8 @@ public class ApiConPostgresFixture : WebApplicationFactory<Program>, IAsyncLifet
         constructor.UseSetting("ConnectionStrings:Decorazon", _postgres.GetConnectionString());
         constructor.UseSetting("Jwt:ClaveDeFirma", ClaveDeFirmaDePrueba);
         constructor.UseSetting("Correo:BaseDeLaWeb", BaseDeLaWeb);
+        // La web de desarrollo; appsettings.json solo trae la de producción.
+        constructor.UseSetting("Cors:Origenes:0", "http://localhost:5321");
         // La limpieza de caducados correría antes de que InitializeAsync migre
         // la base. Se prueba aparte, llamándola directamente.
         constructor.UseSetting("Limpieza:Activa", "false");

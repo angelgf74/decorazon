@@ -55,25 +55,6 @@ public class SaludSinBaseDeDatosTests
         Assert.Contains("/disenos/{id}", await respuesta.Content.ReadAsStringAsync());
     }
 
-    /// <summary>
-    /// Sin <c>Access-Control-Expose-Headers: ETag</c> el navegador esconde la
-    /// cabecera a la web, que entonces no puede mandar el <c>If-Match</c>.
-    /// </summary>
-    [Fact]
-    public async Task Cors_DesdeLaWebLocal_ExponeElETag()
-    {
-        using var api = new ApiSinBaseDeDatos();
-        var peticion = new HttpRequestMessage(HttpMethod.Get, "/salud");
-        peticion.Headers.Add("Origin", "http://localhost:5321");
-
-        var respuesta = await api.CreateClient().SendAsync(peticion);
-
-        Assert.Equal("http://localhost:5321", Assert.Single(respuesta.Headers.GetValues("Access-Control-Allow-Origin")));
-        var expuestas = string.Join(",", respuesta.Headers.GetValues("Access-Control-Expose-Headers"));
-        Assert.Contains("ETag", expuestas.Split(',', StringSplitOptions.TrimEntries));
-        Assert.Contains("Location", expuestas.Split(',', StringSplitOptions.TrimEntries));
-    }
-
     private sealed class ApiSinBaseDeDatos : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder constructor)

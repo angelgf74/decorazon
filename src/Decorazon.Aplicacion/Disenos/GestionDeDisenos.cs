@@ -30,8 +30,9 @@ public sealed record ResultadoDeDiseno(
 /// </summary>
 public sealed class GestionDeDisenos(IRepositorioDeDisenos disenos, IReloj reloj)
 {
-    public Task<IReadOnlyList<Diseno>> ListarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
-        disenos.ListarAsync(usuarioId, cancelacion);
+    /// <summary>Sin contenido: el listado no lo necesita y puede pesar mucho.</summary>
+    public Task<IReadOnlyList<ResumenDeDiseno>> ListarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
+        disenos.ListarResumenesAsync(usuarioId, cancelacion);
 
     public Task<Diseno?> ObtenerAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
         disenos.ObtenerAsync(usuarioId, id, cancelacion);

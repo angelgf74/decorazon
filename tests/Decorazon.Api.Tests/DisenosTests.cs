@@ -174,6 +174,37 @@ public class DisenosTests(ApiConPostgresFixture api) : IClassFixture<ApiConPostg
         await AssertRechazoAsync(respuesta);
     }
 
+    /// <summary>
+    /// PostgreSQL no admite el carácter nulo en una columna de texto (22021): si
+    /// el nombre llegara a la base, sería un 500.
+    /// </summary>
+    [Fact]
+    public async Task NombreConCaracterNulo_Responde400_AlCrearYAlActualizar()
+    {
+        var cliente = await CuentasDePrueba.ConSesionAsync(api);
+        var id = await DisenosDePrueba.CrearAsync(cliente);
+
+        await AssertRechazoAsync(await cliente.PostAsJsonAsync("/disenos", DisenosDePrueba.Peticion("a\u0000b")));
+        await AssertRechazoAsync(await PutAsync(cliente, id, DisenosDePrueba.Peticion("a\u0000b"), "\"1\""));
+
+        var actual = (await cliente.GetFromJsonAsync<RespuestaDeDiseno>($"/disenos/{id}"))!;
+        Assert.Equal("Mi dormitorio", actual.Nombre);
+        Assert.Equal(1, actual.Version);
+    }
+
+    /// <summary>Un sustituto suelto en el nombre no es texto: 400, nunca 500.</summary>
+    [Fact]
+    public async Task NombreConSustitutoSuelto_Responde400()
+    {
+        var cliente = await CuentasDePrueba.ConSesionAsync(api);
+
+        var respuesta = await cliente.PostAsync("/disenos", DisenosDePrueba.CuerpoCrudo(
+            $$"""{"nombre":"a\uD800b","tipoEstancia":"salon","contenido":{{DisenosDePrueba.ContenidoMinimo}}}"""));
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        Assert.Empty((await cliente.GetFromJsonAsync<List<RespuestaDeResumenDeDiseno>>("/disenos"))!);
+    }
+
     [Fact]
     public async Task NombreDemasiadoLargo_Responde400()
     {

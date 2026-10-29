@@ -206,6 +206,43 @@ public class AltaYSesionTests(ApiConPostgresFixture api) : IClassFixture<ApiConP
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
     }
 
+    /// <summary>
+    /// El carácter nulo no cabe en una columna de texto de PostgreSQL (22021).
+    /// Llegue por donde llegue, la respuesta es la normal de un dato no válido,
+    /// nunca un 500 — y estas rutas no piden sesión.
+    /// </summary>
+    [Fact]
+    public async Task CorreoConCaracterNulo_RespondeComoUnCorreoNoValido()
+    {
+        var cliente = api.CreateClient();
+        const string Correo = "a\u0000@x.es";
+
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await cliente.PostAsJsonAsync("/cuentas/registro", new PeticionDeRegistro { Correo = Correo })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await cliente.PostAsJsonAsync("/cuentas/contrasena/olvido", new PeticionDeOlvidoDeContrasena { Correo = Correo })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized,
+            (await cliente.PostAsJsonAsync("/sesiones", new PeticionDeInicioDeSesion { Correo = Correo, Contrasena = ContrasenaValida })).StatusCode);
+    }
+
+    [Fact]
+    public async Task Confirmar_ConCaracterNuloEnElNombre_Responde400YNoGastaElEnlace()
+    {
+        var cliente = api.CreateClient();
+        var correo = CorreoUnico();
+
+        await cliente.PostAsJsonAsync("/cuentas/registro", new PeticionDeRegistro { Correo = correo });
+        var token = api.Correo.TokenEnviadoA(correo);
+
+        var conNulo = await cliente.PostAsJsonAsync("/cuentas/registro/confirmar",
+            new PeticionDeConfirmarRegistro { Token = token, Nombre = "a\u0000b", Contrasena = ContrasenaValida });
+        Assert.Equal(HttpStatusCode.BadRequest, conNulo.StatusCode);
+
+        var bien = await cliente.PostAsJsonAsync("/cuentas/registro/confirmar",
+            new PeticionDeConfirmarRegistro { Token = token, Nombre = "Ana Pérez", Contrasena = ContrasenaValida });
+        Assert.Equal(HttpStatusCode.OK, bien.StatusCode);
+    }
+
     [Fact]
     public async Task ElErrorDeEnlaceInvalido_NoDevuelveElToken()
     {

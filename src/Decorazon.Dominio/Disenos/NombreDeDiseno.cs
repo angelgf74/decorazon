@@ -17,7 +17,9 @@ public sealed record NombreDeDiseno
         nombre = null!;
         var recortado = texto?.Trim();
 
-        if (string.IsNullOrEmpty(recortado) || recortado.Length > LongitudMaxima)
+        // Sin caracteres de control: no pintan nada en un nombre, y el nulo,
+        // además, no cabe en una columna de texto de PostgreSQL (22021).
+        if (string.IsNullOrEmpty(recortado) || recortado.Length > LongitudMaxima || recortado.Any(char.IsControl))
         {
             return false;
         }

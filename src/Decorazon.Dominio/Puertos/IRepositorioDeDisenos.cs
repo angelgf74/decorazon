@@ -11,8 +11,11 @@ public interface IRepositorioDeDisenos
     /// <summary>Null si no existe o es de otro usuario.</summary>
     Task<Diseno?> ObtenerAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default);
 
-    /// <summary>Del más recientemente modificado al más antiguo.</summary>
-    Task<IReadOnlyList<Diseno>> ListarAsync(Guid usuarioId, CancellationToken cancelacion = default);
+    /// <summary>
+    /// Los diseños del usuario sin su contenido, del más recientemente modificado
+    /// al más antiguo. Solo lectura: no se rastrean.
+    /// </summary>
+    Task<IReadOnlyList<ResumenDeDiseno>> ListarResumenesAsync(Guid usuarioId, CancellationToken cancelacion = default);
 
     Task<int> ContarAsync(Guid usuarioId, CancellationToken cancelacion = default);
 

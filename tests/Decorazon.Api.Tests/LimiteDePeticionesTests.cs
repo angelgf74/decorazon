@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Decorazon.Contratos;
 using Decorazon.Contratos.Cuentas;
 
 namespace Decorazon.Api.Tests;
@@ -36,6 +37,10 @@ public class LimiteDePeticionesTests(ApiConLimiteEstrechoFixture api)
             new PeticionDeRegistro { Correo = "rechazado@ejemplo.com" });
 
         Assert.Equal(HttpStatusCode.TooManyRequests, rechazada.StatusCode);
+
+        // Mismo formato que el resto de errores: la web enseña el mensaje tal cual.
+        var error = await rechazada.Content.ReadFromJsonAsync<RespuestaDeError>();
+        Assert.False(string.IsNullOrWhiteSpace(error?.Mensaje));
 
         // Lo importante no es el código, sino que la petición rechazada no
         // llegue a generar un envío: el límite existe para no bombardear buzones.
