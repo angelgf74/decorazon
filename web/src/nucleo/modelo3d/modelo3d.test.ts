@@ -64,8 +64,9 @@ describe('piezasDeElemento', () => {
 })
 
 describe('PBR', () => {
-  it('valores del vidrio y del metal', () => {
-    expect(PBR.vidrio).toEqual({ rugosidad: 0.05, metalicidad: 0, opacidad: 0.25 })
+  it('valores del vidrio (oscuro, opaco), del cristal de ventana y del metal', () => {
+    expect(PBR.vidrio).toEqual({ rugosidad: 0.05, metalicidad: 0, opacidad: 0.95 })
+    expect(PBR.cristal).toEqual({ rugosidad: 0.05, metalicidad: 0, opacidad: 0.25 })
     expect(PBR.metal.metalicidad).toBe(0.85)
   })
 })

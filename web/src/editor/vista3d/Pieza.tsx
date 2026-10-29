@@ -19,8 +19,8 @@ function Prisma({ pieza: { huella, y0, y1 }, material, sombra, eventos }: { piez
 
 export default function Pieza({ pieza, estado = 'normal', eventos = {} }: { pieza: Pieza3D; estado?: EstadoPieza; eventos?: EventosPieza }) {
   const material = materialDe(pieza.material, pieza.color, estado)
-  // El vidrio deja pasar la luz: no proyecta sombra.
-  const sombra = pieza.material !== 'vidrio'
+  // El cristal de ventana deja pasar la luz: no proyecta sombra.
+  const sombra = pieza.material !== 'cristal'
   switch (pieza.forma) {
     case 'caja':
       return (

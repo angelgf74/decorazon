@@ -90,7 +90,7 @@ describe('escenaEstancia: muros', () => {
     expect(alturas).toContainEqual([2.1, 2.5])
     expect(huecos).toHaveLength(5)
     expect(huecos.filter((h) => h.material === 'lacado' && h.color === '#f5f3ee')).toHaveLength(4)
-    const cristal = huecos.find((h) => h.material === 'vidrio')!
+    const cristal = huecos.find((h) => h.material === 'cristal')!
     if (cristal.forma !== 'caja') throw new Error('forma')
     expect(cristal.color).toBe('#cfe3ea')
     // Pared 1 es x = 400 hacia abajo: centrado en el grosor, x = 4.05; giro de −90°.

@@ -1,7 +1,8 @@
 import type { ZonaColor } from '../catalogo/tipos'
 
 export type Vec3 = [number, number, number]
-export type MaterialPBR = ZonaColor['material'] | 'pared' | 'suelo'
+/** 'cristal' es el de las ventanas (transparente); 'vidrio' el de placas y hornos (oscuro y opaco). */
+export type MaterialPBR = ZonaColor['material'] | 'cristal' | 'pared' | 'suelo'
 
 /** Pieza en el sistema local del elemento, en cm: x a lo ancho, y a lo fondo (frente en +y), z desde e.alturaSuelo. `material` y `color`, si se indican, anulan los de la zona. */
 export type PiezaLocal = { material?: ZonaColor['material']; color?: string } & (

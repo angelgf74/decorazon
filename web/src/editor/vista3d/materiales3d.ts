@@ -13,9 +13,12 @@ const cache = new Map<string, Material>()
 function crear(material: MaterialPBR, color: string, estado: EstadoPieza): Material {
   const { rugosidad, metalicidad, opacidad } = PBR[material]
   const comunes = { color, roughness: rugosidad, metalness: metalicidad }
-  const m = material === 'vidrio'
+  // El cristal de ventana deja ver y pasar luz cálida; el vidrio de placas y hornos es oscuro y se pinta opaco.
+  const m = material === 'cristal'
     ? new MeshPhysicalMaterial({ ...comunes, transparent: true, opacity: opacidad, emissive: '#fff6e0', emissiveIntensity: 0.4 })
-    : new MeshStandardMaterial(comunes)
+    : material === 'vidrio'
+      ? new MeshPhysicalMaterial(comunes)
+      : new MeshStandardMaterial(comunes)
   if (estado !== 'normal') {
     m.emissive.set(RESALTE[estado].color)
     m.emissiveIntensity = RESALTE[estado].intensidad

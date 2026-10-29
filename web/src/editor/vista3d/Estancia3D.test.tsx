@@ -26,7 +26,7 @@ describe('Estancia3D', () => {
     doc.aberturas.push({ id: 'v1', tipo: 'ventana', pared: 1, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false })
     const r = await ReactThreeTestRenderer.create(<Estancia3D doc={doc} ocultas={new Set()} />)
     const mallas = r.scene.findAll((n) => n.type === 'Mesh')
-    const cristal = mallas.filter((m) => (m.instance as Mesh).material === materialDe('vidrio', '#cfe3ea'))
+    const cristal = mallas.filter((m) => (m.instance as Mesh).material === materialDe('cristal', '#cfe3ea'))
     expect(cristal).toHaveLength(1)
     expect(cristal[0].instance.castShadow).toBe(false)
     expect(cristal[0].instance.receiveShadow).toBe(true)
@@ -68,7 +68,7 @@ describe('Estancia3D: paredes ocultas', () => {
     const mallas = r.scene.findAll((n) => n.type === 'Mesh')
     expect(mallas).toHaveLength(muros.length + huecos.length + estructura.length + 1 - deLaDos)
     // El cristal de la ventana (pared 2) ya no está; la puerta (pared 0) sigue.
-    expect(mallas.some((m) => (m.instance as Mesh).material === materialDe('vidrio', '#cfe3ea'))).toBe(false)
+    expect(mallas.some((m) => (m.instance as Mesh).material === materialDe('cristal', '#cfe3ea'))).toBe(false)
     expect(mallas.some((m) => (m.instance as Mesh).material === materialDe('madera', '#d9c7a8'))).toBe(true)
   })
 })
