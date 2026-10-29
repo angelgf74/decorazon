@@ -22,6 +22,8 @@ function proyeccion(rect: Punto[], u: Punto): [number, number] {
   return [Math.min(...p), Math.max(...p)]
 }
 
+const ejesLocales = (rotacion: number): [Punto, Punto] => [rotar({ x: 1, y: 0 }, rotacion), rotar({ x: 0, y: 1 }, rotacion)]
+
 function tramos(planta: Punto[]): Tramo[] {
   return planta.map((a, i) => {
     const e = restar(planta[(i + 1) % planta.length], a)
@@ -51,7 +53,8 @@ export function imantar(
   let posicion = { ...e.posicion }
   const rect = () => rectangulo(posicion, ancho, fondo, rotacion)
   const pegadoA: string[] = []
-  const normales: Punto[] = []
+  // Ejes locales (0 = x, 1 = y) que ya quedaron pegados a una pared.
+  const bloqueados = new Set<number>()
 
   const alinear = (t: Tramo): number | null => {
     const angulo = anguloDe(t.d)
@@ -72,7 +75,8 @@ export function imantar(
     if (h === null) return
     posicion = sumar(posicion, escalar(t.normal, -h))
     pegadoA.push(`pared:${t.i}`)
-    normales.push(t.normal)
+    const [ux, uy] = ejesLocales(rotacion)
+    bloqueados.add(Math.abs(punto(t.normal, ux)) >= Math.abs(punto(t.normal, uy)) ? 0 : 1)
   }
 
   const lista = tramos(doc.estancia.planta)
@@ -84,9 +88,9 @@ export function imantar(
     if (segunda) pegar(segunda)
   }
 
-  const ejes = [rotar({ x: 1, y: 0 }, rotacion), rotar({ x: 0, y: 1 }, rotacion)]
+  const ejes = ejesLocales(rotacion)
   ejes.forEach((u, k) => {
-    if (normales.some(n => Math.abs(punto(n, u)) > 1 - EPS)) return
+    if (bloqueados.has(k)) return
     const v = ejes[1 - k]
     const propio = rect()
     const [a0, a1] = proyeccion(propio, u)

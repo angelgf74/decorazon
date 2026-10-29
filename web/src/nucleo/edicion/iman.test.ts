@@ -3,6 +3,7 @@ import { catalogoBase } from '../catalogo/catalogoBase'
 import { elementoNuevo } from '../catalogo/elemento'
 import { detectarConflictos } from '../conflictos/detectar'
 import { rectangulo } from '../geometria/formas'
+import { rotar } from '../geometria/vector'
 import { documentoNuevo } from '../modelo/crear'
 import type { DocumentoDiseno, Elemento, Punto } from '../modelo/documento'
 import { imantar } from './iman'
@@ -66,6 +67,34 @@ describe('imantar', () => {
     const antes = JSON.stringify([doc, e])
     imantar(doc, catalogoBase, e, { libre: false })
     expect(JSON.stringify([doc, e])).toBe(antes)
+  })
+
+  describe('pared de ángulo no entero (18,43°)', () => {
+    const oblicua = (): DocumentoDiseno => {
+      const d = sala()
+      d.estancia.planta = [{ x: 0, y: 0 }, { x: 300, y: 100 }, { x: 400, y: 100 }, { x: 400, y: 330 }, { x: 0, y: 330 }]
+      return d
+    }
+    // Distancia con signo a la recta de la pared 0, positiva hacia dentro.
+    const hueco = (p: Punto) => (-p.x + 3 * p.y) / Math.hypot(1, 3)
+    const huecoMinimo = (r: { posicion: Punto; rotacion: number }) => Math.min(...rectangulo(r.posicion, 100, 60, r.rotacion).map(hueco))
+
+    it('gira a grado entero y queda a ras sin entrar en la pared', () => {
+      const r = imantar(oblicua(), catalogoBase, armario({ x: 150, y: 90 }, 18), { libre: true })
+      expect(r.rotacion).toBe(18)
+      expect(r.pegadoA).toEqual(['pared:0'])
+      expect(huecoMinimo(r)).toBeGreaterThanOrEqual(-0.01)
+      expect(huecoMinimo(r)).toBeLessThan(0.1)
+    })
+    it('un mueble delante no lo despega de la pared', () => {
+      const doc = oblicua()
+      const solo = imantar(doc, catalogoBase, armario({ x: 150, y: 90 }, 18, 'a'), { libre: true })
+      const delante = rotar({ x: 0, y: 70 }, solo.rotacion)
+      doc.elementos.push(armario({ x: solo.posicion.x + delante.x, y: solo.posicion.y + delante.y }, 18, 'b'))
+      const r = imantar(doc, catalogoBase, armario({ x: 150, y: 90 }, 18, 'a'), { libre: true })
+      expect(r.pegadoA).toEqual(['pared:0'])
+      expect(huecoMinimo(r)).toBeLessThan(0.1)
+    })
   })
 
   describe('pared a 45°', () => {

@@ -20,6 +20,14 @@ describe('cotasAParedes', () => {
     const cotas = cotasAParedes(planta, rectangulo({ x: 100.7, y: 100 }, 100, 60, 0))
     expect(cotas.map(c => c.valor)).toEqual([70, 249, 200, 50])
   })
+  it('en una planta en U omite el lado a ras del entrante en vez de cruzar al otro brazo', () => {
+    const u = [
+      { x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 200 }, { x: 200, y: 200 }, { x: 200, y: 0 }, { x: 300, y: 0 }, { x: 300, y: 300 }, { x: 0, y: 300 },
+    ]
+    const cotas = cotasAParedes(u, rectangulo({ x: 70, y: 100 }, 60, 40, 0))
+    expect(cotas.map(c => c.valor)).toEqual([80, 180, 40])
+    expect(cotas.every(c => c.hasta.x <= 100)).toBe(true)
+  })
   it('en una planta en L toma el primer tramo que corta', () => {
     const ele = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 200, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 300 }, { x: 0, y: 300 }]
     const cotas = cotasAParedes(ele, rectangulo({ x: 50, y: 200 }, 40, 40, 0))

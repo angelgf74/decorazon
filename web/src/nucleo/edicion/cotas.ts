@@ -5,7 +5,7 @@ export interface Cota { desde: Punto; hasta: Punto; valor: number }
 
 const EPS = 1e-9
 
-/** Distancia por el rayo `origen + t·dir` (dir unitario) al primer tramo de la planta que corta, o null. */
+/** Distancia por el rayo `origen + t·dir` (dir unitario) al primer tramo de la planta que corta, o null. Un corte a ≈0 (lado a ras) cuenta, para no saltar al tramo siguiente. */
 function distanciaRayo(planta: Punto[], origen: Punto, dir: Punto): number | null {
   let mejor: number | null = null
   for (let i = 0; i < planta.length; i++) {
@@ -16,7 +16,7 @@ function distanciaRayo(planta: Punto[], origen: Punto, dir: Punto): number | nul
     const ao = restar(a, origen)
     const t = cruz(ao, e) / den
     const s = cruz(ao, dir) / den
-    if (t > EPS && s >= -EPS && s <= 1 + EPS && (mejor === null || t < mejor)) mejor = t
+    if (t >= -TOLERANCIA_CM && s >= -EPS && s <= 1 + EPS && (mejor === null || t < mejor)) mejor = t
   }
   return mejor
 }
