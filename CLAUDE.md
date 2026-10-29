@@ -46,9 +46,9 @@ Los tests de integración llevan `[Trait("Categoria","Integracion")]`; de ahí e
 ## Secretos y configuración
 
 - `appsettings.Development.json` está ignorado por git; `appsettings.Example.json` es la plantilla.
-- Los secretos de producción van por variables de entorno, con `srv secreto` (skill `servidor`).
-- El origen CORS de producción vive en `appsettings.json`.
-- En desarrollo y tests no se envía correo: el enlace va al log con `[CORREO SIMULADO]`.
+- Los secretos de producción van por variables de entorno, con `srv secreto` (skill `servidor`): `ConnectionStrings__Decorazon`, `Jwt__ClaveDeFirma` y `Correo__ClaveDeApi`.
+- Los valores de producción que no son secretos viven en `appsettings.json`: el origen CORS y el correo (`Correo:UsarBrevo: true`, remitente y `Correo:BaseDeLaWeb` https).
+- El correo depende de `Correo:UsarBrevo`. Con `false` (desarrollo y tests) no se envía: el enlace va al log con `[CORREO SIMULADO]`. Fuera de Development y Testing la API no arranca sin Brevo (salvo `Correo:Simulado: true`) ni con una `Correo:BaseDeLaWeb` que no sea https.
 
 ## Reglas globales
 
@@ -64,11 +64,13 @@ Los tests de integración llevan `[Trait("Categoria","Integracion")]`; de ahí e
 - `jsonb` reformatea el JSON guardado: al rehidratar se usa `ContenidoDeDiseno.Reconstruir` y nunca se revalida.
 - `IRepositorioDeDisenos.Anadir` solo hace seguimiento; `IRepositorioDeUsuarios.AnadirAsync` guarda el `DbContext` compartido.
 - Cambiar la contraseña invalida el token de quien la cambia.
+- El contenido rechaza números con exponente o de más de 32 caracteres: jsonb los guarda como `numeric` exacto y `1e200000` reventaba al guardar.
+- Los adaptadores traducen la concurrencia de EF y los errores 23505/23503 de PostgreSQL a resultados del puerto (`false`); la aplicación nunca ve tipos de EF ni de Npgsql. La fecha de consumo de las solicitudes es token de concurrencia: un enlace solo se usa una vez aunque lleguen dos peticiones a la vez.
 
 ## Núcleo TS
 
-Coordenadas con y hacia abajo y tolerancia de 0,1 cm. Detalle en `docs/superpowers/plans/2026-10-24-01-nucleo-editor.md`.
+Coordenadas con x a la derecha e y hacia abajo, y tolerancia de 0,1 cm. Detalle en `docs/superpowers/plans/2026-10-24-01-nucleo-editor.md`.
 
 ## Despliegue
 
-Con `srv` (skill `servidor`). Pendiente: plan 6.
+Con `srv` (skill `servidor`). Pendiente: plan 6. nginx necesitará `tamanoMaximo: "2m"` en `srv.json`: un diseño puede pesar 1 MB y el cuerpo JSON algo más.
