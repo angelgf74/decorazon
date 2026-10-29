@@ -135,6 +135,22 @@ describe('Lienzo: paso 1', () => {
     expect(longitudPared(planta, 0)).toBe(200)
   })
 
+  it('el "+" no tapa la cota en ninguna orientación de pared', () => {
+    const { container } = render(<Lienzo />)
+    const num = (n: Element, a: string) => Number(n.getAttribute(a))
+    for (let i = 0; i < 4; i++) {
+      const mas = pieza(container, `[data-partir="${i}"] circle`)
+      const texto = pieza(container, `[data-cota="${i}"] text`)
+      // Texto de 12 px: caja de unos ±25 × ±7 px alrededor de su centro; el "+" tiene 8 px de radio (escala 1 en jsdom).
+      const dx = Math.abs(num(mas, 'cx') - num(texto, 'x'))
+      const dy = Math.abs(num(mas, 'cy') - num(texto, 'y'))
+      expect(dx > 25 + 8 || dy > 7 + 8).toBe(true)
+    }
+    // Sigue cerca del punto medio de la pared, por fuera: pared 1 (vertical, x = 400).
+    const mas1 = pieza(container, '[data-partir="1"] circle')
+    expect(num(mas1, 'cy')).toBe(165 + 32)
+  })
+
   it('arrastrar un vértice lo mueve en cm enteros y se deshace de una vez', () => {
     const { container } = render(<Lienzo />)
     const vertice = pieza(container, '[data-vertice="2"]')

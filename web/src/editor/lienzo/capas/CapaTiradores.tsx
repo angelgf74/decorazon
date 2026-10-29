@@ -16,6 +16,8 @@ const RADIO_MAS_PX = 8
 const BRAZO_MAS_PX = 4
 /** Distancia del "+" a la cara exterior del muro. */
 const SEPARACION_MAS_PX = 14
+/** Lo que se aparta el "+" del punto medio a lo largo de la pared, para no tapar el texto de la cota. */
+const DESPLAZAMIENTO_MAS_PX = 32
 
 /** Tiradores del paso 1: vértices arrastrables, "+" para partir cada pared y extremos de la viga seleccionada. */
 export default function CapaTiradores({ documento, seleccion, escala }: Props) {
@@ -47,7 +49,8 @@ export default function CapaTiradores({ documento, seleccion, escala }: Props) {
   return (
     <g className="capa-tiradores">
       {planta.map((_, i) => {
-        const h = hueco(planta, i, longitudPared(planta, i) / 2)
+        const l = longitudPared(planta, i)
+        const h = hueco(planta, i, Math.min(l, l / 2 + px(DESPLAZAMIENTO_MAS_PX)))
         const c = sumar(h.cercano, escalar(h.n, -(grosorPared + px(SEPARACION_MAS_PX))))
         const r = px(BRAZO_MAS_PX)
         return (
