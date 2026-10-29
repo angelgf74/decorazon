@@ -20,6 +20,8 @@ export const fregadero: DefinicionTipo = {
       caja(-ancho / 2, fondo / 2 - g, -18, ancho / 2, fondo / 2, 1, 'cubeta'),
       caja(-ancho / 2, -fondo / 2 + g, -18, -ancho / 2 + g, fondo / 2 - g, 1, 'cubeta'),
       caja(ancho / 2 - g, -fondo / 2 + g, -18, ancho / 2, fondo / 2 - g, 1, 'cubeta'),
+      // Fondo más oscuro dentro del reborde: sobre el módulo macizo de debajo, el interior se lee como cubeta.
+      { ...caja(-ancho / 2 + g, -fondo / 2 + g, 0, ancho / 2 - g, fondo / 2 - g, 0.5, 'cubeta'), material: 'metal', color: '#8a8c8e' },
       cilindro(0, yGrifo, 1.5, 1, h, 'cubeta'),
       cilindro(0, yGrifo + 5, 1, h - 2, h, 'cubeta'),
     ]

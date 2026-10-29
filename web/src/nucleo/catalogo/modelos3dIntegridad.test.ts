@@ -106,11 +106,15 @@ describe('generadores 3D de cocina y decoración', () => {
     for (const p of c) expect(p).toMatchObject({ material: 'metal', color: '#3a3a3a', z1: 5, z0: 4.9 })
   })
 
-  it('fregadero: marco de 4 piezas que baja 18 cm bajo la encimera, y grifo', () => {
+  it('fregadero: marco de 4 piezas que baja 18 cm bajo la encimera, fondo oscuro dentro del reborde y grifo', () => {
     const ps = piezas('fregadero')
-    const marco = cajas(ps)
+    const marco = cajas(ps).filter((p) => p.material === undefined)
     expect(marco).toHaveLength(4)
     expect(Math.min(...marco.map((p) => p.z0))).toBe(-18)
+    // Sin fondo, el interior del marco es el módulo macizo de debajo: la cubeta no se lee.
+    const fondo = cajas(ps).filter((p) => p.material === 'metal' && p.color === '#8a8c8e')
+    expect(fondo).toHaveLength(1)
+    expect(fondo[0]).toMatchObject({ x0: -38, x1: 38, y0: -23, y1: 23, z0: 0, z1: 0.5 })
     expect(ps.filter((p) => p.forma === 'cilindro').length).toBeGreaterThanOrEqual(2)
   })
 
