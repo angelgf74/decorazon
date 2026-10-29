@@ -1,0 +1,29 @@
+# Normalización de finales de línea.
+* text=auto
+
+# Los scripts que se ejecutan en el servidor DEBEN llevar LF. Con CRLF, Linux lee
+# el shebang como `/usr/bin/env bash\r` y responde "no such file or directory",
+# un error que no menciona en absoluto los finales de línea.
+*.sh text eol=lf
+
+# Ficheros de configuración que consume Linux.
+deploy/nginx/* text eol=lf
+deploy/systemd/* text eol=lf
+
+# Los flujos de trabajo se ejecutan en runners Linux, y sus bloques `run:` son
+# scripts de shell: con CRLF fallan igual que un .sh. `text=auto` ya lo
+# resolvería, pero conviene que no dependa de la configuración de cada máquina.
+.github/workflows/* text eol=lf
+
+# Los scripts de PowerShell van con CRLF y UTF-8 con BOM: PowerShell 5.1 lee un
+# .ps1 sin BOM como ANSI y destroza los acentos, hasta el punto de que un
+# carácter multibyte puede convertirse en una comilla tipográfica y romper el
+# análisis del script.
+*.ps1 text eol=crlf working-tree-encoding=UTF-8
+
+# Binarios
+*.png binary
+*.jpg binary
+*.wasm binary
+*.woff2 binary
+*.dll binary

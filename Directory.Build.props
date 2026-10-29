@@ -1,0 +1,8 @@
+<Project>
+
+  <!-- Sin avisos de compilación: un aviso que se ignora se convierte en costumbre. -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

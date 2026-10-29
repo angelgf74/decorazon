@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: decorazon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: decorazon
+      POSTGRES_USER: decorazon
+      # Solo para desarrollo local. En el servidor, por variable de entorno.
+      POSTGRES_PASSWORD: decorazon_local
+    ports:
+      # 5435 en el host: 5432, 5433 y 5434 los usan otros proyectos en esta máquina.
+      - "5435:5432"
+    volumes:
+      - decorazon-datos:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U decorazon -d decorazon"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  decorazon-datos:

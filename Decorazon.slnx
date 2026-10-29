@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Decorazon.Api/Decorazon.Api.csproj" />
+    <Project Path="src/Decorazon.Aplicacion/Decorazon.Aplicacion.csproj" />
+    <Project Path="src/Decorazon.Contratos/Decorazon.Contratos.csproj" />
+    <Project Path="src/Decorazon.Dominio/Decorazon.Dominio.csproj" />
+    <Project Path="src/Decorazon.Infraestructura/Decorazon.Infraestructura.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Decorazon.Api.Tests/Decorazon.Api.Tests.csproj" />
+    <Project Path="tests/Decorazon.Aplicacion.Tests/Decorazon.Aplicacion.Tests.csproj" />
+    <Project Path="tests/Decorazon.Arquitectura.Tests/Decorazon.Arquitectura.Tests.csproj" />
+    <Project Path="tests/Decorazon.Dominio.Tests/Decorazon.Dominio.Tests.csproj" />
+    <Project Path="tests/Decorazon.Infraestructura.Tests/Decorazon.Infraestructura.Tests.csproj" />
+  </Folder>
+</Solution>
