@@ -1,5 +1,6 @@
 import { valorVariante, type DefinicionTipo } from '../tipos'
 import { cajaEntera, puertasAbatibles } from '../aperturas'
+import { frentes, caja, tiradores, yFrenteCuerpo } from '../modelos'
 
 export const armario: DefinicionTipo = {
   id: 'armario', nombre: 'armario', genero: 'm', categoria: 'mueble', estancias: ['dormitorio'],
@@ -12,6 +13,21 @@ export const armario: DefinicionTipo = {
   zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', defecto: '#e8e4dc' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
+  modelo3d(e) {
+    const { ancho, fondo, alto } = e.medidas
+    const corredera = valorVariante(armario, e, 'puertas') === 'correderas'
+    const cuerpo = caja(-ancho / 2, -fondo / 2, 0, ancho / 2, yFrenteCuerpo(e, true), alto, 'cuerpo')
+    if (corredera) {
+      const y = fondo / 2 - 3.5
+      return [
+        cuerpo,
+        caja(-ancho / 2, y, 1, 2, y + 1, alto - 1, 'cuerpo'),
+        caja(-2, y + 1, 1, ancho / 2, y + 2, alto - 1, 'cuerpo'),
+      ]
+    }
+    const n = 2 * Number(valorVariante(armario, e, 'modulos'))
+    return [cuerpo, ...frentes(e, n, 1, alto - 1, 'cuerpo'), ...tiradores(e, n, alto / 2 - 0.75, 'cuerpo')]
+  },
   zonasApertura(e) {
     if (valorVariante(armario, e, 'puertas') !== 'abatibles') return []
     // valorVariante garantiza uno de los valores numéricos de la definición (1–4).

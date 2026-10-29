@@ -58,7 +58,7 @@ describe('piezasDeElemento', () => {
     const m = modeloPorVolumenes(e)
     expect(m).toHaveLength(1)
     expect(m[0]).toMatchObject({ forma: 'caja', x1: 70, x0: -70, y1: 40, y0: -40, z0: 0, z1: 75 })
-    const [p] = piezasDeElemento(e, mesa)
+    const [p] = piezasDeElemento(e, { ...mesa, modelo3d: undefined })
     expect(p.forma === 'caja' && p.tamano).toEqual([1.4, 0.75, 0.8])
   })
 })

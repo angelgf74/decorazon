@@ -1,5 +1,6 @@
 import type { DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
+import { caja, patas4 } from '../modelos'
 
 export const mesaCentro: DefinicionTipo = {
   id: 'mesa-centro', nombre: 'mesa de centro', genero: 'f', categoria: 'mueble', estancias: ['salon'],
@@ -9,5 +10,9 @@ export const mesaCentro: DefinicionTipo = {
   zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#a98462' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
+  modelo3d(e) {
+    const { ancho, fondo, alto } = e.medidas
+    return [caja(-ancho / 2, -fondo / 2, alto - 3, ancho / 2, fondo / 2, alto, 'tablero'), ...patas4(e, 5, alto - 3, 'tablero')]
+  },
   zonasApertura: () => [],
 }

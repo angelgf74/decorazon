@@ -1,5 +1,6 @@
 import type { DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
+import { asientoTapizado } from '../modelos'
 
 export const sillon: DefinicionTipo = {
   id: 'sillon', nombre: 'sillón', genero: 'm', categoria: 'mueble', estancias: ['salon'],
@@ -9,5 +10,6 @@ export const sillon: DefinicionTipo = {
   zonasColor: [{ clave: 'tapizado', etiqueta: 'Tapizado', material: 'tela', defecto: '#7d8a7a' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
+  modelo3d: (e) => asientoTapizado(e, 1, 'no', 'tapizado'),
   zonasApertura: () => [],
 }

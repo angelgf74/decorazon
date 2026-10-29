@@ -1,6 +1,7 @@
 import { valorVariante, type DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
 import { cajaMundo } from '../transformar'
+import { asientoTapizado, type LadoChaise } from '../modelos'
 
 export const sofa: DefinicionTipo = {
   id: 'sofa', nombre: 'sofá', genero: 'm', categoria: 'mueble', estancias: ['salon'],
@@ -23,5 +24,6 @@ export const sofa: DefinicionTipo = {
     const [x0, x1] = chaise === 'izquierda' ? [-ancho / 2, -ancho / 2 + w] : [ancho / 2 - w, ancho / 2]
     return [...cajaEntera(e), cajaMundo(e, x0, -fondo / 2, x1, fondo / 2 + 70, 0, alto - 40)]
   },
+  modelo3d: (e) => asientoTapizado(e, Number(valorVariante(sofa, e, 'plazas')), valorVariante(sofa, e, 'chaise') as LadoChaise),
   zonasApertura: () => [],
 }

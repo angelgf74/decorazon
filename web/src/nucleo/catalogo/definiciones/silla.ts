@@ -1,5 +1,6 @@
 import type { DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
+import { caja, patas4 } from '../modelos'
 
 export const silla: DefinicionTipo = {
   id: 'silla', nombre: 'silla', genero: 'f', categoria: 'mueble', estancias: ['dormitorio', 'salon', 'cocina'],
@@ -9,5 +10,13 @@ export const silla: DefinicionTipo = {
   zonasColor: [{ clave: 'asiento', etiqueta: 'Asiento', material: 'madera', defecto: '#8b6b4a' }],
   pisable: false, bloqueaPaso: false, sobreVentana: false,
   volumenes: cajaEntera,
+  modelo3d(e) {
+    const { ancho, fondo, alto } = e.medidas
+    return [
+      ...patas4(e, 4, 42, 'asiento', 2),
+      caja(-ancho / 2, -fondo / 2, 42, ancho / 2, fondo / 2, 45, 'asiento'),
+      caja(-ancho / 2, -fondo / 2, 45, ancho / 2, -fondo / 2 + 3, alto, 'asiento'),
+    ]
+  },
   zonasApertura: () => [],
 }

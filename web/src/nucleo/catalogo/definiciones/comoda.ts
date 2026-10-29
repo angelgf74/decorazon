@@ -1,5 +1,6 @@
-import type { DefinicionTipo } from '../tipos'
+import { valorVariante, type DefinicionTipo } from '../tipos'
 import { cajaEntera, cajones } from '../aperturas'
+import { caja, cajonesApilados, yFrenteCuerpo } from '../modelos'
 
 export const comoda: DefinicionTipo = {
   id: 'comoda', nombre: 'cómoda', genero: 'f', categoria: 'mueble', estancias: ['dormitorio', 'salon'],
@@ -9,5 +10,12 @@ export const comoda: DefinicionTipo = {
   zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'madera', defecto: '#a98462' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
+  modelo3d(e) {
+    const { ancho, fondo, alto } = e.medidas
+    return [
+      caja(-ancho / 2, -fondo / 2, 0, ancho / 2, yFrenteCuerpo(e, true), alto, 'cuerpo'),
+      ...cajonesApilados(e, valorVariante(comoda, e, 'cajones') as number, 1, alto - 1, 'cuerpo'),
+    ]
+  },
   zonasApertura: (e) => cajones(e, e.medidas.fondo - 5),
 }
