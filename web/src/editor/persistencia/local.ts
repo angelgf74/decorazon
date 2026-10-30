@@ -127,17 +127,28 @@ export interface CopiaListada {
   pendiente: boolean
 }
 
-/** Las copias locales válidas de diseños del servidor, para abrirlas sin conexión. */
+function resumenDeCopia(id: string, crudo: string | null): CopiaListada | null {
+  if (crudo === null) return null
+  try {
+    const dato: unknown = JSON.parse(crudo)
+    if (typeof dato !== 'object' || dato === null) return null
+    const { version, nombre, pendiente, guardadaEn } = dato as Record<string, unknown>
+    if (typeof version !== 'number' || typeof pendiente !== 'boolean') return null
+    const fecha = typeof guardadaEn === 'string' && !Number.isNaN(Date.parse(guardadaEn)) ? { guardadaEn } : {}
+    return { id, ...(typeof nombre === 'string' && { nombre }), ...fecha, pendiente }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Las copias locales de diseños del servidor, para listarlas: cada una se parsea una vez y no se valida el documento.
+ * La validación completa la hace leerCopiaLocal al abrirla.
+ */
 export function listarCopiasLocales(st: Storage | null): CopiaListada[] {
   if (st === null) return []
   try {
-    return idsDeCopias(st).flatMap((id) => {
-      const copia = leerCopiaLocal(st, id)
-      if (copia === null) return []
-      const { guardadaEn } = JSON.parse(st.getItem(claveCopia(id)) ?? '{}') as { guardadaEn?: unknown }
-      const fecha = typeof guardadaEn === 'string' && !Number.isNaN(Date.parse(guardadaEn)) ? { guardadaEn } : {}
-      return [{ id, ...(copia.nombre !== undefined && { nombre: copia.nombre }), ...fecha, pendiente: copia.pendiente }]
-    })
+    return idsDeCopias(st).flatMap((id) => resumenDeCopia(id, st.getItem(claveCopia(id))) ?? [])
   } catch {
     return []
   }
