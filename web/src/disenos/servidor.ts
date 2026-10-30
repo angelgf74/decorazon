@@ -13,8 +13,8 @@ function validar(r: RespuestaCruda): DisenoServidor {
   return { ...r, contenido: v.documento }
 }
 
-// El esquema de la API tipa el contenido como objeto sin propiedades conocidas.
-function contenidoParaEnviar(doc: DocumentoDiseno): Record<string, never> {
+/** El contenido tal como viaja: redondeado. El esquema de la API lo tipa como objeto sin propiedades conocidas. */
+export function contenidoParaEnviar(doc: DocumentoDiseno): Record<string, never> {
   return redondearNumeros(doc) as unknown as Record<string, never>
 }
 

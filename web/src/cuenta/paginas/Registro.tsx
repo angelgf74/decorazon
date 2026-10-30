@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { api, exigir } from '../../api/cliente'
+import { contenidoParaEnviar } from '../../disenos/servidor'
 import { useEditor } from '../../editor/estado/almacen'
 import { almacenamientoSeguro, CLAVE_REGISTRO_ENVIADO, disenoNoVacio } from '../../editor/persistencia/local'
-import { redondearNumeros, serializarDocumento } from '../../nucleo'
+import { serializarDocumento } from '../../nucleo'
 import { textos } from '../../textos'
 import { mensajeDeError } from '../errores'
 import '../cuenta.css'
@@ -29,8 +30,7 @@ export default function Registro() {
             diseno: {
               nombre: t.registro.nombrePorDefecto,
               tipoEstancia: diseno.estancia.tipo,
-              // El esquema de la API tipa el contenido como objeto sin propiedades conocidas.
-              contenido: redondearNumeros(diseno) as unknown as Record<string, never>,
+              contenido: contenidoParaEnviar(diseno),
             },
           }
         : { correo }
