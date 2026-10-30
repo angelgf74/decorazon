@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ErrorDeApi } from '../../api/cliente'
+import { hayCambiosSinSubir } from '../../cuenta/disenosLocales'
 import { CLAVE_SESION, reiniciarSesion } from '../../cuenta/sesion'
 import { almacen, reiniciarAlmacen } from '../../editor/estado/almacen'
 import { guardarCopiaLocal, guardarDisenoLocal, leerCopiaLocal } from '../../editor/persistencia/local'
@@ -10,7 +12,7 @@ import { conectarSincronizacion } from '../../editor/persistencia/sincronizacion
 import { documentoNuevo } from '../../nucleo'
 import EditorDeDiseno from './EditorDeDiseno'
 
-const servidor = vi.hoisted(() => ({ obtenerDiseno: vi.fn(), guardarDiseno: vi.fn() }))
+const servidor = vi.hoisted(() => ({ obtenerDiseno: vi.fn(), guardarDiseno: vi.fn(), crearDiseno: vi.fn() }))
 vi.mock('../servidor', () => servidor)
 
 const ID = 'd1'
@@ -51,6 +53,7 @@ beforeEach(() => {
   reiniciarAlmacen()
   servidor.obtenerDiseno.mockReset()
   servidor.guardarDiseno.mockReset()
+  servidor.crearDiseno.mockReset()
 })
 afterEach(() => vi.useRealTimers())
 
@@ -147,5 +150,68 @@ describe('EditorDeDiseno', () => {
     unmount()
     expect(almacen.getState().origen.tipo).toBe('anonimo')
     expect(almacen.getState().documento).toEqual(anonimo)
+  })
+})
+
+describe('EditorDeDiseno con un diseño que ya no existe (404)', () => {
+  const noExiste = () => new ErrorDeApi(404, 'No existe o no es tuyo')
+  const nuevo = { ...respuestaRemota(1).diseno, id: 'nuevo', nombre: 'Mi cocina', contenido: local }
+
+  it('sin copia: dice que ya no existe y ofrece volver', async () => {
+    conSesion()
+    servidor.obtenerDiseno.mockRejectedValueOnce(noExiste())
+    montar()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Este diseño ya no existe')
+    expect(screen.getByRole('link', { name: 'Volver a Mis diseños' })).toHaveAttribute('href', '/disenos')
+  })
+
+  it('con una copia sin cambios: la borra y dice que ya no existe', async () => {
+    conSesion()
+    guardarCopiaLocal(localStorage, ID, { version: 4, documento: local, pendiente: false })
+    servidor.obtenerDiseno.mockRejectedValueOnce(noExiste())
+    montar()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Este diseño ya no existe')
+    expect(leerCopiaLocal(localStorage, ID)).toBeNull()
+  })
+
+  it('con una copia pendiente: "Guardar como diseño nuevo" lo crea con su nombre y contenido y abre el nuevo', async () => {
+    conSesion()
+    guardarCopiaLocal(localStorage, ID, { version: 4, nombre: 'Mi cocina', documento: local, pendiente: true })
+    servidor.obtenerDiseno.mockRejectedValueOnce(noExiste())
+    montar()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Este diseño ya no existe en tu cuenta')
+    servidor.crearDiseno.mockResolvedValueOnce(nuevo)
+    servidor.obtenerDiseno.mockResolvedValueOnce({ diseno: nuevo, version: 1 })
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar como diseño nuevo' }))
+    expect(await screen.findByRole('textbox', { name: 'Nombre del diseño' })).toHaveValue('Mi cocina')
+    expect(servidor.crearDiseno).toHaveBeenCalledWith('Mi cocina', local)
+    expect(servidor.obtenerDiseno).toHaveBeenLastCalledWith('nuevo')
+    expect(almacen.getState().origen).toMatchObject({ tipo: 'servidor', id: 'nuevo' })
+    expect(leerCopiaLocal(localStorage, ID)).toBeNull()
+    expect(hayCambiosSinSubir()).toBe(false)
+  })
+
+  it('con una copia pendiente: si no se puede crear, avisa y sigue ofreciendo las dos salidas', async () => {
+    conSesion()
+    guardarCopiaLocal(localStorage, ID, { version: 4, documento: local, pendiente: true })
+    servidor.obtenerDiseno.mockRejectedValueOnce(noExiste())
+    montar()
+    servidor.crearDiseno.mockRejectedValueOnce(new ErrorDeApi(409, 'Has llegado al límite de 100 diseños'))
+    await userEvent.click(await screen.findByRole('button', { name: 'Guardar como diseño nuevo' }))
+    expect(await screen.findByText('Has llegado al límite de 100 diseños')).toBeInTheDocument()
+    expect(servidor.crearDiseno).toHaveBeenCalledWith('Diseño sin título', local)
+    expect(leerCopiaLocal(localStorage, ID)).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Descartar' })).toBeInTheDocument()
+  })
+
+  it('con una copia pendiente: "Descartar" la borra y vuelve a Mis diseños', async () => {
+    conSesion()
+    guardarCopiaLocal(localStorage, ID, { version: 4, documento: local, pendiente: true })
+    servidor.obtenerDiseno.mockRejectedValueOnce(noExiste())
+    montar()
+    await userEvent.click(await screen.findByRole('button', { name: 'Descartar' }))
+    expect(await screen.findByText('mis diseños')).toBeInTheDocument()
+    expect(leerCopiaLocal(localStorage, ID)).toBeNull()
+    expect(hayCambiosSinSubir()).toBe(false)
   })
 })

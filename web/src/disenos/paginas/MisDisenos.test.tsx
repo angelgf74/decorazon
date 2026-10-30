@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CLAVE_SESION, conectarSesionConApi, reiniciarSesion, sesion } from '../../cuenta/sesion'
-import { CLAVE_DUENO_COPIAS, guardarCopiaLocal } from '../../editor/persistencia/local'
+import { CLAVE_DUENO_COPIAS, guardarCopiaLocal, leerCopiaLocal } from '../../editor/persistencia/local'
 import { documentoNuevo } from '../../nucleo'
 import { respuesta } from '../../pruebas/respuesta'
 import MisDisenos from './MisDisenos'
@@ -57,8 +57,9 @@ describe('MisDisenos', () => {
     expect(within(filas[1]!).getByText('Dormitorio')).toBeInTheDocument()
   })
 
-  it('borrar con confirmación llama a DELETE y quita la fila', async () => {
+  it('borrar con confirmación llama a DELETE, quita la fila y la copia local', async () => {
     conSesion()
+    guardarCopiaLocal(localStorage, 'a', { version: 1, documento: documentoNuevo('salon', 400, 300, 250), pendiente: false })
     fetchSimulado.mockResolvedValueOnce(respuesta(200, [ANTIGUO, RECIENTE]))
     montar()
     const fila = (await screen.findByText('Antiguo')).closest('li')!
@@ -67,6 +68,7 @@ describe('MisDisenos', () => {
     fetchSimulado.mockResolvedValueOnce(respuesta(204))
     await userEvent.click(within(mensaje.closest('dialog')!).getByRole('button', { name: 'Borrar' }))
     await vi.waitFor(() => expect(screen.queryByText('Antiguo')).not.toBeInTheDocument())
+    expect(leerCopiaLocal(localStorage, 'a')).toBeNull()
     const peticion = fetchSimulado.mock.calls[1]![0]
     expect(peticion.method).toBe('DELETE')
     expect(new URL(peticion.url).pathname).toBe('/disenos/a')

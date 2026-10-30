@@ -6,7 +6,7 @@ import { copiasDeLaCuenta } from '../../cuenta/disenosLocales'
 import { sesion, useSesion } from '../../cuenta/sesion'
 import Confirmar from '../../editor/comunes/Confirmar'
 import NuevaEstancia from '../../editor/paneles/NuevaEstancia'
-import type { CopiaListada } from '../../editor/persistencia/local'
+import { almacenamientoSeguro, borrarCopiaLocal, type CopiaListada } from '../../editor/persistencia/local'
 import { documentoNuevo, type TipoEstancia } from '../../nucleo'
 import { textos } from '../../textos'
 import { borrarDiseno, crearDiseno, duplicarDiseno, guardarDiseno, listarDisenos, obtenerDiseno, type ResumenDiseno } from '../servidor'
@@ -115,6 +115,7 @@ export default function MisDisenos() {
     intentar(async () => {
       setBorrando(null)
       await borrarDiseno(d.id)
+      borrarCopiaLocal(almacenamientoSeguro(), d.id)
       setLista((actual) => actual?.filter((x) => x.id !== d.id) ?? null)
     })
 

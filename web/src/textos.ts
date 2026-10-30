@@ -150,6 +150,10 @@ export const textos = {
   editorDeDiseno: {
     cargando: 'Abriendo el diseño…',
     volver: 'Volver a Mis diseños',
+    noExiste: 'Este diseño ya no existe',
+    noExisteConCambios: 'Este diseño ya no existe en tu cuenta, pero en este navegador hay cambios suyos que no llegaron a guardarse.',
+    guardarComoNuevo: 'Guardar como diseño nuevo',
+    descartar: 'Descartar',
   },
   comun: {
     aceptar: 'Aceptar',

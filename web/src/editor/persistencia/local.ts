@@ -105,6 +105,14 @@ export function guardarCopiaLocal(st: Storage | null, id: string, copia: CopiaLo
   }
 }
 
+export function borrarCopiaLocal(st: Storage | null, id: string): void {
+  try {
+    st?.removeItem(claveCopia(id))
+  } catch {
+    // sin acceso: no hay nada que borrar
+  }
+}
+
 function idsDeCopias(st: Storage): string[] {
   return Array.from({ length: st.length }, (_, i) => st.key(i))
     .filter((k): k is string => k?.startsWith(PREFIJO_COPIA) ?? false)
