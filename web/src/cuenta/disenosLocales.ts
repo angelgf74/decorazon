@@ -48,17 +48,34 @@ export async function yaEstaEnLaCuenta(doc: DocumentoDiseno): Promise<boolean> {
     const candidatos = (await listarDisenos())
       .filter((d) => d.tipoEstancia === doc.estancia.tipo)
       .sort((a, b) => Number(b.nombre === primero) - Number(a.nombre === primero))
-    for (const c of candidatos) {
-      const { diseno } = await obtenerDiseno(c.id)
-      if (contenidoNormalizado(diseno.contenido) === buscado) {
-        st.removeItem(CLAVE_REGISTRO_ENVIADO)
-        return true
-      }
-    }
-    return false
+    const coincide = async (id: string) => contenidoNormalizado((await obtenerDiseno(id)).diseno.contenido) === buscado
+    if (!(await alguno(candidatos.map((c) => c.id), coincide))) return false
+    st.removeItem(CLAVE_REGISTRO_ENVIADO)
+    return true
   } catch {
     return false
   }
+}
+
+const PETICIONES_A_LA_VEZ = 4
+
+/** Prueba los ids en paralelo, unos pocos a la vez; deja de pedir en cuanto uno cumple o alguno falla. */
+async function alguno(ids: string[], cumple: (id: string) => Promise<boolean>): Promise<boolean> {
+  let siguiente = 0
+  let encontrado = false
+  let fallo = false
+  const trabajar = async () => {
+    while (!encontrado && !fallo && siguiente < ids.length) {
+      const id = ids[siguiente++]!
+      try {
+        if (await cumple(id)) encontrado = true
+      } catch {
+        fallo = true
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(PETICIONES_A_LA_VEZ, ids.length) }, trabajar))
+  return encontrado
 }
 
 export type ResultadoDeSubir = { id: string } | { error: string }

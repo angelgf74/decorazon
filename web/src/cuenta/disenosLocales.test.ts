@@ -2,11 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DisenoServidor } from '../disenos/servidor'
 import { almacen, reiniciarAlmacen } from '../editor/estado/almacen'
-import { guardarCopiaLocal, leerCopiaLocal } from '../editor/persistencia/local'
+import { CLAVE_REGISTRO_ENVIADO, guardarCopiaLocal, leerCopiaLocal } from '../editor/persistencia/local'
 import { abrirDiseno, conectarSincronizacion, elegirApertura } from '../editor/persistencia/sincronizacion'
-import { catalogoBase, documentoNuevo, elementoNuevo, type DocumentoDiseno } from '../nucleo'
+import { catalogoBase, documentoNuevo, elementoNuevo, serializarDocumento, type DocumentoDiseno } from '../nucleo'
 import { respuesta } from '../pruebas/respuesta'
-import { hayCambiosSinSubir, subirDisenoAnonimo } from './disenosLocales'
+import { hayCambiosSinSubir, subirDisenoAnonimo, yaEstaEnLaCuenta } from './disenosLocales'
 
 const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
 const doc: DocumentoDiseno = {
@@ -73,6 +73,46 @@ describe('subirDisenoAnonimo', () => {
     fetchSimulado.mockResolvedValueOnce(respuesta(201, disenoServidor(1, doc)))
     expect(await subirDisenoAnonimo(doc)).toEqual({ id: 'd9' })
     expect(leerCopiaLocal(localStorage, 'd9')).toBeNull()
+  })
+})
+
+describe('yaEstaEnLaCuenta', () => {
+  const otro = alto(260)(doc)
+  const resumen = (id: string) => ({ id, nombre: 'Salón', tipoEstancia: 'salon', fechaDeCreacion: '', fechaDeModificacion: '', version: 1 })
+
+  /** 10 candidatos; responde a cada GET tras un momento, contando cuántos van a la vez. */
+  function conCandidatos(contenidoDe: (id: string) => DocumentoDiseno | 'falla') {
+    localStorage.setItem(CLAVE_REGISTRO_ENVIADO, serializarDocumento(doc))
+    const ids = Array.from({ length: 10 }, (_, i) => `c${i}`)
+    const visto = { enVuelo: 0, maximo: 0, pedidos: [] as string[] }
+    fetchSimulado.mockImplementation(async (p) => {
+      const ruta = new URL(p.url).pathname
+      if (ruta.endsWith('/disenos')) return respuesta(200, ids.map(resumen))
+      const id = ruta.split('/').at(-1)!
+      visto.pedidos.push(id)
+      visto.enVuelo++
+      visto.maximo = Math.max(visto.maximo, visto.enVuelo)
+      await new Promise((r) => setTimeout(r, 5))
+      visto.enVuelo--
+      const c = contenidoDe(id)
+      return c === 'falla' ? respuesta(500, { mensaje: 'fallo' }) : respuesta(200, { ...disenoServidor(1, c), id })
+    })
+    return visto
+  }
+
+  it('pide los candidatos en paralelo, como mucho 4 a la vez, y para en cuanto uno coincide', async () => {
+    const visto = conCandidatos((id) => (id === 'c1' ? doc : otro))
+    expect(await yaEstaEnLaCuenta(doc)).toBe(true)
+    expect(visto.maximo).toBe(4)
+    expect(visto.pedidos.length).toBeLessThan(10)
+    expect(localStorage.getItem(CLAVE_REGISTRO_ENVIADO)).toBeNull()
+  })
+
+  it('sin coincidencia y con algún error, responde que no y no borra la marca', async () => {
+    const visto = conCandidatos((id) => (id === 'c2' ? 'falla' : otro))
+    expect(await yaEstaEnLaCuenta(doc)).toBe(false)
+    expect(visto.maximo).toBeLessThanOrEqual(4)
+    expect(localStorage.getItem(CLAVE_REGISTRO_ENVIADO)).not.toBeNull()
   })
 })
 
