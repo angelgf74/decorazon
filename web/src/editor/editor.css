@@ -30,7 +30,8 @@
 .barra button[aria-current='step'], .barra button[aria-pressed='true'] { background: var(--amarillo); border-color: var(--terracota); }
 .barra__movil { display: none; }
 .barra__guardado { margin: 0 0 0 auto; color: var(--gris); font-size: 0.9rem; }
-.barra__guardado--error { color: var(--conflicto); font-weight: 600; }
+.barra__guardado--error, .barra__guardado--conflicto, .barra__guardado--sinConexion { color: var(--conflicto); font-weight: 600; }
+.barra__nombre { min-width: 6rem; max-width: 14rem; font: inherit; }
 
 .nueva-estancia { max-width: 26rem; margin: 3rem auto; padding: 0 1rem; }
 .nueva-estancia fieldset { border: 1px solid var(--salmon); border-radius: 0.5rem; }

@@ -29,6 +29,11 @@ export const textos = {
     guardado: 'Guardado en este navegador',
     pendiente: 'Guardando…',
     error: 'No se pudo guardar en este navegador',
+    guardadoServidor: 'Guardado',
+    sinConexion: 'Sin conexión',
+    conflicto: 'Cambiado en otro sitio',
+    errorServidor: 'No se pudo guardar',
+    nombreDiseno: 'Nombre del diseño',
     catalogo: 'Catálogo',
     estancia: 'Estancia',
     propiedades: 'Propiedades',
@@ -129,6 +134,16 @@ export const textos = {
     ahora: 'ahora mismo',
     haceMinutos: (n: number) => `hace ${n} min`,
     haceHoras: (n: number) => `hace ${n} h`,
+  },
+  conflicto: {
+    mensaje: 'Este diseño se ha guardado desde otro sitio después de que lo abrieras.',
+    aviso: 'Si recargas, se perderán los cambios que hayas hecho aquí desde entonces.',
+    recargar: 'Recargar la versión guardada',
+    sobrescribir: 'Sobrescribir con la mía',
+  },
+  editorDeDiseno: {
+    cargando: 'Abriendo el diseño…',
+    volver: 'Volver a Mis diseños',
   },
   comun: {
     aceptar: 'Aceptar',

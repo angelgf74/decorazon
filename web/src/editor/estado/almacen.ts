@@ -3,6 +3,8 @@ import { createStore, type StoreApi } from 'zustand/vanilla'
 import {
   documentoNuevo, redondearNumeros, type DocumentoDiseno, type ResultadoEdicion, type TipoEstancia,
 } from '../../nucleo'
+import { almacenamientoSeguro, leerDisenoLocal } from '../persistencia/local'
+import { ORIGEN_ANONIMO, type Origen } from './origen'
 
 export type Paso = 1 | 2
 export type Vista = '2d' | '3d'
@@ -10,7 +12,7 @@ export type Seleccion =
   | { tipo: 'elemento' | 'abertura' | 'estructura'; id: string }
   | { tipo: 'vertice' | 'pared'; indice: number }
   | null
-export type EstadoGuardado = 'guardado' | 'pendiente' | 'error'
+export type EstadoGuardado = 'guardado' | 'pendiente' | 'error' | 'sinConexion' | 'conflicto'
 
 export interface EstadoEditor {
   documento: DocumentoDiseno | null
@@ -22,6 +24,9 @@ export interface EstadoEditor {
   grupo: string | null
   aviso: string | null
   guardado: EstadoGuardado
+  origen: Origen
+  /** Versión del servidor que provocó el conflicto (412). */
+  versionRemota: number | null
   crear(tipo: TipoEstancia, ancho: number, largo: number, alto: number): void
   cargar(doc: DocumentoDiseno): void
   cambiar(f: (d: DocumentoDiseno) => DocumentoDiseno, grupo?: string): void
@@ -34,6 +39,8 @@ export interface EstadoEditor {
   cambiarVista(v: Vista): void
   descartar(): void
   marcarGuardado(g: EstadoGuardado): void
+  abrirDelServidor(id: string, version: number, nombre: string, doc: DocumentoDiseno): void
+  volverAAnonimo(st?: Storage | null): void
 }
 
 export const HISTORIAL_MAXIMO = 100
@@ -58,7 +65,12 @@ const pasoDe = (s: NonNullable<Seleccion>): Paso => (s.tipo === 'elemento' ? 2 :
 
 const vacio = () => ({ pasado: [], futuro: [], grupo: null, seleccion: null, aviso: null })
 
+const pasoDeDocumento = (doc: DocumentoDiseno | null): Paso => (doc !== null && doc.elementos.length > 0 ? 2 : 1)
+
 export function crearAlmacen(): StoreApi<EstadoEditor> {
+  // Sin localStorage, el diseño anónimo que había al abrir uno del servidor solo queda aquí.
+  let anonimoEnMemoria: DocumentoDiseno | null = null
+
   return createStore<EstadoEditor>()((set, get) => ({
     documento: null,
     paso: 1,
@@ -69,10 +81,12 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
     grupo: null,
     aviso: null,
     guardado: 'guardado',
+    origen: ORIGEN_ANONIMO,
+    versionRemota: null,
 
     crear: (tipo, ancho, largo, alto) =>
       set({ ...vacio(), documento: redondearNumeros(documentoNuevo(tipo, ancho, largo, alto)), paso: 1 }),
-    cargar: (doc) => set({ ...vacio(), documento: doc, paso: doc.elementos.length > 0 ? 2 : 1 }),
+    cargar: (doc) => set({ ...vacio(), documento: doc, paso: pasoDeDocumento(doc) }),
     descartar: () => set({ ...vacio(), documento: null, paso: 1 }),
 
     cambiar: (f, grupo) => {
@@ -136,6 +150,24 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
     irAPaso: (paso) => set((e) => ({ paso, seleccion: e.seleccion !== null && pasoDe(e.seleccion) !== paso ? null : e.seleccion })),
     cambiarVista: (vista) => set({ vista }),
     marcarGuardado: (guardado) => set({ guardado }),
+
+    abrirDelServidor: (id, version, nombre, doc) => {
+      if (get().origen.tipo === 'anonimo') anonimoEnMemoria = get().documento
+      set({
+        ...vacio(), documento: doc, paso: pasoDeDocumento(doc), guardado: 'guardado', versionRemota: null,
+        origen: { tipo: 'servidor', id, version, nombre },
+      })
+    },
+
+    volverAAnonimo: (st = almacenamientoSeguro()) => {
+      if (get().origen.tipo === 'anonimo') return
+      const doc = st === null ? anonimoEnMemoria : leerDisenoLocal(st)
+      anonimoEnMemoria = null
+      set({
+        ...vacio(), documento: doc, paso: pasoDeDocumento(doc), origen: ORIGEN_ANONIMO, versionRemota: null,
+        guardado: st === null ? 'error' : 'guardado',
+      })
+    },
   }))
 }
 

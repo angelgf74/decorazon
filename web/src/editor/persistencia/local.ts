@@ -59,23 +59,71 @@ export function guardarDisenoLocal(st: Storage | null, doc: DocumentoDiseno | nu
   }
 }
 
+/** Guarda el diseño anónimo; con un diseño del servidor abierto no toca su clave. */
+export const PREFIJO_COPIA = 'decorazon.diseno.'
+export const claveCopia = (id: string) => `${PREFIJO_COPIA}${id}`
+
+/** Copia local de un diseño del servidor; `pendiente` si tiene cambios que el servidor aún no tiene. */
+export interface CopiaLocal {
+  version: number
+  nombre?: string
+  documento: DocumentoDiseno
+  pendiente: boolean
+}
+
+export function leerCopiaLocal(st: Storage | null, id: string): CopiaLocal | null {
+  if (st === null) return null
+  try {
+    const crudo = st.getItem(claveCopia(id))
+    if (crudo === null) return null
+    const dato: unknown = JSON.parse(crudo)
+    if (typeof dato !== 'object' || dato === null) return null
+    const { version, nombre, documento, pendiente } = dato as Record<string, unknown>
+    if (typeof version !== 'number' || typeof pendiente !== 'boolean') return null
+    const r = validarDocumento(documento)
+    if (!r.valido) return null
+    return { version, ...(typeof nombre === 'string' && { nombre }), documento: r.documento, pendiente }
+  } catch {
+    return null
+  }
+}
+
+export function guardarCopiaLocal(st: Storage | null, id: string, copia: CopiaLocal): boolean {
+  if (st === null) return false
+  try {
+    st.setItem(claveCopia(id), JSON.stringify({ ...copia, documento: redondearNumeros(copia.documento) }))
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function conectarPersistencia(a: StoreApi<EstadoEditor>, st: Storage | null, esperaMs = 500): () => void {
   let temporizador: ReturnType<typeof setTimeout> | undefined
   let pendiente = false
+  // El último documento anónimo cambiado: al abrir uno del servidor, el almacén ya tiene otro.
+  let ultimo: DocumentoDiseno | null = null
 
   const guardarYa = () => {
     clearTimeout(temporizador)
     temporizador = undefined
     if (!pendiente) return
     pendiente = false
-    a.getState().marcarGuardado(guardarDisenoLocal(st, a.getState().documento) ? 'guardado' : 'error')
+    const ok = guardarDisenoLocal(st, ultimo)
+    if (a.getState().origen.tipo === 'anonimo') a.getState().marcarGuardado(ok ? 'guardado' : 'error')
   }
 
   if (st === null) a.getState().marcarGuardado('error')
 
   const desuscribir = a.subscribe((estado, previo) => {
-    if (estado.documento === previo.documento) return
+    if (estado.origen.tipo !== 'anonimo') {
+      if (previo.origen.tipo === 'anonimo') guardarYa()
+      return
+    }
+    // Volver al anónimo carga lo que ya estaba guardado: no es un cambio.
+    if (estado.origen !== previo.origen || estado.documento === previo.documento) return
     pendiente = true
+    ultimo = estado.documento
     a.getState().marcarGuardado('pendiente')
     clearTimeout(temporizador)
     temporizador = setTimeout(guardarYa, esperaMs)

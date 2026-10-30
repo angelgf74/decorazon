@@ -4,12 +4,14 @@ import App from './App.tsx'
 import { conectarSesionConApi, sesion } from './cuenta/sesion'
 import { almacen } from './editor/estado/almacen'
 import { almacenamientoSeguro, conectarPersistencia, leerDisenoLocal } from './editor/persistencia/local'
+import { conectarSincronizacion } from './editor/persistencia/sincronizacion'
 import './estilos/base.css'
 
 const st = almacenamientoSeguro()
 const guardado = leerDisenoLocal(st)
 if (guardado !== null) almacen.getState().cargar(guardado)
 conectarPersistencia(almacen, st)
+conectarSincronizacion(almacen, { esperaMs: 2000, st })
 
 conectarSesionConApi()
 if (sesion.getState().haySesion()) sesion.getState().cargarUsuario().catch(() => {})

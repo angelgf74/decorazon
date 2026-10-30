@@ -2,10 +2,13 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CLAVE_SESION, reiniciarSesion, sesion } from '../../cuenta/sesion'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import BarraSuperior from './BarraSuperior'
+
+const sincronizacion = vi.hoisted(() => ({ renombrar: vi.fn() }))
+vi.mock('../persistencia/sincronizacion', () => sincronizacion)
 
 beforeEach(() => {
   localStorage.clear()
@@ -93,5 +96,42 @@ describe('BarraSuperior', () => {
     expect(screen.getByRole('link', { name: 'Mis diseños' })).toHaveAttribute('href', '/disenos')
     expect(screen.getByRole('link', { name: 'Ana' })).toHaveAttribute('href', '/cuenta')
     expect(screen.queryByRole('link', { name: 'Entrar' })).toBeNull()
+  })
+
+  describe('con un diseño del servidor', () => {
+    beforeEach(() => {
+      sincronizacion.renombrar.mockClear()
+      almacen.getState().abrirDelServidor('d1', 4, 'Cocina', almacen.getState().documento!)
+    })
+
+    it.each([
+      ['guardado', 'Guardado'],
+      ['pendiente', 'Guardando…'],
+      ['sinConexion', 'Sin conexión'],
+      ['conflicto', 'Cambiado en otro sitio'],
+      ['error', 'No se pudo guardar'],
+    ] as const)('el indicador con "%s" dice "%s"', (g, texto) => {
+      almacen.getState().marcarGuardado(g)
+      render(<BarraSuperior />, { wrapper: MemoryRouter })
+      expect(screen.getByRole('status')).toHaveTextContent(new RegExp(`^${texto}$`))
+    })
+
+    it('no ofrece "Nuevo diseño"', () => {
+      render(<BarraSuperior />, { wrapper: MemoryRouter })
+      expect(screen.queryByRole('button', { name: 'Nuevo diseño' })).toBeNull()
+    })
+
+    it('el nombre se edita y renombra al pulsar Intro; Escape lo deja como estaba', async () => {
+      render(<BarraSuperior />, { wrapper: MemoryRouter })
+      const campo = screen.getByRole('textbox', { name: 'Nombre del diseño' })
+      expect(campo).toHaveValue('Cocina')
+      await userEvent.clear(campo)
+      await userEvent.type(campo, 'Otra{Escape}')
+      expect(campo).toHaveValue('Cocina')
+      expect(sincronizacion.renombrar).not.toHaveBeenCalled()
+      await userEvent.clear(campo)
+      await userEvent.type(campo, 'Cocina nueva{Enter}')
+      expect(sincronizacion.renombrar).toHaveBeenCalledWith(almacen, 'Cocina nueva')
+    })
   })
 })

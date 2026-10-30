@@ -26,6 +26,33 @@ describe('servidor de diseños', () => {
     expect(await peticion.json()).toEqual({ nombre: 'Nuevo' })
   })
 
+  it('guardarDiseno con doc envía el contenido redondeado y su tipo de estancia', async () => {
+    const doc = documentoNuevo('dormitorio', 400.004, 300.006, 250)
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, completo(documentoNuevo('dormitorio', 400, 300.01, 250))))
+    await guardarDiseno(ID, 7, { doc })
+    const peticion = fetchSimulado.mock.calls[0]![0]
+    expect(peticion.method).toBe('PUT')
+    expect(peticion.headers.get('If-Match')).toBe('"7"')
+    const cuerpo = (await peticion.json()) as { nombre?: string; tipoEstancia: string; contenido: typeof doc }
+    expect(cuerpo.nombre).toBeUndefined()
+    expect(cuerpo.tipoEstancia).toBe('dormitorio')
+    expect(cuerpo.contenido.estancia.planta[1]!.x).toBe(400)
+    expect(cuerpo.contenido.estancia.planta[2]!.y).toBe(300.01)
+  })
+
+  it('guardarDiseno con nombre y doc envía los dos', async () => {
+    const doc = documentoNuevo('salon', 400, 300, 250)
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, completo(doc)))
+    await guardarDiseno(ID, 2, { nombre: 'Salón', doc })
+    const cuerpo = (await fetchSimulado.mock.calls[0]![0].json()) as { nombre: string; tipoEstancia: string }
+    expect(cuerpo).toMatchObject({ nombre: 'Salón', tipoEstancia: 'salon' })
+  })
+
+  it('guardarDiseno con 412 lanza ErrorDeApi con la versión remota', async () => {
+    fetchSimulado.mockResolvedValueOnce(respuesta(412, { mensaje: 'Cambiado', version: 9 }))
+    await expect(guardarDiseno(ID, 4, { doc: documentoNuevo('salon', 400, 300, 250) })).rejects.toMatchObject({ estado: 412, version: 9 })
+  })
+
   it('crearDiseno envía el contenido redondeado y el tipo del documento', async () => {
     const doc = documentoNuevo('cocina', 400.004, 300, 250)
     fetchSimulado.mockResolvedValueOnce(respuesta(201, completo(documentoNuevo('cocina', 400, 300, 250))))
