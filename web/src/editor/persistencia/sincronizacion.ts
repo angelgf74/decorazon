@@ -6,7 +6,7 @@ import type { DocumentoDiseno } from '../../nucleo'
 import { textos } from '../../textos'
 import type { EstadoEditor, EstadoGuardado } from '../estado/almacen'
 import type { Origen } from '../estado/origen'
-import { almacenamientoSeguro, guardarCopiaLocal, type CopiaLocal } from './local'
+import { almacenamientoSeguro, borrarCopiaLocal, guardarCopiaLocal, type CopiaLocal } from './local'
 
 export const REINTENTO_MS = 30_000
 
@@ -207,8 +207,16 @@ export function conectarSincronizacion(
       else if (version === t.version) fijar(t, { guardado: 'guardado' })
       // Sin cambios propios no se pierde nada: se trae lo guardado desde otro sitio.
       else abrirDiseno(a, { id: t.id, version, nombre: diseno.nombre, documento: diseno.contenido, pendiente: false, guardado: 'guardado' })
-    } catch {
+    } catch (e) {
       t.enVuelo = false
+      // Solo la falta de red deja seguir en "Sin conexión"; lo demás es un error.
+      if (t !== actual || (e instanceof ErrorDeApi && e.estado === 0)) return
+      pararReintentos()
+      if (e instanceof ErrorDeApi && e.estado === 404) {
+        // Ya no existe: sin cambios propios, la copia sobra; con ellos, se ofrecerán al volver a abrirlo.
+        if (!hayCambios(t)) borrarCopiaLocal(st, t.id)
+        fijar(t, { guardado: 'error', aviso: textos.editorDeDiseno.noExiste })
+      } else fijar(t, { guardado: 'error' })
     }
   }
 

@@ -388,6 +388,31 @@ describe('sincronización: arreglos de la revisión', () => {
     expect(a.getState().guardado).toBe('guardado')
   })
 
+  it('sin conexión y sin cambios, si al comprobar el diseño ya no existe (404): borra la copia, avisa y deja de reintentar', async () => {
+    servidor.obtenerDiseno.mockRejectedValue(new ErrorDeApi(404, 'No existe o no es tuyo'))
+    const st = falso()
+    const a = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(a, { esperaMs: 2000, st }))
+    abrirDiseno(a, elegirApertura(ID, { version: 4, documento: doc, pendiente: false }, null)!)
+    await vi.advanceTimersByTimeAsync(REINTENTO_MS)
+    expect(a.getState().guardado).toBe('error')
+    expect(a.getState().aviso).toBe('Este diseño ya no existe')
+    expect(leerCopiaLocal(st, ID)).toBeNull()
+    await vi.advanceTimersByTimeAsync(REINTENTO_MS * 2)
+    expect(servidor.obtenerDiseno).toHaveBeenCalledTimes(1)
+  })
+
+  it('sin conexión y sin cambios, si al comprobar el servidor falla (5xx): "error", no "sinConexion"', async () => {
+    servidor.obtenerDiseno.mockRejectedValue(new ErrorDeApi(503, 'El servicio no está disponible'))
+    const st = falso()
+    const a = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(a, { esperaMs: 2000, st }))
+    abrirDiseno(a, elegirApertura(ID, { version: 4, documento: doc, pendiente: false }, null)!)
+    await vi.advanceTimersByTimeAsync(REINTENTO_MS)
+    expect(a.getState().guardado).toBe('error')
+    expect(leerCopiaLocal(st, ID)).not.toBeNull()
+  })
+
   it('si no se puede escribir la copia local, avisa', () => {
     const st = falso()
     st.setItem = () => { throw new DOMException('lleno', 'QuotaExceededError') }
