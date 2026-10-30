@@ -33,7 +33,7 @@ describe('sesion', () => {
     expect(s.token).toBe('jwt')
     expect(s.usuario).toEqual({ nombre: 'Ana', correo: 'ana@x.es' })
     expect(s.haySesion()).toBe(true)
-    expect(JSON.parse(localStorage.getItem(CLAVE_SESION)!)).toEqual({ token: 'jwt', caducidad: MANANA })
+    expect(JSON.parse(localStorage.getItem(CLAVE_SESION)!)).toEqual({ token: 'jwt', caducidad: MANANA, correo: 'ana@x.es' })
     const yo = fetchSimulado.mock.calls[1][0]
     expect(yo.url).toMatch(/\/cuentas\/yo$/)
     expect(yo.headers.get('Authorization')).toBe('Bearer jwt')
@@ -55,6 +55,21 @@ describe('sesion', () => {
     await expect(sesion.getState().iniciarSesion('ana@x.es', 'mala')).rejects.toMatchObject({ estado: 401, mensaje: 'Correo o contraseña incorrectos' })
     expect(sesion.getState().token).toBeNull()
     expect(localStorage.getItem(CLAVE_SESION)).toBeNull()
+  })
+
+  it('iniciarSesion no toca la sesión guardada hasta tener la nueva: las otras pestañas no se cierran por entrar', async () => {
+    const guardada = JSON.stringify({ token: 'viejo', caducidad: MANANA, correo: 'ana@x.es' })
+    localStorage.setItem(CLAVE_SESION, guardada)
+    reiniciarSesion()
+    let duranteElPost: string | null = null
+    fetchSimulado.mockImplementationOnce(async () => {
+      duranteElPost = localStorage.getItem(CLAVE_SESION)
+      return respuesta(401, { mensaje: 'Correo o contraseña incorrectos' })
+    })
+    await expect(sesion.getState().iniciarSesion('ana@x.es', 'mala')).rejects.toMatchObject({ estado: 401 })
+    expect(duranteElPost).toBe(guardada)
+    expect(localStorage.getItem(CLAVE_SESION)).toBe(guardada)
+    expect(sesion.getState().token).toBeNull()
   })
 
   it('se recupera del navegador al arrancar', () => {
@@ -245,7 +260,7 @@ describe('cierre de sesión en otra pestaña', () => {
   })
 
   function conDisenoDelServidorAbierto() {
-    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: MANANA }))
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: MANANA, correo: 'ana@x.es' }))
     reiniciarSesion()
     localStorage.setItem('decorazon.diseno.a', '{}')
     localStorage.setItem(CLAVE_DUENO_COPIAS, 'ana@x.es')
@@ -287,6 +302,29 @@ describe('cierre de sesión en otra pestaña', () => {
     expect(alSalir).toHaveBeenCalledTimes(1)
     expect(localStorage.getItem(CLAVE_SESION)).toBe(otra)
     expect(localStorage.getItem('decorazon.diseno.a')).toBe('{}')
+  })
+
+  it('si otra pestaña entra con otra cuenta (otro correo): cierre local', () => {
+    conDisenoDelServidorAbierto()
+    const alSalir = vi.fn()
+    alSalirDeLaSesion(alSalir)
+    enOtraPestana(JSON.stringify({ token: 'otro', caducidad: MANANA, correo: 'luis@x.es' }))
+    expect(sesion.getState().token).toBeNull()
+    expect(almacen.getState().origen.tipo).toBe('anonimo')
+    expect(alSalir).toHaveBeenCalledTimes(1)
+  })
+
+  it('si otra pestaña entra con la misma cuenta (otro token): adopta el token nuevo sin cerrar ni soltar el diseño', () => {
+    conDisenoDelServidorAbierto()
+    const alSalir = vi.fn()
+    alSalirDeLaSesion(alSalir)
+    const pasadoManana = new Date(Date.now() + 2 * 86_400_000).toISOString()
+    enOtraPestana(JSON.stringify({ token: 'nuevo', caducidad: pasadoManana, correo: 'ana@x.es' }))
+    expect(sesion.getState().token).toBe('nuevo')
+    expect(sesion.getState().caducidad).toBe(pasadoManana)
+    expect(sesion.getState().haySesion()).toBe(true)
+    expect(almacen.getState().origen.tipo).toBe('servidor')
+    expect(alSalir).not.toHaveBeenCalled()
   })
 
   it('el mismo token reescrito, otra clave o esta pestaña sin sesión: no hace nada', () => {

@@ -24,6 +24,8 @@ export interface EstadoSesion {
 interface SesionGuardada {
   token: string
   caducidad: string
+  /** De quién es: otra pestaña que ve otro token del mismo correo lo adopta en vez de cerrar. */
+  correo?: string
 }
 
 const st = almacenamientoSeguro()
@@ -42,8 +44,9 @@ function interpretarSesion(crudo: string | null): SesionGuardada | null {
   try {
     const dato: unknown = JSON.parse(crudo)
     if (typeof dato !== 'object' || dato === null) return null
-    const { token, caducidad } = dato as { token?: unknown; caducidad?: unknown }
-    return typeof token === 'string' && typeof caducidad === 'string' ? { token, caducidad } : null
+    const { token, caducidad, correo } = dato as { token?: unknown; caducidad?: unknown; correo?: unknown }
+    if (typeof token !== 'string' || typeof caducidad !== 'string') return null
+    return typeof correo === 'string' ? { token, caducidad, correo } : { token, caducidad }
   } catch {
     return null
   }
@@ -53,7 +56,7 @@ function guardarSesion(s: SesionGuardada | null): void {
   if (st === null) return
   try {
     if (s === null) st.removeItem(CLAVE_SESION)
-    else st.setItem(CLAVE_SESION, JSON.stringify({ token: s.token, caducidad: s.caducidad }))
+    else st.setItem(CLAVE_SESION, JSON.stringify({ token: s.token, caducidad: s.caducidad, correo: s.correo }))
   } catch {
     // sin espacio o sin acceso: la sesión dura lo que la pestaña
   }
@@ -71,15 +74,24 @@ export function alSalirDeLaSesion(f: () => void): void {
   avisoDeSalida = f
 }
 
+// El correo de la sesión de esta pestaña, aunque el usuario aún no se haya cargado.
+let correoDeLaSesion: string | null = null
+
 function estadoGuardado(): Pick<EstadoSesion, 'token' | 'caducidad' | 'usuario'> {
   const g = leerSesion()
+  correoDeLaSesion = g?.correo ?? null
   return { token: g?.token ?? null, caducidad: g?.caducidad ?? null, usuario: null }
 }
 
 export const sesion = createStore<EstadoSesion>()((set, get) => {
+  // Solo esta pestaña: la sesión guardada es compartida y las demás reaccionan a cada cambio.
+  const olvidarEnMemoria = () => {
+    correoDeLaSesion = null
+    set({ token: null, caducidad: null, usuario: null })
+  }
   const olvidar = () => {
     guardarSesion(null)
-    set({ token: null, caducidad: null, usuario: null })
+    olvidarEnMemoria()
   }
 
   return {
@@ -87,22 +99,25 @@ export const sesion = createStore<EstadoSesion>()((set, get) => {
 
     async iniciarSesion(correo, contrasena) {
       // Sin token previo: un 401 por credenciales malas no debe tomarse como sesión caducada.
-      olvidar()
+      // La guardada no se toca hasta tener la nueva: las otras pestañas de la misma cuenta siguen abiertas.
+      olvidarEnMemoria()
       const r = exigir(await api.POST('/sesiones', { body: { correo, contrasena } }))
-      guardarSesion(r)
       set({ token: r.token, caducidad: r.caducidad })
       try {
         await get().cargarUsuario()
       } catch (e) {
-        olvidar()
+        olvidarEnMemoria()
         throw e
       }
       const usuario = get().usuario
-      if (usuario !== null) fijarDuenoDeCopias(usuario.correo)
+      if (usuario === null) return
+      guardarSesion({ token: r.token, caducidad: r.caducidad, correo: usuario.correo })
+      fijarDuenoDeCopias(usuario.correo)
     },
 
     async cargarUsuario() {
       const u = exigir(await api.GET('/cuentas/yo'))
+      correoDeLaSesion = u.correo
       set({ usuario: { nombre: u.nombre, correo: u.correo } })
     },
 
@@ -146,7 +161,8 @@ export function conectarSesionConApi(): void {
 }
 
 /**
- * Otra pestaña cerró la sesión o entró con otra: esta la olvida, vuelve al anónimo y va al inicio.
+ * Otra pestaña cerró la sesión o entró con otra cuenta: esta la olvida, vuelve al anónimo y va al inicio.
+ * Si entró con la misma cuenta, esta adopta el token nuevo y sigue donde estaba.
  * No borra nada del almacenamiento compartido: ya lo hizo la otra pestaña, y si entró otra cuenta, sus datos son suyos.
  */
 export function conectarSesionEntrePestanas(): () => void {
@@ -156,7 +172,13 @@ export function conectarSesionEntrePestanas(): () => void {
     if (propio === null) return
     const otra = e.key === null ? leerSesion() : interpretarSesion(e.newValue)
     if (otra?.token === propio) return
+    const correo = sesion.getState().usuario?.correo ?? correoDeLaSesion
+    if (otra?.correo !== undefined && correo !== null && otra.correo === correo) {
+      sesion.setState({ token: otra.token, caducidad: otra.caducidad })
+      return
+    }
     soltarDisenosDeLaSesion()
+    correoDeLaSesion = null
     sesion.setState({ token: null, caducidad: null, usuario: null })
     avisoDeSalida()
   }
