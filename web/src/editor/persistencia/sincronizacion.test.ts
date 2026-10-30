@@ -493,6 +493,28 @@ describe('elegirApertura', () => {
     expect(r?.documento.estancia.alto).toBe(260)
   })
 
+  it('en conflicto, un nombre local distinto del remoto se conserva como renombrado pendiente', () => {
+    expect(elegirApertura(ID, copia(4, true), remoto(6))).toMatchObject({ nombre: 'Local', nombrePendiente: 'Local', guardado: 'conflicto' })
+    const mismoNombre = elegirApertura(ID, { ...copia(4, true), nombre: 'Cocina' }, remoto(6))
+    expect(mismoNombre).toMatchObject({ nombre: 'Cocina', guardado: 'conflicto' })
+    expect(mismoNombre?.nombrePendiente).toBeUndefined()
+  })
+
+  it.each([
+    ['sobrescribir', 'Local'],
+    ['recargar', 'Cocina'],
+  ] as const)('en conflicto con un renombrado local no subido, "%s" deja el nombre "%s"', async (eleccion, nombre) => {
+    servidorConVersion(6)
+    const st = falso()
+    const a = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(a, { esperaMs: 2000, st }))
+    abrirDiseno(a, elegirApertura(ID, copia(4, true), remoto(6))!)
+    await resolverConflicto(a, eleccion)
+    const o = a.getState().origen
+    expect(o.tipo === 'servidor' && o.nombre).toBe(nombre)
+    if (eleccion === 'sobrescribir') expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Local' }))
+  })
+
   it('sin conexión: la copia local', () => {
     expect(elegirApertura(ID, copia(4, true), null)).toMatchObject({ version: 4, nombre: 'Local', pendiente: true, guardado: 'sinConexion' })
     expect(elegirApertura(ID, null, null)).toBeNull()

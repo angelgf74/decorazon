@@ -41,8 +41,11 @@ export function elegirApertura(
   const renombrado = mismaVersion && copia.nombre !== undefined && copia.nombre !== nombreRemoto ? copia.nombre : undefined
   if (copia?.pendiente && !mismaVersion) {
     // Nunca se pisa en silencio: con otra versión en el servidor, decide el usuario.
+    // Un nombre local distinto queda como renombrado pendiente: "Sobrescribir" lo sube y "Recargar" lo descarta.
+    const local = copia.nombre !== undefined && copia.nombre !== nombreRemoto ? copia.nombre : undefined
     return {
-      id, version: copia.version, nombre: nombreRemoto, documento: copia.documento, pendiente: true, guardado: 'conflicto', versionRemota: remoto.version,
+      id, version: copia.version, nombre: local ?? nombreRemoto, documento: copia.documento, pendiente: true,
+      ...(local !== undefined && { nombrePendiente: local }), guardado: 'conflicto', versionRemota: remoto.version,
     }
   }
   const nombre = renombrado ?? nombreRemoto
