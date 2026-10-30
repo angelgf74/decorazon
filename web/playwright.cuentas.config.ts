@@ -17,7 +17,9 @@ export default defineConfig({
   workers: 1,
   timeout: 60_000,
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  use: { baseURL: 'http://localhost:5322' },
+  // En el CI, el informe HTML y las trazas de lo que falle se suben como artefactos.
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  use: { baseURL: 'http://localhost:5322', trace: 'retain-on-failure' },
   webServer: [
     {
       command: 'dotnet run --project ../src/Decorazon.Api --no-launch-profile --urls http://localhost:5320',
@@ -25,6 +27,8 @@ export default defineConfig({
       // Nunca la API de desarrollo: esta usa otra base, otra clave y la carpeta de correos.
       reuseExistingServer: false,
       timeout: 240_000,
+      // El log de la API sale con el de la prueba: sin él, un fallo del servidor no se ve.
+      stdout: 'pipe',
       env: {
         ASPNETCORE_ENVIRONMENT: 'Development',
         ConnectionStrings__Decorazon: BASE_DE_DATOS,

@@ -51,6 +51,7 @@ cd web && npm run api:tipos                                # regenera src/api/es
 ## Web ↔ API
 
 - El cliente (`openapi-fetch`) y los tipos (`web/src/api/esquema.d.ts`) salen de `web/src/api/openapi.json`, que escribe el build de la API. Los dos van en git y el CI comprueba que están al día: tras cambiar un contrato, `dotnet build` y `npm run api:tipos`.
+- `web/package.json` lleva un `overrides` para que `openapi-typescript` use el TypeScript 6 del proyecto (su peer pide ^5). Se quita cuando `openapi-typescript` soporte TS 6.
 - `PUT /disenos/{id}` reemplaza el diseño entero: siempre con `nombre`, `tipoEstancia` y `contenido`, más `If-Match`.
 - Claves de `localStorage`:
   - `decorazon.sesion`: token y caducidad;
