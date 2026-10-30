@@ -27,10 +27,15 @@ function montar(busqueda: string, estado?: unknown) {
   )
 }
 
-async function entrarConExito() {
+/** `despues`: respuestas de las peticiones que siguen a entrar (un Error simula la falta de red). */
+async function entrarConExito(...despues: (Response | Error)[]) {
   fetchSimulado
     .mockResolvedValueOnce(respuesta(200, { token: 'jwt', caducidad: MANANA }))
     .mockResolvedValueOnce(respuesta(200, { nombre: 'Ana', correo: 'ana@x.es' }))
+  for (const r of despues) {
+    if (r instanceof Error) fetchSimulado.mockRejectedValueOnce(r)
+    else fetchSimulado.mockResolvedValueOnce(r)
+  }
   await userEvent.type(screen.getByLabelText('Correo'), 'ana@x.es')
   await userEvent.type(screen.getByLabelText('Contraseña'), 'una contraseña larga')
   await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
@@ -164,16 +169,51 @@ describe('Entrar con un diseño anónimo', () => {
     expect(almacen.getState().documento).toBeNull()
   })
 
-  it('si ya se envió con el registro, no pregunta, lo descarta y borra la marca', async () => {
+  function resumen(id: string, nombre: string) {
+    return { id, nombre, tipoEstancia: 'salon', fechaDeCreacion: '2026-01-01T00:00:00Z', fechaDeModificacion: '2026-01-01T00:00:00Z', version: 1 }
+  }
+
+  function diseno(id: string, nombre: string, contenido: unknown) {
+    return respuesta(200, { ...resumen(id, nombre), contenido })
+  }
+
+  // jsonb devuelve las claves en otro orden.
+  function clavesAlReves(valor: unknown): unknown {
+    if (Array.isArray(valor)) return valor.map(clavesAlReves)
+    if (typeof valor !== 'object' || valor === null) return valor
+    return Object.fromEntries(Object.entries(valor).reverse().map(([k, v]) => [k, clavesAlReves(v)]))
+  }
+
+  it('si ya se envió con el registro y la cuenta lo tiene, no pregunta, lo descarta y borra la marca', async () => {
     conAnonimo(conElemento)
     localStorage.setItem(CLAVE_REGISTRO_ENVIADO, serializarDocumento(conElemento))
     montar('')
-    await entrarConExito()
+    await entrarConExito(
+      respuesta(200, [resumen('otro', 'Cocina'), resumen('d1', 'Mi primer diseño')]),
+      diseno('d1', 'Mi primer diseño', clavesAlReves(conElemento)),
+    )
     expect(await screen.findByText('mis diseños')).toBeInTheDocument()
     expect(screen.queryByText('¿Guardar este diseño en tu cuenta?')).toBeNull()
+    // Empieza por el llamado "Mi primer diseño".
+    expect(fetchSimulado.mock.calls[3][0].url).toMatch(/\/disenos\/d1$/)
     expect(localStorage.getItem(CLAVE_DISENO)).toBeNull()
     expect(localStorage.getItem(CLAVE_REGISTRO_ENVIADO)).toBeNull()
     expect(almacen.getState().documento).toBeNull()
+  })
+
+  it.each([
+    ['la cuenta tiene otro contenido', [respuesta(200, [resumen('d1', 'Mi primer diseño')]), diseno('d1', 'Mi primer diseño', base)]],
+    ['la cuenta no tiene diseños', [respuesta(200, [])]],
+    ['no hay red', [new TypeError('Failed to fetch')]],
+    ['el servidor falla', [respuesta(200, [resumen('d1', 'Mi primer diseño')]), respuesta(500, { mensaje: 'fallo' })]],
+  ])('si se envió con el registro pero %s, pregunta y no descarta', async (_caso, despues) => {
+    conAnonimo(conElemento)
+    localStorage.setItem(CLAVE_REGISTRO_ENVIADO, serializarDocumento(conElemento))
+    montar('')
+    await entrarConExito(...despues)
+    expect(await screen.findByText('¿Guardar este diseño en tu cuenta?')).toBeInTheDocument()
+    expect(localStorage.getItem(CLAVE_DISENO)).not.toBeNull()
+    expect(almacen.getState().documento).toEqual(conElemento)
   })
 
   it('si el navegador cierra la pregunta por su cuenta (Escape), vuelve a abrirse', async () => {

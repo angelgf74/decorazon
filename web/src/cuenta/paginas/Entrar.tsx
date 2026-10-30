@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import Confirmar from '../../editor/comunes/Confirmar'
 import type { DocumentoDiseno } from '../../nucleo'
 import { textos } from '../../textos'
-import { descartarDisenoAnonimo, disenoAnonimo, enviadoConElRegistro, subirDisenoAnonimo } from '../disenosLocales'
+import { descartarDisenoAnonimo, disenoAnonimo, subirDisenoAnonimo, yaEstaEnLaCuenta } from '../disenosLocales'
 import { mensajeDeError } from '../errores'
 import { rutaInterna, useSesion } from '../sesion'
 import '../cuenta.css'
@@ -49,7 +49,7 @@ export default function Entrar() {
     const doc = disenoAnonimo()
     if (doc === null) {
       navegar(destino, { replace: true })
-    } else if (enviadoConElRegistro(doc)) {
+    } else if (await yaEstaEnLaCuenta(doc)) {
       // Ya está en la cuenta desde el registro.
       descartarDisenoAnonimo()
       navegar(destino, { replace: true })

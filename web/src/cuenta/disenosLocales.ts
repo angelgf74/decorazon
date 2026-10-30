@@ -1,5 +1,5 @@
 import { ErrorDeApi } from '../api/cliente'
-import { crearDiseno } from '../disenos/servidor'
+import { crearDiseno, listarDisenos, obtenerDiseno } from '../disenos/servidor'
 import { almacen } from '../editor/estado/almacen'
 import {
   almacenamientoSeguro, borrarCopiasLocales, CLAVE_DESCARTADO, CLAVE_DUENO_COPIAS, CLAVE_REGISTRO_ENVIADO, disenoNoVacio,
@@ -7,7 +7,7 @@ import {
   guardarDisenoLocal,
 } from '../editor/persistencia/local'
 import { anularSincronizacion, hayGuardadosEnMarcha } from '../editor/persistencia/sincronizacion'
-import { serializarDocumento, type DocumentoDiseno } from '../nucleo'
+import { redondearNumeros, serializarDocumento, validarDocumento, type DocumentoDiseno } from '../nucleo'
 import { textos } from '../textos'
 import { mensajeDeError } from './errores'
 
@@ -22,13 +22,40 @@ export function descartarDisenoAnonimo(): void {
   if (almacen.getState().origen.tipo === 'anonimo') almacen.getState().descartar()
 }
 
-/** Si el diseño es el que viajó con el registro (ya está en la cuenta), borra esa marca y responde que sí. */
-export function enviadoConElRegistro(doc: DocumentoDiseno): boolean {
+// Contenido comparable: validado, redondeado y con las claves ordenadas (jsonb las reordena).
+function contenidoNormalizado(dato: unknown): string | null {
+  const v = validarDocumento(dato)
+  if (!v.valido) return null
+  const ordenar = (x: unknown): unknown => {
+    if (Array.isArray(x)) return x.map(ordenar)
+    if (typeof x !== 'object' || x === null) return x
+    return Object.fromEntries(Object.keys(x).sort().map((k) => [k, ordenar((x as Record<string, unknown>)[k])]))
+  }
+  return JSON.stringify(ordenar(redondearNumeros(v.documento)))
+}
+
+/**
+ * Si el diseño es el que viajó con el registro y la cuenta lo tiene de verdad, borra esa marca y responde que sí.
+ * Ante cualquier duda (otra cuenta, enlace caducado, sin red, error) responde que no: nunca se descarta sin certeza.
+ */
+export async function yaEstaEnLaCuenta(doc: DocumentoDiseno): Promise<boolean> {
   const st = almacenamientoSeguro()
   try {
     if (st === null || st.getItem(CLAVE_REGISTRO_ENVIADO) !== serializarDocumento(doc)) return false
-    st.removeItem(CLAVE_REGISTRO_ENVIADO)
-    return true
+    const buscado = contenidoNormalizado(doc)
+    if (buscado === null) return false
+    const primero = textos.cuenta.registro.nombrePorDefecto
+    const candidatos = (await listarDisenos())
+      .filter((d) => d.tipoEstancia === doc.estancia.tipo)
+      .sort((a, b) => Number(b.nombre === primero) - Number(a.nombre === primero))
+    for (const c of candidatos) {
+      const { diseno } = await obtenerDiseno(c.id)
+      if (contenidoNormalizado(diseno.contenido) === buscado) {
+        st.removeItem(CLAVE_REGISTRO_ENVIADO)
+        return true
+      }
+    }
+    return false
   } catch {
     return false
   }
