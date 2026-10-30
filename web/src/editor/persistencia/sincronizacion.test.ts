@@ -282,6 +282,16 @@ describe('sincronización con el servidor', () => {
     expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(270)
   })
 
+  it('un 400 al guardar (p. ej. más de 1 MB): "error" y el mensaje de la API en el aviso', async () => {
+    servidor.guardarDiseno.mockRejectedValueOnce(new ErrorDeApi(400, 'El diseño ocupa más de 1 MB.'))
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(a.getState().guardado).toBe('error')
+    expect(a.getState().aviso).toBe('El diseño ocupa más de 1 MB.')
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ pendiente: true })
+  })
+
   it('volver al anónimo con un cambio sin enviar lo guarda sin esperar', async () => {
     servidorConVersion(4)
     const { a, st } = preparar(4)

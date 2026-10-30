@@ -190,7 +190,8 @@ export function conectarSincronizacion(
         fijar(t, { guardado: 'conflicto', versionRemota: e.version ?? null })
       } else {
         // También un 401: si cierra la sesión, se sale del editor; la copia local sigue pendiente y se sube al volver.
-        fijar(t, { guardado: 'error' })
+        // Un 400 explica qué falla (p. ej. más de 1 MB): su mensaje no se pierde.
+        fijar(t, { guardado: 'error', ...(e instanceof ErrorDeApi && e.estado === 400 && { aviso: e.mensaje }) })
       }
     }
   }
