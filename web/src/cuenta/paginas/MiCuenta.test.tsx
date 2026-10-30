@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -147,6 +147,35 @@ describe('MiCuenta', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Borrar la cuenta' }))
     expect(await screen.findByText('Contraseña incorrecta')).toBeInTheDocument()
     expect(sesion.getState().token).toBe('jwt')
+  })
+
+  it('con el borrado en vuelo no se puede cancelar y dos envíos mandan un solo DELETE', async () => {
+    let terminar: (r: Response) => void = () => {}
+    fetchSimulado.mockReturnValueOnce(new Promise<Response>((r) => { terminar = r }))
+    montar()
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar mi cuenta' }))
+    await userEvent.type(screen.getByLabelText('Tu contraseña'), ACTUAL)
+    const borrar = screen.getByRole('button', { name: 'Borrar la cuenta' })
+    fireEvent.click(borrar)
+    fireEvent.click(borrar)
+    fireEvent.submit(screen.getByLabelText('Tu contraseña').closest('form')!)
+    expect(await screen.findByRole('button', { name: 'Cancelar' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Borrar la cuenta' })).toBeDisabled()
+    fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }))
+    expect(screen.getByText('Se borrarán tu cuenta y todos tus diseños. No se puede deshacer.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Tu contraseña')).toHaveValue(ACTUAL)
+    terminar(respuesta(204))
+    expect(await screen.findByText('en / Tu cuenta se ha borrado.')).toBeInTheDocument()
+    expect(fetchSimulado).toHaveBeenCalledTimes(1)
+  })
+
+  it('Enter en el campo de contraseña confirma el borrado', async () => {
+    fetchSimulado.mockResolvedValueOnce(respuesta(204))
+    montar()
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar mi cuenta' }))
+    await userEvent.type(screen.getByLabelText('Tu contraseña'), `${ACTUAL}{Enter}`)
+    expect(await screen.findByText('en / Tu cuenta se ha borrado.')).toBeInTheDocument()
+    expect(fetchSimulado).toHaveBeenCalledTimes(1)
   })
 
   it('sin sesión lleva a Entrar', () => {

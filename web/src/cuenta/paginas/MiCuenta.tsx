@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { api, exigir } from '../../api/cliente'
 import Confirmar from '../../editor/comunes/Confirmar'
@@ -17,6 +17,8 @@ export default function MiCuenta() {
   const haySesion = useSesion((s) => s.haySesion())
   const usuario = useSesion((s) => s.usuario)
   const [saliendo, setSaliendo] = useState(false)
+  // Guard síncrono: dos clics antes del re-render no mandan dos peticiones.
+  const enCurso = useRef(false)
   const [actual, setActual] = useState('')
   const [nueva, setNueva] = useState('')
   const [repetida, setRepetida] = useState('')
@@ -40,6 +42,8 @@ export default function MiCuenta() {
       setError(t.restablecer.noCoinciden)
       return
     }
+    if (enCurso.current) return
+    enCurso.current = true
     setEnviando(true)
     setError(null)
     try {
@@ -49,22 +53,26 @@ export default function MiCuenta() {
       navegar('/entrar', { replace: true, state: { mensaje: m.cambiada } })
     } catch (err) {
       setError(mensajeDeError(err))
+      enCurso.current = false
       setEnviando(false)
     }
   }
 
   const salir = () => {
+    if (enCurso.current) return
+    enCurso.current = true
     setConfirmandoSalir(false)
     setSaliendo(true)
     sesion.getState().cerrarSesion()
   }
 
   const borrar = async () => {
-    if (borrandoEnCurso) return
+    if (enCurso.current) return
     if (contrasenaBorrar === '') {
       setErrorBorrar(m.sinContrasena)
       return
     }
+    enCurso.current = true
     setBorrandoEnCurso(true)
     setErrorBorrar(null)
     try {
@@ -74,6 +82,7 @@ export default function MiCuenta() {
       navegar('/', { replace: true, state: { mensaje: textos.inicio.cuentaBorrada } })
     } catch (err) {
       setErrorBorrar(mensajeDeError(err))
+      enCurso.current = false
       setBorrandoEnCurso(false)
     }
   }
@@ -131,11 +140,14 @@ export default function MiCuenta() {
         textoAceptar={m.borrarDefinitivo}
         alAceptar={() => void borrar()}
         alCancelar={cerrarBorrado}
+        ocupado={borrandoEnCurso}
       >
-        <label className="cuenta__campo">
-          {m.contrasenaBorrar}
-          <input type="password" autoComplete="current-password" value={contrasenaBorrar} onChange={(e) => setContrasenaBorrar(e.target.value)} />
-        </label>
+        <form method="post" onSubmit={(e) => { e.preventDefault(); void borrar() }}>
+          <label className="cuenta__campo">
+            {m.contrasenaBorrar}
+            <input type="password" autoComplete="current-password" value={contrasenaBorrar} onChange={(e) => setContrasenaBorrar(e.target.value)} />
+          </label>
+        </form>
         {errorBorrar && <p className="cuenta__error" role="alert">{errorBorrar}</p>}
       </Confirmar>
     </main>
