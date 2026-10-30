@@ -32,15 +32,13 @@ export async function crearDiseno(nombre: string, doc: DocumentoDiseno): Promise
   return validar(exigir(await api.POST('/disenos', { body })))
 }
 
+/** PUT reemplaza el diseño entero: siempre viajan el nombre, el tipo de estancia y el contenido. */
 export async function guardarDiseno(
   id: string,
   version: number,
-  cambios: { nombre?: string; doc?: DocumentoDiseno },
+  diseno: { nombre: string; doc: DocumentoDiseno },
 ): Promise<DisenoServidor> {
-  const body = {
-    ...(cambios.nombre !== undefined && { nombre: cambios.nombre }),
-    ...(cambios.doc !== undefined && { tipoEstancia: cambios.doc.estancia.tipo, contenido: contenidoParaEnviar(cambios.doc) }),
-  }
+  const body = { nombre: diseno.nombre, tipoEstancia: diseno.doc.estancia.tipo, contenido: contenidoParaEnviar(diseno.doc) }
   const r = await api.PUT('/disenos/{id}', { params: { path: { id }, header: { 'If-Match': `"${version}"` } }, body })
   return validar(exigir(r))
 }

@@ -92,6 +92,8 @@ describe('sincronización con el servidor', () => {
     expect(id).toBe(ID)
     expect(v).toBe(4)
     expect(cambios.doc.estancia.alto).toBe(280)
+    // La API reemplaza el diseño entero: el documento viaja con su nombre.
+    expect(cambios.nombre).toBe('Cocina')
     expect(version(a)).toBe(5)
     expect(a.getState().guardado).toBe('guardado')
   })
@@ -271,7 +273,8 @@ describe('sincronización con el servidor', () => {
     const { a } = preparar(4)
     renombrar(a, '  Cocina nueva ')
     await vi.advanceTimersByTimeAsync(0)
-    expect(servidor.guardarDiseno).toHaveBeenCalledWith(ID, 4, { nombre: 'Cocina nueva' })
+    // La API reemplaza el diseño entero: el nombre nuevo viaja con el documento.
+    expect(servidor.guardarDiseno).toHaveBeenCalledWith(ID, 4, { nombre: 'Cocina nueva', doc })
     expect(a.getState().origen).toMatchObject({ nombre: 'Cocina nueva', version: 5 })
   })
 

@@ -19,38 +19,26 @@ afterEach(() => vi.unstubAllGlobals())
 describe('servidor de diseños', () => {
   it('guardarDiseno envía If-Match entre comillas', async () => {
     fetchSimulado.mockResolvedValueOnce(respuesta(200, completo(documentoNuevo('cocina', 400, 300, 250))))
-    await guardarDiseno(ID, 3, { nombre: 'Nuevo' })
+    await guardarDiseno(ID, 3, { nombre: 'Nuevo', doc: documentoNuevo('cocina', 400, 300, 250) })
     const peticion = fetchSimulado.mock.calls[0]![0]
     expect(peticion.method).toBe('PUT')
     expect(peticion.headers.get('If-Match')).toBe('"3"')
-    expect(await peticion.json()).toEqual({ nombre: 'Nuevo' })
   })
 
-  it('guardarDiseno con doc envía el contenido redondeado y su tipo de estancia', async () => {
+  it('guardarDiseno envía el diseño entero: nombre, tipo de estancia y contenido redondeado', async () => {
     const doc = documentoNuevo('dormitorio', 400.004, 300.006, 250)
     fetchSimulado.mockResolvedValueOnce(respuesta(200, completo(documentoNuevo('dormitorio', 400, 300.01, 250))))
-    await guardarDiseno(ID, 7, { doc })
-    const peticion = fetchSimulado.mock.calls[0]![0]
-    expect(peticion.method).toBe('PUT')
-    expect(peticion.headers.get('If-Match')).toBe('"7"')
-    const cuerpo = (await peticion.json()) as { nombre?: string; tipoEstancia: string; contenido: typeof doc }
-    expect(cuerpo.nombre).toBeUndefined()
+    await guardarDiseno(ID, 7, { nombre: 'Dormitorio', doc })
+    const cuerpo = (await fetchSimulado.mock.calls[0]![0].json()) as { nombre: string; tipoEstancia: string; contenido: typeof doc }
+    expect(cuerpo.nombre).toBe('Dormitorio')
     expect(cuerpo.tipoEstancia).toBe('dormitorio')
     expect(cuerpo.contenido.estancia.planta[1]!.x).toBe(400)
     expect(cuerpo.contenido.estancia.planta[2]!.y).toBe(300.01)
   })
 
-  it('guardarDiseno con nombre y doc envía los dos', async () => {
-    const doc = documentoNuevo('salon', 400, 300, 250)
-    fetchSimulado.mockResolvedValueOnce(respuesta(200, completo(doc)))
-    await guardarDiseno(ID, 2, { nombre: 'Salón', doc })
-    const cuerpo = (await fetchSimulado.mock.calls[0]![0].json()) as { nombre: string; tipoEstancia: string }
-    expect(cuerpo).toMatchObject({ nombre: 'Salón', tipoEstancia: 'salon' })
-  })
-
   it('guardarDiseno con 412 lanza ErrorDeApi con la versión remota', async () => {
     fetchSimulado.mockResolvedValueOnce(respuesta(412, { mensaje: 'Cambiado', version: 9 }))
-    await expect(guardarDiseno(ID, 4, { doc: documentoNuevo('salon', 400, 300, 250) })).rejects.toMatchObject({ estado: 412, version: 9 })
+    await expect(guardarDiseno(ID, 4, { nombre: 'Salón', doc: documentoNuevo('salon', 400, 300, 250) })).rejects.toMatchObject({ estado: 412, version: 9 })
   })
 
   it('crearDiseno envía el contenido redondeado y el tipo del documento', async () => {

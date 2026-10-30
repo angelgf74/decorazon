@@ -7,7 +7,7 @@ import Confirmar from '../../editor/comunes/Confirmar'
 import NuevaEstancia from '../../editor/paneles/NuevaEstancia'
 import { documentoNuevo, type TipoEstancia } from '../../nucleo'
 import { textos } from '../../textos'
-import { borrarDiseno, crearDiseno, duplicarDiseno, guardarDiseno, listarDisenos, type ResumenDiseno } from '../servidor'
+import { borrarDiseno, crearDiseno, duplicarDiseno, guardarDiseno, listarDisenos, obtenerDiseno, type ResumenDiseno } from '../servidor'
 import '../disenos.css'
 
 const t = textos.disenos
@@ -114,7 +114,9 @@ export default function MisDisenos() {
     if (nombre === '') return
     void intentar(async () => {
       try {
-        await guardarDiseno(d.id, d.version, { nombre })
+        // PUT reemplaza el diseño entero: con el contenido guardado y la versión de la lista, que delata otro cambio.
+        const { diseno } = await obtenerDiseno(d.id)
+        await guardarDiseno(d.id, d.version, { nombre, doc: diseno.contenido })
         setEditando(null)
         await recargar()
       } catch (err) {

@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: 'e2e',
+  // El recorrido de cuentas necesita la API y PostgreSQL: npm run e2e:cuentas.
+  testIgnore: 'cuentas/**',
   forbidOnly: !!process.env.CI,
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   use: { baseURL: 'http://localhost:5322' },

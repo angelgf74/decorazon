@@ -153,14 +153,14 @@ export function conectarSincronizacion(
       if (t === actual && a.getState().guardado === 'sinConexion') await comprobar(t)
       return
     }
-    const doc = t.sucio ? t.documento : undefined
+    const habiaDoc = t.sucio
     const nombre = t.nombrePendiente ?? undefined
     t.enVuelo = true
     t.sucio = false
     t.nombrePendiente = null
     fijar(t, { guardado: 'pendiente' })
     try {
-      const r = await guardarDiseno(t.id, t.version, { ...(nombre !== undefined && { nombre }), ...(doc !== undefined && { doc }) })
+      const r = await guardarDiseno(t.id, t.version, { nombre: t.nombre, doc: t.documento })
       t.enVuelo = false
       t.version = r.version
       if (t.nombrePendiente === null) t.nombre = r.nombre
@@ -176,7 +176,7 @@ export function conectarSincronizacion(
       } else fijar(t, { guardado: 'guardado' })
     } catch (e) {
       t.enVuelo = false
-      if (doc !== undefined) t.sucio = true
+      if (habiaDoc) t.sucio = true
       if (nombre !== undefined) t.nombrePendiente ??= nombre
       if (t !== actual) return
       if (e instanceof ErrorDeApi && e.estado === 0) {

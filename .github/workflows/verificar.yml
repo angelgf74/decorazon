@@ -43,3 +43,41 @@ jobs:
       - run: git diff --exit-code web/src/api/openapi.json
       # Docker ya viene en el runner: corren también los tests de integración.
       - run: dotnet test Decorazon.slnx
+
+  e2e-cuentas:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Solo para el CI: la misma base de pruebas que docker-compose.yml.
+          POSTGRES_DB: decorazon
+          POSTGRES_USER: decorazon
+          POSTGRES_PASSWORD: decorazon_local
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U decorazon -d decorazon"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # Arranca la API (crea y migra decorazon_e2e) y el preview; la clave JWT la genera la config.
+      - run: npm run e2e:cuentas

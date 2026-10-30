@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CLAVE_SESION, conectarSesionConApi, reiniciarSesion } from '../../cuenta/sesion'
+import { documentoNuevo } from '../../nucleo'
 import { respuesta } from '../../pruebas/respuesta'
 import MisDisenos from './MisDisenos'
 
@@ -90,12 +91,35 @@ describe('MisDisenos', () => {
     await userEvent.clear(campo)
     await userEvent.type(campo, 'Otro')
     fetchSimulado
+      .mockResolvedValueOnce(respuesta(200, { ...RECIENTE, version: 2, contenido: documentoNuevo('salon', 400, 300, 250) }))
       .mockResolvedValueOnce(respuesta(412, { mensaje: 'Versión distinta', version: 2 }))
       .mockResolvedValueOnce(respuesta(200, [{ ...RECIENTE, nombre: 'Cambiado', version: 2 }]))
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByText('Cambiado')).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('ha cambiado en otro sitio')
-    expect(fetchSimulado.mock.calls[1]![0].headers.get('If-Match')).toBe('"1"')
+    expect(fetchSimulado.mock.calls[2]![0].headers.get('If-Match')).toBe('"1"')
+  })
+
+  it('renombrar envía el diseño entero, con el contenido guardado y la versión de la lista', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [RECIENTE]))
+    montar()
+    const fila = (await screen.findByText('Reciente')).closest('li')!
+    await userEvent.click(within(fila).getByRole('button', { name: 'Renombrar' }))
+    const campo = screen.getByLabelText('Nombre del diseño')
+    await userEvent.clear(campo)
+    await userEvent.type(campo, 'Otro')
+    const contenido = documentoNuevo('salon', 420, 300, 250)
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta(200, { ...RECIENTE, contenido }))
+      .mockResolvedValueOnce(respuesta(200, { ...RECIENTE, nombre: 'Otro', version: 2, contenido }))
+      .mockResolvedValueOnce(respuesta(200, [{ ...RECIENTE, nombre: 'Otro', version: 2 }]))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('Otro')).toBeInTheDocument()
+    const peticion = fetchSimulado.mock.calls[2]![0]
+    expect(peticion.method).toBe('PUT')
+    expect(peticion.headers.get('If-Match')).toBe('"1"')
+    expect(await peticion.json()).toEqual({ nombre: 'Otro', tipoEstancia: 'salon', contenido: JSON.parse(JSON.stringify(contenido)) })
   })
 
   it('sin diseños muestra el vacío y el botón de crear', async () => {
