@@ -47,8 +47,8 @@ public sealed class ApiConCorreoCaidoFixture : ApiConPostgresFixture
 }
 
 /// <summary>
-/// Si el correo no sale, quien pidió el enlace debe saberlo ahora: 503 con un mensaje
-/// que invita a reintentar, no un 500 ni un "te lo hemos enviado" que nunca llega.
+/// Si el correo no sale, el alta responde 503 con un mensaje que invita a reintentar. El olvido
+/// de contraseña no: responde igual que para una cuenta inexistente, para no filtrar cuentas.
 /// </summary>
 [Trait("Categoria", "Integracion")]
 public class CorreoCaidoTests(ApiConCorreoCaidoFixture api) : IClassFixture<ApiConCorreoCaidoFixture>
@@ -65,7 +65,7 @@ public class CorreoCaidoTests(ApiConCorreoCaidoFixture api) : IClassFixture<ApiC
     }
 
     [Fact]
-    public async Task Olvido_ConElCorreoCaido_Responde503ConMensaje()
+    public async Task Olvido_ConElCorreoCaido_RespondeAceptadaComoSiNoHubieraCuenta()
     {
         var correo = $"con-cuenta-{Guid.NewGuid():N}@ejemplo.com";
         using (var ambito = api.Services.CreateScope())
@@ -79,7 +79,11 @@ public class CorreoCaidoTests(ApiConCorreoCaidoFixture api) : IClassFixture<ApiC
         var respuesta = await api.CreateClient().PostAsJsonAsync(
             "/cuentas/contrasena/olvido", new PeticionDeOlvidoDeContrasena { Correo = correo });
 
-        await AssertServicioNoDisponibleAsync(respuesta);
+        // Un 503 solo podría darse con cuenta: delataría que la dirección está registrada.
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Equal(
+            "Si esa dirección tiene cuenta, te hemos enviado un correo con las instrucciones.",
+            (await respuesta.Content.ReadFromJsonAsync<RespuestaDeMensaje>())?.Mensaje);
     }
 
     private static async Task AssertServicioNoDisponibleAsync(HttpResponseMessage respuesta)

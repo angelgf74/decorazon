@@ -57,6 +57,18 @@ public class CorreoEnProduccionTests
     }
 
     [Fact]
+    public void ConUnaCarpetaDeSimulados_NoArranca()
+    {
+        using var api = new ApiEnProduccion(
+            ("Correo:ClaveDeApi", "clave-de-prueba"),
+            ("Correo:CarpetaDeSimulados", "/tmp/correos"));
+
+        var excepcion = Assert.Throws<InvalidOperationException>(() => api.CreateClient());
+
+        Assert.Contains("Correo:CarpetaDeSimulados", excepcion.Message);
+    }
+
+    [Fact]
     public void ConElOptOutExplicito_ArrancaSinBrevo()
     {
         using var api = new ApiEnProduccion(("Correo:UsarBrevo", "false"), ("Correo:Simulado", "true"));

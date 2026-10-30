@@ -61,8 +61,10 @@ public static class ContrasenasEndpoints
         [FromBody] PeticionDeOlvidoDeContrasena peticion,
         SolicitarRestablecerContrasena casoDeUso,
         IOptions<OpcionesDeCorreo> opcionesDeCorreo,
+        ILoggerFactory fabricaDeRegistro,
         CancellationToken cancelacion)
     {
+        var registro = fabricaDeRegistro.CreateLogger(typeof(ContrasenasEndpoints).FullName!);
         var baseDeLaWeb = opcionesDeCorreo.Value.BaseDeLaWeb.TrimEnd('/');
 
         var resultado = await casoDeUso.EjecutarAsync(
@@ -75,12 +77,20 @@ public static class ContrasenasEndpoints
             ResultadoDeSolicitudDeContrasena.CorreoInvalido =>
                 Results.BadRequest(new RespuestaDeMensaje("Ese correo electrónico no parece válido.")),
 
-            ResultadoDeSolicitudDeContrasena.CorreoNoEnviado => RegistroEndpoints.CorreoNoEnviado(),
+            // Brevo caído solo puede darse con cuenta: un 503 aquí delataría que la
+            // dirección está registrada. Se deja en el log y se responde como siempre.
+            ResultadoDeSolicitudDeContrasena.CorreoNoEnviado => AceptadaRegistrandoElFallo(registro),
 
             // Aceptada tenga cuenta o no: distinguirlos convertiría esto en un
             // comprobador de qué direcciones están registradas.
             _ => Results.Ok(new RespuestaDeMensaje(MensajeDeSolicitudAceptada))
         };
+    }
+
+    private static IResult AceptadaRegistrandoElFallo(ILogger registro)
+    {
+        registro.LogError("No se pudo enviar el correo de contraseña olvidada: el proveedor de correo no lo aceptó.");
+        return Results.Ok(new RespuestaDeMensaje(MensajeDeSolicitudAceptada));
     }
 
     private static async Task<IResult> RestablecerAsync(
