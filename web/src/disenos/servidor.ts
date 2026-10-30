@@ -32,15 +32,22 @@ export async function crearDiseno(nombre: string, doc: DocumentoDiseno): Promise
   return validar(exigir(await api.POST('/disenos', { body })))
 }
 
-/** PUT reemplaza el diseño entero: siempre viajan el nombre, el tipo de estancia y el contenido. */
+export type DisenoGuardado = Omit<RespuestaCruda, 'contenido'>
+
+/**
+ * PUT reemplaza el diseño entero: siempre viajan el nombre, el tipo de estancia y el contenido.
+ * De la respuesta se toman versión y nombre sin revalidar el contenido: es el que se acaba de enviar.
+ * Si se rechazara, el guardado ya hecho contaría como fallo y la versión no avanzaría: conflicto con uno mismo.
+ */
 export async function guardarDiseno(
   id: string,
   version: number,
   diseno: { nombre: string; doc: DocumentoDiseno },
-): Promise<DisenoServidor> {
+): Promise<DisenoGuardado> {
   const body = { nombre: diseno.nombre, tipoEstancia: diseno.doc.estancia.tipo, contenido: contenidoParaEnviar(diseno.doc) }
   const r = await api.PUT('/disenos/{id}', { params: { path: { id }, header: { 'If-Match': `"${version}"` } }, body })
-  return validar(exigir(r))
+  const { contenido: _enviado, ...guardado } = exigir(r)
+  return guardado
 }
 
 export async function duplicarDiseno(id: string): Promise<DisenoServidor> {

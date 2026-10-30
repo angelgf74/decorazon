@@ -41,6 +41,12 @@ describe('servidor de diseños', () => {
     await expect(guardarDiseno(ID, 4, { nombre: 'Salón', doc: documentoNuevo('salon', 400, 300, 250) })).rejects.toMatchObject({ estado: 412, version: 9 })
   })
 
+  it('guardarDiseno toma versión y nombre de la respuesta sin revalidar el contenido: es el que se acaba de enviar', async () => {
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, { ...completo({ formato: 1 }), version: 8, nombre: 'Guardado' }))
+    const r = await guardarDiseno(ID, 7, { nombre: 'Guardado', doc: documentoNuevo('cocina', 400, 300, 250) })
+    expect(r).toMatchObject({ version: 8, nombre: 'Guardado' })
+  })
+
   it('crearDiseno envía el contenido redondeado y el tipo del documento', async () => {
     const doc = documentoNuevo('cocina', 400.004, 300, 250)
     fetchSimulado.mockResolvedValueOnce(respuesta(201, completo(documentoNuevo('cocina', 400, 300, 250))))
