@@ -57,7 +57,7 @@ cd web && npm run api:tipos                                # regenera src/api/es
   - `decorazon.disenoAnonimo`: el diseño sin cuenta;
   - `decorazon.diseno.<id>`: copia local de cada diseño del servidor, con su versión y si tiene cambios sin subir;
   - `decorazon.registroEnviado`: el diseño que viajó con el registro; al entrar no se pregunta si guardarlo solo si la cuenta tiene un diseño con ese mismo contenido (se comprueba en el servidor; ante la duda, se pregunta).
-- `cerrarSesion()` (salida voluntaria o borrado de la cuenta) borra las copias `decorazon.diseno.*`, el diseño anónimo y `decorazon.registroEnviado`, y el editor anónimo empieza vacío; "Cerrar sesión" con cambios sin subir pide confirmación antes. `cerrarSesion('caducada')` conserva las copias para subir lo pendiente al volver, y `cerrarSesion({ conservarLocales: true })` (tras cambiar la contraseña, mismo usuario) también.
+- `cerrarSesion()` (salida voluntaria o borrado de la cuenta) borra las copias `decorazon.diseno.*`, el diseño anónimo y `decorazon.registroEnviado`, y el editor anónimo empieza vacío; "Cerrar sesión" con cambios sin subir pide confirmación antes. `cerrarSesion('caducada')` conserva las copias para subir lo pendiente al volver, y `cerrarSesion({ conservarLocales: true })` (tras cambiar la contraseña, mismo usuario) también. Si otra pestaña cierra la sesión o entra con otra cuenta (evento `storage` sobre `decorazon.sesion`), esta pestaña la olvida, vuelve al anónimo y va al inicio sin borrar nada del almacenamiento.
 
 Los tests de integración llevan `[Trait("Categoria","Integracion")]`; de ahí el filtro.
 

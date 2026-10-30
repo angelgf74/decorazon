@@ -5,7 +5,8 @@ import { respuesta } from '../pruebas/respuesta'
 import { almacen, reiniciarAlmacen } from '../editor/estado/almacen'
 import { CLAVE_DESCARTADO, CLAVE_DISENO, CLAVE_DUENO_COPIAS, CLAVE_REGISTRO_ENVIADO, guardarDisenoLocal } from '../editor/persistencia/local'
 import { documentoNuevo } from '../nucleo'
-import { alCaducarLaSesion, alSalirDeLaSesion, CLAVE_SESION, conectarSesionConApi, reiniciarSesion, sesion } from './sesion'
+import { conectarSincronizacion } from '../editor/persistencia/sincronizacion'
+import { alCaducarLaSesion, alSalirDeLaSesion, CLAVE_SESION, conectarSesionConApi, conectarSesionEntrePestanas, reiniciarSesion, sesion } from './sesion'
 
 const MANANA = new Date(Date.now() + 86_400_000).toISOString()
 const AYER = new Date(Date.now() - 86_400_000).toISOString()
@@ -232,5 +233,90 @@ describe('diseños del navegador al salir y al entrar', () => {
     await entrarComo('ana@x.es')
     expect(clavesDeDiseno()).toEqual([])
     expect(localStorage.getItem(CLAVE_DUENO_COPIAS)).toBe('ana@x.es')
+  })
+})
+
+describe('cierre de sesión en otra pestaña', () => {
+  const doc = documentoNuevo('cocina', 400, 300, 250)
+  const desconectar: Array<() => void> = []
+  afterEach(() => {
+    desconectar.splice(0).forEach((d) => d())
+    vi.useRealTimers()
+  })
+
+  function conDisenoDelServidorAbierto() {
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: MANANA }))
+    reiniciarSesion()
+    localStorage.setItem('decorazon.diseno.a', '{}')
+    localStorage.setItem(CLAVE_DUENO_COPIAS, 'ana@x.es')
+    guardarDisenoLocal(localStorage, doc)
+    almacen.getState().abrirDelServidor('a', 4, 'Cocina', doc)
+    desconectar.push(conectarSesionEntrePestanas())
+  }
+
+  function enOtraPestana(nuevo: string | null, clave: string | null = CLAVE_SESION) {
+    if (clave === CLAVE_SESION) {
+      if (nuevo === null) localStorage.removeItem(CLAVE_SESION)
+      else localStorage.setItem(CLAVE_SESION, nuevo)
+    }
+    window.dispatchEvent(new StorageEvent('storage', { key: clave, newValue: nuevo }))
+  }
+
+  const claves = () => Object.keys(localStorage).sort()
+
+  it('si otra pestaña cierra la sesión: esta la olvida, vuelve al anónimo y al inicio, sin borrar nada más', () => {
+    conDisenoDelServidorAbierto()
+    const alSalir = vi.fn()
+    alSalirDeLaSesion(alSalir)
+    const antes = claves().filter((k) => k !== CLAVE_SESION)
+    enOtraPestana(null)
+    expect(sesion.getState().token).toBeNull()
+    expect(almacen.getState().origen.tipo).toBe('anonimo')
+    expect(almacen.getState().documento).toEqual(doc)
+    expect(alSalir).toHaveBeenCalledTimes(1)
+    expect(claves()).toEqual(antes)
+  })
+
+  it('si otra pestaña entra con otro token: cierre local y no toca la sesión nueva ni sus copias', () => {
+    conDisenoDelServidorAbierto()
+    const alSalir = vi.fn()
+    alSalirDeLaSesion(alSalir)
+    const otra = JSON.stringify({ token: 'otro', caducidad: MANANA })
+    enOtraPestana(otra)
+    expect(sesion.getState().token).toBeNull()
+    expect(alSalir).toHaveBeenCalledTimes(1)
+    expect(localStorage.getItem(CLAVE_SESION)).toBe(otra)
+    expect(localStorage.getItem('decorazon.diseno.a')).toBe('{}')
+  })
+
+  it('el mismo token reescrito, otra clave o esta pestaña sin sesión: no hace nada', () => {
+    conDisenoDelServidorAbierto()
+    const alSalir = vi.fn()
+    alSalirDeLaSesion(alSalir)
+    enOtraPestana(JSON.stringify({ token: 'jwt', caducidad: MANANA }))
+    enOtraPestana('x', 'decorazon.otra')
+    expect(sesion.getState().token).toBe('jwt')
+    expect(almacen.getState().origen.tipo).toBe('servidor')
+    sesion.setState({ token: null, caducidad: null })
+    enOtraPestana(null)
+    expect(alSalir).not.toHaveBeenCalled()
+  })
+
+  it('un localStorage.clear() en otra pestaña también cierra la sesión aquí', () => {
+    conDisenoDelServidorAbierto()
+    localStorage.clear()
+    window.dispatchEvent(new StorageEvent('storage', { key: null }))
+    expect(sesion.getState().token).toBeNull()
+    expect(almacen.getState().origen.tipo).toBe('anonimo')
+  })
+
+  it('lo pendiente de esta pestaña no se sube con la sesión ya cerrada', async () => {
+    vi.useFakeTimers()
+    desconectar.push(conectarSincronizacion(almacen, { esperaMs: 2000, st: localStorage }))
+    conDisenoDelServidorAbierto()
+    almacen.getState().cambiar((d) => ({ ...d, estancia: { ...d.estancia, alto: 260 } }))
+    enOtraPestana(null)
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(fetchSimulado).not.toHaveBeenCalled()
   })
 })

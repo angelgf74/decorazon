@@ -119,6 +119,12 @@ export function olvidarDisenosLocales(): void {
   almacen.getState().descartar()
 }
 
+/** La sesión se cerró en otra pestaña: esta deja el diseño abierto sin subir nada ni tocar el almacenamiento compartido. */
+export function soltarDisenosDeLaSesion(): void {
+  anularSincronizacion(almacen)
+  almacen.getState().volverAAnonimo(almacenamientoSeguro())
+}
+
 /** Las copias locales son de una sola cuenta: al entrar con otra, o sin saber de cuál son, se borran. */
 export function fijarDuenoDeCopias(correo: string): void {
   const st = almacenamientoSeguro()

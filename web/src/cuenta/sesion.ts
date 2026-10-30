@@ -2,7 +2,7 @@ import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 import { alNoAutorizado, api, exigir, fijarFuenteDeToken } from '../api/cliente'
 import { almacenamientoSeguro } from '../editor/persistencia/local'
-import { fijarDuenoDeCopias, olvidarDisenosLocales } from './disenosLocales'
+import { fijarDuenoDeCopias, olvidarDisenosLocales, soltarDisenosDeLaSesion } from './disenosLocales'
 
 export const CLAVE_SESION = 'decorazon.sesion'
 
@@ -31,8 +31,15 @@ const st = almacenamientoSeguro()
 function leerSesion(): SesionGuardada | null {
   if (st === null) return null
   try {
-    const crudo = st.getItem(CLAVE_SESION)
-    if (crudo === null) return null
+    return interpretarSesion(st.getItem(CLAVE_SESION))
+  } catch {
+    return null
+  }
+}
+
+function interpretarSesion(crudo: string | null): SesionGuardada | null {
+  if (crudo === null) return null
+  try {
     const dato: unknown = JSON.parse(crudo)
     if (typeof dato !== 'object' || dato === null) return null
     const { token, caducidad } = dato as { token?: unknown; caducidad?: unknown }
@@ -136,6 +143,25 @@ export function conectarSesionConApi(): void {
   alNoAutorizado((tokenEnviado) => {
     if (tokenEnviado === sesion.getState().token) cerrarSesion('caducada')
   })
+}
+
+/**
+ * Otra pestaña cerró la sesión o entró con otra: esta la olvida, vuelve al anónimo y va al inicio.
+ * No borra nada del almacenamiento compartido: ya lo hizo la otra pestaña, y si entró otra cuenta, sus datos son suyos.
+ */
+export function conectarSesionEntrePestanas(): () => void {
+  const alCambiar = (e: StorageEvent) => {
+    if (e.key !== null && e.key !== CLAVE_SESION) return
+    const propio = sesion.getState().token
+    if (propio === null) return
+    const otra = e.key === null ? leerSesion() : interpretarSesion(e.newValue)
+    if (otra?.token === propio) return
+    soltarDisenosDeLaSesion()
+    sesion.setState({ token: null, caducidad: null, usuario: null })
+    avisoDeSalida()
+  }
+  globalThis.addEventListener?.('storage', alCambiar)
+  return () => globalThis.removeEventListener?.('storage', alCambiar)
 }
 
 // Para las pruebas: vuelve al estado guardado en el navegador.
