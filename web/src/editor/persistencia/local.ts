@@ -4,6 +4,7 @@ import type { EstadoEditor } from '../estado/almacen'
 
 export const CLAVE_DISENO = 'decorazon.disenoAnonimo'
 export const CLAVE_DESCARTADO = 'decorazon.disenoAnonimo.descartado'
+export const CLAVE_REGISTRO_ENVIADO = 'decorazon.registroEnviado'
 
 export function almacenamientoSeguro(): Storage | null {
   try {

@@ -73,6 +73,18 @@ describe('BarraSuperior', () => {
     expect(screen.queryByRole('link', { name: 'Mis diseños' })).toBeNull()
   })
 
+  it('sin sesión "Guardar" lleva al registro', () => {
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    expect(screen.getByRole('link', { name: 'Guardar' })).toHaveAttribute('href', '/registro')
+  })
+
+  it('con sesión no ofrece "Guardar"', () => {
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: new Date(Date.now() + 86_400_000).toISOString() }))
+    reiniciarSesion()
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    expect(screen.queryByRole('link', { name: 'Guardar' })).toBeNull()
+  })
+
   it('con sesión ofrece Mis diseños y el nombre enlaza a la cuenta', () => {
     localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: new Date(Date.now() + 86_400_000).toISOString() }))
     reiniciarSesion()

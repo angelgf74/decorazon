@@ -67,7 +67,10 @@ export default function BarraSuperior({ hojaAbierta = null, alAlternarHoja }: Pr
             <Link to="/cuenta" className="boton">{nombre ?? t.miCuenta}</Link>
           </>
         ) : (
-          <Link to="/entrar" className="boton">{t.entrar}</Link>
+          <>
+            <Link to="/registro" className="boton">{t.guardar}</Link>
+            <Link to="/entrar" className="boton">{t.entrar}</Link>
+          </>
         )}
       </nav>
 
