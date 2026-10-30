@@ -1,5 +1,6 @@
 import { valorVariante, type DefinicionTipo } from '../tipos'
 import { cajaEntera, puertasAbatibles } from '../aperturas'
+import { cuerpoConZocalo } from '../modelos'
 
 export const muebleTv: DefinicionTipo = {
   id: 'mueble-tv', nombre: 'mueble de TV', genero: 'm', categoria: 'mueble', estancias: ['salon'],
@@ -9,6 +10,7 @@ export const muebleTv: DefinicionTipo = {
   zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', defecto: '#e8e4dc' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
+  modelo3d: (e) => cuerpoConZocalo(e, Number(valorVariante(muebleTv, e, 'puertas')), 'cuerpo'),
   zonasApertura(e) {
     const puertas = Number(valorVariante(muebleTv, e, 'puertas'))
     return puertas > 0 ? puertasAbatibles(e, puertas) : []

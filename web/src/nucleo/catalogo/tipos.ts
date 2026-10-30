@@ -1,5 +1,6 @@
 import type { Elemento, TipoEstancia } from '../modelo/documento'
 import type { Prisma } from '../geometria/prisma'
+import type { PiezaLocal } from '../modelo3d/tipos'
 
 export interface Rango { min: number; max: number; defecto: number }
 export interface DefinicionVariante { clave: string; etiqueta: string; valores: (string | number | boolean)[]; defecto: string | number | boolean }
@@ -27,6 +28,8 @@ export interface DefinicionTipo {
   /** Volúmenes en coordenadas del mundo. */
   volumenes(e: Elemento): Prisma[]
   zonasApertura(e: Elemento): ZonaApertura[]
+  /** Piezas 3D en el sistema local del elemento; sin ella se usa una caja del tamaño del elemento. */
+  modelo3d?: (e: Elemento) => PiezaLocal[]
 }
 export type Catalogo = ReadonlyMap<string, DefinicionTipo>
 

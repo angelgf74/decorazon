@@ -71,3 +71,18 @@ test('diseño anónimo: crear, amueblar, mover, deshacer, recargar y cambiar la 
   await expect(page.locator('[data-elemento]')).toHaveCount(2)
   await expect(aviso(page, 'atraviesa la pared').first()).toBeVisible()
 })
+
+test('vista 3D: los botones de la barra reciben clics reales del ratón', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Empezar a diseñar' }).click()
+  await page.getByRole('button', { name: 'Crear estancia' }).click()
+  await page.getByRole('button', { name: '3D', exact: true }).click()
+
+  const boton = page.getByRole('button', { name: 'Ocultar paredes delante' })
+  await expect(boton).toHaveAttribute('aria-pressed', 'true')
+  const caja = (await boton.boundingBox())!
+  await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2)
+  await expect(boton).toHaveAttribute('aria-pressed', 'false')
+  await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2)
+  await expect(boton).toHaveAttribute('aria-pressed', 'true')
+})

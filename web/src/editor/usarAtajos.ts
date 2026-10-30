@@ -28,15 +28,17 @@ export function useAtajos(): void {
         e0.seleccionar(null)
       } else if (e0.paso === 2 && e0.seleccion?.tipo === 'elemento') {
         const id = e0.seleccion.id
+        // Mover y girar (R, Ctrl+D) solo se hace en 2D (§4.2).
         if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault()
           borrar(id)
-        } else if (tecla === 'r' && !mando && !e.altKey) {
+        } else if (e0.vista !== '3d' && tecla === 'r' && !mando && !e.altKey) {
           e.preventDefault()
           girar90(id, e.shiftKey ? -1 : 1)
         } else if (tecla === 'd' && mando) {
+          // En 3D no duplica, pero tampoco deja que el navegador abra "añadir marcador".
           e.preventDefault()
-          duplicar(id)
+          if (e0.vista !== '3d') duplicar(id)
         }
       } else if (e0.paso === 1 && (e.key === 'Delete' || e.key === 'Backspace')) {
         const s = e0.seleccion

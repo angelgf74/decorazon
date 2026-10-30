@@ -12,6 +12,8 @@
 }
 
 .editor__lienzo { min-width: 0; min-height: 0; background: #fff; }
+/* Aquí y no en vista3d.css: se usa también cuando el fragmento 3D no llega a cargarse. */
+.vista3d__aviso { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; height: 100%; padding: 1rem; text-align: center; }
 .editor__izquierda, .editor__derecha { padding: 0.75rem; overflow: auto; background: var(--crema); }
 .editor__derecha { display: flex; flex-direction: column; gap: 0.75rem; }
 
@@ -26,7 +28,6 @@
 
 .barra__grupo { display: flex; gap: 0.4rem; align-items: center; }
 .barra button[aria-current='step'], .barra button[aria-pressed='true'] { background: var(--amarillo); border-color: var(--terracota); }
-.barra__ayuda { color: var(--gris); font-size: 0.8rem; }
 .barra__movil { display: none; }
 .barra__guardado { margin: 0 0 0 auto; color: var(--gris); font-size: 0.9rem; }
 .barra__guardado--error { color: var(--conflicto); font-weight: 600; }

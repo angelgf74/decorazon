@@ -1,5 +1,6 @@
 import { valorVariante, type DefinicionTipo } from '../tipos'
 import { cajaEntera, puertasAbatibles } from '../aperturas'
+import { cuerpoConZocalo } from '../modelos'
 
 export const aparador: DefinicionTipo = {
   id: 'aparador', nombre: 'aparador', genero: 'm', categoria: 'mueble', estancias: ['salon'],
@@ -9,5 +10,6 @@ export const aparador: DefinicionTipo = {
   zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'madera', defecto: '#8b6b4a' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
+  modelo3d: (e) => cuerpoConZocalo(e, Number(valorVariante(aparador, e, 'puertas')), 'cuerpo'),
   zonasApertura: (e) => puertasAbatibles(e, Number(valorVariante(aparador, e, 'puertas'))),
 }

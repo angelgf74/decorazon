@@ -100,6 +100,19 @@ describe('PanelPropiedades con un elemento', () => {
     expect(almacen.getState().seleccion).toBeNull()
   })
 
+  it('en 3D (solo seleccionar, editar y borrar) no hay "Giro" ni "Duplicar"; en 2D sí', () => {
+    colocar('armario')
+    act(() => almacen.getState().cambiarVista('3d'))
+    render(<PanelPropiedades />)
+    expect(screen.queryByLabelText('Giro')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Duplicar' })).toBeNull()
+    expect(screen.getByLabelText('Ancho')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Borrar' })).toBeTruthy()
+    act(() => almacen.getState().cambiarVista('2d'))
+    expect(screen.getByLabelText('Giro')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Duplicar' })).toBeTruthy()
+  })
+
   it('solo los tipos con altura editable tienen el campo de altura desde el suelo', () => {
     colocar('armario')
     const { unmount } = render(<PanelPropiedades />)

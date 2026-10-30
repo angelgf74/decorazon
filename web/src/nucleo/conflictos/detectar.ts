@@ -1,7 +1,7 @@
 import type { DocumentoDiseno, Elemento } from '../modelo/documento'
 import type { Catalogo, DefinicionTipo, ZonaApertura } from '../catalogo/tipos'
 import { distanciaConvexos, interseccionConvexos } from '../geometria/convexo'
-import { distanciaSegmentos } from '../geometria/poligono'
+import { cajaPlanta, distanciaSegmentos } from '../geometria/poligono'
 import { penetracion3D, solapeZ, type Prisma } from '../geometria/prisma'
 import type { Punto } from '../geometria/vector'
 import { cantidadMostrada, redondearAbajo, TOLERANCIA_CM } from '../geometria/tolerancia'
@@ -21,11 +21,19 @@ interface Pieza { e: Elemento; def: DefinicionTipo; ref: Ref; volumenes: Prisma[
 
 interface Par { p: number; a: Prisma; b: Prisma }
 
-/** Mayor penetración 3D entre dos conjuntos de volúmenes, con el par que la da (undefined si alguno está vacío). */
+/** Mayor hueco entre las cajas envolventes de dos huellas en x o en y (≤ 0 si se cruzan); nunca supera la distancia real. */
+function separacionCajas(a: Punto[], b: Punto[]): number {
+  const ca = cajaPlanta(a), cb = cajaPlanta(b)
+  return Math.max(cb.minX - ca.maxX, ca.minX - cb.maxX, cb.minY - ca.maxY, ca.minY - cb.maxY)
+}
+
+/** Mayor penetración 3D entre dos conjuntos de volúmenes, con el par que la da (undefined si alguno está vacío o ningún par se acerca). */
 function maxPenetracion(a: Prisma[], b: Prisma[]): Par | undefined {
   let mejor: Par | undefined
   for (const x of a) {
     for (const y of b) {
+      // Cajas separadas o rangos z sin cruzarse: no penetran, y no hace falta el cálculo exacto.
+      if (separacionCajas(x.huella, y.huella) >= 0 || solapeZ(x, y) <= 0) continue
       const p = penetracion3D(x, y)
       if (!mejor || p > mejor.p) mejor = { p, a: x, b: y }
     }
@@ -181,7 +189,13 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
     for (let j = i + 1; j < bloquean.length; j++) {
       const b = bloquean[j]
       let d = Infinity
-      for (const v of a.volumenes) for (const w of b.volumenes) d = Math.min(d, distanciaConvexos(v.huella, w.huella))
+      for (const v of a.volumenes) {
+        for (const w of b.volumenes) {
+          // La separación entre cajas envolventes acota la distancia por abajo: si ya es un paso cómodo, se omite.
+          if (separacionCajas(v.huella, w.huella) >= PASO_MINIMO_CM) continue
+          d = Math.min(d, distanciaConvexos(v.huella, w.huella))
+        }
+      }
       if (estrecho(d)) {
         const p = redondearAbajo(d)
         conflictos.push({ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: [a.e.id, b.e.id], cantidadCm: p, mensaje: mensajePasoEstrecho(a.ref, b.ref, p) })

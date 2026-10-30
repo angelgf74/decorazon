@@ -21,7 +21,6 @@ export const textos = {
     paso2: '2 Amueblar',
     vista2d: '2D',
     vista3d: '3D',
-    ayuda3d: 'La vista 3D llega pronto',
     deshacer: 'Deshacer',
     rehacer: 'Rehacer',
     nuevoDiseno: 'Nuevo diseño',
@@ -99,6 +98,14 @@ export const textos = {
   avisos: {
     titulo: 'Avisos',
     todoBien: 'Todo cabe y se abre',
+  },
+  vista3d: {
+    cargando: 'Cargando la vista 3D…',
+    sinWebgl: 'Tu navegador no puede mostrar la vista 3D. El plano 2D sigue funcionando.',
+    sinCarga: 'No se pudo cargar la vista 3D. El plano 2D sigue funcionando.',
+    volver2d: 'Volver al 2D',
+    ocultarParedes: 'Ocultar paredes delante',
+    encuadrar: 'Encuadrar',
   },
   comun: {
     aceptar: 'Aceptar',

@@ -259,3 +259,41 @@ describe('usarAtajos: un arrastre cuya pieza desaparece', () => {
     expect(hayArrastre()).toBe(false)
   })
 })
+
+describe('usarAtajos en la vista 3D', () => {
+  beforeEach(() => {
+    const r = anadirElemento(almacen.getState().documento!, catalogoBase, 'mesa', { x: 200, y: 165 })
+    almacen.getState().cambiar(() => r.documento)
+    almacen.getState().irAPaso(2)
+    almacen.getState().seleccionar({ tipo: 'elemento', id: r.id })
+    almacen.getState().cambiarVista('3d')
+  })
+
+  it('R, Mayúsculas+R y Ctrl+D no hacen nada', () => {
+    render(<Sonda />)
+    fireEvent.keyDown(window, { key: 'r' })
+    fireEvent.keyDown(window, { key: 'R', shiftKey: true })
+    fireEvent.keyDown(window, { key: 'd', ctrlKey: true })
+    const elementos = almacen.getState().documento!.elementos
+    expect(elementos).toHaveLength(1)
+    expect(elementos[0]!.rotacion).toBe(0)
+  })
+
+  it('Ctrl+D, aunque no duplique, evita la acción del navegador (añadir marcador)', () => {
+    render(<Sonda />)
+    // fireEvent devuelve false si se llamó a preventDefault.
+    expect(fireEvent.keyDown(window, { key: 'd', ctrlKey: true, cancelable: true })).toBe(false)
+    expect(almacen.getState().documento!.elementos).toHaveLength(1)
+  })
+
+  it('Supr borra, Ctrl+Z deshace y Escape deselecciona', () => {
+    render(<Sonda />)
+    fireEvent.keyDown(window, { key: 'Delete' })
+    expect(almacen.getState().documento!.elementos).toHaveLength(0)
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    expect(almacen.getState().documento!.elementos).toHaveLength(1)
+    almacen.getState().seleccionar({ tipo: 'elemento', id: almacen.getState().documento!.elementos[0]!.id })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(almacen.getState().seleccion).toBeNull()
+  })
+})

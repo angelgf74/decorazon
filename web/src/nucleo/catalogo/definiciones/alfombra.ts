@@ -1,5 +1,6 @@
 import type { DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
+import { caja } from '../modelos'
 
 export const alfombra: DefinicionTipo = {
   id: 'alfombra', nombre: 'alfombra', genero: 'f', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina'],
@@ -9,5 +10,6 @@ export const alfombra: DefinicionTipo = {
   zonasColor: [{ clave: 'tejido', etiqueta: 'Tejido', material: 'tela', defecto: '#b9a58c' }],
   pisable: true, bloqueaPaso: false, sobreVentana: false,
   volumenes: cajaEntera,
+  modelo3d: (e) => [caja(-e.medidas.ancho / 2, -e.medidas.fondo / 2, 0, e.medidas.ancho / 2, e.medidas.fondo / 2, e.medidas.alto, 'tejido')],
   zonasApertura: () => [],
 }
