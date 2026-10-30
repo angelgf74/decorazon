@@ -3,12 +3,12 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { CLAVE_REGISTRO_ENVIADO } from '../../editor/persistencia/local'
 import { respuesta } from '../../pruebas/respuesta'
 import ConfirmarRegistro from './ConfirmarRegistro'
 
 const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
 const CONTRASENA = 'una contraseña larga'
+const MENSAJE_CREADA = 'entrar: Cuenta creada. Ya puedes iniciar sesión. Si diseñaste algo antes de registrarte, lo encontrarás en Mis diseños.'
 
 function PaginaEntrar() {
   const l = useLocation()
@@ -81,17 +81,10 @@ describe('ConfirmarRegistro', () => {
     fetchSimulado.mockResolvedValueOnce(respuesta(200, { mensaje: 'ok' }))
     montar()
     await escribir('  Ana  ', CONTRASENA, CONTRASENA)
-    expect(await screen.findByText('entrar: Cuenta creada. Ya puedes iniciar sesión.')).toBeInTheDocument()
+    // sin ninguna clave local, como al abrir el enlace en otro dispositivo
+    expect(await screen.findByText(MENSAJE_CREADA)).toBeInTheDocument()
     const p = fetchSimulado.mock.calls[0][0]
     expect(p.url).not.toContain('secreto123')
     expect(await p.json()).toEqual({ token: 'secreto123', nombre: 'Ana', contrasena: CONTRASENA })
-  })
-
-  it('si había diseño, añade que espera en Mis diseños', async () => {
-    localStorage.setItem(CLAVE_REGISTRO_ENVIADO, '{}')
-    fetchSimulado.mockResolvedValueOnce(respuesta(200, { mensaje: 'ok' }))
-    montar()
-    await escribir('Ana', CONTRASENA, CONTRASENA)
-    expect(await screen.findByText('entrar: Cuenta creada. Ya puedes iniciar sesión. Tu diseño te espera en Mis diseños')).toBeInTheDocument()
   })
 })

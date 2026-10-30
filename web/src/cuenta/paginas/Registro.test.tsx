@@ -61,6 +61,15 @@ describe('Registro', () => {
     expect(localStorage.getItem(CLAVE_REGISTRO_ENVIADO)).toBeNull()
   })
 
+  it('un registro sin diseño tras otro con diseño borra la clave', async () => {
+    localStorage.setItem(CLAVE_REGISTRO_ENVIADO, '{"viejo":true}')
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, { mensaje: 'Revisa tu correo' }))
+    render(<MemoryRouter><Registro /></MemoryRouter>)
+    await escribirYEnviar()
+    expect(await screen.findByText('Revisa tu correo')).toBeInTheDocument()
+    expect(localStorage.getItem(CLAVE_REGISTRO_ENVIADO)).toBeNull()
+  })
+
   it.each([429, 503, 400])('con un %i muestra el mensaje', async (estado) => {
     fetchSimulado.mockResolvedValueOnce(respuesta(estado, { mensaje: 'No ha podido ser' }))
     render(<MemoryRouter><Registro /></MemoryRouter>)

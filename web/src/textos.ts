@@ -161,8 +161,7 @@ export const textos = {
       nombreInvalido: 'El nombre debe tener entre 1 y 100 caracteres',
       sinToken: 'Este enlace no es válido.',
       volver: 'Volver a registrarte',
-      creada: 'Cuenta creada. Ya puedes iniciar sesión.',
-      disenoEspera: 'Tu diseño te espera en Mis diseños',
+      creada: 'Cuenta creada. Ya puedes iniciar sesión. Si diseñaste algo antes de registrarte, lo encontrarás en Mis diseños.',
     },
   },
   api: {

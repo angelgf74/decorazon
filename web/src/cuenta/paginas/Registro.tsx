@@ -39,12 +39,12 @@ export default function Registro() {
           }
         : { correo }
       const r = exigir(await api.POST('/cuentas/registro', { body: cuerpo }))
-      if (diseno) {
-        try {
-          almacenamientoSeguro()?.setItem(CLAVE_REGISTRO_ENVIADO, serializarDocumento(diseno))
-        } catch {
-          // sin espacio: el diseño ya viajó con la solicitud
-        }
+      try {
+        const st = almacenamientoSeguro()
+        if (diseno) st?.setItem(CLAVE_REGISTRO_ENVIADO, serializarDocumento(diseno))
+        else st?.removeItem(CLAVE_REGISTRO_ENVIADO)
+      } catch {
+        // sin acceso al almacenamiento: el diseño ya viajó con la solicitud
       }
       setEnviado(r.mensaje)
     } catch (err) {

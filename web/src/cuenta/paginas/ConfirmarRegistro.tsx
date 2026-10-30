@@ -1,21 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { api, ErrorDeApi, exigir } from '../../api/cliente'
-import { almacenamientoSeguro, CLAVE_REGISTRO_ENVIADO } from '../../editor/persistencia/local'
 import { textos } from '../../textos'
 import { mensajeDeError } from '../errores'
 import { longitudDeContrasenaValida, nombreValido } from '../reglas'
 import '../cuenta.css'
 
 const t = textos.cuenta
-
-function habiaDiseno(): boolean {
-  try {
-    return almacenamientoSeguro()?.getItem(CLAVE_REGISTRO_ENVIADO) != null
-  } catch {
-    return false
-  }
-}
 
 export default function ConfirmarRegistro() {
   const ubicacion = useLocation()
@@ -25,7 +16,7 @@ export default function ConfirmarRegistro() {
   const [contrasena, setContrasena] = useState('')
   const [repetida, setRepetida] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [enlaceCaducado, setEnlaceCaducado] = useState(false)
+  const [confirmacionRechazada, setConfirmacionRechazada] = useState(false)
   const [enviando, setEnviando] = useState(false)
 
   // El token del correo sale de la barra de direcciones y del historial nada más leerlo.
@@ -52,11 +43,10 @@ export default function ConfirmarRegistro() {
     setError(null)
     try {
       exigir(await api.POST('/cuentas/registro/confirmar', { body: { token, nombre: nombre.trim(), contrasena } }))
-      const mensaje = habiaDiseno() ? `${t.confirmar.creada} ${t.confirmar.disenoEspera}` : t.confirmar.creada
-      navegar('/entrar', { replace: true, state: { mensaje } })
+      navegar('/entrar', { replace: true, state: { mensaje: t.confirmar.creada } })
     } catch (err) {
       setError(mensajeDeError(err))
-      setEnlaceCaducado(err instanceof ErrorDeApi && err.estado === 400)
+      setConfirmacionRechazada(err instanceof ErrorDeApi && err.estado === 400)
       setEnviando(false)
     }
   }
@@ -93,7 +83,7 @@ export default function ConfirmarRegistro() {
         </label>
         <p className="cuenta__ayuda">{t.confirmar.ayuda}</p>
         {error && <p className="cuenta__error" role="alert">{error}</p>}
-        {enlaceCaducado && <p className="cuenta__enlaces">{volver}</p>}
+        {confirmacionRechazada && <p className="cuenta__enlaces">{volver}</p>}
         <button type="submit" className="primario" disabled={enviando}>{enviando ? t.enviando : t.confirmar.boton}</button>
       </form>
     </main>
