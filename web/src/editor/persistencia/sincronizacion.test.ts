@@ -179,6 +179,31 @@ describe('sincronización con el servidor', () => {
     expect(leerCopiaLocal(st, ID)).toMatchObject({ version: 10, pendiente: false })
   })
 
+  it('412 y sobrescribir sin renombrado propio: conserva el nombre remoto', async () => {
+    const remoto = servidorConVersion(9)
+    remoto.nombre = 'Cocina de la playa'
+    const { a } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(a.getState().guardado).toBe('conflicto')
+    await resolverConflicto(a, 'sobrescribir')
+    const [, v, cambios] = servidor.guardarDiseno.mock.calls[1]!
+    expect([v, cambios.nombre, cambios.doc.estancia.alto]).toEqual([9, 'Cocina de la playa', 260])
+    expect(a.getState().origen).toMatchObject({ nombre: 'Cocina de la playa', version: 10 })
+  })
+
+  it('412 y sobrescribir con un renombrado propio pendiente: envía el nombre propio', async () => {
+    const remoto = servidorConVersion(9)
+    remoto.nombre = 'Cocina de la playa'
+    const { a } = preparar(4)
+    renombrar(a, 'Mi cocina')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(a.getState().guardado).toBe('conflicto')
+    await resolverConflicto(a, 'sobrescribir')
+    expect(servidor.guardarDiseno.mock.calls[1]![2].nombre).toBe('Mi cocina')
+    expect(a.getState().origen).toMatchObject({ nombre: 'Mi cocina', version: 10 })
+  })
+
   it('412: recargar carga el documento remoto y descarta los cambios locales', async () => {
     const remoto = servidorConVersion(9)
     remoto.contenido = alto(300)(doc)

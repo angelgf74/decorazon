@@ -291,9 +291,17 @@ export function conectarSincronizacion(
           abrirDiseno(a, { id: t.id, version, nombre: diseno.nombre, documento: diseno.contenido, pendiente: false, guardado: 'guardado' })
           return
         }
-        const remota = a.getState().versionRemota ?? (await obtenerDiseno(t.id)).version
+        // Sobrescribir pisa el contenido, no un nombre que aquí no se ha cambiado: sin renombrado propio, va el remoto.
+        let remota = a.getState().versionRemota
+        let nombreRemoto: string | null = null
+        if (t.nombrePendiente === null || remota === null) {
+          const r = await obtenerDiseno(t.id)
+          remota = r.version
+          if (t.nombrePendiente === null) nombreRemoto = r.diseno.nombre
+        }
         if (t !== actual) return
         t.version = remota
+        if (nombreRemoto !== null) t.nombre = nombreRemoto
         t.conflicto = false
         t.sucio = true
         fijarOrigen(t)
