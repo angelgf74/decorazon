@@ -15,7 +15,7 @@ import './editor.css'
 
 const MS_AVISO = 4000
 
-const Vista3D = lazy(() => import('./vista3d/Vista3D'))
+const vista3dPerezosa = () => lazy(() => import('./vista3d/Vista3D'))
 
 export default function Editor() {
   useAtajos()
@@ -24,6 +24,8 @@ export default function Editor() {
   const aviso = useEditor((e) => e.aviso)
   const vista = useEditor((e) => e.vista)
   const [hoja, setHoja] = useState<Hoja | null>(null)
+  // lazy guarda el import rechazado: tras un fallo se crea otro para que volver a pulsar 3D reintente la carga.
+  const [Vista3D, setVista3D] = useState(vista3dPerezosa)
 
   useEffect(() => {
     if (aviso === null) return
@@ -44,7 +46,7 @@ export default function Editor() {
         </aside>
         <div className="editor__lienzo">
           {vista === '3d' ? (
-            <SinFallos alternativa={<AvisoVista3D texto={textos.vista3d.sinCarga} />}>
+            <SinFallos alternativa={<AvisoVista3D texto={textos.vista3d.sinCarga} />} alFallar={() => setVista3D(vista3dPerezosa)}>
               <Suspense fallback={textos.vista3d.cargando}><Vista3D /></Suspense>
             </SinFallos>
           ) : <Lienzo />}
