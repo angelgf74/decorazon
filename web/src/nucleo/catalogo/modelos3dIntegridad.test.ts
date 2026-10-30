@@ -29,10 +29,12 @@ describe('integridad de los generadores 3D del catálogo', () => {
     it(`${def.id}: piezas válidas, dentro de los volúmenes y con zonas existentes`, () => {
       expect(def.modelo3d, 'modelo3d').toBeDefined()
       const claves = def.zonasColor.map((z) => z.clave)
-      for (const [medidas, variantes] of combinaciones(def)) {
-        const e = elemento(def.id, 0, 0, 0, medidas, variantes)
+      // Con altura editable, también pegado al suelo y a 10 cm: nada puede quedar por debajo del suelo.
+      const alturas = def.alturaSueloEditable ? [0, 10, def.alturaSuelo] : [def.alturaSuelo]
+      for (const [medidas, variantes] of combinaciones(def)) for (const alturaSuelo of alturas) {
+        const e = { ...elemento(def.id, 0, 0, 0, medidas, variantes), alturaSuelo }
         const piezas = def.modelo3d!(e)
-        const ctx = `${def.id} ${JSON.stringify(e.medidas)} ${JSON.stringify(variantes)}`
+        const ctx = `${def.id} ${JSON.stringify(e.medidas)} ${JSON.stringify(variantes)} alturaSuelo=${alturaSuelo}`
         expect(piezas.length, ctx).toBeGreaterThanOrEqual(1)
         expect(piezas.length, ctx).toBeLessThanOrEqual(60)
         const vols = def.volumenes(e)
@@ -52,8 +54,9 @@ describe('integridad de los generadores 3D del catálogo', () => {
           expect(x1, msg).toBeLessThanOrEqual(Math.max(...xs) + TOL)
           expect(y0, msg).toBeGreaterThanOrEqual(Math.min(...ys) - TOL)
           expect(y1, msg).toBeLessThanOrEqual(Math.max(...ys) + TOL)
-          // El fregadero hunde la cubeta bajo la encimera: única salida admitida, y solo en z.
+          // El fregadero hunde la cubeta bajo la encimera: única salida admitida, solo en z y nunca por debajo del suelo.
           if (def.id !== 'fregadero') expect(z0, msg).toBeGreaterThanOrEqual(zMin - TOL)
+          else expect(z0, msg).toBeGreaterThanOrEqual(-Math.min(18, e.alturaSuelo) - TOL)
           expect(z1, msg).toBeLessThanOrEqual(zMax + TOL)
           if (p.material === undefined) expect(claves, msg).toContain(p.zona)
         }
@@ -125,6 +128,16 @@ describe('generadores 3D de cocina y decoración', () => {
     expect(fondo).toHaveLength(1)
     expect(fondo[0]).toMatchObject({ x0: -38, x1: 38, y0: -23, y1: 23, z0: 0, z1: 0.5 })
     expect(ps.filter((p) => p.forma === 'cilindro').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('fregadero: la cubeta baja min(18, alturaSuelo); pegado al suelo no se hunde', () => {
+    const fregadero = catalogoBase.get('fregadero')!
+    const fondoMarco = (alturaSuelo: number) =>
+      Math.min(...cajas(fregadero.modelo3d!({ ...elemento('fregadero', 0, 0, 0), alturaSuelo })).filter((p) => p.material === undefined).map((p) => p.z0))
+    expect(fondoMarco(85)).toBe(-18)
+    expect(fondoMarco(18)).toBe(-18)
+    expect(fondoMarco(10)).toBe(-10)
+    expect(fondoMarco(0)).toBeCloseTo(0)
   })
 
   it('cortina: 2 paños de 5 cajas que alternan el fondo, y barra de metal', () => {
