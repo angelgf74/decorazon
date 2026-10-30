@@ -1,0 +1,7 @@
+{
+  "app": "decorazon",
+  "web": { "estatica": "web/public", "spa": true, "dominio": "decorazon.angelgf.com.es" },
+  "pasos": [
+    { "programa": "node", "argumentos": ["deploy/construir-web.mjs"] }
+  ]
+}
