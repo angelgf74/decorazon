@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Decorazon.Dominio.Usuarios;
 using Decorazon.Infraestructura.Correo;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -34,6 +35,29 @@ public class EnviadorDeCorreoACarpetaTests : IDisposable
         await enviador.EnviarEnlaceDeAltaAsync(correo, "https://decorazon.test/b");
 
         Assert.Equal(2, Directory.GetFiles(_carpeta, "*.txt").Length);
+    }
+
+    [Fact]
+    public async Task EscribeEnUnTemporalYLoRenombraAlFinalParaQueNadieLeaUnCorreoAMedias()
+    {
+        Directory.CreateDirectory(_carpeta);
+        var renombrados = new ConcurrentQueue<(string Viejo, string Nuevo)>();
+        using var vigia = new FileSystemWatcher(_carpeta) { EnableRaisingEvents = true };
+        vigia.Renamed += (_, e) => renombrados.Enqueue((e.OldName ?? string.Empty, e.Name ?? string.Empty));
+        var enviador = new EnviadorDeCorreoACarpeta(_carpeta, NullLogger<EnviadorDeCorreoDeConsola>.Instance);
+
+        await enviador.EnviarEnlaceDeAltaAsync(CorreoElectronico.Crear("ana@example.com"), "https://decorazon.test/a");
+
+        var limite = DateTime.UtcNow.AddSeconds(5);
+        while (renombrados.IsEmpty && DateTime.UtcNow < limite)
+        {
+            await Task.Delay(20);
+        }
+        var (viejo, nuevo) = Assert.Single(renombrados);
+        Assert.EndsWith(".tmp", viejo);
+        Assert.EndsWith(".txt", nuevo);
+        Assert.Empty(Directory.GetFiles(_carpeta, "*.tmp"));
+        Assert.Single(Directory.GetFiles(_carpeta, "*.txt"));
     }
 
     [Fact]

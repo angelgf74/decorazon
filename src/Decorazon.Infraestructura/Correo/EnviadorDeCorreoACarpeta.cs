@@ -62,6 +62,9 @@ public sealed class EnviadorDeCorreoACarpeta(string carpeta, ILogger<EnviadorDeC
         var nombre = $"{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}.txt";
         var contenido = $"Para: {destinatario.Valor}\nAsunto: {asunto}\n\n{cuerpo}";
 
-        await File.WriteAllTextAsync(Path.Combine(carpeta, nombre), contenido, cancelacion);
+        // Se escribe aparte y se renombra al final: quien lea los .txt nunca ve un correo a medio escribir.
+        var temporal = Path.Combine(carpeta, nombre + ".tmp");
+        await File.WriteAllTextAsync(temporal, contenido, cancelacion);
+        File.Move(temporal, Path.Combine(carpeta, nombre));
     }
 }
