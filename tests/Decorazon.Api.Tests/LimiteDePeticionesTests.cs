@@ -39,7 +39,7 @@ public class LimiteDePeticionesTests(ApiConLimiteEstrechoFixture api)
         Assert.Equal(HttpStatusCode.TooManyRequests, rechazada.StatusCode);
 
         // Mismo formato que el resto de errores: la web enseña el mensaje tal cual.
-        var error = await rechazada.Content.ReadFromJsonAsync<RespuestaDeError>();
+        var error = await rechazada.Content.ReadFromJsonAsync<RespuestaDeMensaje>();
         Assert.False(string.IsNullOrWhiteSpace(error?.Mensaje));
 
         // Lo importante no es el código, sino que la petición rechazada no

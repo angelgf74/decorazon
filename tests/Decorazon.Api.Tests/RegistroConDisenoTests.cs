@@ -95,7 +95,7 @@ public class RegistroConDisenoTests(ApiConPostgresFixture api) : IClassFixture<A
             DisenosDePrueba.CuerpoCrudo($$"""{"correo":"{{correo}}","diseno":{{diseno}}}"""));
 
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
-        Assert.False(string.IsNullOrWhiteSpace((await respuesta.Content.ReadFromJsonAsync<RespuestaDeError>())?.Mensaje));
+        Assert.False(string.IsNullOrWhiteSpace((await respuesta.Content.ReadFromJsonAsync<RespuestaDeMensaje>())?.Mensaje));
         Assert.DoesNotContain(api.Correo.EnlacesDeAlta, envio => envio.Destinatario == correo);
     }
 

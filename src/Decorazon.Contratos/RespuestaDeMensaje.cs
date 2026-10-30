@@ -5,4 +5,4 @@ namespace Decorazon.Contratos;
 /// legible, sin detalles que ayuden a sondear.
 /// </summary>
 /// <param name="Mensaje">Texto para mostrar al usuario.</param>
-public sealed record RespuestaDeError(string Mensaje);
+public sealed record RespuestaDeMensaje(string Mensaje);

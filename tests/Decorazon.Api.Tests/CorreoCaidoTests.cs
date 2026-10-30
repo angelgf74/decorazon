@@ -85,6 +85,6 @@ public class CorreoCaidoTests(ApiConCorreoCaidoFixture api) : IClassFixture<ApiC
     private static async Task AssertServicioNoDisponibleAsync(HttpResponseMessage respuesta)
     {
         Assert.Equal(HttpStatusCode.ServiceUnavailable, respuesta.StatusCode);
-        Assert.Equal(Mensaje, (await respuesta.Content.ReadFromJsonAsync<RespuestaDeError>())?.Mensaje);
+        Assert.Equal(Mensaje, (await respuesta.Content.ReadFromJsonAsync<RespuestaDeMensaje>())?.Mensaje);
     }
 }

@@ -34,15 +34,26 @@ public static class ContrasenasEndpoints
         // límite debe contar el total. Con cubos separados, un mismo origen podría
         // duplicar los envíos alternando entre ambos.
         grupo.MapPost("/olvido", SolicitarAsync)
-            .RequireRateLimiting(LimitesDePeticiones.Registro);
+            .RequireRateLimiting(LimitesDePeticiones.Registro)
+            .WithName("solicitarOlvidoDeContrasena")
+            .Produces<RespuestaDeMensaje>()
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests);
 
-        grupo.MapPost("/restablecer", RestablecerAsync);
+        grupo.MapPost("/restablecer", RestablecerAsync)
+            .WithName("restablecerContrasena")
+            .Produces<RespuestaDeMensaje>()
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest);
 
         // Comprobar una contraseña actual es la misma superficie que el inicio de
         // sesión, así que lleva el mismo tipo de límite.
         grupo.MapPost("", CambiarAsync)
             .RequireAuthorization()
-            .RequireRateLimiting(LimitesDePeticiones.CambioDeContrasena);
+            .RequireRateLimiting(LimitesDePeticiones.CambioDeContrasena)
+            .WithName("cambiarContrasena")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
     }
 
     private static async Task<IResult> SolicitarAsync(
@@ -61,13 +72,13 @@ public static class ContrasenasEndpoints
         return resultado switch
         {
             ResultadoDeSolicitudDeContrasena.CorreoInvalido =>
-                Results.BadRequest(new RespuestaDeError("Ese correo electrónico no parece válido.")),
+                Results.BadRequest(new RespuestaDeMensaje("Ese correo electrónico no parece válido.")),
 
             ResultadoDeSolicitudDeContrasena.CorreoNoEnviado => RegistroEndpoints.CorreoNoEnviado(),
 
             // Aceptada tenga cuenta o no: distinguirlos convertiría esto en un
             // comprobador de qué direcciones están registradas.
-            _ => Results.Ok(new RespuestaDeError(MensajeDeSolicitudAceptada))
+            _ => Results.Ok(new RespuestaDeMensaje(MensajeDeSolicitudAceptada))
         };
     }
 
@@ -81,12 +92,12 @@ public static class ContrasenasEndpoints
         return resultado switch
         {
             ResultadoDeRestablecerContrasena.Restablecida =>
-                Results.Ok(new RespuestaDeError("Contraseña cambiada. Ya puedes iniciar sesión con ella.")),
+                Results.Ok(new RespuestaDeMensaje("Contraseña cambiada. Ya puedes iniciar sesión con ella.")),
 
             ResultadoDeRestablecerContrasena.ContrasenaNoValida =>
-                Results.BadRequest(new RespuestaDeError(MensajeDeLongitud)),
+                Results.BadRequest(new RespuestaDeMensaje(MensajeDeLongitud)),
 
-            _ => Results.BadRequest(new RespuestaDeError(MensajeDeEnlaceNoValido))
+            _ => Results.BadRequest(new RespuestaDeMensaje(MensajeDeEnlaceNoValido))
         };
     }
 
@@ -113,12 +124,12 @@ public static class ContrasenasEndpoints
             ResultadoDeCambioDeContrasena.Correcto => Results.NoContent(),
 
             ResultadoDeCambioDeContrasena.ContrasenaNoValida =>
-                Results.BadRequest(new RespuestaDeError("La contraseña nueva no vale. " + MensajeDeLongitud)),
+                Results.BadRequest(new RespuestaDeMensaje("La contraseña nueva no vale. " + MensajeDeLongitud)),
 
             // 400 y no 401 cuando la sesión vale pero la contraseña que se pide
             // para confirmar no: la web trata todo 401 como "tu sesión ha
             // caducado". Equivocarse al teclear no debe echar a nadie.
-            _ => Results.BadRequest(new RespuestaDeError("La contraseña actual no es correcta."))
+            _ => Results.BadRequest(new RespuestaDeMensaje("La contraseña actual no es correcta."))
         };
     }
 }

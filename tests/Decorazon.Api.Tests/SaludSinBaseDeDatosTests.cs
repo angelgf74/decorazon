@@ -74,7 +74,7 @@ public class SaludSinBaseDeDatosTests
             .Select(operacion => operacion.Value.GetProperty("operationId").GetString())
             .ToList();
 
-        Assert.Contains("Salud", ids);
+        Assert.Contains("consultarSalud", ids);
         Assert.Equal(ids.Count, ids.Distinct().Count());
     }
 

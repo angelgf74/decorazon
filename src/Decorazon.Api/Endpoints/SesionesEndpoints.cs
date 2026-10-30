@@ -17,7 +17,10 @@ public static class SesionesEndpoints
     {
         rutas.MapPost("/sesiones", IniciarAsync)
             .RequireRateLimiting(LimitesDePeticiones.InicioDeSesion)
-            .WithTags("Sesiones");
+            .WithTags("Sesiones")
+            .WithName("iniciarSesion")
+            .Produces<RespuestaDeInicioDeSesion>()
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status401Unauthorized);
     }
 
     private static async Task<IResult> IniciarAsync(
@@ -30,7 +33,7 @@ public static class SesionesEndpoints
         if (acceso is null)
         {
             return Results.Json(
-                new RespuestaDeError(MensajeDeCredencialesIncorrectas),
+                new RespuestaDeMensaje(MensajeDeCredencialesIncorrectas),
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 

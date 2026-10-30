@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
+using Decorazon.Api.OpenApi;
 using Decorazon.Aplicacion.Disenos;
 using Decorazon.Contratos;
 using Decorazon.Contratos.Disenos;
@@ -38,12 +39,44 @@ public static class DisenosEndpoints
             .RequireAuthorization()
             .WithTags("Disenos");
 
-        grupo.MapGet("", ListarAsync);
-        grupo.MapPost("", CrearAsync);
-        grupo.MapGet("/{id:guid}", ObtenerAsync);
-        grupo.MapPut("/{id:guid}", ActualizarAsync);
-        grupo.MapPost("/{id:guid}/duplicar", DuplicarAsync);
-        grupo.MapDelete("/{id:guid}", BorrarAsync);
+        grupo.MapGet("", ListarAsync)
+            .WithName("listarDisenos")
+            .Produces<RespuestaDeResumenDeDiseno[]>();
+
+        grupo.MapPost("", CrearAsync)
+            .WithName("crearDiseno")
+            .Produces<RespuestaDeDiseno>(StatusCodes.Status201Created)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status409Conflict)
+            .ConETag();
+
+        grupo.MapGet("/{id:guid}", ObtenerAsync)
+            .WithName("obtenerDiseno")
+            .Produces<RespuestaDeDiseno>()
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound)
+            .ConETag();
+
+        grupo.MapPut("/{id:guid}", ActualizarAsync)
+            .WithName("actualizarDiseno")
+            .Produces<RespuestaDeDiseno>()
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound)
+            .Produces<RespuestaDeVersionDistinta>(StatusCodes.Status412PreconditionFailed)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status428PreconditionRequired)
+            .ConIfMatch()
+            .ConETag();
+
+        grupo.MapPost("/{id:guid}/duplicar", DuplicarAsync)
+            .WithName("duplicarDiseno")
+            .Produces<RespuestaDeDiseno>(StatusCodes.Status201Created)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status409Conflict)
+            .ConETag();
+
+        grupo.MapDelete("/{id:guid}", BorrarAsync)
+            .WithName("borrarDiseno")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound);
     }
 
     /// <summary>
@@ -135,7 +168,7 @@ public static class DisenosEndpoints
         if (!TryLeerIfMatch(peticionHttp, out var versionEsperada))
         {
             return Results.Json(
-                new RespuestaDeError("Falta la cabecera If-Match con la versión del diseño que has editado."),
+                new RespuestaDeMensaje("Falta la cabecera If-Match con la versión del diseño que has editado."),
                 statusCode: StatusCodes.Status428PreconditionRequired);
         }
 
@@ -241,11 +274,11 @@ public static class DisenosEndpoints
         respuesta.Headers.ETag = $"\"{diseno.Version.ToString(CultureInfo.InvariantCulture)}\"";
 
     private static IResult NoEncontrado() =>
-        Results.NotFound(new RespuestaDeError(TextosDeEstado.DeRechazo(EstadoDeDiseno.NoEncontrado)));
+        Results.NotFound(new RespuestaDeMensaje(TextosDeEstado.DeRechazo(EstadoDeDiseno.NoEncontrado)));
 
     private static IResult Rechazo(ResultadoDeDiseno resultado)
     {
-        var error = new RespuestaDeError(TextosDeEstado.DeRechazo(resultado.Estado, resultado.Contenido));
+        var error = new RespuestaDeMensaje(TextosDeEstado.DeRechazo(resultado.Estado, resultado.Contenido));
 
         return resultado.Estado switch
         {
