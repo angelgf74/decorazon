@@ -23,6 +23,7 @@ jobs:
           cache-dependency-path: web/package-lock.json
 
       - run: npm ci
+      - run: npm run api:tipos && git diff --exit-code src/api/esquema.d.ts
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
@@ -38,5 +39,7 @@ jobs:
           dotnet-version: 10.0.x
 
       - run: dotnet build Decorazon.slnx -warnaserror
+      # El build regenera el contrato; si difiere del confirmado, la web iría con tipos viejos.
+      - run: git diff --exit-code web/src/api/openapi.json
       # Docker ya viene en el runner: corren también los tests de integración.
       - run: dotnet test Decorazon.slnx

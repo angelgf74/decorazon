@@ -111,6 +111,15 @@ export const textos = {
     aceptar: 'Aceptar',
     cancelar: 'Cancelar',
   },
+  api: {
+    sinRed: 'No hay conexión',
+    sesionCaducada: 'Tu sesión ha caducado',
+    noExiste: 'No existe o no es tuyo',
+    limiteDeDisenos: 'Has llegado al límite de 100 diseños',
+    demasiadosIntentos: 'Demasiados intentos; espera un poco',
+    servicioCaido: 'El servicio no está disponible; inténtalo más tarde',
+    inesperado: 'Algo ha ido mal',
+  },
   edicion: {
     plantaCruzada: 'Así la planta se cruzaría consigo misma',
     paredCorta: 'Una pared no puede medir menos de 10 cm',
