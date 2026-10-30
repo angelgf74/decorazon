@@ -3,9 +3,10 @@ import { crearDiseno } from '../disenos/servidor'
 import { almacen } from '../editor/estado/almacen'
 import {
   almacenamientoSeguro, borrarCopiasLocales, CLAVE_DESCARTADO, CLAVE_DUENO_COPIAS, CLAVE_REGISTRO_ENVIADO, disenoNoVacio,
+  guardarCopiaLocal, leerCopiaLocal, PREFIJO_COPIA,
   guardarDisenoLocal,
 } from '../editor/persistencia/local'
-import { anularSincronizacion } from '../editor/persistencia/sincronizacion'
+import { anularSincronizacion, hayGuardadosEnMarcha } from '../editor/persistencia/sincronizacion'
 import { serializarDocumento, type DocumentoDiseno } from '../nucleo'
 import { textos } from '../textos'
 import { mensajeDeError } from './errores'
@@ -39,10 +40,34 @@ export type ResultadoDeSubir = { id: string } | { error: string }
 export async function subirDisenoAnonimo(doc: DocumentoDiseno): Promise<ResultadoDeSubir> {
   try {
     const d = await crearDiseno(textos.disenos.nombrePorDefecto, doc)
-    descartarDisenoAnonimo()
+    // Lo editado durante la subida va como copia pendiente: al abrir el diseño, la sincronización lo sube.
+    const actual = disenoAnonimo()
+    const editado = actual !== null && actual !== doc
+    const copiado = editado && guardarCopiaLocal(almacenamientoSeguro(), d.id, { version: d.version, nombre: d.nombre, documento: actual, pendiente: true })
+    // Sin copia, lo editado se queda en el diseño anónimo antes que perderse.
+    if (!editado || copiado) descartarDisenoAnonimo()
     return { id: d.id }
   } catch (e) {
     return { error: e instanceof ErrorDeApi && e.estado === 409 ? textos.disenos.limiteConDisenoLocal : mensajeDeError(e) }
+  }
+}
+
+const GUARDADOS_SIN_TERMINAR = new Set(['pendiente', 'sinConexion', 'conflicto', 'error'])
+
+/** Algo de un diseño del servidor aún no está en el servidor: copias pendientes, el abierto sin guardar o un guardado en marcha. */
+export function hayCambiosSinSubir(): boolean {
+  const e = almacen.getState()
+  if (e.origen.tipo === 'servidor' && GUARDADOS_SIN_TERMINAR.has(e.guardado)) return true
+  if (hayGuardadosEnMarcha()) return true
+  const st = almacenamientoSeguro()
+  if (st === null) return false
+  try {
+    const ids = Array.from({ length: st.length }, (_, i) => st.key(i))
+      .filter((k): k is string => k?.startsWith(PREFIJO_COPIA) ?? false)
+      .map((k) => k.slice(PREFIJO_COPIA.length))
+    return ids.some((id) => leerCopiaLocal(st, id)?.pendiente === true)
+  } catch {
+    return false
   }
 }
 
@@ -55,6 +80,7 @@ export function olvidarDisenosLocales(): void {
   try {
     st?.removeItem(CLAVE_DUENO_COPIAS)
     st?.removeItem(CLAVE_DESCARTADO)
+    st?.removeItem(CLAVE_REGISTRO_ENVIADO)
   } catch {
     // sin acceso: no hay nada que borrar
   }

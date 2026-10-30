@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/cliente'
 import { respuesta } from '../pruebas/respuesta'
 import { almacen, reiniciarAlmacen } from '../editor/estado/almacen'
-import { CLAVE_DESCARTADO, CLAVE_DISENO, CLAVE_DUENO_COPIAS, guardarDisenoLocal } from '../editor/persistencia/local'
+import { CLAVE_DESCARTADO, CLAVE_DISENO, CLAVE_DUENO_COPIAS, CLAVE_REGISTRO_ENVIADO, guardarDisenoLocal } from '../editor/persistencia/local'
 import { documentoNuevo } from '../nucleo'
 import { alCaducarLaSesion, alSalirDeLaSesion, CLAVE_SESION, conectarSesionConApi, reiniciarSesion, sesion } from './sesion'
 
@@ -183,11 +183,13 @@ describe('diseños del navegador al salir y al entrar', () => {
   it('cerrarSesion borra las copias y el diseño anónimo, vacía el editor y lleva al inicio', () => {
     conDisenosLocales()
     localStorage.setItem(CLAVE_DESCARTADO, '{roto')
+    localStorage.setItem(CLAVE_REGISTRO_ENVIADO, '{}')
     const alSalir = vi.fn()
     alSalirDeLaSesion(alSalir)
     sesion.getState().cerrarSesion()
     expect(clavesDeDiseno()).toEqual([])
     expect(localStorage.getItem(CLAVE_DUENO_COPIAS)).toBeNull()
+    expect(localStorage.getItem(CLAVE_REGISTRO_ENVIADO)).toBeNull()
     expect(almacen.getState().documento).toBeNull()
     expect(alSalir).toHaveBeenCalledOnce()
   })

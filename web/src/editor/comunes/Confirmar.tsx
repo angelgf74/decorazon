@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { textos } from '../../textos'
 
 interface Props {
@@ -14,6 +14,12 @@ interface Props {
 
 export default function Confirmar({ abierto, mensaje, textoAceptar, textoCancelar = textos.comun.cancelar, alAceptar, alCancelar, alEscapar = alCancelar }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
+  const vigente = useRef(abierto)
+  const [reaperturas, setReaperturas] = useState(0)
+
+  useEffect(() => {
+    vigente.current = abierto
+  }, [abierto])
 
   useEffect(() => {
     const d = ref.current
@@ -21,11 +27,21 @@ export default function Confirmar({ abierto, mensaje, textoAceptar, textoCancela
     if (typeof d.showModal === 'function') d.showModal()
     if (!d.open) d.setAttribute('open', '')
     return () => d.close?.()
-  }, [abierto])
+  }, [abierto, reaperturas])
 
   if (!abierto) return null
   return (
-    <dialog ref={ref} className="confirmar" onCancel={(e) => { e.preventDefault(); alEscapar() }}>
+    <dialog
+      ref={ref}
+      className="confirmar"
+      onCancel={(e) => { e.preventDefault(); alEscapar() }}
+      // El navegador puede cerrarlo aunque se anule el Escape: cuenta como Escape y, si la página lo sigue queriendo abierto, se reabre.
+      onClose={() => {
+        if (!vigente.current || ref.current?.open) return
+        alEscapar()
+        setReaperturas((n) => n + 1)
+      }}
+    >
       <p>{mensaje}</p>
       <div className="confirmar__botones">
         <button type="button" onClick={alCancelar}>{textoCancelar}</button>

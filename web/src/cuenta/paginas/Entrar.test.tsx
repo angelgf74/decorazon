@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -174,6 +174,20 @@ describe('Entrar con un diseño anónimo', () => {
     expect(localStorage.getItem(CLAVE_DISENO)).toBeNull()
     expect(localStorage.getItem(CLAVE_REGISTRO_ENVIADO)).toBeNull()
     expect(almacen.getState().documento).toBeNull()
+  })
+
+  it('si el navegador cierra la pregunta por su cuenta (Escape), vuelve a abrirse', async () => {
+    conAnonimo(conElemento)
+    montar('')
+    await entrarConExito()
+    const dialogo = (await screen.findByText('¿Guardar este diseño en tu cuenta?')).closest('dialog')!
+    act(() => {
+      dialogo.removeAttribute('open')
+      fireEvent(dialogo, new Event('close'))
+    })
+    await vi.waitFor(() => expect(dialogo).toHaveAttribute('open'))
+    expect(screen.getByRole('button', { name: 'No, descartarlo' })).toBeInTheDocument()
+    expect(almacen.getState().documento).toEqual(conElemento)
   })
 
   it('un diseño anónimo vacío no hace preguntar', async () => {

@@ -187,9 +187,17 @@ describe('BarraSuperior con sesión y un diseño anónimo', () => {
     expect(screen.getByRole('button', { name: 'Guardar en mi cuenta' })).toBeEnabled()
   })
 
-  it('sin sesión o con un diseño del servidor no ofrece "Guardar en mi cuenta"', () => {
+  it('con un diseño del servidor no ofrece "Guardar en mi cuenta"', () => {
     almacen.getState().abrirDelServidor('d1', 4, 'Cocina', almacen.getState().documento!)
     montar()
+    expect(screen.queryByRole('button', { name: 'Guardar en mi cuenta' })).toBeNull()
+  })
+
+  it('sin sesión no ofrece "Guardar en mi cuenta"', () => {
+    localStorage.removeItem(CLAVE_SESION)
+    reiniciarSesion()
+    montar()
+    expect(screen.getByRole('link', { name: 'Guardar' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Guardar en mi cuenta' })).toBeNull()
   })
 })

@@ -345,3 +345,8 @@ export function anularSincronizacion(a: StoreApi<EstadoEditor>): void {
   epoca++
   controladores.get(a)?.anular()
 }
+
+/** Hay algún guardado de un diseño del servidor en marcha. */
+export function hayGuardadosEnMarcha(): boolean {
+  return enMarcha.size > 0
+}
