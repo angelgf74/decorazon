@@ -3,8 +3,6 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Decorazon.Contratos;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Decorazon.Api.Tests;
 
@@ -14,7 +12,7 @@ namespace Decorazon.Api.Tests;
 /// documento ni los 400 del framework tocan la base de datos, así que no
 /// necesita Docker.
 /// </summary>
-public class OpenApiTests
+public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDatos>
 {
     [Fact]
     public async Task Documento_DeclaraElEsquemaDeSeguridadBearer()
@@ -96,11 +94,33 @@ public class OpenApiTests
             ids.Order());
     }
 
+    /// <summary>
+    /// Todo lo que la API puede responder está declarado: los 400 del framework
+    /// en lo que lleva cuerpo y los 429 del limitador en lo que lo usa.
+    /// </summary>
+    [Theory]
+    [InlineData("/sesiones", "post", "400")]
+    [InlineData("/sesiones", "post", "429")]
+    [InlineData("/cuentas/contrasena", "post", "429")]
+    [InlineData("/cuentas/yo", "delete", "429")]
+    [InlineData("/cuentas/registro", "post", "429")]
+    [InlineData("/cuentas/contrasena/olvido", "post", "429")]
+    public async Task Documento_DeclaraLos400YLos429QueDaLaApi(string ruta, string metodo, string codigo)
+    {
+        using var documento = await LeerDocumentoAsync();
+
+        var respuesta = documento.RootElement.GetProperty("paths").GetProperty(ruta).GetProperty(metodo)
+            .GetProperty("responses").GetProperty(codigo);
+
+        Assert.Equal(
+            "#/components/schemas/RespuestaDeMensaje",
+            respuesta.GetProperty("content").GetProperty("application/json").GetProperty("schema")
+                .GetProperty("$ref").GetString());
+    }
+
     [Fact]
     public async Task UnCuerpoQueNoPasaLaValidacion_Responde400ConMensaje()
     {
-        using var api = new ApiSinBaseDeDatos();
-
         var respuesta = await api.CreateClient().PostAsJsonAsync("/cuentas/registro", new { correo = "" });
 
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
@@ -118,7 +138,6 @@ public class OpenApiTests
     [InlineData("token", "x101", "Indica tu nombre, de 100 caracteres como mucho.")]
     public async Task LosMensajesDeValidacion_EstanEnEspanol(string token, string nombre, string esperado)
     {
-        using var api = new ApiSinBaseDeDatos();
         nombre = nombre == "x101" ? new string('x', 101) : nombre;
 
         var respuesta = await api.CreateClient().PostAsJsonAsync(
@@ -133,8 +152,6 @@ public class OpenApiTests
     [InlineData("")]
     public async Task UnJsonMalFormadoOAusente_Responde400ConMensaje(string cuerpoEnviado)
     {
-        using var api = new ApiSinBaseDeDatos();
-
         var respuesta = await api.CreateClient().PostAsync(
             "/sesiones", new StringContent(cuerpoEnviado, Encoding.UTF8, "application/json"));
 
@@ -147,24 +164,6 @@ public class OpenApiTests
         operacion.TryGetProperty("security", out var seguridad)
         && seguridad.EnumerateArray().Any(requisito => requisito.TryGetProperty("Bearer", out _));
 
-    private static async Task<JsonDocument> LeerDocumentoAsync()
-    {
-        using var api = new ApiSinBaseDeDatos();
-
-        return JsonDocument.Parse(await api.CreateClient().GetStringAsync("/openapi/v1.json"));
-    }
-
-    private sealed class ApiSinBaseDeDatos : WebApplicationFactory<Program>
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder constructor)
-        {
-            constructor.UseEnvironment("Testing");
-            constructor.UseSetting("Jwt:ClaveDeFirma", ApiConPostgresFixture.ClaveDeFirmaDePrueba);
-            constructor.UseSetting("Limpieza:Activa", "false");
-            constructor.UseSetting("Correo:UsarBrevo", "false");
-            constructor.UseSetting(
-                "ConnectionStrings:Decorazon",
-                "Host=127.0.0.1;Port=1;Database=inexistente;Username=nadie;Password=nada;Timeout=1;Command Timeout=1");
-        }
-    }
+    private async Task<JsonDocument> LeerDocumentoAsync() =>
+        JsonDocument.Parse(await api.CreateClient().GetStringAsync("/openapi/v1.json"));
 }

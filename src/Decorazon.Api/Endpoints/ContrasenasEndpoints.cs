@@ -53,7 +53,8 @@ public static class ContrasenasEndpoints
             .WithName("cambiarContrasena")
             .Produces(StatusCodes.Status204NoContent)
             .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
-            .Produces(StatusCodes.Status401Unauthorized);
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests);
     }
 
     private static async Task<IResult> SolicitarAsync(

@@ -20,7 +20,9 @@ public static class SesionesEndpoints
             .WithTags("Sesiones")
             .WithName("iniciarSesion")
             .Produces<RespuestaDeInicioDeSesion>()
-            .Produces<RespuestaDeMensaje>(StatusCodes.Status401Unauthorized);
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status401Unauthorized)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests);
     }
 
     private static async Task<IResult> IniciarAsync(

@@ -31,13 +31,11 @@ public static class PeticionesNoValidas
     /// </summary>
     private sealed class MensajeEnLugarDeProblemDetails : IProblemDetailsService
     {
-        public async ValueTask WriteAsync(ProblemDetailsContext contexto)
-        {
-            if (!await TryWriteAsync(contexto))
-            {
-                throw new InvalidOperationException("Solo se escriben los 400 de petición no válida.");
-            }
-        }
+        /// <summary>
+        /// Lo que no es un 400 se queda sin cuerpo, solo con su código: lanzar
+        /// aquí taparía la excepción original de quien lo llama.
+        /// </summary>
+        public async ValueTask WriteAsync(ProblemDetailsContext contexto) => await TryWriteAsync(contexto);
 
         public async ValueTask<bool> TryWriteAsync(ProblemDetailsContext contexto)
         {
