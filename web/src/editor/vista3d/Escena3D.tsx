@@ -109,7 +109,8 @@ export default function Escena3D({ doc, ocultar, encuadres }: { doc: DocumentoDi
         shadow-camera-near={Math.max(0.1, DISTANCIA_SOL_M - radio)}
         shadow-camera-far={DISTANCIA_SOL_M + radio}
       />
-      <Environment resolution={64} environmentIntensity={0.7}>
+      {/* drei pinta los Lightformer una sola vez: la key lo vuelve a montar cuando las ventanas cambian la dirección del sol. */}
+      <Environment key={sol.map((v) => v.toFixed(3)).join(',')} resolution={64} environmentIntensity={0.7}>
         <Lightformer name="techo" form="rect" intensity={1.2} position={[0, 5, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
         <Lightformer name="ventana" form="rect" intensity={2} position={[sol[0] * 5, sol[1] * 5, sol[2] * 5]} scale={[4, 3, 1]} target={[0, 0, 0]} />
         <Lightformer name="relleno" form="rect" intensity={0.5} position={[-sol[0] * 5, 1, -sol[2] * 5]} scale={[6, 3, 1]} target={[0, 0, 0]} />

@@ -15,11 +15,17 @@ const controles = vi.hoisted(() => ({
   instancia: undefined as unknown as ControlesFalsos,
 }))
 
+/** Veces que se monta el Environment: drei pinta sus Lightformer solo al montarlo. */
+const entorno = vi.hoisted(() => ({ montajes: 0 }))
+
 vi.mock('@react-three/drei', async () => {
   const { useImperativeHandle, useState } = await import('react')
   return {
     Edges: () => null,
-    Environment: () => null,
+    Environment: () => {
+      useState(() => entorno.montajes++)
+      return null
+    },
     Lightformer: () => null,
     OrbitControls: ({ onChange, target, ref }: { onChange?: () => void; target: Vec3; ref?: import('react').Ref<ControlesFalsos> }) => {
       controles.onChange = onChange
@@ -147,5 +153,21 @@ describe('Escena3D: la estancia cambia con el 3D abierto', () => {
     await r.update(escena(copia, true))
     expect(controles.instancia.target.toArray()).toEqual(objetivo)
     expect(sonda.camara.position.toArray()).toEqual([1, 3, 6])
+  })
+})
+
+describe('Escena3D: entorno', () => {
+  it('el Environment se vuelve a pintar si las ventanas cambian la dirección del sol, y no si no la cambian', async () => {
+    const doc = documento()
+    entorno.montajes = 0
+    const r = await ReactThreeTestRenderer.create(escena(doc, true))
+    expect(entorno.montajes).toBe(1)
+    await r.update(escena(structuredClone(doc), true))
+    expect(entorno.montajes).toBe(1)
+    // Una ventana más ancha en la pared 1 pasa a mandar sobre la dirección del sol.
+    const otra = structuredClone(doc)
+    otra.aberturas.push({ id: 'v2', tipo: 'ventana', pared: 1, posicion: 50, ancho: 200, alto: 120, alturaSuelo: 90, abreHaciaDentro: false })
+    await r.update(escena(otra, true))
+    expect(entorno.montajes).toBe(2)
   })
 })
