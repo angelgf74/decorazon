@@ -7,8 +7,14 @@ import { useEditor } from '../estado/almacen'
 const t = textos.nuevaEstancia
 const TIPOS: TipoEstancia[] = ['dormitorio', 'salon', 'cocina']
 
-export default function NuevaEstancia() {
-  const crear = useEditor((e) => e.crear)
+interface Props {
+  // Si se da, entrega las medidas en lugar de crear la estancia en el almacén del editor.
+  alCrear?(tipo: TipoEstancia, ancho: number, largo: number, alto: number): void
+}
+
+export default function NuevaEstancia({ alCrear }: Props) {
+  const crearEnAlmacen = useEditor((e) => e.crear)
+  const crear = alCrear ?? crearEnAlmacen
   const [tipo, setTipo] = useState<TipoEstancia>('dormitorio')
   const [ancho, setAncho] = useState(400)
   const [largo, setLargo] = useState(330)

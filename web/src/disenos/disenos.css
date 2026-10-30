@@ -1,0 +1,31 @@
+.disenos {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.disenos__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.disenos__cabecera h1 { margin: 0; color: var(--terracota); }
+.disenos__aviso { margin: 0; padding: 0.6rem 0.75rem; border-radius: 0.5rem; background: var(--crema); border: 1px solid var(--amarillo); }
+.disenos__vacio { color: var(--gris); }
+
+.disenos__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.disenos__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--salmon);
+  border-radius: 0.6rem;
+  background: #fff;
+}
+.disenos__datos { display: flex; flex-direction: column; gap: 0.15rem; }
+.disenos__datos span { color: var(--gris); font-size: 0.9rem; }
+.disenos__acciones, .disenos__renombrar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.4rem; }
+.disenos__renombrar label { display: flex; flex-direction: column; gap: 0.25rem; }
+.disenos__renombrar input { font: inherit; padding: 0.4rem 0.6rem; border: 1px solid var(--gris); border-radius: 0.4rem; }
