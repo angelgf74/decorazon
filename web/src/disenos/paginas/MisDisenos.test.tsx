@@ -3,7 +3,8 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { CLAVE_SESION, conectarSesionConApi, reiniciarSesion } from '../../cuenta/sesion'
+import { CLAVE_SESION, conectarSesionConApi, reiniciarSesion, sesion } from '../../cuenta/sesion'
+import { CLAVE_DUENO_COPIAS, guardarCopiaLocal } from '../../editor/persistencia/local'
 import { documentoNuevo } from '../../nucleo'
 import { respuesta } from '../../pruebas/respuesta'
 import MisDisenos from './MisDisenos'
@@ -148,5 +149,60 @@ describe('MisDisenos', () => {
     montar()
     expect(await screen.findByText('entrar')).toBeInTheDocument()
     expect(fetchSimulado).not.toHaveBeenCalled()
+  })
+})
+
+describe('MisDisenos sin conexión o con la carga fallida', () => {
+  const doc = documentoNuevo('salon', 400, 300, 250)
+
+  it('sin conexión lista las copias de este navegador, solo para abrir, con un aviso', async () => {
+    conSesion()
+    localStorage.setItem(CLAVE_DUENO_COPIAS, 'ana@x.es')
+    guardarCopiaLocal(localStorage, 'c1', { version: 3, nombre: 'Cocina de casa', documento: doc, pendiente: true })
+    guardarCopiaLocal(localStorage, 'c2', { version: 1, documento: doc, pendiente: false })
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    montar()
+    expect(await screen.findByText('Sin conexión: estos son los diseños guardados en este navegador')).toBeInTheDocument()
+    expect(screen.queryByText('Aún no tienes diseños')).toBeNull()
+    const filas = screen.getAllByRole('listitem')
+    expect(filas).toHaveLength(2)
+    const fila = screen.getByText('Cocina de casa').closest('li')!
+    expect(within(fila).getByText('ahora mismo')).toBeInTheDocument()
+    expect(within(fila).queryByRole('button', { name: 'Renombrar' })).toBeNull()
+    expect(within(fila).queryByRole('button', { name: 'Duplicar' })).toBeNull()
+    expect(within(fila).queryByRole('button', { name: 'Borrar' })).toBeNull()
+    expect(screen.getByText('Diseño sin título')).toBeInTheDocument()
+    await userEvent.click(within(fila).getByRole('button', { name: 'Abrir' }))
+    expect(await screen.findByText('editor')).toBeInTheDocument()
+  })
+
+  it('sin conexión no muestra copias de otra cuenta', async () => {
+    conSesion()
+    sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es' } })
+    localStorage.setItem(CLAVE_DUENO_COPIAS, 'otra@x.es')
+    guardarCopiaLocal(localStorage, 'c1', { version: 3, nombre: 'De otra', documento: doc, pendiente: false })
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    montar()
+    expect(await screen.findByText('Sin conexión: estos son los diseños guardados en este navegador')).toBeInTheDocument()
+    expect(screen.queryByText('De otra')).toBeNull()
+    expect(screen.queryByText('Aún no tienes diseños')).toBeNull()
+  })
+
+  it('sin conexión y sin copias no dice que no hay diseños', async () => {
+    conSesion()
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    montar()
+    expect(await screen.findByText('Sin conexión: estos son los diseños guardados en este navegador')).toBeInTheDocument()
+    expect(screen.queryByText('Aún no tienes diseños')).toBeNull()
+    expect(screen.queryByText('Cargando…')).toBeNull()
+  })
+
+  it('si el servidor falla, muestra el error y no dice que no hay diseños', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(500, { mensaje: 'Algo ha fallado' }))
+    montar()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Algo ha fallado')
+    expect(screen.queryByText('Aún no tienes diseños')).toBeNull()
+    expect(screen.queryByText('Cargando…')).toBeNull()
   })
 })

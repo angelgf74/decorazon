@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { ErrorDeApi } from '../../api/cliente'
 import { mensajeDeError } from '../../cuenta/errores'
-import { useSesion } from '../../cuenta/sesion'
+import { copiasDeLaCuenta } from '../../cuenta/disenosLocales'
+import { sesion, useSesion } from '../../cuenta/sesion'
 import Confirmar from '../../editor/comunes/Confirmar'
 import NuevaEstancia from '../../editor/paneles/NuevaEstancia'
+import type { CopiaListada } from '../../editor/persistencia/local'
 import { documentoNuevo, type TipoEstancia } from '../../nucleo'
 import { textos } from '../../textos'
 import { borrarDiseno, crearDiseno, duplicarDiseno, guardarDiseno, listarDisenos, obtenerDiseno, type ResumenDiseno } from '../servidor'
@@ -54,6 +56,9 @@ export default function MisDisenos() {
   const haySesion = useSesion((s) => s.haySesion())
   const navegar = useNavigate()
   const [lista, setLista] = useState<ResumenDiseno[] | null>(null)
+  // Sin conexión: las copias de este navegador, solo para abrirlas.
+  const [locales, setLocales] = useState<CopiaListada[] | null>(null)
+  const [falloLaCarga, setFalloLaCarga] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const [creando, setCreando] = useState(false)
   const [editando, setEditando] = useState<{ id: string; nombre: string } | null>(null)
@@ -63,9 +68,14 @@ export default function MisDisenos() {
   const recargar = useCallback(async () => {
     try {
       setLista(porFechaDescendente(await listarDisenos()))
+      setLocales(null)
+      setFalloLaCarga(false)
     } catch (e) {
-      setAviso(mensajeDeError(e))
-      setLista((actual) => actual ?? [])
+      if (e instanceof ErrorDeApi && e.estado === 0) {
+        setLocales(copiasDeLaCuenta(sesion.getState().usuario?.correo ?? null))
+        setAviso(t.sinConexionLocales)
+      } else setAviso(mensajeDeError(e))
+      setFalloLaCarga(true)
     }
   }, [])
 
@@ -136,8 +146,22 @@ export default function MisDisenos() {
         <button type="button" className="primario" disabled={ocupado} onClick={() => setCreando(true)}>{t.nuevo}</button>
       </header>
       {aviso && <p className="disenos__aviso" role="alert">{aviso}</p>}
-      {lista === null ? (
-        <p>{t.cargando}</p>
+      {locales !== null ? (
+        <ul className="disenos__lista">
+          {locales.map((c) => (
+            <li key={c.id} className="disenos__fila">
+              <div className="disenos__datos">
+                <strong>{c.nombre ?? t.nombrePorDefecto}</strong>
+                {c.guardadaEn !== undefined && <span>{fechaRelativa(c.guardadaEn)}</span>}
+              </div>
+              <div className="disenos__acciones">
+                <button type="button" className="primario" onClick={() => navegar(`/disenos/${c.id}`)}>{t.abrir}</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : lista === null ? (
+        !falloLaCarga && <p>{t.cargando}</p>
       ) : lista.length === 0 ? (
         <p className="disenos__vacio">{t.vacio}</p>
       ) : (

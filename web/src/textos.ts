@@ -127,6 +127,7 @@ export const textos = {
     nombrePorDefecto: 'Diseño sin título',
     limiteConDisenoLocal: 'Has llegado al límite de 100 diseños. Tu diseño sigue en este navegador.',
     vacio: 'Aún no tienes diseños',
+    sinConexionLocales: 'Sin conexión: estos son los diseños guardados en este navegador',
     abrir: 'Abrir',
     renombrar: 'Renombrar',
     guardarNombre: 'Guardar',

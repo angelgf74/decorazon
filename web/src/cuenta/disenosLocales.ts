@@ -3,7 +3,7 @@ import { crearDiseno, listarDisenos, obtenerDiseno } from '../disenos/servidor'
 import { almacen } from '../editor/estado/almacen'
 import {
   almacenamientoSeguro, borrarCopiasLocales, CLAVE_DESCARTADO, CLAVE_DUENO_COPIAS, CLAVE_REGISTRO_ENVIADO, disenoNoVacio,
-  guardarCopiaLocal, leerCopiaLocal, PREFIJO_COPIA,
+  guardarCopiaLocal, listarCopiasLocales, type CopiaListada,
   guardarDisenoLocal,
 } from '../editor/persistencia/local'
 import { anularSincronizacion, hayGuardadosEnMarcha } from '../editor/persistencia/sincronizacion'
@@ -86,16 +86,19 @@ export function hayCambiosSinSubir(): boolean {
   const e = almacen.getState()
   if (e.origen.tipo === 'servidor' && GUARDADOS_SIN_TERMINAR.has(e.guardado)) return true
   if (hayGuardadosEnMarcha()) return true
+  return listarCopiasLocales(almacenamientoSeguro()).some((c) => c.pendiente)
+}
+
+/** Las copias locales de la cuenta `correo` (null si aún no se sabe): sin dueño conocido o de otra cuenta, ninguna. */
+export function copiasDeLaCuenta(correo: string | null): CopiaListada[] {
   const st = almacenamientoSeguro()
-  if (st === null) return false
   try {
-    const ids = Array.from({ length: st.length }, (_, i) => st.key(i))
-      .filter((k): k is string => k?.startsWith(PREFIJO_COPIA) ?? false)
-      .map((k) => k.slice(PREFIJO_COPIA.length))
-    return ids.some((id) => leerCopiaLocal(st, id)?.pendiente === true)
+    const dueno = st?.getItem(CLAVE_DUENO_COPIAS) ?? null
+    if (dueno === null || (correo !== null && dueno !== correo.trim().toLowerCase())) return []
   } catch {
-    return false
+    return []
   }
+  return listarCopiasLocales(st)
 }
 
 /** Al cerrar la sesión: no queda en el navegador nada de la cuenta y el editor anónimo empieza vacío. */

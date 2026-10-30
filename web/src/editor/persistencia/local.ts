@@ -98,10 +98,40 @@ export function leerCopiaLocal(st: Storage | null, id: string): CopiaLocal | nul
 export function guardarCopiaLocal(st: Storage | null, id: string, copia: CopiaLocal): boolean {
   if (st === null) return false
   try {
-    st.setItem(claveCopia(id), JSON.stringify({ ...copia, documento: redondearNumeros(copia.documento) }))
+    st.setItem(claveCopia(id), JSON.stringify({ ...copia, documento: redondearNumeros(copia.documento), guardadaEn: new Date().toISOString() }))
     return true
   } catch {
     return false
+  }
+}
+
+function idsDeCopias(st: Storage): string[] {
+  return Array.from({ length: st.length }, (_, i) => st.key(i))
+    .filter((k): k is string => k?.startsWith(PREFIJO_COPIA) ?? false)
+    .map((k) => k.slice(PREFIJO_COPIA.length))
+}
+
+export interface CopiaListada {
+  id: string
+  nombre?: string
+  /** Cuándo se escribió la copia, si se sabe. */
+  guardadaEn?: string
+  pendiente: boolean
+}
+
+/** Las copias locales válidas de diseños del servidor, para abrirlas sin conexión. */
+export function listarCopiasLocales(st: Storage | null): CopiaListada[] {
+  if (st === null) return []
+  try {
+    return idsDeCopias(st).flatMap((id) => {
+      const copia = leerCopiaLocal(st, id)
+      if (copia === null) return []
+      const { guardadaEn } = JSON.parse(st.getItem(claveCopia(id)) ?? '{}') as { guardadaEn?: unknown }
+      const fecha = typeof guardadaEn === 'string' && !Number.isNaN(Date.parse(guardadaEn)) ? { guardadaEn } : {}
+      return [{ id, ...(copia.nombre !== undefined && { nombre: copia.nombre }), ...fecha, pendiente: copia.pendiente }]
+    })
+  } catch {
+    return []
   }
 }
 
@@ -109,8 +139,7 @@ export function guardarCopiaLocal(st: Storage | null, id: string, copia: CopiaLo
 export function borrarCopiasLocales(st: Storage | null): void {
   if (st === null) return
   try {
-    const claves = Array.from({ length: st.length }, (_, i) => st.key(i)).filter((k): k is string => k?.startsWith(PREFIJO_COPIA) ?? false)
-    for (const k of claves) st.removeItem(k)
+    for (const id of idsDeCopias(st)) st.removeItem(claveCopia(id))
   } catch {
     // sin acceso: no hay nada que borrar
   }
