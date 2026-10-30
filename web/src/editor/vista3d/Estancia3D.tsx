@@ -17,7 +17,13 @@ const OCLUSOR: EventosPieza = {
 }
 
 export default function Estancia3D({ doc, ocultas }: Props) {
-  const { suelo, muros, huecos, estructura } = useMemo(() => escenaEstancia(doc), [doc])
+  // `cambiar` recrea todas las referencias del documento: se memoriza por el contenido de lo que pinta la estancia,
+  // para que editar un mueble no rehaga (ni libere) las geometrías de los muros.
+  const clave = JSON.stringify({ estancia: doc.estancia, aberturas: doc.aberturas, estructura: doc.estructura })
+  const { suelo, muros, huecos, estructura } = useMemo(() => {
+    const partes = JSON.parse(clave) as Pick<DocumentoDiseno, 'estancia' | 'aberturas' | 'estructura'>
+    return escenaEstancia({ formato: 1, elementos: [], ...partes })
+  }, [clave])
   const geometriaDelSuelo = useMemo(() => geometriaSuelo(suelo), [suelo])
   useEffect(() => () => geometriaDelSuelo.dispose(), [geometriaDelSuelo])
   return (

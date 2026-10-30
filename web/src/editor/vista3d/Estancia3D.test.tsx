@@ -3,6 +3,7 @@ import { Box3, Vector3, type Mesh } from 'three'
 import { describe, expect, it, vi } from 'vitest'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import { documentoNuevo, escenaEstancia } from '../../nucleo'
+import { elemento } from '../../nucleo/catalogo/definiciones/ayuda.test-util'
 import Estancia3D from './Estancia3D'
 import { geometriaPrisma, geometriaSuelo } from './geometrias'
 import { materialDe } from './materiales3d'
@@ -145,5 +146,39 @@ describe('Estancia3D: muros y huecos tapan los clics', () => {
       }
     }
     expect(almacen.getState().seleccion).toEqual({ tipo: 'pared', indice: 2 })
+  })
+})
+
+describe('Estancia3D: memoria', () => {
+  it('editar un mueble (doc nuevo con la misma estancia) no recrea ni libera las geometrías de los muros', async () => {
+    const doc = documentoNuevo('salon', 400, 330, 250)
+    doc.aberturas.push({ id: 'p1', tipo: 'puerta', pared: 0, posicion: 159, ancho: 82, alto: 203, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' })
+    doc.elementos.push(elemento('armario', 100, 30, 0, {}, {}, 'a1'))
+    const r = await ReactThreeTestRenderer.create(<Estancia3D doc={doc} ocultas={new Set()} />)
+    const extruidas = () => r.scene.findAll((n) => n.type === 'Mesh')
+      .map((m) => (m.instance as Mesh).geometry)
+      .filter((g) => g.type === 'ExtrudeGeometry')
+    const antes = extruidas()
+    expect(antes.length).toBeGreaterThan(4)
+    const liberadas = vi.fn()
+    for (const g of antes) g.addEventListener('dispose', liberadas)
+    // Como `cambiar`, que redondea y recrea todas las referencias del documento.
+    const editado = structuredClone(doc)
+    editado.elementos[0]!.colores = { cuerpo: '#123456' }
+    await r.update(<Estancia3D doc={editado} ocultas={new Set()} />)
+    expect(extruidas()).toHaveLength(antes.length)
+    extruidas().forEach((g, k) => expect(g).toBe(antes[k]))
+    expect(liberadas).not.toHaveBeenCalled()
+  })
+
+  it('cambiar la estancia sí recalcula los muros', async () => {
+    const doc = documentoNuevo('salon', 400, 330, 250)
+    const r = await ReactThreeTestRenderer.create(<Estancia3D doc={doc} ocultas={new Set()} />)
+    const geometrias = () => r.scene.findAll((n) => n.type === 'Mesh').map((m) => (m.instance as Mesh).geometry).filter((g) => g.type === 'ExtrudeGeometry')
+    const antes = geometrias()
+    const alto = structuredClone(doc)
+    alto.estancia.alto = 270
+    await r.update(<Estancia3D doc={alto} ocultas={new Set()} />)
+    expect(geometrias().some((g, k) => g !== antes[k])).toBe(true)
   })
 })
