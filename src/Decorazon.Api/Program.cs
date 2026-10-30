@@ -23,13 +23,16 @@ var constructor = WebApplication.CreateBuilder(args);
 constructor.Host.UseSystemd();
 
 // dotnet build arranca la API dentro de GetDocument.Insider solo para leer el
-// documento OpenAPI: se detiene al construir el host, sin atender peticiones ni
-// abrir la base de datos. Ahí no hay configuración (entorno Production, sin
-// secretos), y las validaciones de arranque impedirían generar el documento.
+// documento OpenAPI. El host no se detiene en Build(): la app sigue con un
+// servidor que no atiende peticiones, por eso se omite la migración de
+// Development (no hay base) y Limpieza:Activa=false evita la tarea de limpieza.
+// Ahí no hay secretos (el entorno lo hereda del build), y las validaciones de
+// arranque impedirían generar el documento.
 // Estos valores ficticios no afectan al documento y no firman ni conectan con
 // nada; se añaden los últimos para que tampoco se lea ningún secreto real.
 // Fuera de ese proceso no se tocan: la API real sigue sin arrancar sin ellos.
-if (Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider")
+var soloDocumentoOpenApi = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+if (soloDocumentoOpenApi)
 {
     constructor.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
     {
@@ -200,7 +203,7 @@ if (constructor.Configuration.GetValue("Limpieza:Activa", true))
 var aplicacion = constructor.Build();
 
 // En desarrollo las migraciones se aplican solas; en producción, al desplegar.
-if (aplicacion.Environment.IsDevelopment())
+if (aplicacion.Environment.IsDevelopment() && !soloDocumentoOpenApi)
 {
     using var ambito = aplicacion.Services.CreateScope();
     await ambito.ServiceProvider.GetRequiredService<DecorazonDbContext>().Database.MigrateAsync();

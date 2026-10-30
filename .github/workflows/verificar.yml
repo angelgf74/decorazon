@@ -41,6 +41,12 @@ jobs:
       - run: dotnet build Decorazon.slnx -warnaserror
       # El build regenera el contrato; si difiere del confirmado, la web iría con tipos viejos.
       - run: git diff --exit-code web/src/api/openapi.json
+      # El mismo build con el entorno Development (el de un dotnet run local): la
+      # generación del OpenAPI no debe migrar ni conectar con la base.
+      - run: dotnet build src/Decorazon.Api --no-incremental
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+      - run: git diff --exit-code web/src/api/openapi.json
       # Docker ya viene en el runner: corren también los tests de integración.
       - run: dotnet test Decorazon.slnx
 
