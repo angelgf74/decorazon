@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
+import { useSesion } from '../../cuenta/sesion'
 import { textos } from '../../textos'
 import Confirmar from '../comunes/Confirmar'
 import { useEditor } from '../estado/almacen'
@@ -23,6 +25,8 @@ export default function BarraSuperior({ hojaAbierta = null, alAlternarHoja }: Pr
   const deshacer = useEditor((e) => e.deshacer)
   const rehacer = useEditor((e) => e.rehacer)
   const descartar = useEditor((e) => e.descartar)
+  const haySesion = useSesion((s) => s.haySesion())
+  const nombre = useSesion((s) => s.usuario?.nombre)
   const [confirmando, setConfirmando] = useState(false)
 
   return (
@@ -55,6 +59,17 @@ export default function BarraSuperior({ hojaAbierta = null, alAlternarHoja }: Pr
       <p className={`barra__guardado barra__guardado--${guardado}`} role="status">
         {guardado === 'guardado' ? t.guardado : guardado === 'pendiente' ? t.pendiente : t.error}
       </p>
+
+      <nav className="barra__grupo" aria-label="Cuenta">
+        {haySesion ? (
+          <>
+            <Link to="/disenos" className="boton">{t.misDisenos}</Link>
+            <Link to="/cuenta" className="boton">{nombre ?? t.miCuenta}</Link>
+          </>
+        ) : (
+          <Link to="/entrar" className="boton">{t.entrar}</Link>
+        )}
+      </nav>
 
       <Confirmar
         abierto={confirmando}

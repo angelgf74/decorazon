@@ -6,6 +6,7 @@ export const textos = {
     seguir: 'Seguir con tu diseño',
     nuevo: 'Empezar uno nuevo',
     confirmarNuevo: 'Esto reemplaza tu diseño actual, que no está guardado en ninguna cuenta. ¿Seguir?',
+    misDisenos: 'Mis diseños',
   },
   nuevaEstancia: {
     titulo: 'Nueva estancia',
@@ -31,6 +32,9 @@ export const textos = {
     catalogo: 'Catálogo',
     estancia: 'Estancia',
     propiedades: 'Propiedades',
+    entrar: 'Entrar',
+    misDisenos: 'Mis diseños',
+    miCuenta: 'Mi cuenta',
   },
   lienzo: {
     encuadrar: 'Encuadrar',
@@ -110,6 +114,35 @@ export const textos = {
   comun: {
     aceptar: 'Aceptar',
     cancelar: 'Cancelar',
+  },
+  cuenta: {
+    correo: 'Correo',
+    contrasena: 'Contraseña',
+    enviando: 'Enviando…',
+    entrar: {
+      titulo: 'Entrar',
+      boton: 'Entrar',
+      caducada: 'Tu sesión ha caducado. Vuelve a entrar.',
+      olvido: '¿Has olvidado la contraseña?',
+      crearCuenta: 'Crear cuenta',
+    },
+    olvido: {
+      titulo: 'Contraseña olvidada',
+      explicacion: 'Escribe tu correo y te enviaremos un enlace para elegir otra contraseña.',
+      boton: 'Enviar enlace',
+      volver: 'Volver a entrar',
+    },
+    restablecer: {
+      titulo: 'Elige otra contraseña',
+      nueva: 'Contraseña nueva',
+      repetir: 'Repite la contraseña',
+      ayuda: 'Entre 12 y 128 caracteres',
+      boton: 'Cambiar la contraseña',
+      noCoinciden: 'Las contraseñas no coinciden',
+      longitud: 'La contraseña debe tener entre 12 y 128 caracteres',
+      sinToken: 'Este enlace no es válido.',
+      pedirOtro: 'Pedir otro enlace',
+    },
   },
   api: {
     sinRed: 'No hay conexión',

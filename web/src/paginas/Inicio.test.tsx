@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { CLAVE_SESION, reiniciarSesion } from '../cuenta/sesion'
 import { almacen, reiniciarAlmacen } from '../editor/estado/almacen'
 import Inicio from './Inicio'
 
@@ -17,7 +18,11 @@ function montar() {
   )
 }
 
-beforeEach(() => reiniciarAlmacen())
+beforeEach(() => {
+  localStorage.clear()
+  reiniciarSesion()
+  reiniciarAlmacen()
+})
 
 describe('Inicio', () => {
   it('sin documento ofrece empezar', () => {
@@ -40,5 +45,17 @@ describe('Inicio', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
     expect(almacen.getState().documento).toBeNull()
     expect(screen.getByText('pantalla del editor')).toBeInTheDocument()
+  })
+
+  it('sin sesión no ofrece Mis diseños', () => {
+    montar()
+    expect(screen.queryByRole('link', { name: 'Mis diseños' })).toBeNull()
+  })
+
+  it('con sesión ofrece Mis diseños', () => {
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: new Date(Date.now() + 86_400_000).toISOString() }))
+    reiniciarSesion()
+    montar()
+    expect(screen.getByRole('link', { name: 'Mis diseños' })).toHaveAttribute('href', '/disenos')
   })
 })
