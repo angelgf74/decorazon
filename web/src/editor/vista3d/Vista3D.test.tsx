@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
@@ -59,12 +59,29 @@ describe('Vista3D', () => {
     expect(screen.queryByRole('button', { name: 'Encuadrar' })).toBeNull()
   })
 
-  it('el clic en el vacío del lienzo anula la selección', () => {
+  it('el clic en el vacío del lienzo anula la selección de un mueble', () => {
     conWebgl()
     almacen.getState().seleccionar({ tipo: 'elemento', id: 'x' })
     const { container } = render(<Vista3D />)
     fireEvent.click(container.querySelector('canvas')!)
     expect(almacen.getState().seleccion).toBeNull()
+  })
+
+  it('el clic en el vacío no anula la selección del paso 1 (vértice, pared, abertura, estructura)', () => {
+    conWebgl()
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      aberturas: [{ id: 'a', tipo: 'ventana', pared: 0, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false }],
+      estructura: [{ id: 'c', tipo: 'columna', centro: { x: 200, y: 165 }, ancho: 30, fondo: 30, rotacion: 0 }],
+    }))
+    const { container } = render(<Vista3D />)
+    for (const seleccion of [
+      { tipo: 'vertice', indice: 1 }, { tipo: 'pared', indice: 2 }, { tipo: 'abertura', id: 'a' }, { tipo: 'estructura', id: 'c' },
+    ] as const) {
+      act(() => almacen.getState().seleccionar(seleccion))
+      fireEvent.click(container.querySelector('canvas')!)
+      expect(almacen.getState().seleccion).toEqual(seleccion)
+    }
   })
 
   it('"Ocultar paredes delante" está activado por defecto y se alterna; "Encuadrar" existe', async () => {
