@@ -89,6 +89,8 @@ interface Trabajo {
   nombrePendiente: string | null
   enVuelo: boolean
   conflicto: boolean
+  /** Ya no existe en el servidor y tiene cambios: no se sube más; decide el usuario (guardarlo como nuevo o descartarlo). */
+  perdido: boolean
   epoca: number
 }
 
@@ -103,6 +105,7 @@ interface Controlador {
 }
 
 const controladores = new WeakMap<StoreApi<EstadoEditor>, Controlador>()
+const avisosDeBorrado = new WeakMap<StoreApi<EstadoEditor>, (id: string) => void>()
 
 export function conectarSincronizacion(
   a: StoreApi<EstadoEditor>,
@@ -149,9 +152,20 @@ export function conectarSincronizacion(
 
   const guardar = (t: Trabajo): Promise<void> => registrar(t.id, enviar(t))
 
+  // Borrado en otro sitio con cambios propios: la copia sigue pendiente y la página ofrece guardarlo como nuevo o descartarlo.
+  const perder = (t: Trabajo) => {
+    t.perdido = true
+    clearTimeout(temporizador)
+    temporizador = undefined
+    pararReintentos()
+    copiar(t)
+    fijar(t, { guardado: 'error', aviso: textos.editorDeDiseno.noExiste })
+    avisosDeBorrado.get(a)?.(t.id)
+  }
+
   // Nunca hay dos PUT a la vez del mismo trabajo: lo cambiado durante uno sale al acabar, con la versión nueva.
   async function enviar(t: Trabajo): Promise<void> {
-    if (t.enVuelo || t.conflicto || anulado(t)) return
+    if (t.enVuelo || t.conflicto || t.perdido || anulado(t)) return
     if (!hayCambios(t)) {
       if (t === actual && a.getState().guardado === 'sinConexion') await comprobar(t)
       return
@@ -185,6 +199,8 @@ export function conectarSincronizacion(
       if (e instanceof ErrorDeApi && e.estado === 0) {
         fijar(t, { guardado: 'sinConexion' })
         iniciarReintentos()
+      } else if (e instanceof ErrorDeApi && e.estado === 404) {
+        perder(t)
       } else if (e instanceof ErrorDeApi && e.estado === 412) {
         t.conflicto = true
         clearTimeout(temporizador)
@@ -217,8 +233,12 @@ export function conectarSincronizacion(
       if (t !== actual || (e instanceof ErrorDeApi && e.estado === 0)) return
       pararReintentos()
       if (e instanceof ErrorDeApi && e.estado === 404) {
-        // Ya no existe: sin cambios propios, la copia sobra; con ellos, se ofrecerán al volver a abrirlo.
-        if (!hayCambios(t)) borrarCopiaLocal(st, t.id)
+        // Ya no existe: sin cambios propios, la copia sobra; con ellos, decide el usuario.
+        if (hayCambios(t)) {
+          perder(t)
+          return
+        }
+        borrarCopiaLocal(st, t.id)
         fijar(t, { guardado: 'error', aviso: textos.editorDeDiseno.noExiste })
       } else fijar(t, { guardado: 'error' })
     }
@@ -239,7 +259,7 @@ export function conectarSincronizacion(
     dejar()
     if (estado.origen.tipo !== 'servidor' || estado.documento === null) return
     const { id, version, nombre } = estado.origen
-    actual = { id, version, nombre, documento: estado.documento, sucio: false, nombrePendiente: null, enVuelo: false, conflicto: false, epoca }
+    actual = { id, version, nombre, documento: estado.documento, sucio: false, nombrePendiente: null, enVuelo: false, conflicto: false, perdido: false, epoca }
     origenPropio = estado.origen
   }
 
@@ -249,7 +269,7 @@ export function conectarSincronizacion(
     t.documento = estado.documento
     t.sucio = true
     copiar(t)
-    if (estado.guardado === 'conflicto') return
+    if (t.perdido || estado.guardado === 'conflicto') return
     if (estado.guardado === 'sinConexion') {
       iniciarReintentos()
       return
@@ -326,7 +346,7 @@ export function conectarSincronizacion(
       fijarOrigen(t)
       copiar(t)
       const g = a.getState().guardado
-      if (t.conflicto || g === 'sinConexion') return
+      if (t.conflicto || t.perdido || g === 'sinConexion') return
       fijar(t, { guardado: 'pendiente' })
       programar(0)
     },
@@ -350,6 +370,14 @@ export function abrirDiseno(a: StoreApi<EstadoEditor>, ap: Apertura): void {
   const c = controladores.get(a)
   if (c !== undefined) c.abierto(ap)
   else a.setState({ guardado: ap.guardado, versionRemota: ap.versionRemota ?? null })
+}
+
+/** La página se entera de que el diseño abierto ya no existe en el servidor y tiene cambios sin subir. */
+export function alBorrarseEnElServidor(a: StoreApi<EstadoEditor>, f: (id: string) => void): () => void {
+  avisosDeBorrado.set(a, f)
+  return () => {
+    if (avisosDeBorrado.get(a) === f) avisosDeBorrado.delete(a)
+  }
 }
 
 export function resolverConflicto(a: StoreApi<EstadoEditor>, eleccion: Eleccion): Promise<void> {

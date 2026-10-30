@@ -204,6 +204,32 @@ describe('EditorDeDiseno con un diseño que ya no existe (404)', () => {
     expect(screen.getByRole('button', { name: 'Descartar' })).toBeInTheDocument()
   })
 
+  it('borrado en otro sitio mientras se edita (404 al guardar): ofrece ya las dos salidas, sin volver a abrirlo', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const desconectar = conectarSincronizacion(almacen, { esperaMs: 2000, st: localStorage })
+    try {
+      conSesion()
+      servidor.obtenerDiseno.mockResolvedValueOnce(respuestaRemota(4))
+      servidor.guardarDiseno.mockRejectedValue(noExiste())
+      montar()
+      await screen.findByRole('textbox', { name: 'Nombre del diseño' })
+      act(() => almacen.getState().cambiar((d) => ({ ...d, estancia: { ...d.estancia, alto: 270 } })))
+      await act(() => vi.advanceTimersByTimeAsync(2000))
+      expect(await screen.findByRole('alert')).toHaveTextContent('Este diseño ya no existe en tu cuenta')
+      expect(screen.getByRole('button', { name: 'Guardar como diseño nuevo' })).toBeInTheDocument()
+      expect(servidor.obtenerDiseno).toHaveBeenCalledTimes(1)
+      expect(leerCopiaLocal(localStorage, ID)).toMatchObject({ pendiente: true })
+      servidor.crearDiseno.mockResolvedValueOnce(nuevo)
+      servidor.obtenerDiseno.mockResolvedValueOnce({ diseno: nuevo, version: 1 })
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar como diseño nuevo' }))
+      expect(await screen.findByRole('textbox', { name: 'Nombre del diseño' })).toHaveValue('Mi cocina')
+      expect(servidor.crearDiseno).toHaveBeenCalledWith('Cocina', expect.objectContaining({ estancia: expect.objectContaining({ alto: 270 }) }))
+      expect(leerCopiaLocal(localStorage, ID)).toBeNull()
+    } finally {
+      desconectar()
+    }
+  })
+
   it('con una copia pendiente: "Descartar" la borra y vuelve a Mis diseños', async () => {
     conSesion()
     guardarCopiaLocal(localStorage, ID, { version: 4, documento: local, pendiente: true })

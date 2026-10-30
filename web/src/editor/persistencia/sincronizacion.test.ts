@@ -6,7 +6,7 @@ import { documentoNuevo, type DocumentoDiseno } from '../../nucleo'
 import { crearAlmacen } from '../estado/almacen'
 import { leerCopiaLocal } from './local'
 import {
-  abrirDiseno, anularSincronizacion, conectarSincronizacion, elegirApertura, esperarGuardados, REINTENTO_MS, renombrar, resolverConflicto,
+  abrirDiseno, alBorrarseEnElServidor, anularSincronizacion, conectarSincronizacion, elegirApertura, esperarGuardados, REINTENTO_MS, renombrar, resolverConflicto,
 } from './sincronizacion'
 
 const servidor = vi.hoisted(() => ({ guardarDiseno: vi.fn(), obtenerDiseno: vi.fn() }))
@@ -279,6 +279,25 @@ describe('sincronización con el servidor', () => {
     await vi.advanceTimersByTimeAsync(2000)
     expect(a.getState().guardado).toBe('error')
     expect(leerCopiaLocal(st, ID)).toMatchObject({ version: 4, pendiente: true })
+    expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(270)
+  })
+
+  it('un 404 al guardar (borrado en otro sitio): avisa de que no existe, conserva la copia pendiente, deja de subir y avisa a la página', async () => {
+    servidor.guardarDiseno.mockRejectedValue(new ErrorDeApi(404, 'No existe o no es tuyo'))
+    const { a, st } = preparar(4)
+    const alBorrarse = vi.fn()
+    desconectadores.push(alBorrarseEnElServidor(a, alBorrarse))
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(a.getState().guardado).toBe('error')
+    expect(a.getState().aviso).toBe('Este diseño ya no existe')
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ version: 4, pendiente: true })
+    expect(alBorrarse).toHaveBeenCalledWith(ID)
+    a.getState().cambiar(alto(270))
+    await vi.advanceTimersByTimeAsync(REINTENTO_MS)
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(1)
+    expect(a.getState().guardado).toBe('error')
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ pendiente: true })
     expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(270)
   })
 

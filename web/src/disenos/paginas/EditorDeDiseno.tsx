@@ -7,7 +7,7 @@ import Editor from '../../editor/Editor'
 import { almacen } from '../../editor/estado/almacen'
 import ConflictoDeVersion from '../../editor/paneles/ConflictoDeVersion'
 import { almacenamientoSeguro, borrarCopiaLocal, leerCopiaLocal, type CopiaLocal } from '../../editor/persistencia/local'
-import { abrirDiseno, elegirApertura, esperarGuardados, type Apertura } from '../../editor/persistencia/sincronizacion'
+import { abrirDiseno, alBorrarseEnElServidor, elegirApertura, esperarGuardados, type Apertura } from '../../editor/persistencia/sincronizacion'
 import { textos } from '../../textos'
 import { crearDiseno, obtenerDiseno } from '../servidor'
 
@@ -30,6 +30,12 @@ export default function EditorDeDiseno() {
   useEffect(() => {
     if (!haySesion) return
     let vigente = true
+    // Borrado en otro sitio mientras se edita, con cambios sin subir: las mismas salidas que al abrirlo, ya.
+    const dejarDeEscuchar = alBorrarseEnElServidor(almacen, (borrado) => {
+      if (!vigente || borrado !== id) return
+      const copia = leerCopiaLocal(almacenamientoSeguro(), id)
+      if (copia?.pendiente) setCarga({ id, estado: 'huerfano', copia, aviso: null, ocupado: false })
+    })
     const abrir = async (): Promise<Resultado> => {
       // Si al salir de este diseño quedó un guardado en marcha, su resultado cambia la copia y la versión.
       await esperarGuardados(id)
@@ -67,6 +73,7 @@ export default function EditorDeDiseno() {
       })
     return () => {
       vigente = false
+      dejarDeEscuchar()
       almacen.getState().volverAAnonimo()
     }
   }, [id, haySesion])
