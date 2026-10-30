@@ -4,6 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { respuesta } from '../../pruebas/respuesta'
+import { almacen, reiniciarAlmacen } from '../../editor/estado/almacen'
+import { CLAVE_DISENO, CLAVE_REGISTRO_ENVIADO, guardarDisenoLocal } from '../../editor/persistencia/local'
+import { catalogoBase, documentoNuevo, elementoNuevo, serializarDocumento, type DocumentoDiseno } from '../../nucleo'
 import { alCaducarLaSesion, CLAVE_SESION, conectarSesionConApi, reiniciarSesion, sesion } from '../sesion'
 import Entrar from './Entrar'
 
@@ -17,6 +20,7 @@ function montar(busqueda: string, estado?: unknown) {
         <Route path="/entrar" element={<Entrar />} />
         <Route path="/disenos" element={<p>mis diseños</p>} />
         <Route path="/disenos/abc" element={<p>diseño abc</p>} />
+        <Route path="/disenos/d9" element={<p>diseño d9</p>} />
         <Route path="*" element={<p>otra página</p>} />
       </Routes>
     </MemoryRouter>,
@@ -37,6 +41,7 @@ beforeEach(() => {
   fetchSimulado.mockReset()
   vi.stubGlobal('fetch', fetchSimulado)
   reiniciarSesion()
+  reiniciarAlmacen()
   conectarSesionConApi()
 })
 afterEach(() => vi.unstubAllGlobals())
@@ -100,5 +105,82 @@ describe('Entrar', () => {
     expect(alCaducar).not.toHaveBeenCalled()
     expect(screen.queryByText('diseño abc')).toBeNull()
     expect(sesion.getState().token).toBeNull()
+  })
+})
+
+describe('Entrar con un diseño anónimo', () => {
+  const base = documentoNuevo('salon', 400, 330, 250)
+  const conElemento: DocumentoDiseno = { ...base, elementos: [elementoNuevo(catalogoBase.get('armario')!, { x: 50, y: 50 }, 'e1')] }
+
+  function conAnonimo(doc: DocumentoDiseno) {
+    guardarDisenoLocal(localStorage, doc)
+    almacen.getState().cargar(doc)
+  }
+
+  function creado(id: string, doc: DocumentoDiseno) {
+    return respuesta(201, {
+      id, nombre: 'Diseño sin título', tipoEstancia: 'salon', fechaDeCreacion: '2026-01-01T00:00:00Z',
+      fechaDeModificacion: '2026-01-01T00:00:00Z', version: 1, contenido: doc,
+    })
+  }
+
+  it('pregunta si guardarlo; "Sí" lo crea en la cuenta, descarta el anónimo y abre el diseño', async () => {
+    conAnonimo(conElemento)
+    montar('')
+    await entrarConExito()
+    expect(await screen.findByText('¿Guardar este diseño en tu cuenta?')).toBeInTheDocument()
+    fetchSimulado.mockResolvedValueOnce(creado('d9', conElemento))
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, guardarlo' }))
+    expect(await screen.findByText('diseño d9')).toBeInTheDocument()
+    const peticion = fetchSimulado.mock.calls[2][0]
+    expect(peticion.method).toBe('POST')
+    expect(peticion.url).toMatch(/\/disenos$/)
+    expect(await peticion.json()).toMatchObject({ nombre: 'Diseño sin título', tipoEstancia: 'salon', contenido: { elementos: [{ id: 'e1' }] } })
+    expect(localStorage.getItem(CLAVE_DISENO)).toBeNull()
+    expect(almacen.getState().documento).toBeNull()
+  })
+
+  it('con 409 avisa del límite y el diseño anónimo sigue en el navegador', async () => {
+    conAnonimo(conElemento)
+    montar('')
+    await entrarConExito()
+    fetchSimulado.mockResolvedValueOnce(respuesta(409, { mensaje: 'Has llegado al límite de 100 diseños' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Sí, guardarlo' }))
+    expect(await screen.findByText('Has llegado al límite de 100 diseños. Tu diseño sigue en este navegador.')).toBeInTheDocument()
+    expect(localStorage.getItem(CLAVE_DISENO)).not.toBeNull()
+    expect(almacen.getState().documento).toEqual(conElemento)
+    await userEvent.click(screen.getByRole('link', { name: 'Continuar' }))
+    expect(await screen.findByText('mis diseños')).toBeInTheDocument()
+  })
+
+  it('"No" descarta el anónimo y sigue a donde iba', async () => {
+    conAnonimo(conElemento)
+    montar('')
+    await entrarConExito()
+    await userEvent.click(await screen.findByRole('button', { name: 'No, descartarlo' }))
+    expect(await screen.findByText('mis diseños')).toBeInTheDocument()
+    expect(fetchSimulado).toHaveBeenCalledTimes(2)
+    expect(localStorage.getItem(CLAVE_DISENO)).toBeNull()
+    expect(almacen.getState().documento).toBeNull()
+  })
+
+  it('si ya se envió con el registro, no pregunta, lo descarta y borra la marca', async () => {
+    conAnonimo(conElemento)
+    localStorage.setItem(CLAVE_REGISTRO_ENVIADO, serializarDocumento(conElemento))
+    montar('')
+    await entrarConExito()
+    expect(await screen.findByText('mis diseños')).toBeInTheDocument()
+    expect(screen.queryByText('¿Guardar este diseño en tu cuenta?')).toBeNull()
+    expect(localStorage.getItem(CLAVE_DISENO)).toBeNull()
+    expect(localStorage.getItem(CLAVE_REGISTRO_ENVIADO)).toBeNull()
+    expect(almacen.getState().documento).toBeNull()
+  })
+
+  it('un diseño anónimo vacío no hace preguntar', async () => {
+    conAnonimo(base)
+    montar('')
+    await entrarConExito()
+    expect(await screen.findByText('mis diseños')).toBeInTheDocument()
+    expect(screen.queryByText('¿Guardar este diseño en tu cuenta?')).toBeNull()
   })
 })

@@ -42,6 +42,7 @@ export const textos = {
     misDisenos: 'Mis diseños',
     miCuenta: 'Mi cuenta',
     guardar: 'Guardar',
+    guardarEnCuenta: 'Guardar en mi cuenta',
   },
   lienzo: {
     encuadrar: 'Encuadrar',
@@ -122,6 +123,7 @@ export const textos = {
     titulo: 'Mis diseños',
     nuevo: 'Nuevo diseño',
     nombrePorDefecto: 'Diseño sin título',
+    limiteConDisenoLocal: 'Has llegado al límite de 100 diseños. Tu diseño sigue en este navegador.',
     vacio: 'Aún no tienes diseños',
     abrir: 'Abrir',
     renombrar: 'Renombrar',
@@ -160,6 +162,10 @@ export const textos = {
       caducada: 'Tu sesión ha caducado. Vuelve a entrar.',
       olvido: '¿Has olvidado la contraseña?',
       crearCuenta: 'Crear cuenta',
+      guardarAnonimo: '¿Guardar este diseño en tu cuenta?',
+      siGuardar: 'Sí, guardarlo',
+      noGuardar: 'No, descartarlo',
+      continuar: 'Continuar',
     },
     olvido: {
       titulo: 'Contraseña olvidada',

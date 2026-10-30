@@ -39,9 +39,9 @@ describe('NavegacionDeSesion', () => {
     expect(sesion.getState().token).toBeNull()
   })
 
-  it('cerrar la sesión a propósito no navega', () => {
+  it('cerrar la sesión a propósito lleva al inicio', () => {
     montar('/disenar')
     act(() => sesion.getState().cerrarSesion())
-    expect(screen.getByText('en /disenar')).toBeInTheDocument()
+    expect(screen.getByText('en /')).toBeInTheDocument()
   })
 })

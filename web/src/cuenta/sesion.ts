@@ -2,6 +2,7 @@ import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 import { alNoAutorizado, api, exigir, fijarFuenteDeToken } from '../api/cliente'
 import { almacenamientoSeguro } from '../editor/persistencia/local'
+import { fijarDuenoDeCopias, olvidarDisenosLocales } from './disenosLocales'
 
 export const CLAVE_SESION = 'decorazon.sesion'
 
@@ -52,10 +53,15 @@ function guardarSesion(s: SesionGuardada | null): void {
 }
 
 let avisoDeCaducidad: () => void = () => {}
+let avisoDeSalida: () => void = () => {}
 
-// Lo registra un componente de la app con su navigate (NavegacionDeSesion).
+// Los registra un componente de la app con su navigate (NavegacionDeSesion).
 export function alCaducarLaSesion(f: () => void): void {
   avisoDeCaducidad = f
+}
+
+export function alSalirDeLaSesion(f: () => void): void {
+  avisoDeSalida = f
 }
 
 function estadoGuardado(): Pick<EstadoSesion, 'token' | 'caducidad' | 'usuario'> {
@@ -84,6 +90,8 @@ export const sesion = createStore<EstadoSesion>()((set, get) => {
         olvidar()
         throw e
       }
+      const usuario = get().usuario
+      if (usuario !== null) fijarDuenoDeCopias(usuario.correo)
     },
 
     async cargarUsuario() {
@@ -93,8 +101,15 @@ export const sesion = createStore<EstadoSesion>()((set, get) => {
 
     cerrarSesion(motivo) {
       const habia = get().token !== null
+      if (motivo === 'caducada') {
+        // Las copias locales se quedan: el diseño abierto conserva lo que no llegó a subir.
+        olvidar()
+        if (habia) avisoDeCaducidad()
+        return
+      }
+      olvidarDisenosLocales()
       olvidar()
-      if (motivo === 'caducada' && habia) avisoDeCaducidad()
+      avisoDeSalida()
     },
 
     haySesion() {
@@ -121,6 +136,7 @@ export function conectarSesionConApi(): void {
 // Para las pruebas: vuelve al estado guardado en el navegador.
 export function reiniciarSesion(): void {
   avisoDeCaducidad = () => {}
+  avisoDeSalida = () => {}
   sesion.setState(estadoGuardado())
 }
 

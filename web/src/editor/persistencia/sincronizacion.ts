@@ -73,6 +73,9 @@ export async function esperarGuardados(id: string): Promise<void> {
   for (let c = enMarcha.get(id); c !== undefined && c.size > 0; c = enMarcha.get(id)) await Promise.allSettled([...c])
 }
 
+// Cambia al cerrar la sesión: los trabajos de antes ya no suben nada ni escriben su copia.
+let epoca = 0
+
 /** Un diseño del servidor abierto en el editor; sigue vivo tras cerrarlo hasta subir lo que le quede. */
 interface Trabajo {
   id: string
@@ -83,14 +86,17 @@ interface Trabajo {
   nombrePendiente: string | null
   enVuelo: boolean
   conflicto: boolean
+  epoca: number
 }
 
 const hayCambios = (t: Trabajo) => t.sucio || t.nombrePendiente !== null
+const anulado = (t: Trabajo) => t.epoca !== epoca
 
 interface Controlador {
   abierto(ap: Apertura): void
   resolver(eleccion: Eleccion): Promise<void>
   renombrar(nombre: string): void
+  anular(): void
 }
 
 const controladores = new WeakMap<StoreApi<EstadoEditor>, Controlador>()
@@ -116,7 +122,7 @@ export function conectarSincronizacion(
   }
   const copiar = (t: Trabajo) => {
     // Un trabajo ya dejado no pisa la copia del mismo diseño abierto otra vez.
-    if (t !== actual && actual?.id === t.id) return
+    if (anulado(t) || (t !== actual && actual?.id === t.id)) return
     const ok = guardarCopiaLocal(st, t.id, { version: t.version, nombre: t.nombre, documento: t.documento, pendiente: hayCambios(t) })
     if (!ok) fijar(t, { aviso: textos.barra.sinCopiaLocal })
   }
@@ -142,7 +148,7 @@ export function conectarSincronizacion(
 
   // Nunca hay dos PUT a la vez del mismo trabajo: lo cambiado durante uno sale al acabar, con la versión nueva.
   async function enviar(t: Trabajo): Promise<void> {
-    if (t.enVuelo || t.conflicto) return
+    if (t.enVuelo || t.conflicto || anulado(t)) return
     if (!hayCambios(t)) {
       if (t === actual && a.getState().guardado === 'sinConexion') await comprobar(t)
       return
@@ -221,7 +227,7 @@ export function conectarSincronizacion(
     dejar()
     if (estado.origen.tipo !== 'servidor' || estado.documento === null) return
     const { id, version, nombre } = estado.origen
-    actual = { id, version, nombre, documento: estado.documento, sucio: false, nombrePendiente: null, enVuelo: false, conflicto: false }
+    actual = { id, version, nombre, documento: estado.documento, sucio: false, nombrePendiente: null, enVuelo: false, conflicto: false, epoca }
     origenPropio = estado.origen
   }
 
@@ -304,6 +310,9 @@ export function conectarSincronizacion(
       fijar(t, { guardado: 'pendiente' })
       programar(0)
     },
+
+    // Con la época ya cambiada, dejar no sube nada.
+    anular: dejar,
   })
 
   return () => {
@@ -329,4 +338,10 @@ export function resolverConflicto(a: StoreApi<EstadoEditor>, eleccion: Eleccion)
 
 export function renombrar(a: StoreApi<EstadoEditor>, nombre: string): void {
   controladores.get(a)?.renombrar(nombre)
+}
+
+/** Al cerrar la sesión: deja el diseño abierto sin subir lo pendiente y ningún guardado en marcha vuelve a escribir su copia. */
+export function anularSincronizacion(a: StoreApi<EstadoEditor>): void {
+  epoca++
+  controladores.get(a)?.anular()
 }

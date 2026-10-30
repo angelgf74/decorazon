@@ -2,17 +2,13 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { api, exigir } from '../../api/cliente'
 import { useEditor } from '../../editor/estado/almacen'
-import { almacenamientoSeguro, CLAVE_REGISTRO_ENVIADO } from '../../editor/persistencia/local'
-import { redondearNumeros, serializarDocumento, type DocumentoDiseno } from '../../nucleo'
+import { almacenamientoSeguro, CLAVE_REGISTRO_ENVIADO, disenoNoVacio } from '../../editor/persistencia/local'
+import { redondearNumeros, serializarDocumento } from '../../nucleo'
 import { textos } from '../../textos'
 import { mensajeDeError } from '../errores'
 import '../cuenta.css'
 
 const t = textos.cuenta
-
-function noVacio(doc: DocumentoDiseno | null): doc is DocumentoDiseno {
-  return doc !== null && doc.elementos.length + doc.aberturas.length + doc.estructura.length > 0
-}
 
 export default function Registro() {
   const documento = useEditor((e) => e.documento)
@@ -20,7 +16,7 @@ export default function Registro() {
   const [enviado, setEnviado] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
-  const diseno = noVacio(documento) ? documento : null
+  const diseno = disenoNoVacio(documento) ? documento : null
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault()

@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter, Route, Routes } from 'react-router'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CLAVE_SESION, reiniciarSesion, sesion } from '../../cuenta/sesion'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
+import { respuesta } from '../../pruebas/respuesta'
+import { CLAVE_DISENO, guardarDisenoLocal } from '../persistencia/local'
 import BarraSuperior from './BarraSuperior'
 
 const sincronizacion = vi.hoisted(() => ({ renombrar: vi.fn() }))
@@ -133,5 +135,61 @@ describe('BarraSuperior', () => {
       await userEvent.type(campo, 'Cocina nueva{Enter}')
       expect(sincronizacion.renombrar).toHaveBeenCalledWith(almacen, 'Cocina nueva')
     })
+  })
+})
+
+describe('BarraSuperior con sesión y un diseño anónimo', () => {
+  const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
+
+  beforeEach(() => {
+    fetchSimulado.mockReset()
+    vi.stubGlobal('fetch', fetchSimulado)
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: new Date(Date.now() + 86_400_000).toISOString() }))
+    reiniciarSesion()
+    guardarDisenoLocal(localStorage, almacen.getState().documento)
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  function montar() {
+    render(
+      <MemoryRouter initialEntries={['/disenar']}>
+        <Routes>
+          <Route path="/disenar" element={<BarraSuperior />} />
+          <Route path="/disenos/d9" element={<p>diseño d9</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  it('"Guardar en mi cuenta" lo crea en la cuenta, descarta el anónimo y abre el diseño', async () => {
+    const doc = almacen.getState().documento
+    fetchSimulado.mockResolvedValueOnce(respuesta(201, {
+      id: 'd9', nombre: 'Diseño sin título', tipoEstancia: 'salon', fechaDeCreacion: '2026-01-01T00:00:00Z',
+      fechaDeModificacion: '2026-01-01T00:00:00Z', version: 1, contenido: doc,
+    }))
+    montar()
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar en mi cuenta' }))
+    expect(await screen.findByText('diseño d9')).toBeInTheDocument()
+    const peticion = fetchSimulado.mock.calls[0][0]
+    expect(peticion.method).toBe('POST')
+    expect(await peticion.json()).toMatchObject({ nombre: 'Diseño sin título', tipoEstancia: 'salon' })
+    expect(localStorage.getItem(CLAVE_DISENO)).toBeNull()
+    expect(almacen.getState().documento).toBeNull()
+  })
+
+  it('con 409 avisa del límite y el diseño sigue en el navegador', async () => {
+    fetchSimulado.mockResolvedValueOnce(respuesta(409, { mensaje: 'Has llegado al límite de 100 diseños' }))
+    montar()
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar en mi cuenta' }))
+    await vi.waitFor(() => expect(almacen.getState().aviso).toBe('Has llegado al límite de 100 diseños. Tu diseño sigue en este navegador.'))
+    expect(localStorage.getItem(CLAVE_DISENO)).not.toBeNull()
+    expect(almacen.getState().documento).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Guardar en mi cuenta' })).toBeEnabled()
+  })
+
+  it('sin sesión o con un diseño del servidor no ofrece "Guardar en mi cuenta"', () => {
+    almacen.getState().abrirDelServidor('d1', 4, 'Cocina', almacen.getState().documento!)
+    montar()
+    expect(screen.queryByRole('button', { name: 'Guardar en mi cuenta' })).toBeNull()
   })
 })

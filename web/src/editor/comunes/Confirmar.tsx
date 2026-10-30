@@ -5,11 +5,14 @@ interface Props {
   abierto: boolean
   mensaje: string
   textoAceptar: string
+  textoCancelar?: string
   alAceptar(): void
   alCancelar(): void
+  /** Escape; por defecto, como cancelar. */
+  alEscapar?(): void
 }
 
-export default function Confirmar({ abierto, mensaje, textoAceptar, alAceptar, alCancelar }: Props) {
+export default function Confirmar({ abierto, mensaje, textoAceptar, textoCancelar = textos.comun.cancelar, alAceptar, alCancelar, alEscapar = alCancelar }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -22,10 +25,10 @@ export default function Confirmar({ abierto, mensaje, textoAceptar, alAceptar, a
 
   if (!abierto) return null
   return (
-    <dialog ref={ref} className="confirmar" onCancel={(e) => { e.preventDefault(); alCancelar() }}>
+    <dialog ref={ref} className="confirmar" onCancel={(e) => { e.preventDefault(); alEscapar() }}>
       <p>{mensaje}</p>
       <div className="confirmar__botones">
-        <button type="button" onClick={alCancelar}>{textos.comun.cancelar}</button>
+        <button type="button" onClick={alCancelar}>{textoCancelar}</button>
         <button type="button" className="primario" onClick={alAceptar}>{textoAceptar}</button>
       </div>
     </dialog>

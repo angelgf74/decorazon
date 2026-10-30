@@ -2,7 +2,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/cliente'
 import { respuesta } from '../pruebas/respuesta'
-import { alCaducarLaSesion, CLAVE_SESION, conectarSesionConApi, reiniciarSesion, sesion } from './sesion'
+import { almacen, reiniciarAlmacen } from '../editor/estado/almacen'
+import { CLAVE_DESCARTADO, CLAVE_DISENO, CLAVE_DUENO_COPIAS, guardarDisenoLocal } from '../editor/persistencia/local'
+import { documentoNuevo } from '../nucleo'
+import { alCaducarLaSesion, alSalirDeLaSesion, CLAVE_SESION, conectarSesionConApi, reiniciarSesion, sesion } from './sesion'
 
 const MANANA = new Date(Date.now() + 86_400_000).toISOString()
 const AYER = new Date(Date.now() - 86_400_000).toISOString()
@@ -14,6 +17,7 @@ beforeEach(() => {
   fetchSimulado.mockReset()
   vi.stubGlobal('fetch', fetchSimulado)
   reiniciarSesion()
+  reiniciarAlmacen()
   conectarSesionConApi()
 })
 afterEach(() => vi.unstubAllGlobals())
@@ -152,5 +156,79 @@ describe('sesion caducada por tiempo y 401 antiguos', () => {
     await enVuelo
     expect(sesion.getState().token).toBe('nuevo')
     expect(alCaducar).not.toHaveBeenCalled()
+  })
+})
+
+describe('diseños del navegador al salir y al entrar', () => {
+  const doc = documentoNuevo('salon', 400, 330, 250)
+  const clavesDeDiseno = () => Object.keys(localStorage).filter((k) => k.startsWith('decorazon.diseno')).sort()
+
+  function conDisenosLocales() {
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: MANANA }))
+    reiniciarSesion()
+    localStorage.setItem('decorazon.diseno.a', '{}')
+    localStorage.setItem('decorazon.diseno.b', '{}')
+    localStorage.setItem(CLAVE_DUENO_COPIAS, 'ana@x.es')
+    guardarDisenoLocal(localStorage, doc)
+    almacen.getState().cargar(doc)
+  }
+
+  function entrarComo(correo: string) {
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta(200, { token: 'otro', caducidad: MANANA }))
+      .mockResolvedValueOnce(respuesta(200, { nombre: 'X', correo }))
+    return sesion.getState().iniciarSesion(correo, 'una contraseña larga')
+  }
+
+  it('cerrarSesion borra las copias y el diseño anónimo, vacía el editor y lleva al inicio', () => {
+    conDisenosLocales()
+    localStorage.setItem(CLAVE_DESCARTADO, '{roto')
+    const alSalir = vi.fn()
+    alSalirDeLaSesion(alSalir)
+    sesion.getState().cerrarSesion()
+    expect(clavesDeDiseno()).toEqual([])
+    expect(localStorage.getItem(CLAVE_DUENO_COPIAS)).toBeNull()
+    expect(almacen.getState().documento).toBeNull()
+    expect(alSalir).toHaveBeenCalledOnce()
+  })
+
+  it('cerrarSesion con un diseño del servidor abierto vuelve al editor anónimo vacío', () => {
+    conDisenosLocales()
+    almacen.getState().abrirDelServidor('a', 3, 'Cocina', doc)
+    sesion.getState().cerrarSesion()
+    expect(almacen.getState().origen.tipo).toBe('anonimo')
+    expect(almacen.getState().documento).toBeNull()
+  })
+
+  it('cerrarSesion("caducada") conserva las copias y el diseño anónimo y no lleva al inicio', () => {
+    conDisenosLocales()
+    const alSalir = vi.fn()
+    alSalirDeLaSesion(alSalir)
+    sesion.getState().cerrarSesion('caducada')
+    expect(clavesDeDiseno()).toEqual(['decorazon.diseno.a', 'decorazon.diseno.b', CLAVE_DISENO])
+    expect(almacen.getState().documento).not.toBeNull()
+    expect(alSalir).not.toHaveBeenCalled()
+  })
+
+  it('entrar con otra cuenta borra las copias de la anterior y conserva el diseño anónimo', async () => {
+    conDisenosLocales()
+    sesion.getState().cerrarSesion('caducada')
+    await entrarComo('luis@x.es')
+    expect(clavesDeDiseno()).toEqual([CLAVE_DISENO])
+    expect(localStorage.getItem(CLAVE_DUENO_COPIAS)).toBe('luis@x.es')
+  })
+
+  it('entrar con la misma cuenta conserva sus copias', async () => {
+    conDisenosLocales()
+    sesion.getState().cerrarSesion('caducada')
+    await entrarComo('ana@x.es')
+    expect(clavesDeDiseno()).toEqual(['decorazon.diseno.a', 'decorazon.diseno.b', CLAVE_DISENO])
+  })
+
+  it('las copias sin dueño conocido se borran al entrar', async () => {
+    localStorage.setItem('decorazon.diseno.a', '{}')
+    await entrarComo('ana@x.es')
+    expect(clavesDeDiseno()).toEqual([])
+    expect(localStorage.getItem(CLAVE_DUENO_COPIAS)).toBe('ana@x.es')
   })
 })

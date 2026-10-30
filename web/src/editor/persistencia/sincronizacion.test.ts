@@ -6,7 +6,7 @@ import { documentoNuevo, type DocumentoDiseno } from '../../nucleo'
 import { crearAlmacen } from '../estado/almacen'
 import { leerCopiaLocal } from './local'
 import {
-  abrirDiseno, conectarSincronizacion, elegirApertura, esperarGuardados, REINTENTO_MS, renombrar, resolverConflicto,
+  abrirDiseno, anularSincronizacion, conectarSincronizacion, elegirApertura, esperarGuardados, REINTENTO_MS, renombrar, resolverConflicto,
 } from './sincronizacion'
 
 const servidor = vi.hoisted(() => ({ guardarDiseno: vi.fn(), obtenerDiseno: vi.fn() }))
@@ -438,5 +438,33 @@ describe('elegirApertura', () => {
   it('si no, la del servidor', () => {
     expect(elegirApertura(ID, copia(4, false), remoto(6))).toMatchObject({ version: 6, pendiente: false, guardado: 'guardado' })
     expect(elegirApertura(ID, null, remoto(6))?.documento).toEqual(doc)
+  })
+})
+
+describe('anular la sincronización al cerrar la sesión', () => {
+  it('un guardado en marcha que termina después no vuelve a escribir la copia', async () => {
+    let responder: (d: DisenoServidor) => void = () => {}
+    servidor.guardarDiseno.mockImplementation(() => new Promise<DisenoServidor>((r) => { responder = r }))
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(servidor.guardarDiseno).toHaveBeenCalledOnce()
+    anularSincronizacion(a)
+    st.removeItem(`decorazon.diseno.${ID}`)
+    responder(disenoServidor(5, alto(260)(doc)))
+    await esperarGuardados(ID)
+    expect(st.getItem(`decorazon.diseno.${ID}`)).toBeNull()
+  })
+
+  it('lo que quedaba por subir no se sube ni se reintenta', async () => {
+    servidorConVersion(4)
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    anularSincronizacion(a)
+    st.removeItem(`decorazon.diseno.${ID}`)
+    a.getState().volverAAnonimo(st)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(servidor.guardarDiseno).not.toHaveBeenCalled()
+    expect(st.getItem(`decorazon.diseno.${ID}`)).toBeNull()
   })
 })

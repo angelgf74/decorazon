@@ -5,6 +5,13 @@ import type { EstadoEditor } from '../estado/almacen'
 export const CLAVE_DISENO = 'decorazon.disenoAnonimo'
 export const CLAVE_DESCARTADO = 'decorazon.disenoAnonimo.descartado'
 export const CLAVE_REGISTRO_ENVIADO = 'decorazon.registroEnviado'
+/** Correo de la cuenta dueña de las copias locales de diseños del servidor. */
+export const CLAVE_DUENO_COPIAS = 'decorazon.duenoCopias'
+
+/** Un diseño con algo dentro: no basta con la estancia vacía. */
+export function disenoNoVacio(doc: DocumentoDiseno | null): doc is DocumentoDiseno {
+  return doc !== null && doc.elementos.length + doc.aberturas.length + doc.estructura.length > 0
+}
 
 export function almacenamientoSeguro(): Storage | null {
   try {
@@ -95,6 +102,17 @@ export function guardarCopiaLocal(st: Storage | null, id: string, copia: CopiaLo
     return true
   } catch {
     return false
+  }
+}
+
+/** Borra todas las copias locales de diseños del servidor. */
+export function borrarCopiasLocales(st: Storage | null): void {
+  if (st === null) return
+  try {
+    const claves = Array.from({ length: st.length }, (_, i) => st.key(i)).filter((k): k is string => k?.startsWith(PREFIJO_COPIA) ?? false)
+    for (const k of claves) st.removeItem(k)
+  } catch {
+    // sin acceso: no hay nada que borrar
   }
 }
 

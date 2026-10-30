@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
+import { subirDisenoAnonimo } from '../../cuenta/disenosLocales'
 import { useSesion } from '../../cuenta/sesion'
 import { textos } from '../../textos'
 import Confirmar from '../comunes/Confirmar'
@@ -73,6 +74,22 @@ export default function BarraSuperior({ hojaAbierta = null, alAlternarHoja }: Pr
   const haySesion = useSesion((s) => s.haySesion())
   const nombre = useSesion((s) => s.usuario?.nombre)
   const [confirmando, setConfirmando] = useState(false)
+  const [subiendo, setSubiendo] = useState(false)
+  const navegar = useNavigate()
+  const puedeGuardarEnCuenta = useEditor((e) => e.origen.tipo === 'anonimo' && e.documento !== null) && haySesion
+
+  const guardarEnCuenta = async () => {
+    const doc = almacen.getState().documento
+    if (doc === null) return
+    setSubiendo(true)
+    const r = await subirDisenoAnonimo(doc)
+    if ('id' in r) {
+      navegar(`/disenos/${r.id}`)
+      return
+    }
+    setSubiendo(false)
+    almacen.setState({ aviso: r.error })
+  }
 
   return (
     <header className="barra">
@@ -110,6 +127,9 @@ export default function BarraSuperior({ hojaAbierta = null, alAlternarHoja }: Pr
       <nav className="barra__grupo" aria-label="Cuenta">
         {haySesion ? (
           <>
+            {puedeGuardarEnCuenta && (
+              <button type="button" disabled={subiendo} onClick={() => void guardarEnCuenta()}>{t.guardarEnCuenta}</button>
+            )}
             <Link to="/disenos" className="boton">{t.misDisenos}</Link>
             <Link to="/cuenta" className="boton">{nombre ?? t.miCuenta}</Link>
           </>
