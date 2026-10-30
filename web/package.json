@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "iconos": "node scripts/generar-iconos.mjs",
     "api:tipos": "openapi-typescript src/api/openapi.json -o src/api/esquema.d.ts"
   },
   "dependencies": {

@@ -11,6 +11,7 @@ describe.skipIf(!hay('index.html'))('PWA en dist', () => {
     expect(m.theme_color).toBe('#B9473A')
     expect(m.display).toBe('standalone')
     expect(m.icons.some((i: { purpose?: string }) => i.purpose === 'maskable')).toBe(true)
+    for (const i of m.icons as { src: string }[]) expect(hay(i.src.slice(1))).toBe(true)
   })
 
   it('genera el service worker y precarga el fragmento 3D', () => {
@@ -19,5 +20,14 @@ describe.skipIf(!hay('index.html'))('PWA en dist', () => {
     const fragmentos = readdirSync(new URL('assets/', dist)).filter((f) => f.endsWith('.js'))
     expect(fragmentos.length).toBeGreaterThan(1)
     for (const f of fragmentos) expect(sw).toContain(f)
+  })
+
+  it('registra el service worker desde index.html', () => {
+    expect(readFileSync(new URL('index.html', dist), 'utf8')).toContain('registerSW.js')
+  })
+
+  it('no cachea respuestas de la API en tiempo de ejecución', () => {
+    const sw = readFileSync(new URL('sw.js', dist), 'utf8')
+    expect(sw).not.toMatch(/NetworkFirst|CacheFirst|StaleWhileRevalidate|NetworkOnly/)
   })
 })

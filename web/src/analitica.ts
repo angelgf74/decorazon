@@ -1,7 +1,9 @@
 const URL_TRACKER = 'https://angelgf.com.es/webanalyticsapi/tracker.js'
 
 export function iniciarAnalitica(sitio: string | undefined = import.meta.env.VITE_ANALITICA_SITIO): void {
-  if (!sitio || document.querySelector('script[data-site-id]')) return
+  // Los enlaces de correo llevan un token de un solo uso: esa carga no se mide para no enviarlo a un tercero.
+  if (!sitio || new URLSearchParams(location.search).has('token')) return
+  if (document.querySelector('script[data-site-id]')) return
   const script = document.createElement('script')
   script.async = true
   script.src = URL_TRACKER
