@@ -35,9 +35,10 @@ export function useAtajos(): void {
         } else if (e0.vista !== '3d' && tecla === 'r' && !mando && !e.altKey) {
           e.preventDefault()
           girar90(id, e.shiftKey ? -1 : 1)
-        } else if (e0.vista !== '3d' && tecla === 'd' && mando) {
+        } else if (tecla === 'd' && mando) {
+          // En 3D no duplica, pero tampoco deja que el navegador abra "añadir marcador".
           e.preventDefault()
-          duplicar(id)
+          if (e0.vista !== '3d') duplicar(id)
         }
       } else if (e0.paso === 1 && (e.key === 'Delete' || e.key === 'Backspace')) {
         const s = e0.seleccion

@@ -279,6 +279,13 @@ describe('usarAtajos en la vista 3D', () => {
     expect(elementos[0]!.rotacion).toBe(0)
   })
 
+  it('Ctrl+D, aunque no duplique, evita la acción del navegador (añadir marcador)', () => {
+    render(<Sonda />)
+    // fireEvent devuelve false si se llamó a preventDefault.
+    expect(fireEvent.keyDown(window, { key: 'd', ctrlKey: true, cancelable: true })).toBe(false)
+    expect(almacen.getState().documento!.elementos).toHaveLength(1)
+  })
+
   it('Supr borra, Ctrl+Z deshace y Escape deselecciona', () => {
     render(<Sonda />)
     fireEvent.keyDown(window, { key: 'Delete' })

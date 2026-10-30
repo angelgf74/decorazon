@@ -176,7 +176,8 @@ function CampoColor({ zona, valor, alCambiar }: { zona: ZonaColor; valor: string
   )
 }
 
-function PropiedadesElemento({ doc, e }: { doc: DocumentoDiseno; e: Elemento }) {
+/** En 3D solo se selecciona, edita y borra: girar y duplicar son del 2D. */
+function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemento; en3d: boolean }) {
   const def = catalogoBase.get(e.tipo)
   if (!def) return null
   const editar = (cambios: CambiosElemento, grupo?: string) =>
@@ -191,7 +192,7 @@ function PropiedadesElemento({ doc, e }: { doc: DocumentoDiseno; e: Elemento }) 
       {medida('ancho', t.ancho)}
       {medida('fondo', t.fondo)}
       {medida('alto', t.alto)}
-      <CampoNumero etiqueta={t.giro} valor={e.rotacion} min={0} max={359} unidad="°" alCambiar={(n) => editar({ rotacion: n })} />
+      {!en3d && <CampoNumero etiqueta={t.giro} valor={e.rotacion} min={0} max={359} unidad="°" alCambiar={(n) => editar({ rotacion: n })} />}
       {def.alturaSueloEditable && (
         <CampoNumero etiqueta={t.alturaSuelo} valor={e.alturaSuelo} min={0} max={Math.max(0, doc.estancia.alto - e.medidas.alto)} unidad="cm"
           alCambiar={(n) => editar({ alturaSuelo: n })} />
@@ -206,7 +207,7 @@ function PropiedadesElemento({ doc, e }: { doc: DocumentoDiseno; e: Elemento }) 
           alCambiar={(c) => editar({ colores: { [z.clave]: c } }, `color:${e.id}:${z.clave}`)} />
       ))}
       <div className="panel__botones">
-        <button type="button" onClick={() => duplicar(e.id)}>{t.duplicar}</button>
+        {!en3d && <button type="button" onClick={() => duplicar(e.id)}>{t.duplicar}</button>}
         <button type="button" onClick={() => borrar(e.id)}>{t.borrar}</button>
       </div>
     </>
@@ -218,6 +219,7 @@ export default function PanelPropiedades() {
   const doc = useEditor((e) => e.documento)
   const seleccion = useEditor((e) => e.seleccion)
   const paso = useEditor((e) => e.paso)
+  const en3d = useEditor((e) => e.vista === '3d')
   if (!doc) return null
 
   let contenido = null
@@ -233,7 +235,7 @@ export default function PanelPropiedades() {
     }
   } else if (paso === 2 && seleccion?.tipo === 'elemento') {
     const e = doc.elementos.find((x) => x.id === seleccion.id)
-    if (e) contenido = <PropiedadesElemento key={e.id} doc={doc} e={e} />
+    if (e) contenido = <PropiedadesElemento key={e.id} doc={doc} e={e} en3d={en3d} />
   }
 
   return (
