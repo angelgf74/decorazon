@@ -19,6 +19,8 @@ export interface Apertura {
   documento: DocumentoDiseno
   /** Tiene cambios que el servidor aún no tiene. */
   pendiente: boolean
+  /** Renombrado hecho aquí que el servidor aún no tiene. */
+  nombrePendiente?: string
   guardado: Extract<EstadoGuardado, 'guardado' | 'pendiente' | 'sinConexion' | 'conflicto'>
   versionRemota?: number
 }
@@ -34,15 +36,41 @@ export function elegirApertura(
     const nombre = copia.nombre ?? textos.disenos.nombrePorDefecto
     return { id, version: copia.version, nombre, documento: copia.documento, pendiente: copia.pendiente, guardado: 'sinConexion' }
   }
-  const nombre = remoto.diseno.nombre
-  if (copia?.pendiente) {
-    if (copia.version === remoto.version) return { id, version: copia.version, nombre, documento: copia.documento, pendiente: true, guardado: 'pendiente' }
+  const nombreRemoto = remoto.diseno.nombre
+  const mismaVersion = copia !== null && copia.version === remoto.version
+  const renombrado = mismaVersion && copia.nombre !== undefined && copia.nombre !== nombreRemoto ? copia.nombre : undefined
+  if (copia?.pendiente && !mismaVersion) {
     // Nunca se pisa en silencio: con otra versión en el servidor, decide el usuario.
     return {
-      id, version: copia.version, nombre, documento: copia.documento, pendiente: true, guardado: 'conflicto', versionRemota: remoto.version,
+      id, version: copia.version, nombre: nombreRemoto, documento: copia.documento, pendiente: true, guardado: 'conflicto', versionRemota: remoto.version,
     }
   }
-  return { id, version: remoto.version, nombre, documento: remoto.diseno.contenido, pendiente: false, guardado: 'guardado' }
+  const nombre = renombrado ?? nombreRemoto
+  const conRenombrado = renombrado !== undefined ? { nombrePendiente: renombrado } : {}
+  if (copia?.pendiente) return { id, version: copia.version, nombre, documento: copia.documento, pendiente: true, ...conRenombrado, guardado: 'pendiente' }
+  return {
+    id, version: remoto.version, nombre, documento: remoto.diseno.contenido, pendiente: false, ...conRenombrado,
+    guardado: renombrado !== undefined ? 'pendiente' : 'guardado',
+  }
+}
+
+// Guardados en marcha por id, de cualquier almacén: quien vaya a leer la copia local de un diseño espera a que acaben.
+const enMarcha = new Map<string, Set<Promise<void>>>()
+
+function registrar(id: string, p: Promise<void>): Promise<void> {
+  const conjunto = enMarcha.get(id) ?? new Set()
+  enMarcha.set(id, conjunto)
+  conjunto.add(p)
+  void p.finally(() => {
+    conjunto.delete(p)
+    if (conjunto.size === 0 && enMarcha.get(id) === conjunto) enMarcha.delete(id)
+  })
+  return p
+}
+
+/** Espera a que terminen los guardados en marcha de ese diseño (también los que encadenen). */
+export async function esperarGuardados(id: string): Promise<void> {
+  for (let c = enMarcha.get(id); c !== undefined && c.size > 0; c = enMarcha.get(id)) await Promise.allSettled([...c])
 }
 
 /** Un diseño del servidor abierto en el editor; sigue vivo tras cerrarlo hasta subir lo que le quede. */
@@ -56,6 +84,8 @@ interface Trabajo {
   enVuelo: boolean
   conflicto: boolean
 }
+
+const hayCambios = (t: Trabajo) => t.sucio || t.nombrePendiente !== null
 
 interface Controlador {
   abierto(ap: Apertura): void
@@ -84,8 +114,12 @@ export function conectarSincronizacion(
     origenPropio = { tipo: 'servidor', id: t.id, version: t.version, nombre: t.nombre }
     a.setState({ origen: origenPropio })
   }
-  const copiar = (t: Trabajo) =>
-    guardarCopiaLocal(st, t.id, { version: t.version, nombre: t.nombre, documento: t.documento, pendiente: t.sucio || t.nombrePendiente !== null })
+  const copiar = (t: Trabajo) => {
+    // Un trabajo ya dejado no pisa la copia del mismo diseño abierto otra vez.
+    if (t !== actual && actual?.id === t.id) return
+    const ok = guardarCopiaLocal(st, t.id, { version: t.version, nombre: t.nombre, documento: t.documento, pendiente: hayCambios(t) })
+    if (!ok) fijar(t, { aviso: textos.barra.sinCopiaLocal })
+  }
 
   const programar = (ms: number) => {
     clearTimeout(temporizador)
@@ -104,14 +138,13 @@ export function conectarSincronizacion(
     }, REINTENTO_MS)
   }
 
+  const guardar = (t: Trabajo): Promise<void> => registrar(t.id, enviar(t))
+
   // Nunca hay dos PUT a la vez del mismo trabajo: lo cambiado durante uno sale al acabar, con la versión nueva.
-  async function guardar(t: Trabajo): Promise<void> {
+  async function enviar(t: Trabajo): Promise<void> {
     if (t.enVuelo || t.conflicto) return
-    if (!t.sucio && t.nombrePendiente === null) {
-      if (t === actual && a.getState().guardado === 'sinConexion') {
-        pararReintentos()
-        fijar(t, { guardado: 'guardado' })
-      }
+    if (!hayCambios(t)) {
+      if (t === actual && a.getState().guardado === 'sinConexion') await comprobar(t)
       return
     }
     const doc = t.sucio ? t.documento : undefined
@@ -128,11 +161,11 @@ export function conectarSincronizacion(
       copiar(t)
       fijarOrigen(t)
       if (t !== actual) {
-        if (t.sucio || t.nombrePendiente !== null) void guardar(t)
+        if (hayCambios(t)) void guardar(t)
         return
       }
       pararReintentos()
-      if (t.sucio || t.nombrePendiente !== null) {
+      if (hayCambios(t)) {
         if (temporizador === undefined) programar(0)
       } else fijar(t, { guardado: 'guardado' })
     } catch (e) {
@@ -140,18 +173,36 @@ export function conectarSincronizacion(
       if (doc !== undefined) t.sucio = true
       if (nombre !== undefined) t.nombrePendiente ??= nombre
       if (t !== actual) return
-      if (!(e instanceof ErrorDeApi)) fijar(t, { guardado: 'error' })
-      else if (e.estado === 0) {
+      if (e instanceof ErrorDeApi && e.estado === 0) {
         fijar(t, { guardado: 'sinConexion' })
         iniciarReintentos()
-      } else if (e.estado === 412) {
+      } else if (e instanceof ErrorDeApi && e.estado === 412) {
         t.conflicto = true
         clearTimeout(temporizador)
         temporizador = undefined
         pararReintentos()
         fijar(t, { guardado: 'conflicto', versionRemota: e.version ?? null })
-      } else if (e.estado !== 401) fijar(t, { guardado: 'error' })
-      // Un 401 lo resuelve la sesión; la copia local sigue pendiente.
+      } else {
+        // También un 401: si cierra la sesión, se sale del editor; la copia local sigue pendiente y se sube al volver.
+        fijar(t, { guardado: 'error' })
+      }
+    }
+  }
+
+  // Sin conexión y sin nada que subir: solo el servidor dice si se puede volver a "Guardado".
+  async function comprobar(t: Trabajo): Promise<void> {
+    t.enVuelo = true
+    try {
+      const { diseno, version } = await obtenerDiseno(t.id)
+      t.enVuelo = false
+      if (t !== actual) return
+      pararReintentos()
+      if (hayCambios(t)) void guardar(t)
+      else if (version === t.version) fijar(t, { guardado: 'guardado' })
+      // Sin cambios propios no se pierde nada: se trae lo guardado desde otro sitio.
+      else abrirDiseno(a, { id: t.id, version, nombre: diseno.nombre, documento: diseno.contenido, pendiente: false, guardado: 'guardado' })
+    } catch {
+      t.enVuelo = false
     }
   }
 
@@ -180,7 +231,11 @@ export function conectarSincronizacion(
     t.documento = estado.documento
     t.sucio = true
     copiar(t)
-    if (estado.guardado === 'conflicto' || estado.guardado === 'sinConexion') return
+    if (estado.guardado === 'conflicto') return
+    if (estado.guardado === 'sinConexion') {
+      iniciarReintentos()
+      return
+    }
     if (estado.guardado !== 'pendiente') a.getState().marcarGuardado('pendiente')
     programar(esperaMs)
   }
@@ -193,13 +248,18 @@ export function conectarSincronizacion(
   const alVolverLaRed = () => {
     if (actual !== null && a.getState().guardado === 'sinConexion') void guardar(actual)
   }
+  const alSalir = (e: Event) => {
+    if (actual !== null && (hayCambios(actual) || a.getState().guardado === 'pendiente')) e.preventDefault()
+  }
   globalThis.addEventListener?.('online', alVolverLaRed)
+  globalThis.addEventListener?.('beforeunload', alSalir)
 
   controladores.set(a, {
     abierto(ap) {
       const t = actual
       if (t === null || t.id !== ap.id) return
       t.sucio = ap.pendiente
+      t.nombrePendiente = ap.nombrePendiente ?? null
       t.conflicto = ap.guardado === 'conflicto'
       a.setState({ guardado: ap.guardado, versionRemota: ap.versionRemota ?? null })
       copiar(t)
@@ -250,6 +310,7 @@ export function conectarSincronizacion(
     desuscribir()
     dejar()
     globalThis.removeEventListener?.('online', alVolverLaRed)
+    globalThis.removeEventListener?.('beforeunload', alSalir)
     controladores.delete(a)
   }
 }

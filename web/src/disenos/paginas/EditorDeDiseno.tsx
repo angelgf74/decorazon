@@ -7,7 +7,7 @@ import Editor from '../../editor/Editor'
 import { almacen } from '../../editor/estado/almacen'
 import ConflictoDeVersion from '../../editor/paneles/ConflictoDeVersion'
 import { almacenamientoSeguro, leerCopiaLocal } from '../../editor/persistencia/local'
-import { abrirDiseno, elegirApertura } from '../../editor/persistencia/sincronizacion'
+import { abrirDiseno, elegirApertura, esperarGuardados } from '../../editor/persistencia/sincronizacion'
 import { textos } from '../../textos'
 import { obtenerDiseno } from '../servidor'
 
@@ -23,14 +23,18 @@ export default function EditorDeDiseno() {
   useEffect(() => {
     if (!haySesion) return
     let vigente = true
-    const st = almacenamientoSeguro()
-    const copia = leerCopiaLocal(st, id)
-    obtenerDiseno(id)
-      .then((remoto) => elegirApertura(id, copia, remoto))
-      .catch((e: unknown) => {
+    const abrir = async () => {
+      // Si al salir de este diseño quedó un guardado en marcha, su resultado cambia la copia y la versión.
+      await esperarGuardados(id)
+      const copia = leerCopiaLocal(almacenamientoSeguro(), id)
+      try {
+        return elegirApertura(id, copia, await obtenerDiseno(id))
+      } catch (e) {
         if (e instanceof ErrorDeApi && e.estado === 0 && copia !== null) return elegirApertura(id, copia, null)
         throw e
-      })
+      }
+    }
+    abrir()
       .then((apertura) => {
         if (!vigente || apertura === null) return
         abrirDiseno(almacen, apertura)

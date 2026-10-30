@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ErrorDeApi } from '../../api/cliente'
 import { CLAVE_SESION, reiniciarSesion } from '../../cuenta/sesion'
 import { almacen, reiniciarAlmacen } from '../../editor/estado/almacen'
-import { guardarCopiaLocal, guardarDisenoLocal } from '../../editor/persistencia/local'
+import { guardarCopiaLocal, guardarDisenoLocal, leerCopiaLocal } from '../../editor/persistencia/local'
+import { conectarSincronizacion } from '../../editor/persistencia/sincronizacion'
 import { documentoNuevo } from '../../nucleo'
 import EditorDeDiseno from './EditorDeDiseno'
 
@@ -49,7 +50,9 @@ beforeEach(() => {
   reiniciarSesion()
   reiniciarAlmacen()
   servidor.obtenerDiseno.mockReset()
+  servidor.guardarDiseno.mockReset()
 })
+afterEach(() => vi.useRealTimers())
 
 describe('EditorDeDiseno', () => {
   it('sin sesión lleva a entrar', () => {
@@ -102,6 +105,36 @@ describe('EditorDeDiseno', () => {
     montar()
     expect(await screen.findByRole('alert')).toHaveTextContent('No hay conexión')
     expect(screen.getByRole('link', { name: 'Volver a Mis diseños' })).toHaveAttribute('href', '/disenos')
+  })
+
+  it('con la sincronización conectada: abrir, editar y a los 2 s se guarda', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const desconectar = conectarSincronizacion(almacen, { esperaMs: 2000, st: localStorage })
+    try {
+      conSesion()
+      servidor.obtenerDiseno.mockResolvedValueOnce(respuestaRemota(4))
+      servidor.guardarDiseno.mockImplementation(async (_id: string, _v: number, c: { doc: typeof remoto }) => ({
+        ...respuestaRemota(5).diseno, contenido: c.doc,
+      }))
+      montar()
+      await screen.findByRole('textbox', { name: 'Nombre del diseño' })
+      expect(screen.getByRole('status')).toHaveTextContent('Guardado')
+      act(() => almacen.getState().cambiar((d) => ({ ...d, estancia: { ...d.estancia, alto: 270 } })))
+      expect(almacen.getState().guardado).toBe('pendiente')
+      // Con mucha carga, React puede pintar el cambio del almacén un poco después del act.
+      expect(await screen.findByText('Guardando…')).toHaveAttribute('role', 'status')
+      expect(leerCopiaLocal(localStorage, ID)).toMatchObject({ version: 4, pendiente: true })
+      await act(() => vi.advanceTimersByTimeAsync(2000))
+      expect(servidor.guardarDiseno).toHaveBeenCalledTimes(1)
+      const [id, version, cambios] = servidor.guardarDiseno.mock.calls[0]!
+      expect([id, version, cambios.doc.estancia.alto]).toEqual([ID, 4, 270])
+      expect(almacen.getState().guardado).toBe('guardado')
+      expect(await screen.findByText(/^Guardado$/)).toHaveAttribute('role', 'status')
+      expect(almacen.getState().origen).toMatchObject({ version: 5 })
+      expect(leerCopiaLocal(localStorage, ID)).toMatchObject({ version: 5, pendiente: false })
+    } finally {
+      desconectar()
+    }
   })
 
   it('al salir vuelve al diseño anónimo', async () => {

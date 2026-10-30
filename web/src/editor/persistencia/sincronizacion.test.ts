@@ -5,7 +5,9 @@ import type { DisenoServidor } from '../../disenos/servidor'
 import { documentoNuevo, type DocumentoDiseno } from '../../nucleo'
 import { crearAlmacen } from '../estado/almacen'
 import { leerCopiaLocal } from './local'
-import { abrirDiseno, conectarSincronizacion, elegirApertura, renombrar, resolverConflicto } from './sincronizacion'
+import {
+  abrirDiseno, conectarSincronizacion, elegirApertura, esperarGuardados, REINTENTO_MS, renombrar, resolverConflicto,
+} from './sincronizacion'
 
 const servidor = vi.hoisted(() => ({ guardarDiseno: vi.fn(), obtenerDiseno: vi.fn() }))
 vi.mock('../../disenos/servidor', () => servidor)
@@ -239,7 +241,7 @@ describe('sincronización con el servidor', () => {
     expect(a.getState().guardado).toBe('guardado')
   })
 
-  it('otro error: "error"; un 401 conserva la copia local pendiente', async () => {
+  it('otro error: "error"; un 401 también da "error" y conserva la copia local pendiente', async () => {
     servidor.guardarDiseno.mockRejectedValueOnce(new ErrorDeApi(500, 'caído'))
     const { a, st } = preparar(4)
     a.getState().cambiar(alto(260))
@@ -248,7 +250,7 @@ describe('sincronización con el servidor', () => {
     servidor.guardarDiseno.mockRejectedValueOnce(new ErrorDeApi(401, 'caducada'))
     a.getState().cambiar(alto(270))
     await vi.advanceTimersByTimeAsync(2000)
-    expect(a.getState().guardado).not.toBe('guardado')
+    expect(a.getState().guardado).toBe('error')
     expect(leerCopiaLocal(st, ID)).toMatchObject({ version: 4, pendiente: true })
     expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(270)
   })
@@ -286,12 +288,140 @@ describe('sincronización con el servidor', () => {
   })
 })
 
+describe('sincronización: arreglos de la revisión', () => {
+  /** El siguiente guardarDiseno queda retenido hasta llamar a la función devuelta. */
+  function retenerGuardado(): () => void {
+    const real = servidor.guardarDiseno.getMockImplementation()!
+    let soltar: () => void = () => {}
+    servidor.guardarDiseno.mockImplementationOnce(async (...args: Parameters<typeof real>) => {
+      await new Promise<void>((r) => { soltar = r })
+      return real(...args)
+    })
+    return () => soltar()
+  }
+
+  it('salir con un cambio y volver: se espera al guardado en marcha y el siguiente sale con su versión, sin 412', async () => {
+    servidorConVersion(4)
+    const soltar = retenerGuardado()
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(500)
+    a.getState().volverAAnonimo(st)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(1)
+    // Lo que hace EditorDeDiseno al volver: esperar, leer la copia y el servidor, y abrir.
+    let esperado = false
+    const espera = esperarGuardados(ID).then(() => { esperado = true })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(esperado).toBe(false)
+    soltar()
+    await espera
+    const apertura = elegirApertura(ID, leerCopiaLocal(st, ID), await servidor.obtenerDiseno(ID))
+    expect(apertura).toMatchObject({ version: 5, pendiente: false, guardado: 'guardado' })
+    abrirDiseno(a, apertura!)
+    expect(a.getState().documento?.estancia.alto).toBe(260)
+    a.getState().cambiar(alto(270))
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(2)
+    expect(servidor.guardarDiseno.mock.calls[1]![1]).toBe(5)
+    expect(a.getState().guardado).toBe('guardado')
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ version: 6, pendiente: false })
+    expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(270)
+  })
+
+  it('un guardado de un trabajo dejado no pisa la copia del mismo diseño abierto otra vez', async () => {
+    servidorConVersion(4)
+    const soltar = retenerGuardado()
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    a.getState().volverAAnonimo(st)
+    await vi.advanceTimersByTimeAsync(0)
+    abrirDiseno(a, elegirApertura(ID, leerCopiaLocal(st, ID), { diseno: disenoServidor(4), version: 4 })!)
+    a.getState().cambiar(alto(290))
+    soltar()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ pendiente: true })
+    expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(290)
+  })
+
+  it('abrir con un renombrado pendiente lo envía', async () => {
+    servidorConVersion(4)
+    const a = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(a, { esperaMs: 2000, st: falso() }))
+    const copia = { version: 4, nombre: 'Cocina nueva', documento: doc, pendiente: true }
+    abrirDiseno(a, elegirApertura(ID, copia, { diseno: disenoServidor(4), version: 4 })!)
+    expect(a.getState().origen).toMatchObject({ nombre: 'Cocina nueva' })
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(servidor.guardarDiseno.mock.calls[0]![2]).toMatchObject({ nombre: 'Cocina nueva' })
+    expect(a.getState().guardado).toBe('guardado')
+  })
+
+  it('abierta sin conexión una copia sin cambios: no marca "Guardado" hasta que el servidor responde', async () => {
+    servidorConVersion(4)
+    servidor.obtenerDiseno.mockRejectedValueOnce(new ErrorDeApi(0, 'sin red'))
+    const a = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(a, { esperaMs: 2000, st: falso() }))
+    abrirDiseno(a, elegirApertura(ID, { version: 4, documento: doc, pendiente: false }, null)!)
+    expect(a.getState().guardado).toBe('sinConexion')
+    await vi.advanceTimersByTimeAsync(REINTENTO_MS)
+    expect(servidor.obtenerDiseno).toHaveBeenCalledTimes(1)
+    expect(a.getState().guardado).toBe('sinConexion')
+    await vi.advanceTimersByTimeAsync(REINTENTO_MS)
+    expect(servidor.obtenerDiseno).toHaveBeenCalledTimes(2)
+    expect(a.getState().guardado).toBe('guardado')
+    expect(servidor.guardarDiseno).not.toHaveBeenCalled()
+  })
+
+  it('sin conexión, sin cambios y con otra versión en el servidor: trae la del servidor', async () => {
+    const remoto = servidorConVersion(6)
+    remoto.contenido = alto(300)(doc)
+    const a = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(a, { esperaMs: 2000, st: falso() }))
+    abrirDiseno(a, elegirApertura(ID, { version: 4, documento: doc, pendiente: false }, null)!)
+    window.dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(version(a)).toBe(6)
+    expect(a.getState().documento?.estancia.alto).toBe(300)
+    expect(a.getState().guardado).toBe('guardado')
+  })
+
+  it('si no se puede escribir la copia local, avisa', () => {
+    const st = falso()
+    st.setItem = () => { throw new DOMException('lleno', 'QuotaExceededError') }
+    const { a } = preparar(4, st)
+    a.getState().cambiar(alto(260))
+    expect(a.getState().aviso).toBe('No se pudo guardar la copia en este navegador')
+  })
+
+  it('avisa al cerrar la página con cambios sin subir', async () => {
+    servidorConVersion(4)
+    const { a } = preparar(4)
+    const salir = () => {
+      const e = new Event('beforeunload', { cancelable: true })
+      window.dispatchEvent(e)
+      return e.defaultPrevented
+    }
+    expect(salir()).toBe(false)
+    a.getState().cambiar(alto(260))
+    expect(salir()).toBe(true)
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(a.getState().guardado).toBe('guardado')
+    expect(salir()).toBe(false)
+  })
+})
+
 describe('elegirApertura', () => {
   const copia = (version: number, pendiente: boolean) => ({ version, nombre: 'Local', documento: alto(260)(doc), pendiente })
   const remoto = (version: number) => ({ diseno: disenoServidor(version), version })
 
   it('copia pendiente con la misma versión: la local, pendiente', () => {
-    expect(elegirApertura(ID, copia(4, true), remoto(4))).toMatchObject({ version: 4, nombre: 'Cocina', pendiente: true, guardado: 'pendiente' })
+    const r = elegirApertura(ID, { ...copia(4, true), nombre: 'Cocina' }, remoto(4))
+    expect(r).toMatchObject({ version: 4, nombre: 'Cocina', pendiente: true, guardado: 'pendiente' })
+    expect(r?.nombrePendiente).toBeUndefined()
+  })
+
+  it('copia de la misma versión con otro nombre: restaura el renombrado como pendiente', () => {
+    expect(elegirApertura(ID, copia(4, true), remoto(4))).toMatchObject({ nombre: 'Local', nombrePendiente: 'Local', guardado: 'pendiente' })
   })
 
   it('servidor con versión mayor que la copia pendiente: la local, en conflicto', () => {

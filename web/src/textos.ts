@@ -33,6 +33,7 @@ export const textos = {
     sinConexion: 'Sin conexión',
     conflicto: 'Cambiado en otro sitio',
     errorServidor: 'No se pudo guardar',
+    sinCopiaLocal: 'No se pudo guardar la copia en este navegador',
     nombreDiseno: 'Nombre del diseño',
     catalogo: 'Catálogo',
     estancia: 'Estancia',
