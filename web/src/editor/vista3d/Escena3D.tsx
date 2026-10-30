@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei'
-import { Object3D } from 'three'
+import { Object3D, Vector3, type DirectionalLight } from 'three'
 import { cajaPlanta, camaraAPlano, camaraInicial, direccionSol, paredesQueTapan, type DocumentoDiseno, type Vec3 } from '../../nucleo'
 import Estancia3D from './Estancia3D'
 import Mueble3D from './Mueble3D'
@@ -28,6 +28,7 @@ function CamaraInicial({ posicion }: { posicion: Vec3 }) {
 export default function Escena3D({ doc, ocultar, encuadres }: { doc: DocumentoDiseno; ocultar: boolean; encuadres: number }) {
   const [inicial] = useState(() => camaraInicial(doc))
   const camara = useThree((e) => e.camera)
+  const invalidate = useThree((e) => e.invalidate)
   const controles = useRef<ComponentRef<typeof OrbitControls>>(null)
   const [ocultas, setOcultas] = useState(SIN_OCULTAS)
   const planta = doc.estancia.planta
@@ -53,7 +54,7 @@ export default function Escena3D({ doc, ocultar, encuadres }: { doc: DocumentoDi
     controles.current?.update()
   }, [encuadres, doc, camara])
   const [objetivoSol] = useState(() => new Object3D())
-  const { distanciaMin, distanciaMax } = camaraInicial(doc)
+  const { distanciaMin, distanciaMax, objetivo } = camaraInicial(doc)
   const c = cajaPlanta(doc.estancia.planta)
   const centro: Vec3 = [(c.minX + c.maxX) / 200, 0, (c.minY + c.maxY) / 200]
   // Esfera que envuelve la estancia: la cámara de sombras la abarca entera.
@@ -62,12 +63,40 @@ export default function Escena3D({ doc, ocultar, encuadres }: { doc: DocumentoDi
   const sol = direccionSol(doc)
   const posicionSol = centro.map((v, k) => v + sol[k] * DISTANCIA_SOL_M) as Vec3
 
+  // R3F asigna los límites de la cámara de sombras pero no recalcula su proyección: sin esto la sombra se quedaba con el tamaño viejo.
+  const luz = useRef<DirectionalLight>(null)
+  const [cx, , cz] = centro
+  useLayoutEffect(() => {
+    const l = luz.current
+    if (!l) return
+    l.shadow.camera.updateProjectionMatrix()
+    l.shadow.needsUpdate = true
+    invalidate()
+  }, [radio, cx, cz, invalidate])
+
+  // Si cambia la caja de la planta (no al editar muebles), el objetivo va al nuevo centro y la cámara lo acompaña.
+  const [ox, oy, oz] = objetivo
+  const objetivoPrevio = useRef(inicial.objetivo)
+  useEffect(() => {
+    const [px, py, pz] = objetivoPrevio.current
+    if (px === ox && py === oy && pz === oz) return
+    objetivoPrevio.current = [ox, oy, oz]
+    const c = controles.current
+    if (!c) return
+    const desplazamiento = new Vector3(ox, oy, oz).sub(c.target)
+    c.target.add(desplazamiento)
+    camara.position.add(desplazamiento)
+    c.update()
+    invalidate()
+  }, [ox, oy, oz, camara, invalidate])
+
   return (
     <>
       {/* Relleno (ambiente y entorno) moderado frente al sol: con más, la sombra de los muebles apenas se distinguía del suelo. */}
       <ambientLight intensity={0.25} />
       <primitive object={objetivoSol} position={centro} />
       <directionalLight
+        ref={luz}
         intensity={2}
         position={posicionSol}
         target={objetivoSol}

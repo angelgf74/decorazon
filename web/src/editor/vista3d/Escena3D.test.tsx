@@ -1,22 +1,33 @@
 import ReactThreeTestRenderer from '@react-three/test-renderer'
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
-import type { Camera } from 'three'
+import { Vector3, type Camera, type DirectionalLight } from 'three'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { camaraInicial, documentoNuevo, escenaEstancia, type DocumentoDiseno } from '../../nucleo'
+import { camaraInicial, documentoNuevo, escenaEstancia, type DocumentoDiseno, type Vec3 } from '../../nucleo'
 import { reiniciarAlmacen } from '../estado/almacen'
 import Escena3D from './Escena3D'
 
-const controles = vi.hoisted(() => ({ onChange: undefined as (() => void) | undefined }))
+/** Controles de prueba: lo que Escena3D usa de OrbitControls (objetivo, update y el evento change). */
+interface ControlesFalsos { target: Vector3; update(): void }
 
-vi.mock('@react-three/drei', () => ({
-  Environment: () => null,
-  Lightformer: () => null,
-  OrbitControls: ({ onChange }: { onChange?: () => void }) => {
-    controles.onChange = onChange
-    return null
-  },
+const controles = vi.hoisted(() => ({
+  onChange: undefined as (() => void) | undefined,
+  instancia: undefined as unknown as ControlesFalsos,
 }))
+
+vi.mock('@react-three/drei', async () => {
+  const { useImperativeHandle, useState } = await import('react')
+  return {
+    Environment: () => null,
+    Lightformer: () => null,
+    OrbitControls: ({ onChange, target, ref }: { onChange?: () => void; target: Vec3; ref?: import('react').Ref<ControlesFalsos> }) => {
+      controles.onChange = onChange
+      useState(() => controles.instancia.target.set(...target))
+      useImperativeHandle(ref, () => controles.instancia, [])
+      return null
+    },
+  }
+})
 
 const sonda = { camara: undefined as unknown as Camera }
 function Sonda() {
@@ -54,6 +65,7 @@ function esperadas(doc: DocumentoDiseno, ocultas: number[]): number {
 beforeEach(() => {
   reiniciarAlmacen()
   controles.onChange = undefined
+  controles.instancia = { target: new Vector3(), update: () => {} }
 })
 
 describe('Escena3D: paredes que tapan', () => {
@@ -93,5 +105,46 @@ describe('Escena3D: encuadrar', () => {
     expect(sonda.camara.position.toArray()).toEqual([2, 2, -10])
     await r.update(escena(doc, true, 1))
     expect(sonda.camara.position.toArray()).toEqual(camaraInicial(doc).posicion)
+  })
+})
+
+const luz = (r: Awaited<ReturnType<typeof ReactThreeTestRenderer.create>>) =>
+  r.scene.findAll((n) => n.type === 'DirectionalLight')[0]!.instance as DirectionalLight
+
+const redondear = (v: Vector3) => v.toArray().map((x) => Number(x.toFixed(9)))
+
+describe('Escena3D: la estancia cambia con el 3D abierto', () => {
+  it('la cámara de sombras recalcula su proyección con el nuevo tamaño', async () => {
+    const r = await ReactThreeTestRenderer.create(escena(documento(), true))
+    const sombra = () => luz(r).shadow.camera
+    // En la ortográfica, elements[0] = 2 / (right − left).
+    expect(sombra().projectionMatrix.elements[0]).toBeCloseTo(2 / (sombra().right - sombra().left))
+    luz(r).shadow.needsUpdate = false
+    await r.update(escena(documentoNuevo('salon', 900, 700, 250), true))
+    expect(sombra().right).toBeGreaterThan(5)
+    expect(sombra().projectionMatrix.elements[0]).toBeCloseTo(2 / (sombra().right - sombra().left))
+    expect(luz(r).shadow.needsUpdate).toBe(true)
+  })
+
+  it('si cambia la caja de la planta, el objetivo va al nuevo centro y la cámara conserva su posición relativa', async () => {
+    const r = await ReactThreeTestRenderer.create(escena(documento(), true))
+    sonda.camara.position.set(1, 3, 6)
+    const relativa = sonda.camara.position.clone().sub(controles.instancia.target)
+    const grande = documentoNuevo('salon', 900, 700, 250)
+    await r.update(escena(grande, true))
+    expect(controles.instancia.target.toArray()).toEqual(camaraInicial(grande).objetivo)
+    expect(redondear(sonda.camara.position.clone().sub(controles.instancia.target))).toEqual(redondear(relativa))
+  })
+
+  it('editar un mueble (misma planta, referencias nuevas) no mueve ni el objetivo ni la cámara', async () => {
+    const doc = documento()
+    const r = await ReactThreeTestRenderer.create(escena(doc, true))
+    sonda.camara.position.set(1, 3, 6)
+    const objetivo = controles.instancia.target.toArray()
+    const copia = structuredClone(doc)
+    copia.elementos = []
+    await r.update(escena(copia, true))
+    expect(controles.instancia.target.toArray()).toEqual(objetivo)
+    expect(sonda.camara.position.toArray()).toEqual([1, 3, 6])
   })
 })
