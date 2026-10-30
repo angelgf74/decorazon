@@ -30,3 +30,8 @@
 
 .cuenta__enlaces { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; }
 .cuenta__enlaces a { color: var(--terracota); }
+
+.cuenta__seccion { display: flex; flex-direction: column; gap: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--salmon); }
+.cuenta__seccion h2 { margin: 0; font-size: 1.1rem; }
+.cuenta__texto { max-width: 36rem; }
+.cuenta__texto h2 { margin: 1rem 0 0.25rem; font-size: 1.1rem; }

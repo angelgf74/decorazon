@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { textos } from '../../textos'
 
 interface Props {
@@ -10,9 +10,11 @@ interface Props {
   alCancelar(): void
   /** Escape; por defecto, como cancelar. */
   alEscapar?(): void
+  /** Contenido extra bajo el mensaje, como un campo. */
+  children?: ReactNode
 }
 
-export default function Confirmar({ abierto, mensaje, textoAceptar, textoCancelar = textos.comun.cancelar, alAceptar, alCancelar, alEscapar = alCancelar }: Props) {
+export default function Confirmar({ abierto, mensaje, textoAceptar, textoCancelar = textos.comun.cancelar, alAceptar, alCancelar, alEscapar = alCancelar, children }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   const vigente = useRef(abierto)
   const [reaperturas, setReaperturas] = useState(0)
@@ -43,6 +45,7 @@ export default function Confirmar({ abierto, mensaje, textoAceptar, textoCancela
       }}
     >
       <p>{mensaje}</p>
+      {children}
       <div className="confirmar__botones">
         <button type="button" onClick={alCancelar}>{textoCancelar}</button>
         <button type="button" className="primario" onClick={alAceptar}>{textoAceptar}</button>

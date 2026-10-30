@@ -17,7 +17,7 @@ export interface EstadoSesion {
   usuario: Usuario | null
   iniciarSesion(correo: string, contrasena: string): Promise<void>
   cargarUsuario(): Promise<void>
-  cerrarSesion(motivo?: 'caducada'): void
+  cerrarSesion(motivo?: 'caducada' | { conservarLocales: true }): void
   haySesion(): boolean
 }
 
@@ -105,6 +105,11 @@ export const sesion = createStore<EstadoSesion>()((set, get) => {
         // Las copias locales se quedan: el diseño abierto conserva lo que no llegó a subir.
         olvidar()
         if (habia) avisoDeCaducidad()
+        return
+      }
+      if (typeof motivo === 'object') {
+        // Mismo usuario: las copias y el anónimo se quedan; quien llama navega.
+        olvidar()
         return
       }
       olvidarDisenosLocales()

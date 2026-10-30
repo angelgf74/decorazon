@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import NavegacionDeSesion from './cuenta/NavegacionDeSesion'
 import ConfirmarRegistro from './cuenta/paginas/ConfirmarRegistro'
+import MiCuenta from './cuenta/paginas/MiCuenta'
 import Entrar from './cuenta/paginas/Entrar'
 import OlvidoContrasena from './cuenta/paginas/OlvidoContrasena'
 import Registro from './cuenta/paginas/Registro'
@@ -9,6 +10,7 @@ import EditorDeDiseno from './disenos/paginas/EditorDeDiseno'
 import MisDisenos from './disenos/paginas/MisDisenos'
 import Editor from './editor/Editor'
 import Inicio from './paginas/Inicio'
+import Privacidad from './paginas/Privacidad'
 
 export default function App() {
   return (
@@ -24,6 +26,8 @@ export default function App() {
         <Route path="/registro/confirmar" element={<ConfirmarRegistro />} />
         <Route path="/contrasena/olvido" element={<OlvidoContrasena />} />
         <Route path="/contrasena/restablecer" element={<RestablecerContrasena />} />
+        <Route path="/cuenta" element={<MiCuenta />} />
+        <Route path="/privacidad" element={<Privacidad />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
