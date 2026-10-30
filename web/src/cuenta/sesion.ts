@@ -106,8 +106,16 @@ export const sesion = createStore<EstadoSesion>()((set, get) => {
 
 export function conectarSesionConApi(): void {
   const { haySesion, cerrarSesion } = sesion.getState()
-  fijarFuenteDeToken(() => haySesion() ? sesion.getState().token : null)
-  alNoAutorizado(() => cerrarSesion('caducada'))
+  fijarFuenteDeToken(() => {
+    if (haySesion()) return sesion.getState().token
+    // Caducada por tiempo: la API no llegará a dar 401 porque ya no se envía el token.
+    if (sesion.getState().token !== null) queueMicrotask(() => cerrarSesion('caducada'))
+    return null
+  })
+  // Un 401 de una petición con un token anterior no cierra la sesión vigente.
+  alNoAutorizado((tokenEnviado) => {
+    if (tokenEnviado === sesion.getState().token) cerrarSesion('caducada')
+  })
 }
 
 // Para las pruebas: vuelve al estado guardado en el navegador.

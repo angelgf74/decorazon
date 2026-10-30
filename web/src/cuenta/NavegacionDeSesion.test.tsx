@@ -32,10 +32,11 @@ describe('NavegacionDeSesion', () => {
     expect(screen.getByText(`en /entrar?motivo=caducada&volver=${encodeURIComponent('/disenos/abc?x=1')}`)).toBeInTheDocument()
   })
 
-  it('desde una página de cuenta no guarda la ruta para volver', () => {
-    montar('/entrar')
+  it.each(['/entrar', '/contrasena/olvido', '/contrasena/restablecer'])('en %s no interrumpe la página', (ruta) => {
+    montar(ruta)
     act(() => sesion.getState().cerrarSesion('caducada'))
-    expect(screen.getByText('en /entrar?motivo=caducada')).toBeInTheDocument()
+    expect(screen.getByText(`en ${ruta}`)).toBeInTheDocument()
+    expect(sesion.getState().token).toBeNull()
   })
 
   it('cerrar la sesión a propósito no navega', () => {

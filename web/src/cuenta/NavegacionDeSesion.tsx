@@ -21,8 +21,9 @@ export default function NavegacionDeSesion() {
   useEffect(() => {
     alCaducarLaSesion(() => {
       const { pathname, search } = actual.current
-      const volver = esPaginaDeCuenta(pathname) ? '' : `&volver=${encodeURIComponent(pathname + search)}`
-      navegar(`/entrar?motivo=caducada${volver}`)
+      // En Entrar, olvido o restablecer no se interrumpe lo que se está haciendo.
+      if (esPaginaDeCuenta(pathname)) return
+      navegar(`/entrar?motivo=caducada&volver=${encodeURIComponent(pathname + search)}`)
     })
     return () => alCaducarLaSesion(() => {})
   }, [navegar])

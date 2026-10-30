@@ -27,24 +27,28 @@ function textoPorEstado(estado: number): string {
 }
 
 let fuenteDeToken: () => string | null = () => null
-let avisoDeNoAutorizado: () => void = () => {}
+let avisoDeNoAutorizado: (tokenEnviado: string) => void = () => {}
 
 export function fijarFuenteDeToken(f: () => string | null): void {
   fuenteDeToken = f
 }
 
-export function alNoAutorizado(f: () => void): void {
+// Recibe el token que llevaba la petición rechazada, para no cerrar una sesión más nueva.
+export function alNoAutorizado(f: (tokenEnviado: string) => void): void {
   avisoDeNoAutorizado = f
 }
+
+const PREFIJO_BEARER = 'Bearer '
 
 const middleware: Middleware = {
   onRequest({ request }) {
     const token = fuenteDeToken()
-    if (token) request.headers.set('Authorization', `Bearer ${token}`)
+    if (token) request.headers.set('Authorization', `${PREFIJO_BEARER}${token}`)
     return request
   },
   onResponse({ request, response }) {
-    if (response.status === 401 && request.headers.has('Authorization')) avisoDeNoAutorizado()
+    const cabecera = request.headers.get('Authorization')
+    if (response.status === 401 && cabecera?.startsWith(PREFIJO_BEARER)) avisoDeNoAutorizado(cabecera.slice(PREFIJO_BEARER.length))
   },
   onError({ error }) {
     if (error instanceof TypeError) return new ErrorDeApi(0, textoPorEstado(0))

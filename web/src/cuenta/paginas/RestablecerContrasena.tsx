@@ -3,11 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router'
 import { api, ErrorDeApi, exigir } from '../../api/cliente'
 import { textos } from '../../textos'
 import { mensajeDeError } from '../errores'
+import { longitudDeContrasenaValida } from '../reglas'
 import '../cuenta.css'
 
 const t = textos.cuenta
-const MINIMO = 12
-const MAXIMO = 128
 
 export default function RestablecerContrasena() {
   const ubicacion = useLocation()
@@ -27,7 +26,7 @@ export default function RestablecerContrasena() {
   const enviar = async (e: FormEvent) => {
     e.preventDefault()
     if (token === null) return
-    if (contrasena.length < MINIMO || contrasena.length > MAXIMO) {
+    if (!longitudDeContrasenaValida(contrasena)) {
       setError(t.restablecer.longitud)
       return
     }

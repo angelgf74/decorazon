@@ -39,6 +39,7 @@ describe('cliente de la API', () => {
     fijarFuenteDeToken(() => 't')
     await api.GET('/salud')
     expect(alCaducar).toHaveBeenCalledOnce()
+    expect(alCaducar).toHaveBeenCalledWith('t')
   })
 
   it('un 401 sin token no avisa', async () => {

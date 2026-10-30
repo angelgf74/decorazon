@@ -119,3 +119,38 @@ describe('sesion caducada', () => {
     expect(alCaducar).not.toHaveBeenCalled()
   })
 })
+
+describe('sesion caducada por tiempo y 401 antiguos', () => {
+  it('con la caducidad pasada, una llamada protegida cierra la sesión por caducidad una vez', async () => {
+    const alCaducar = vi.fn()
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: AYER }))
+    reiniciarSesion()
+    alCaducarLaSesion(alCaducar)
+    fetchSimulado.mockImplementation(async () => respuesta(200, []))
+    await Promise.all([api.GET('/disenos'), api.GET('/disenos')])
+    await Promise.resolve()
+    expect(fetchSimulado.mock.calls[0][0].headers.has('Authorization')).toBe(false)
+    expect(alCaducar).toHaveBeenCalledOnce()
+    expect(sesion.getState().token).toBeNull()
+    expect(localStorage.getItem(CLAVE_SESION)).toBeNull()
+  })
+
+  it('un 401 de una petición con el token anterior no cierra la sesión nueva', async () => {
+    const alCaducar = vi.fn()
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'viejo', caducidad: MANANA }))
+    reiniciarSesion()
+    alCaducarLaSesion(alCaducar)
+    let responder: (r: Response) => void = () => {}
+    fetchSimulado.mockImplementationOnce(() => new Promise<Response>((r) => { responder = r }))
+    const enVuelo = api.GET('/disenos')
+    await vi.waitFor(() => expect(fetchSimulado).toHaveBeenCalledOnce())
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta(200, { token: 'nuevo', caducidad: MANANA }))
+      .mockResolvedValueOnce(respuesta(200, { nombre: 'Ana', correo: 'ana@x.es' }))
+    await sesion.getState().iniciarSesion('ana@x.es', 'una contraseña larga')
+    responder(respuesta(401))
+    await enVuelo
+    expect(sesion.getState().token).toBe('nuevo')
+    expect(alCaducar).not.toHaveBeenCalled()
+  })
+})
