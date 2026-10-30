@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { textos } from '../../textos'
+import { useDialogoModal } from './usarDialogoModal'
 
 interface Props {
   abierto: boolean
@@ -17,21 +18,8 @@ interface Props {
 }
 
 export default function Confirmar({ abierto, mensaje, textoAceptar, textoCancelar = textos.comun.cancelar, alAceptar, alCancelar, alEscapar = alCancelar, ocupado = false, children }: Props) {
-  const ref = useRef<HTMLDialogElement>(null)
-  const vigente = useRef(abierto)
-  const [reaperturas, setReaperturas] = useState(0)
-
-  useEffect(() => {
-    vigente.current = abierto
-  }, [abierto])
-
-  useEffect(() => {
-    const d = ref.current
-    if (!abierto || d === null) return
-    if (typeof d.showModal === 'function') d.showModal()
-    if (!d.open) d.setAttribute('open', '')
-    return () => d.close?.()
-  }, [abierto, reaperturas])
+  // El navegador puede cerrarlo aunque se anule el Escape: cuenta como Escape y, si la página lo sigue queriendo abierto, se reabre.
+  const { ref, alCerrar } = useDialogoModal(abierto, () => { if (!ocupado) alEscapar() })
 
   if (!abierto) return null
   return (
@@ -39,12 +27,7 @@ export default function Confirmar({ abierto, mensaje, textoAceptar, textoCancela
       ref={ref}
       className="confirmar"
       onCancel={(e) => { e.preventDefault(); if (!ocupado) alEscapar() }}
-      // El navegador puede cerrarlo aunque se anule el Escape: cuenta como Escape y, si la página lo sigue queriendo abierto, se reabre.
-      onClose={() => {
-        if (!vigente.current || ref.current?.open) return
-        if (!ocupado) alEscapar()
-        setReaperturas((n) => n + 1)
-      }}
+      onClose={alCerrar}
     >
       <p>{mensaje}</p>
       {children}

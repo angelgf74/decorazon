@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { textos } from '../../textos'
+import { useDialogoModal } from '../comunes/usarDialogoModal'
 import { almacen, useEditor } from '../estado/almacen'
 import { resolverConflicto, type Eleccion } from '../persistencia/sincronizacion'
 
@@ -8,15 +9,8 @@ const t = textos.conflicto
 export default function ConflictoDeVersion() {
   const abierto = useEditor((e) => e.guardado === 'conflicto')
   const [ocupado, setOcupado] = useState(false)
-  const ref = useRef<HTMLDialogElement>(null)
-
-  useEffect(() => {
-    const d = ref.current
-    if (!abierto || d === null) return
-    if (typeof d.showModal === 'function') d.showModal()
-    if (!d.open) d.setAttribute('open', '')
-    return () => d.close?.()
-  }, [abierto])
+  // Si el navegador lo cierra por su cuenta, se reabre: el conflicto sigue sin resolver.
+  const { ref, alCerrar } = useDialogoModal(abierto)
 
   if (!abierto) return null
 
@@ -31,7 +25,7 @@ export default function ConflictoDeVersion() {
 
   return (
     // Sin cerrar con Escape: hay que elegir una de las dos.
-    <dialog ref={ref} className="confirmar" aria-labelledby="conflicto-mensaje" onCancel={(e) => e.preventDefault()}>
+    <dialog ref={ref} className="confirmar" aria-labelledby="conflicto-mensaje" onCancel={(e) => e.preventDefault()} onClose={alCerrar}>
       <p id="conflicto-mensaje">{t.mensaje}</p>
       <p>{t.aviso}</p>
       <div className="confirmar__botones">

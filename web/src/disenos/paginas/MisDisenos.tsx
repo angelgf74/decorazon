@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { ErrorDeApi } from '../../api/cliente'
 import { mensajeDeError } from '../../cuenta/errores'
 import { copiasDeLaCuenta } from '../../cuenta/disenosLocales'
 import { sesion, useSesion } from '../../cuenta/sesion'
 import Confirmar from '../../editor/comunes/Confirmar'
+import { useDialogoModal } from '../../editor/comunes/usarDialogoModal'
 import NuevaEstancia from '../../editor/paneles/NuevaEstancia'
 import { almacenamientoSeguro, borrarCopiaLocal, type CopiaListada } from '../../editor/persistencia/local'
 import { documentoNuevo, type TipoEstancia } from '../../nucleo'
@@ -36,16 +37,10 @@ interface PropsDialogo {
 }
 
 function DialogoNuevo({ alCrear, alCerrar }: PropsDialogo) {
-  const ref = useRef<HTMLDialogElement>(null)
-  useEffect(() => {
-    const d = ref.current
-    if (d === null) return
-    if (typeof d.showModal === 'function') d.showModal()
-    if (!d.open) d.setAttribute('open', '')
-    return () => d.close?.()
-  }, [])
+  // Si el navegador lo cierra por su cuenta, la página deja de crear: así "Nuevo diseño" lo vuelve a abrir.
+  const { ref, alCerrar: alCerrarlo } = useDialogoModal(true, alCerrar)
   return (
-    <dialog ref={ref} className="confirmar" onCancel={(e) => { e.preventDefault(); alCerrar() }}>
+    <dialog ref={ref} className="confirmar" onCancel={(e) => { e.preventDefault(); alCerrar() }} onClose={alCerrarlo}>
       <NuevaEstancia alCrear={alCrear} />
       <button type="button" onClick={alCerrar}>{textos.comun.cancelar}</button>
     </dialog>

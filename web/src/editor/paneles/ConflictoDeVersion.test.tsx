@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { documentoNuevo } from '../../nucleo'
@@ -30,5 +30,18 @@ describe('ConflictoDeVersion', () => {
     expect(screen.getByText('Este diseño se ha guardado desde otro sitio después de que lo abrieras.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: boton }))
     expect(sincronizacion.resolverConflicto).toHaveBeenCalledWith(almacen, eleccion)
+  })
+
+  it('si el navegador lo cierra por su cuenta (Escape), vuelve a abrirse y se puede resolver', async () => {
+    almacen.getState().marcarGuardado('conflicto')
+    render(<ConflictoDeVersion />)
+    const dialogo = screen.getByText('Este diseño se ha guardado desde otro sitio después de que lo abrieras.').closest('dialog')!
+    act(() => {
+      dialogo.removeAttribute('open')
+      fireEvent(dialogo, new Event('close'))
+    })
+    await vi.waitFor(() => expect(dialogo).toHaveAttribute('open'))
+    await userEvent.click(screen.getByRole('button', { name: 'Recargar la versión guardada' }))
+    expect(sincronizacion.resolverConflicto).toHaveBeenCalledWith(almacen, 'recargar')
   })
 })

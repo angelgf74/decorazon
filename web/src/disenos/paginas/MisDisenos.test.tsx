@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -145,6 +145,21 @@ describe('MisDisenos', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'Salón' }))
     await userEvent.click(screen.getByRole('button', { name: 'Crear estancia' }))
     expect(await screen.findByText('editor')).toBeInTheDocument()
+  })
+
+  it('si el navegador cierra el diálogo de nuevo diseño por su cuenta, se cierra y "Nuevo diseño" vuelve a abrirlo', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, []))
+    montar()
+    await userEvent.click(await screen.findByRole('button', { name: 'Nuevo diseño' }))
+    const dialogo = screen.getByRole('button', { name: 'Crear estancia' }).closest('dialog')!
+    act(() => {
+      dialogo.removeAttribute('open')
+      fireEvent(dialogo, new Event('close'))
+    })
+    expect(screen.queryByRole('button', { name: 'Crear estancia' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Nuevo diseño' }))
+    expect(screen.getByRole('button', { name: 'Crear estancia' }).closest('dialog')).toHaveAttribute('open')
   })
 
   it('sin sesión navega a /entrar?volver=/disenos', async () => {
