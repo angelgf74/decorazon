@@ -42,7 +42,7 @@ export default function Mueble3D({ elemento }: { elemento: Elemento }) {
 
   return (
     <group>
-      {piezas.map((p, k) => <Pieza key={k} pieza={p} estado={estado} eventos={eventos} />)}
+      {piezas.map((p, k) => <Pieza key={k} pieza={p} estado={estado} eventos={eventos} contorno={seleccionado} />)}
     </group>
   )
 }

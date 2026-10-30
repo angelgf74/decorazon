@@ -18,7 +18,7 @@ vi.mock('@react-three/fiber', async (original) => {
   }
 })
 
-vi.mock('@react-three/drei', () => ({ Environment: () => null, Lightformer: () => null, OrbitControls: () => null }))
+vi.mock('@react-three/drei', () => ({ Edges: () => null, Environment: () => null, Lightformer: () => null, OrbitControls: () => null }))
 
 const SIN_WEBGL = 'Tu navegador no puede mostrar la vista 3D. El plano 2D sigue funcionando.'
 

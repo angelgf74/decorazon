@@ -18,6 +18,7 @@ const controles = vi.hoisted(() => ({
 vi.mock('@react-three/drei', async () => {
   const { useImperativeHandle, useState } = await import('react')
   return {
+    Edges: () => null,
     Environment: () => null,
     Lightformer: () => null,
     OrbitControls: ({ onChange, target, ref }: { onChange?: () => void; target: Vec3; ref?: import('react').Ref<ControlesFalsos> }) => {

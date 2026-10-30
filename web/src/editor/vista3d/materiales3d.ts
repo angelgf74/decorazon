@@ -3,8 +3,11 @@ import { PBR, type MaterialPBR } from '../../nucleo'
 
 export type EstadoPieza = 'normal' | 'seleccionado' | 'conflicto'
 
+/** Terracota de la selección: resalte y contorno. */
+export const COLOR_SELECCION = '#B9473A'
+
 const RESALTE: Record<Exclude<EstadoPieza, 'normal'>, { color: string; intensidad: number }> = {
-  seleccionado: { color: '#B9473A', intensidad: 0.35 },
+  seleccionado: { color: COLOR_SELECCION, intensidad: 0.35 },
   conflicto: { color: '#D62828', intensidad: 0.5 },
 }
 
