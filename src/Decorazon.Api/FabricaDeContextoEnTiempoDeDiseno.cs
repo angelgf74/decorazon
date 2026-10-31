@@ -37,16 +37,25 @@ public sealed class FabricaDeContextoEnTiempoDeDiseno : IDesignTimeDbContextFact
             .AddEnvironmentVariables()
             .Build();
 
-        // En el servidor la cadena llega por variable de entorno y, además, el
-        // bundle la sobrescribe con --connection. En local sale de
-        // appsettings.Development.json, igual que al ejecutar la API.
-        var cadenaDeConexion = configuracion.GetConnectionString("Decorazon")
-            ?? throw new InvalidOperationException(
-                "Falta la cadena de conexión 'Decorazon'. Defínela en appsettings.Development.json, " +
-                "en la variable de entorno ConnectionStrings__Decorazon, o pásala con --connection.");
-
-        return Crear(cadenaDeConexion);
+        return Crear(CadenaDeConexion(configuracion));
     }
+
+    /// <summary>
+    /// Cadena para cuando no hay ninguna configurada: no apunta a ninguna base.
+    /// </summary>
+    public const string CadenaSinConexion = "Host=sin-conexion;Database=decorazon";
+
+    /// <summary>
+    /// La cadena configurada o, si no hay, <see cref="CadenaSinConexion"/>.
+    /// </summary>
+    /// <remarks>
+    /// En local sale de appsettings.Development.json, igual que al ejecutar la API.
+    /// <c>srv subir</c> compila el bundle sin secretos (construir el modelo no abre
+    /// conexión); en el servidor srv-root ejecuta el bundle con la cadena en la
+    /// variable de entorno <c>ConnectionStrings__Decorazon</c>.
+    /// </remarks>
+    public static string CadenaDeConexion(IConfiguration configuracion) =>
+        configuracion.GetConnectionString("Decorazon") ?? CadenaSinConexion;
 
     /// <summary>El contexto con las mismas opciones que la API. No abre conexión.</summary>
     public static DecorazonDbContext Crear(string cadenaDeConexion)
