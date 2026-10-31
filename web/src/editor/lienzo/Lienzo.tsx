@@ -6,7 +6,7 @@ import { almacen, useEditor } from '../estado/almacen'
 import { anadirTipo } from '../estado/elementos'
 import { MIME_TIPO, pulsarAbertura, pulsarElemento, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano } from './arrastres'
 import CapaAberturas from './capas/CapaAberturas'
-import CapaCotas, { CotasElemento } from './capas/CapaCotas'
+import CapaCotas, { CotasElemento, CotasEnPared } from './capas/CapaCotas'
 import CapaConflictos from './capas/CapaConflictos'
 import CapaElementos from './capas/CapaElementos'
 import CapaEstructura from './capas/CapaEstructura'
@@ -165,6 +165,7 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
             {paso === 1 && (
               <>
                 <CapaCotas documento={documento} seleccion={seleccion} escala={vista.escala} />
+                <CotasEnPared documento={documento} seleccion={seleccion} escala={vista.escala} />
                 <CapaTiradores documento={documento} seleccion={seleccion} escala={vista.escala} />
               </>
             )}

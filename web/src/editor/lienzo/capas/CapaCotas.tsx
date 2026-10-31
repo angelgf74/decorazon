@@ -1,6 +1,6 @@
 import type { PointerEvent } from 'react'
 import {
-  catalogoBase, cotasAParedes, escalar, hueco, imantar, longitudPared, rectangulo, sumar, type DocumentoDiseno, type Elemento,
+  catalogoBase, cotasAParedes, cotasEnPared, escalar, hueco, imantar, longitudPared, rectangulo, sumar, type DocumentoDiseno, type Elemento,
 } from '../../../nucleo'
 import { almacen, type Seleccion } from '../../estado/almacen'
 import { esBotonPrincipal } from './comun'
@@ -58,6 +58,33 @@ export function CotasElemento({ documento, elemento: e }: { documento: Documento
         return (
           <g key={i} data-cota-elemento={i} className="capa-cotas__cota">
             <line x1={c.desde.x} y1={c.desde.y} x2={c.hasta.x} y2={c.hasta.y} />
+            <text className="lienzo__texto" x={m.x} y={m.y}>{`${c.valor} cm`}</text>
+          </g>
+        )
+      })}
+    </g>
+  )
+}
+
+/** Distancia en px de pantalla de la cota a la cara interior del muro. */
+const SEPARACION_EN_PARED_PX = 20
+
+/** Paso 1: lo que separa del resto de la pared a la puerta, ventana o radiador seleccionado; también durante su arrastre. */
+export function CotasEnPared({ documento, seleccion, escala }: Props) {
+  if (seleccion?.tipo !== 'abertura' && seleccion?.tipo !== 'estructura') return null
+  const id = seleccion.id
+  const e = seleccion.tipo === 'abertura' ? documento.aberturas.find((a) => a.id === id) : documento.estructura.find((s) => s.id === id)
+  if (!e || e.tipo === 'columna' || e.tipo === 'viga') return null
+  const { planta } = documento.estancia
+  const dentro = escalar(hueco(planta, e.pared, 0).n, SEPARACION_EN_PARED_PX / escala)
+  return (
+    <g className="capa-cotas capa-cotas--elemento">
+      {cotasEnPared(planta, e.pared, e.posicion, e.ancho).map((c, i) => {
+        const a = sumar(c.desde, dentro), b = sumar(c.hasta, dentro)
+        const m = escalar(sumar(a, b), 0.5)
+        return (
+          <g key={i} data-cota-en-pared={i} className="capa-cotas__cota capa-cotas--elemento">
+            <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
             <text className="lienzo__texto" x={m.x} y={m.y}>{`${c.valor} cm`}</text>
           </g>
         )

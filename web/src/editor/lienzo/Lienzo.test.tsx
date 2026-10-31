@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { createEvent, fireEvent, render } from '@testing-library/react'
+import { act, createEvent, fireEvent, render } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { catalogoBase, elementoNuevo, longitudPared, type Abertura, type Punto } from '../../nucleo'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
@@ -181,6 +181,44 @@ describe('Lienzo: paso 1', () => {
     fireEvent.pointerMove(vertice, { pointerId: 1, clientX: 403, clientY: 400 })
     fireEvent.pointerUp(vertice, { pointerId: 1 })
     expect(almacen.getState().documento!.estancia.planta[2]).toEqual({ x: 400, y: 400 })
+  })
+
+  it('al seleccionar una puerta se ven sus dos cotas en la pared', () => {
+    almacen.getState().cambiar((d) => ({ ...d, aberturas: [{ ...puerta, ancho: 82 }] }))
+    almacen.getState().irAPaso(1)
+    const { container } = render(<Lienzo />)
+    expect(container.querySelector('[data-cota-en-pared]')).toBeNull()
+    act(() => almacen.getState().seleccionar({ tipo: 'abertura', id: 'p' }))
+    const textos = [...container.querySelectorAll('[data-cota-en-pared] text')].map((t) => t.textContent)
+    expect(textos).toEqual(['50 cm', '268 cm'])
+  })
+
+  it('un radiador seleccionado muestra sus cotas y una columna no', () => {
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      estructura: [
+        { id: 'r', tipo: 'radiador', pared: 0, posicion: 100, ancho: 60, alto: 60, fondo: 10, alturaSuelo: 10 },
+        { id: 'c', tipo: 'columna', centro: { x: 200, y: 200 }, ancho: 30, fondo: 30, rotacion: 0 },
+      ],
+    }))
+    almacen.getState().irAPaso(1)
+    const { container } = render(<Lienzo />)
+    act(() => almacen.getState().seleccionar({ tipo: 'estructura', id: 'r' }))
+    expect([...container.querySelectorAll('[data-cota-en-pared] text')].map((t) => t.textContent)).toEqual(['100 cm', '240 cm'])
+    act(() => almacen.getState().seleccionar({ tipo: 'estructura', id: 'c' }))
+    expect(container.querySelector('[data-cota-en-pared]')).toBeNull()
+  })
+
+  it('al arrastrarla se actualizan', () => {
+    almacen.getState().cambiar((d) => ({ ...d, aberturas: [{ ...puerta, ancho: 82 }] }))
+    almacen.getState().irAPaso(1)
+    const { container } = render(<Lienzo />)
+    const vano = pieza(container, '[data-abertura="p"] polygon')
+    fireEvent.pointerDown(vano, { pointerId: 1, clientX: 90, clientY: -5 })
+    fireEvent.pointerMove(vano, { pointerId: 1, clientX: 150.4, clientY: 40 })
+    const textos = [...container.querySelectorAll('[data-cota-en-pared] text')].map((t) => t.textContent)
+    expect(textos).toEqual(['110 cm', '208 cm'])
+    fireEvent.pointerUp(vano, { pointerId: 1 })
   })
 
   it('arrastrar una puerta la lleva por su pared, recortada al final', () => {
