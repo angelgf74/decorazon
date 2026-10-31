@@ -35,6 +35,15 @@ describe('Lienzo', () => {
     expect(container.querySelector('[data-zona-conflicto]')).toBeNull()
   })
 
+  it('un mueble que sale de la estancia pinta un path evenodd', () => {
+    colocar('armario', 'a', { x: 20, y: 100 })
+    const { container } = render(<Lienzo />)
+    const zona = container.querySelector('[data-zona-conflicto]')
+    expect(zona?.tagName).toBe('path')
+    expect(zona?.getAttribute('fill-rule')).toBe('evenodd')
+    expect(zona?.getAttribute('d')?.match(/M/g)).toHaveLength(2)
+  })
+
   it('dibuja discontinuo el barrido de un armario de puertas abatibles', () => {
     colocar('armario', 'a', { x: 80, y: 50 })
     const { container } = render(<Lienzo />)

@@ -70,5 +70,12 @@ describe('convexo oblicuo', () => {
       expect(r).toHaveLength(8)
       expect(areaConSigno(r)).toBeCloseTo(areaConSigno(interseccionConvexos(a, b)), 6)
     })
+    it('interseccionConvexos recorta una L (no convexa) por un rectángulo', () => {
+      // L de 200×200 sin el cuadrante x 100..200, y 100..200; ventana x 50..150, y 50..150.
+      // Común: x 50..150 × y 50..100 (5000) + x 50..100 × y 100..150 (2500).
+      const ele = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 200, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 200 }, { x: 0, y: 200 }]
+      const ventana = rectangulo({ x: 100, y: 100 }, 100, 100, 0)
+      expect(areaConSigno(interseccionConvexos(ele, ventana))).toBeCloseTo(7500, 6)
+    })
   })
 })
