@@ -159,6 +159,7 @@ export function olvidarDisenosLocales(): void {
     st?.removeItem(CLAVE_DUENO_COPIAS)
     st?.removeItem(CLAVE_DESCARTADO)
     st?.removeItem(CLAVE_REGISTRO_ENVIADO)
+    st?.removeItem(CLAVE_ID_DE_SUBIDA)
   } catch {
     // sin acceso: no hay nada que borrar
   }
@@ -187,4 +188,10 @@ export function fijarDuenoDeCopias(correo: string): void {
   } catch {
     // sin acceso: tampoco se pueden leer las copias
   }
+}
+
+/** "Nuevo diseño": vacía el editor; el diseño anónimo siguiente no debe heredar el id de subida del anterior. */
+export function empezarDeNuevo(): void {
+  olvidarIdDeSubida(almacenamientoSeguro())
+  almacen.getState().descartar()
 }

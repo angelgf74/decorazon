@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
+import { empezarDeNuevo } from '../cuenta/disenosLocales'
 import { useSesion } from '../cuenta/sesion'
 import Confirmar from '../editor/comunes/Confirmar'
 import { useEditor } from '../editor/estado/almacen'
@@ -10,7 +11,6 @@ const t = textos.inicio
 
 export default function Inicio() {
   const hayDocumento = useEditor((e) => e.documento !== null)
-  const descartar = useEditor((e) => e.descartar)
   const navegar = useNavigate()
   const estado: unknown = useLocation().state
   const aviso = typeof estado === 'object' && estado !== null && typeof (estado as { mensaje?: unknown }).mensaje === 'string' ? (estado as { mensaje: string }).mensaje : null
@@ -32,7 +32,7 @@ export default function Inicio() {
         abierto={confirmando}
         mensaje={t.confirmarNuevo}
         textoAceptar={textos.comun.aceptar}
-        alAceptar={() => { setConfirmando(false); descartar(); navegar('/disenar') }}
+        alAceptar={() => { setConfirmando(false); empezarDeNuevo(); navegar('/disenar') }}
         alCancelar={() => setConfirmando(false)}
       />
     </main>

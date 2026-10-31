@@ -6,7 +6,7 @@ import { CLAVE_ID_DE_SUBIDA, CLAVE_REGISTRO_ENVIADO, claveCopia, guardarCopiaLoc
 import { abrirDiseno, conectarSincronizacion, elegirApertura } from '../editor/persistencia/sincronizacion'
 import { catalogoBase, documentoNuevo, elementoNuevo, serializarDocumento, type DocumentoDiseno } from '../nucleo'
 import { respuesta } from '../pruebas/respuesta'
-import { hayCambiosSinSubir, subirDisenoAnonimo, yaEstaEnLaCuenta } from './disenosLocales'
+import { empezarDeNuevo, hayCambiosSinSubir, subirDisenoAnonimo, yaEstaEnLaCuenta } from './disenosLocales'
 
 const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
 const doc: DocumentoDiseno = {
@@ -122,6 +122,20 @@ describe('subirDisenoAnonimo', () => {
     fetchSimulado.mockResolvedValueOnce(respuesta(200, disenoServidor(1, doc)))
     expect(await subirDisenoAnonimo(editado!)).toEqual({ id: 'd9' })
     expect(await idDelCuerpo(1)).toBe(await idDelCuerpo(0))
+  })
+
+  it('un diseño anónimo nuevo no reutiliza el id de subida del anterior', async () => {
+    almacen.getState().cargar(doc)
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await subirDisenoAnonimo(doc)
+
+    empezarDeNuevo()
+    expect(almacen.getState().documento).toBeNull()
+    const otro = alto(260)(doc)
+    almacen.getState().cargar(otro)
+    fetchSimulado.mockResolvedValueOnce(respuesta(201, disenoServidor(1, otro)))
+    await subirDisenoAnonimo(otro)
+    expect(await idDelCuerpo(1)).not.toBe(await idDelCuerpo(0))
   })
 
   it('tras subir, el id de subida se olvida', async () => {

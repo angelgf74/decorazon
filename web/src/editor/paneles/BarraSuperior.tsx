@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { subirDisenoAnonimo } from '../../cuenta/disenosLocales'
+import { empezarDeNuevo, subirDisenoAnonimo } from '../../cuenta/disenosLocales'
 import { useSesion } from '../../cuenta/sesion'
 import { textos } from '../../textos'
 import Confirmar from '../comunes/Confirmar'
@@ -64,7 +64,6 @@ export default function BarraSuperior() {
   const cambiarVista = useEditor((e) => e.cambiarVista)
   const deshacer = useEditor((e) => e.deshacer)
   const rehacer = useEditor((e) => e.rehacer)
-  const descartar = useEditor((e) => e.descartar)
   const haySesion = useSesion((s) => s.haySesion())
   const nombre = useSesion((s) => s.usuario?.nombre)
   const [confirmando, setConfirmando] = useState(false)
@@ -145,7 +144,7 @@ export default function BarraSuperior() {
         abierto={confirmando}
         mensaje={t.confirmarNuevo}
         textoAceptar={textos.comun.aceptar}
-        alAceptar={() => { setConfirmando(false); descartar() }}
+        alAceptar={() => { setConfirmando(false); empezarDeNuevo() }}
         alCancelar={() => setConfirmando(false)}
       />
     </header>
