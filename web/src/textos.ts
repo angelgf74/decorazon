@@ -170,6 +170,7 @@ export const textos = {
     cambiadoEnOtroSitio: 'Este diseño ha cambiado en otro sitio. Se ha recargado la lista.',
     cargando: 'Cargando…',
     ahora: 'ahora mismo',
+    sinFecha: 'Sin fecha',
     haceMinutos: (n: number) => `hace ${n} min`,
     haceHoras: (n: number) => `hace ${n} h`,
   },

@@ -16,11 +16,13 @@ import '../disenos.css'
 const t = textos.disenos
 
 function tipoEnTexto(tipo: string): string {
-  return tipo in textos.nuevaEstancia.tipos ? textos.nuevaEstancia.tipos[tipo as TipoEstancia] : tipo
+  return Object.hasOwn(textos.nuevaEstancia.tipos, tipo) ? textos.nuevaEstancia.tipos[tipo as TipoEstancia] : tipo
 }
 
 function fechaRelativa(iso: string): string {
-  const minutos = Math.floor((Date.now() - Date.parse(iso)) / 60_000)
+  const instante = Date.parse(iso)
+  if (Number.isNaN(instante)) return t.sinFecha
+  const minutos = Math.floor((Date.now() - instante) / 60_000)
   if (minutos < 1) return t.ahora
   if (minutos < 60) return t.haceMinutos(minutos)
   if (minutos < 24 * 60) return t.haceHoras(Math.floor(minutos / 60))
@@ -28,7 +30,10 @@ function fechaRelativa(iso: string): string {
 }
 
 function porFechaDescendente(lista: ResumenDiseno[]): ResumenDiseno[] {
-  return [...lista].sort((a, b) => Date.parse(b.fechaDeModificacion) - Date.parse(a.fechaDeModificacion))
+  // Una fecha inválida (NaN) rompería el orden del sort: se trata como la más antigua.
+  const instante = (d: ResumenDiseno) => Date.parse(d.fechaDeModificacion) || 0
+  const valida = (d: ResumenDiseno) => !Number.isNaN(Date.parse(d.fechaDeModificacion))
+  return [...lista].sort((a, b) => Number(valida(b)) - Number(valida(a)) || instante(b) - instante(a))
 }
 
 interface PropsDialogo {
@@ -102,14 +107,25 @@ export default function MisDisenos() {
 
   const duplicar = (id: string) =>
     intentar(async () => {
-      await duplicarDiseno(id)
-      await recargar()
+      try {
+        await duplicarDiseno(id)
+        await recargar()
+      } catch (e) {
+        // El diseño ya no existe: se recarga la lista y, tras ella, se avisa.
+        if (e instanceof ErrorDeApi && e.estado === 404) await recargar()
+        throw e
+      }
     })
 
   const borrar = (d: ResumenDiseno) =>
     intentar(async () => {
       setBorrando(null)
-      await borrarDiseno(d.id)
+      try {
+        await borrarDiseno(d.id)
+      } catch (e) {
+        // Si ya no existe en el servidor, el borrado cuenta como hecho.
+        if (!(e instanceof ErrorDeApi && e.estado === 404)) throw e
+      }
       borrarCopiaLocal(almacenamientoSeguro(), d.id)
       setLista((actual) => actual?.filter((x) => x.id !== d.id) ?? null)
     })
