@@ -105,6 +105,9 @@ async function alguno(ids: string[], cumple: (id: string) => Promise<boolean>): 
   return encontrado
 }
 
+/** Versión con la que el servidor crea un diseño (Diseno.Version inicial): la del diseño anónimo que se sube. */
+const VERSION_DEL_ALTA = 1
+
 export type ResultadoDeSubir = { id: string } | { error: string }
 
 /** Sube el diseño anónimo como diseño nuevo de la cuenta; si sale bien, lo descarta del navegador. */
@@ -114,9 +117,10 @@ export async function subirDisenoAnonimo(doc: DocumentoDiseno): Promise<Resultad
     const d = await crearDiseno(textos.disenos.nombrePorDefecto, doc, idDeSubida(st))
     // Si lo devuelto difiere del diseño anónimo de ahora (se editó durante la subida, o es un alta anterior con
     // contenido antiguo), va como copia pendiente: al abrir el diseño, la sincronización sube el actual.
+    // Lleva la versión del alta, no la devuelta: si otro sitio lo editó, al abrir sale el conflicto en vez de pisarlo.
     const actual = disenoAnonimo()
     const editado = actual !== null && contenidoNormalizado(actual) !== contenidoNormalizado(d.contenido)
-    const copiado = editado && guardarCopiaLocal(st, d.id, { version: d.version, nombre: d.nombre, documento: actual, pendiente: true })
+    const copiado = editado && guardarCopiaLocal(st, d.id, { version: VERSION_DEL_ALTA, nombre: d.nombre, documento: actual, pendiente: true })
     // Sin copia, lo editado se queda en el diseño anónimo antes que perderse.
     if (!editado || copiado) descartarDisenoAnonimo()
     return { id: d.id }

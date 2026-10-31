@@ -102,6 +102,21 @@ describe('subirDisenoAnonimo', () => {
     expect(leerCopiaLocal(localStorage, 'd9')).toMatchObject({ version: 1, pendiente: true, documento: editado })
   })
 
+  it('un reintento que devuelve un diseño editado en otro sitio deja la copia con la versión del alta y abre en conflicto', async () => {
+    almacen.getState().cargar(doc)
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await subirDisenoAnonimo(doc)
+    // El teléfono lo editó mientras tanto: el servidor va por la versión 3 con otro contenido.
+    const delTelefono = alto(300)(doc)
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, disenoServidor(3, delTelefono)))
+    expect(await subirDisenoAnonimo(doc)).toEqual({ id: 'd9' })
+
+    const copia = leerCopiaLocal(localStorage, 'd9')
+    expect(copia).toMatchObject({ version: 1, pendiente: true, documento: doc })
+    const apertura = elegirApertura('d9', copia, { diseno: disenoServidor(3, delTelefono), version: 3 })
+    expect(apertura).toMatchObject({ guardado: 'conflicto', versionRemota: 3 })
+  })
+
   it('con la cuota llena, reintentar no duplica', async () => {
     almacen.getState().cargar(doc)
     let responder: (r: Response) => void = () => {}
