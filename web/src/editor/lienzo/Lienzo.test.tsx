@@ -288,6 +288,21 @@ describe('Lienzo: paso 2', () => {
     expect(armario().rotacion).toBe(0)
   })
 
+  it('el tirador de un mueble contra la pared se dibuja detrás y arrastrarlo no lo voltea', () => {
+    colocar('armario', 'a', { x: 200, y: 300 })
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a' })
+    const { container } = render(<Lienzo />)
+    const tirador = pieza(container, '[data-giro]')
+    // Delante caería en y = 360, fuera de los 330 de la estancia: pasa detrás (300 - 30 - 30).
+    expect([tirador.getAttribute('cx'), tirador.getAttribute('cy')]).toEqual(['200', '240'])
+    fireEvent.pointerDown(tirador, { pointerId: 1, clientX: 200, clientY: 240 })
+    fireEvent.pointerMove(tirador, { pointerId: 1, clientX: 210, clientY: 240 })
+    expect(armario().rotacion).toBe(0)
+    fireEvent.pointerMove(tirador, { pointerId: 1, clientX: 300, clientY: 300 })
+    expect(armario().rotacion).toBe(90)
+    fireEvent.pointerUp(tirador, { pointerId: 1 })
+  })
+
   it('soltar un tipo del catálogo lo añade en ese punto y lo selecciona', () => {
     const { container } = render(<Lienzo />)
     const svg = pieza(container, 'svg')

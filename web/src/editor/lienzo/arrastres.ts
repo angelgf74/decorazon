@@ -142,13 +142,16 @@ export function giroHacia(centro: Punto, p: Punto): number {
   return (Math.atan2(-v.x, v.y) * 180) / Math.PI
 }
 
-/** Paso 2: el tirador de giro orienta el elemento hacia el puntero, de 90° en 90° o, con Mayúsculas, libre. */
-export function girarElemento(aPlano: APlano, id: string, ev: PointerEventReact<Element>, avisar: AlArrastrarElemento): void {
+/**
+ * Paso 2: el tirador de giro orienta el elemento hacia el puntero, de 90° en 90° o, con Mayúsculas, libre.
+ * `desfase` es el ángulo del tirador respecto al frente (0 si está delante), para que agarrarlo no gire la pieza.
+ */
+export function girarElemento(aPlano: APlano, id: string, ev: PointerEventReact<Element>, avisar: AlArrastrarElemento, desfase = 0): void {
   const e = almacen.getState().documento?.elementos.find((x) => x.id === id)
   if (!e) return
   arrastrar(ev, (m) => {
     avisar(id)
-    const angulo = giroHacia(e.posicion, aPlano(m))
+    const angulo = giroHacia(e.posicion, aPlano(m)) - desfase
     const libre = m.shiftKey
     const giro = libre ? Math.round(angulo) : Math.round(angulo / 90) * 90
     almacen.getState().cambiar((d) => moverElemento(d, catalogoBase, id, e.posicion, ((giro % 360) + 360) % 360, libre), `girar:${id}`)

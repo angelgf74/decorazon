@@ -20,6 +20,7 @@ export {
 } from './edicion/planta'
 export { imantar, IMAN_CM } from './edicion/iman'
 export { cotasAParedes, type Cota } from './edicion/cotas'
+export { tiradorDeGiro } from './edicion/tiradorDeGiro'
 export { anadirElemento, duplicarElemento, editarElemento, moverElemento, quitarElemento } from './edicion/elementos'
 export { anadirAbertura, anadirEstructura, editarAbertura, editarEstancia, editarEstructura, quitarDeEstancia } from './edicion/estancia'
 export { redondearNumeros, serializarDocumento } from './edicion/serializar'
