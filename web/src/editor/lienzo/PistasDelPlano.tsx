@@ -25,6 +25,9 @@ function guardarOcultas(ocultas: boolean): void {
   }
 }
 
+/** Con el dedo, el catálogo se arrastra por el asa de cada mueble. Sin matchMedia (jsdom), como con ratón. */
+const esTactil = (): boolean => globalThis.matchMedia?.('(pointer: coarse)').matches ?? false
+
 /** Lo que se puede hacer en el plano en cada paso, abajo a la izquierda. Se puede cerrar y volver a abrir. */
 export default function PistasDelPlano() {
   const paso = useEditor((e) => e.paso)
@@ -48,7 +51,7 @@ export default function PistasDelPlano() {
     <aside className="lienzo__pistas" aria-labelledby={id}>
       <h2 id={id} className="solo-lectores">{t.titulo}</h2>
       <ul>
-        {(paso === 1 ? t.paso1 : t.paso2).map((p) => <li key={p}>{p}</li>)}
+        {(paso === 1 ? t.paso1 : esTactil() ? t.paso2Tactil : t.paso2).map((p) => <li key={p}>{p}</li>)}
         {/* Con el dedo no hay rueda (lienzo.css la oculta en pantallas táctiles). */}
         <li className="lienzo__pista-rueda">{t.rueda}</li>
       </ul>

@@ -11,6 +11,14 @@ export const UMBRAL_ARRASTRE_PX = 3
 /** Tipo de `dataTransfer` con el que el catálogo arrastra un tipo de elemento al plano. */
 export const MIME_TIPO = 'application/x-decorazon-tipo'
 
+/**
+ * Evento que el catálogo despacha sobre el `.lienzo__svg` al soltar con el dedo un tipo arrastrado desde su asa
+ * (el arrastre de HTML5 no funciona con el dedo). Es un `CustomEvent<DetalleSoltarTipo>`.
+ */
+export const EVENTO_SOLTAR_TIPO = 'decorazon:soltar-tipo'
+
+export interface DetalleSoltarTipo { tipo: string; clientX: number; clientY: number }
+
 export type APlano = (ev: PointerEvent | PointerEventReact) => Punto
 
 let enCurso = false

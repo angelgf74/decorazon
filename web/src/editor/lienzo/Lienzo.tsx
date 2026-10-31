@@ -4,7 +4,7 @@ import { textos } from '../../textos'
 import { useConflictos } from '../estado/conflictos'
 import { almacen, useEditor } from '../estado/almacen'
 import { anadirTipo } from '../estado/elementos'
-import { MIME_TIPO, pulsarAbertura, pulsarElemento, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano } from './arrastres'
+import { EVENTO_SOLTAR_TIPO, MIME_TIPO, pulsarAbertura, pulsarElemento, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano, type DetalleSoltarTipo } from './arrastres'
 import CapaAberturas from './capas/CapaAberturas'
 import CapaCotas, { CotasElemento, CotasEnPared } from './capas/CapaCotas'
 import CapaConflictos from './capas/CapaConflictos'
@@ -89,6 +89,18 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
       el.removeEventListener('wheel', rueda)
     }
   }, [aplicar, encuadrarVista])
+
+  // Paso 2: lo mismo que `alSoltarTipo`, para el tipo que el catálogo arrastra con el dedo desde su asa.
+  useEffect(() => {
+    const el = svg.current
+    if (!el) return
+    const soltar = (ev: Event) => {
+      const detalle = (ev as CustomEvent<DetalleSoltarTipo>).detail
+      if (almacen.getState().paso === 2) anadirTipo(detalle.tipo, puntoDelPlano(contexto, detalle))
+    }
+    el.addEventListener(EVENTO_SOLTAR_TIPO, soltar)
+    return () => el.removeEventListener(EVENTO_SOLTAR_TIPO, soltar)
+  }, [contexto])
 
   // Solo llegan aquí los toques que ninguna capa ha atendido: el fondo.
   const alBajar = (ev: PointerEvent<SVGSVGElement>) => {

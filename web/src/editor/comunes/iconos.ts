@@ -20,6 +20,8 @@ export const TRAZADOS = {
   buscar: ['M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14z', 'M20 20l-4-4'],
   mas: ['M12 5v14M5 12h14'],
   hecho: ['M5 12.5 9.5 17 19 7'],
+  // Asa de arrastre: dos columnas de tres puntos.
+  mover: ['M9 6h.01', 'M15 6h.01', 'M9 12h.01', 'M15 12h.01', 'M9 18h.01', 'M15 18h.01'],
 } satisfies Record<string, string[]>
 
 export type NombreIcono = keyof typeof TRAZADOS
