@@ -4,15 +4,16 @@ import { ErrorDeApi } from '../../api/cliente'
 import type { DisenoServidor } from '../../disenos/servidor'
 import { documentoNuevo, type DocumentoDiseno } from '../../nucleo'
 import { crearAlmacen } from '../estado/almacen'
-import { leerCopiaLocal } from './local'
+import { claveCopia, leerCopiaLocal } from './local'
 import {
-  abrirDiseno, alBorrarseEnElServidor, anularSincronizacion, conectarSincronizacion, elegirApertura, esperarGuardados, REINTENTO_MS, renombrar, resolverConflicto,
+  abrirDiseno, alBorrarseEnElServidor, anularSincronizacion, conectarSincronizacion, elegirApertura, ESPERA_COPIA_MS, esperarGuardados, REINTENTO_MS, renombrar, resolverConflicto,
 } from './sincronizacion'
 
 const servidor = vi.hoisted(() => ({ guardarDiseno: vi.fn(), obtenerDiseno: vi.fn() }))
 vi.mock('../../disenos/servidor', () => servidor)
 
 const ID = '11111111-1111-1111-1111-111111111111'
+const OTRO = '22222222-2222-2222-2222-222222222222'
 const doc = documentoNuevo('cocina', 400, 300, 250)
 const alto = (n: number) => (d: DocumentoDiseno): DocumentoDiseno => ({ ...d, estancia: { ...d.estancia, alto: n } })
 
@@ -98,14 +99,51 @@ describe('sincronización con el servidor', () => {
     expect(a.getState().guardado).toBe('guardado')
   })
 
-  it('la copia local se escribe al instante y queda sin pendiente tras guardar', async () => {
+  it('la copia local se escribe tras la espera agrupada y queda sin pendiente tras guardar', async () => {
     servidorConVersion(4)
     const { a, st } = preparar(4)
     a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(ESPERA_COPIA_MS)
     expect(leerCopiaLocal(st, ID)).toMatchObject({ version: 4, pendiente: true })
     expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(260)
     await vi.advanceTimersByTimeAsync(2000)
     expect(leerCopiaLocal(st, ID)).toMatchObject({ version: 5, pendiente: false })
+    expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(260)
+  })
+
+  it('veinte cambios seguidos escriben la copia una vez', async () => {
+    servidorConVersion(4)
+    const { a, st } = preparar(4)
+    const escritura = vi.spyOn(st, 'setItem')
+    const copias = () => escritura.mock.calls.filter(([k]) => k === claveCopia(ID)).length
+    const antes = copias()
+    for (let n = 1; n <= 20; n++) {
+      a.getState().cambiar(alto(250 + n))
+      await vi.advanceTimersByTimeAsync(16)
+    }
+    expect(copias() - antes).toBe(0)
+    await vi.advanceTimersByTimeAsync(ESPERA_COPIA_MS)
+    expect(copias() - antes).toBe(1)
+    expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(270)
+  })
+
+  it('pagehide escribe la copia pendiente al momento', () => {
+    servidorConVersion(4)
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    expect(leerCopiaLocal(st, ID)).toBeNull()
+    window.dispatchEvent(new Event('pagehide'))
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ pendiente: true })
+    expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(260)
+  })
+
+  it('salir del editor escribe la copia pendiente', () => {
+    servidorConVersion(4)
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    expect(leerCopiaLocal(st, ID)).toBeNull()
+    abrirDiseno(a, { id: OTRO, version: 1, nombre: 'Salón', documento: doc, pendiente: false, guardado: 'guardado' })
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ pendiente: true })
     expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(260)
   })
 
@@ -396,7 +434,7 @@ describe('sincronización: arreglos de la revisión', () => {
     abrirDiseno(a, elegirApertura(ID, leerCopiaLocal(st, ID), { diseno: disenoServidor(4), version: 4 })!)
     a.getState().cambiar(alto(290))
     soltar()
-    await vi.advanceTimersByTimeAsync(0)
+    await vi.advanceTimersByTimeAsync(ESPERA_COPIA_MS)
     expect(leerCopiaLocal(st, ID)).toMatchObject({ pendiente: true })
     expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(290)
   })
@@ -467,11 +505,12 @@ describe('sincronización: arreglos de la revisión', () => {
     expect(leerCopiaLocal(st, ID)).not.toBeNull()
   })
 
-  it('si no se puede escribir la copia local, avisa', () => {
+  it('si no se puede escribir la copia local, avisa', async () => {
     const st = falso()
     st.setItem = () => { throw new DOMException('lleno', 'QuotaExceededError') }
     const { a } = preparar(4, st)
     a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(ESPERA_COPIA_MS)
     expect(a.getState().aviso).toBe('No se pudo guardar la copia en este navegador')
   })
 

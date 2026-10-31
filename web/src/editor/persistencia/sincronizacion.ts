@@ -9,6 +9,8 @@ import type { Origen } from '../estado/origen'
 import { almacenamientoSeguro, borrarCopiaLocal, guardarCopiaLocal, type CopiaLocal } from './local'
 
 export const REINTENTO_MS = 30_000
+/** Los cambios seguidos (p. ej. un arrastre) se agrupan en una sola escritura de la copia local. */
+export const ESPERA_COPIA_MS = 500
 
 export type Eleccion = 'recargar' | 'sobrescribir'
 
@@ -109,14 +111,17 @@ const avisosDeBorrado = new WeakMap<StoreApi<EstadoEditor>, (id: string) => void
 
 export function conectarSincronizacion(
   a: StoreApi<EstadoEditor>,
-  opciones: { esperaMs: number; st: Storage | null } = { esperaMs: 2000, st: almacenamientoSeguro() },
+  opciones: { esperaMs: number; esperaCopiaMs?: number; st: Storage | null } = { esperaMs: 2000, st: almacenamientoSeguro() },
 ): () => void {
-  const { esperaMs, st } = opciones
+  const { esperaMs, esperaCopiaMs = ESPERA_COPIA_MS, st } = opciones
   let actual: Trabajo | null = null
   // El último origen que fijó esta sincronización: distingue sus cambios de versión de una apertura.
   let origenPropio: Origen | null = null
   let temporizador: ReturnType<typeof setTimeout> | undefined
   let reintentos: ReturnType<typeof setInterval> | undefined
+  // Copia local agrupada: el trabajo cuyo último cambio aún no se ha escrito y su temporizador.
+  let copiaPendiente: Trabajo | null = null
+  let temporizadorCopia: ReturnType<typeof setTimeout> | undefined
 
   const fijar = (t: Trabajo, cambios: Partial<EstadoEditor>) => {
     if (t === actual) a.setState(cambios)
@@ -131,6 +136,20 @@ export function conectarSincronizacion(
     if (anulado(t) || (t !== actual && actual?.id === t.id)) return
     const ok = guardarCopiaLocal(st, t.id, { version: t.version, nombre: t.nombre, documento: t.documento, pendiente: hayCambios(t) })
     if (!ok) fijar(t, { aviso: textos.barra.sinCopiaLocal })
+  }
+
+  // Escribe ya la copia agrupada, si la hay.
+  const copiarYa = () => {
+    clearTimeout(temporizadorCopia)
+    temporizadorCopia = undefined
+    const t = copiaPendiente
+    copiaPendiente = null
+    if (t !== null) copiar(t)
+  }
+  const programarCopia = (t: Trabajo) => {
+    copiaPendiente = t
+    clearTimeout(temporizadorCopia)
+    temporizadorCopia = setTimeout(copiarYa, esperaCopiaMs)
   }
 
   const programar = (ms: number) => {
@@ -248,6 +267,8 @@ export function conectarSincronizacion(
     clearTimeout(temporizador)
     temporizador = undefined
     pararReintentos()
+    // Antes de soltar el trabajo: uno ya dejado no escribe si el mismo diseño se abre otra vez.
+    copiarYa()
     const t = actual
     actual = null
     origenPropio = null
@@ -268,7 +289,7 @@ export function conectarSincronizacion(
     if (t === null || estado.origen.tipo !== 'servidor' || estado.documento === null) return
     t.documento = estado.documento
     t.sucio = true
-    copiar(t)
+    programarCopia(t)
     if (t.perdido || estado.guardado === 'conflicto') return
     if (estado.guardado === 'sinConexion') {
       iniciarReintentos()
@@ -286,11 +307,17 @@ export function conectarSincronizacion(
   const alVolverLaRed = () => {
     if (actual !== null && a.getState().guardado === 'sinConexion') void guardar(actual)
   }
+  const alOcultar = () => {
+    if (globalThis.document?.visibilityState === 'hidden') copiarYa()
+  }
   const alSalir = (e: Event) => {
+    copiarYa()
     if (actual !== null && (hayCambios(actual) || a.getState().guardado === 'pendiente')) e.preventDefault()
   }
   globalThis.addEventListener?.('online', alVolverLaRed)
   globalThis.addEventListener?.('beforeunload', alSalir)
+  globalThis.addEventListener?.('pagehide', copiarYa)
+  globalThis.document?.addEventListener('visibilitychange', alOcultar)
 
   controladores.set(a, {
     abierto(ap) {
@@ -360,6 +387,8 @@ export function conectarSincronizacion(
     dejar()
     globalThis.removeEventListener?.('online', alVolverLaRed)
     globalThis.removeEventListener?.('beforeunload', alSalir)
+    globalThis.removeEventListener?.('pagehide', copiarYa)
+    globalThis.document?.removeEventListener('visibilitychange', alOcultar)
     controladores.delete(a)
   }
 }
