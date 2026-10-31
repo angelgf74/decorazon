@@ -350,6 +350,26 @@ describe('Lienzo: paso 2', () => {
     fireEvent.pointerUp(tirador, { pointerId: 1 })
   })
 
+  it('el tirador no cambia de lado mientras se arrastra, aunque el frente quede libre al girar, y vuelve a elegir al soltar', () => {
+    colocar('armario', 'a', { x: 200, y: 300 })
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a' })
+    const { container } = render(<Lienzo />)
+    const sitio = () => {
+      const t = pieza(container, '[data-giro]')
+      return [Number(t.getAttribute('cx')), Number(t.getAttribute('cy'))]
+    }
+    const distancia = armario().medidas.fondo / 2 + 30
+    expect(sitio()).toEqual([200, 300 - distancia])
+    fireEvent.pointerDown(pieza(container, '[data-giro]'), { pointerId: 1, clientX: 200, clientY: 300 - distancia })
+    fireEvent.pointerMove(pieza(container, '[data-giro]'), { pointerId: 1, clientX: 300, clientY: 300 })
+    expect(armario().rotacion).toBe(90)
+    // Con el armario a 90° su frente (hacia -x) cae dentro, pero el tirador sigue detrás: a +x.
+    expect(sitio()).toEqual([200 + distancia, 300])
+    fireEvent.pointerUp(pieza(container, '[data-giro]'), { pointerId: 1 })
+    // Soltado, vuelve a preferir el frente.
+    expect(sitio()).toEqual([200 - distancia, 300])
+  })
+
   it('soltar un tipo del catálogo lo añade en ese punto y lo selecciona', () => {
     const { container } = render(<Lienzo />)
     const svg = pieza(container, 'svg')

@@ -1,4 +1,4 @@
-import type { PointerEvent } from 'react'
+import { useState, type PointerEvent } from 'react'
 import {
   alinearVertice, editarEstructura, escalar, hueco, longitudPared, moverVertice, partirPared, restar, rotar, sumar, tiradorDeGiro,
   type DocumentoDiseno, type Elemento, type Punto, type Viga,
@@ -105,7 +105,12 @@ const RADIO_GIRO_PX = 7
 /** Paso 2: tirador de giro del elemento seleccionado: por delante de su frente o, si ahí no cabe, por detrás o a un lado. */
 export function TiradorGiro({ elemento: e, planta, escala, avisar }: { elemento: Elemento; planta: Punto[]; escala: number; avisar: AlArrastrarElemento }) {
   const aPlano = usePuntoDelPlano()
-  const { centro: c, desfase } = tiradorDeGiro(planta, e, SEPARACION_GIRO_CM)
+  // Durante el giro el tirador conserva el lado elegido al pulsar (en coordenadas del mueble): si no, saltaría al
+  // lado contrario en cuanto el frente quedase libre. Al soltar vuelve a elegir.
+  const [fijo, setFijo] = useState<{ local: Punto; desfase: number } | null>(null)
+  const elegido = tiradorDeGiro(planta, e, SEPARACION_GIRO_CM)
+  const c = fijo === null ? elegido.centro : sumar(e.posicion, rotar(fijo.local, e.rotacion))
+  const desfase = fijo?.desfase ?? elegido.desfase
   // El brazo parte del borde de la caja que mira al tirador.
   const local = rotar(restar(c, e.posicion), -e.rotacion)
   const medio = { x: e.medidas.ancho / 2, y: e.medidas.fondo / 2 }
@@ -113,7 +118,11 @@ export function TiradorGiro({ elemento: e, planta, escala, avisar }: { elemento:
   const pulsar = (ev: PointerEvent<SVGCircleElement>) => {
     if (!esBotonPrincipal(ev)) return
     ev.stopPropagation()
-    girarElemento(aPlano, e.id, ev, avisar, desfase)
+    setFijo({ local, desfase })
+    girarElemento(aPlano, e.id, ev, (id) => {
+      avisar(id)
+      if (id === null) setFijo(null)
+    }, desfase)
   }
   return (
     <g className="capa-tiradores">
