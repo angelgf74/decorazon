@@ -5,7 +5,7 @@ import { textos } from '../../textos'
 import Icono from '../comunes/Icono'
 import { anadirTipo } from '../estado/elementos'
 import { useEditor } from '../estado/almacen'
-import { EVENTO_SOLTAR_TIPO, MIME_TIPO, type DetalleSoltarTipo } from '../lienzo/arrastres'
+import { EVENTO_SOLTAR_TIPO, MIME_TIPO, UMBRAL_ARRASTRE_PX, type DetalleSoltarTipo } from '../lienzo/arrastres'
 
 const t = textos.catalogo
 
@@ -27,14 +27,22 @@ function useArrastreConDedo(alEmpezar?: () => void) {
     // Que no lo atienda la tarjeta: el arrastre empieza aquí.
     ev.stopPropagation()
     const el = ev.currentTarget
-    const { pointerId } = ev
+    const { pointerId, clientX, clientY } = ev
     if (typeof el.setPointerCapture === 'function') el.setPointerCapture(pointerId)
     enCurso.current = true
-    setFantasma({ nombre: capitalizar(def.nombre), x: ev.clientX, y: ev.clientY })
-    alEmpezar?.()
-    // El fantasma se mueve sin pasar por React, para no repintar el catálogo en cada movimiento.
+    // Un toque sin moverse no hace nada: el arrastre (cerrar la hoja, el fantasma) empieza pasado el umbral.
+    let movido = false
     const mover = (e: PointerEvent) => {
-      if (e.pointerId === pointerId) nodo.current?.style.setProperty('translate', `${e.clientX}px ${e.clientY}px`)
+      if (e.pointerId !== pointerId) return
+      if (!movido) {
+        if (Math.hypot(e.clientX - clientX, e.clientY - clientY) < UMBRAL_ARRASTRE_PX) return
+        movido = true
+        setFantasma({ nombre: capitalizar(def.nombre), x: e.clientX, y: e.clientY })
+        alEmpezar?.()
+        return
+      }
+      // El fantasma se mueve sin pasar por React, para no repintar el catálogo en cada movimiento.
+      nodo.current?.style.setProperty('translate', `${e.clientX}px ${e.clientY}px`)
     }
     const acabar = (e: PointerEvent) => {
       if (e.pointerId !== pointerId) return
@@ -42,6 +50,7 @@ function useArrastreConDedo(alEmpezar?: () => void) {
       window.removeEventListener('pointerup', acabar)
       window.removeEventListener('pointercancel', acabar)
       enCurso.current = false
+      if (!movido) return
       setFantasma(null)
       if (e.type !== 'pointerup') return
       const lienzo = document.elementFromPoint(e.clientX, e.clientY)?.closest('.lienzo__svg')
