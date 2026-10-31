@@ -34,22 +34,26 @@ export default function CampoNumero({ etiqueta, valor, min, max, unidad, alCambi
   return (
     <div className="campo-numero">
       <label className="campo-numero__etiqueta" htmlFor={id}>{etiqueta}</label>
-      <input
-        id={id}
-        type="text"
-        inputMode="numeric"
-        value={texto}
-        aria-describedby={idAyuda}
-        onChange={(e) => setTexto(e.target.value)}
-        onBlur={confirmar}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            confirmar()
-          }
-          else if (e.key === 'Escape') setTexto(String(valor))
-        }}
-      />
+      <span className={`campo-numero__control${unidad ? ' campo-numero__control--unidad' : ''}`}>
+        <input
+          id={id}
+          type="text"
+          inputMode="numeric"
+          value={texto}
+          aria-describedby={idAyuda}
+          onChange={(e) => setTexto(e.target.value)}
+          onBlur={confirmar}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              confirmar()
+            }
+            else if (e.key === 'Escape') setTexto(String(valor))
+          }}
+        />
+        {/* La unidad ya va en la ayuda de rango, que el campo anuncia con aria-describedby. */}
+        {unidad && <span className="campo-numero__unidad" aria-hidden="true">{unidad}</span>}
+      </span>
       <small id={idAyuda} className="campo-numero__ayuda">{`${min}–${max}${unidad ? ` ${unidad}` : ''}`}</small>
     </div>
   )

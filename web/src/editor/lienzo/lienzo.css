@@ -1,7 +1,34 @@
 .lienzo { position: relative; width: 100%; height: 100%; overflow: hidden; }
 .lienzo__svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; cursor: grab; }
 .lienzo__svg--arrastrando { cursor: grabbing; }
-.lienzo__encuadrar { position: absolute; top: 0.75rem; right: 0.75rem; }
+.lienzo__encuadrar { position: absolute; top: 0.75rem; right: 0.75rem; box-shadow: 0 1px 3px rgb(43 38 34 / 0.12); }
+
+.lienzo__pistas {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  max-width: min(36rem, calc(100% - 1.5rem));
+  padding: var(--esp-1) var(--esp-1) var(--esp-1) var(--esp-3);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio);
+  background: rgb(255 255 255 / 0.94);
+  box-shadow: 0 2px 8px rgb(43 38 34 / 0.08);
+  font-size: var(--texto-s);
+}
+.lienzo__pistas ul { display: flex; flex-wrap: wrap; gap: var(--esp-1) var(--esp-3); margin: 0; padding: var(--esp-1) 0; list-style: none; }
+.lienzo__pistas li::before { content: '•'; margin-right: 0.35rem; color: var(--terracota); }
+.lienzo__pistas .boton-icono { width: 2rem; height: 2rem; min-height: 2rem; border-color: transparent; background: none; }
+.lienzo__pistas .boton-icono:hover { background: var(--crema-oscura); }
+.lienzo__mostrar-pistas { position: absolute; left: 0.75rem; bottom: 0.75rem; border-radius: 50%; box-shadow: 0 1px 3px rgb(43 38 34 / 0.12); }
+/* Con el dedo no hay rueda: el zoom se hace con Encuadrar. */
+@media (pointer: coarse) { .lienzo__pista-rueda { display: none; } }
+@media (max-width: 767px) {
+  .lienzo__encuadrar { width: var(--objetivo); padding: 0; }
+  .lienzo__texto-boton { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 .lienzo__svg line, .lienzo__svg polygon, .lienzo__svg path { vector-effect: non-scaling-stroke; }
 .lienzo__texto { font-size: calc(12px / var(--escala, 1)); text-anchor: middle; dominant-baseline: central; fill: var(--tinta); pointer-events: none; }
 .lienzo--pulsable { cursor: pointer; }
@@ -30,7 +57,7 @@
 .capa-conflictos polygon { fill: var(--conflicto); fill-opacity: 0.35; stroke: var(--conflicto); stroke-width: 1; }
 
 .capa-planta__pared { fill: transparent; }
-.capa-planta__pared:hover { fill: rgb(233 128 106 / 0.35); }
+.capa-planta__pared:hover { fill: rgb(255 209 102 / 0.55); }
 .capa-planta__pared.lienzo--seleccionado { fill: var(--terracota); }
 
 .capa-cotas__cota { cursor: pointer; }
@@ -46,11 +73,12 @@
 .capa-cotas__cota.lienzo--seleccionado .lienzo__texto { fill: var(--terracota); font-weight: 600; }
 
 .capa-tiradores__vertice { fill: #fff; stroke: var(--terracota); stroke-width: 2; cursor: move; vector-effect: non-scaling-stroke; }
-.capa-tiradores__vertice.lienzo--seleccionado { fill: var(--amarillo); }
+.capa-tiradores__vertice.lienzo--seleccionado { fill: var(--amarillo); stroke: var(--tinta); }
 .capa-tiradores__mas { cursor: pointer; }
-.capa-tiradores__mas circle { fill: #fff; stroke: var(--salmon); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.capa-tiradores__area { fill: transparent; }
+.capa-tiradores__boton { fill: #fff; stroke: var(--borde); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .capa-tiradores__mas line { stroke: var(--terracota); stroke-width: 2; }
-.capa-tiradores__mas:hover circle { fill: var(--amarillo); }
+.capa-tiradores__mas:hover .capa-tiradores__boton { fill: var(--amarillo); }
 
 .capa-tiradores__brazo { stroke: var(--terracota); stroke-width: 1; stroke-dasharray: 3 3; pointer-events: none; vector-effect: non-scaling-stroke; }
 .capa-tiradores__giro { fill: #fff; stroke: var(--terracota); stroke-width: 2; cursor: grab; vector-effect: non-scaling-stroke; }

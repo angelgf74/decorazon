@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { contienePunto } from '../../nucleo/geometria/poligono'
+import { textos } from '../../textos'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import PanelCatalogo from './PanelCatalogo'
 
@@ -46,5 +47,21 @@ describe('PanelCatalogo en una L', () => {
     await userEvent.click(within(screen.getByRole('region', { name: 'Otros muebles' })).getByRole('button', { name: /^Armario/ }))
     const armario = almacen.getState().documento!.elementos[0]!
     expect(contienePunto(ele, armario.posicion)).toBe(true)
+  })
+
+  it('el buscador filtra sin distinguir mayúsculas ni tildes', async () => {
+    almacen.getState().crear('dormitorio', 400, 330, 250)
+    render(<PanelCatalogo />)
+    await userEvent.type(screen.getByRole('searchbox', { name: textos.catalogo.buscar }), 'LAMPARA')
+    expect(screen.getByRole('button', { name: /^Lámpara de pie/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Armario/ })).toBeNull()
+  })
+
+  it('sin coincidencias lo dice y no deja grupos vacíos', async () => {
+    almacen.getState().crear('dormitorio', 400, 330, 250)
+    render(<PanelCatalogo />)
+    await userEvent.type(screen.getByRole('searchbox', { name: textos.catalogo.buscar }), 'zzz')
+    expect(screen.getByText(textos.catalogo.sinResultados)).toBeInTheDocument()
+    expect(screen.queryAllByRole('region')).toHaveLength(0)
   })
 })

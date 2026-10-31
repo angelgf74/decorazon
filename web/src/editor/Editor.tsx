@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { versionCargada } from '../recargaPorVersion'
 import { textos } from '../textos'
 import { almacen, useEditor } from './estado/almacen'
-import BarraSuperior, { type Hoja } from './paneles/BarraSuperior'
+import BarraSuperior from './paneles/BarraSuperior'
 import NuevaEstancia from './paneles/NuevaEstancia'
 import ListaAvisos from './paneles/ListaAvisos'
 import PanelCatalogo from './paneles/PanelCatalogo'
@@ -10,11 +10,15 @@ import PanelEstancia from './paneles/PanelEstancia'
 import PanelPropiedades from './paneles/PanelPropiedades'
 import Lienzo from './lienzo/Lienzo'
 import AvisoVista3D from './comunes/AvisoVista3D'
+import Icono from './comunes/Icono'
 import SinFallos from './comunes/SinFallos'
+import { useConflictos } from './estado/conflictos'
 import { useAtajos } from './usarAtajos'
 import './editor.css'
 
 const MS_AVISO = 4000
+
+type Hoja = 'izquierda' | 'derecha'
 
 const vista3dPerezosa = () =>
   lazy(() =>
@@ -46,7 +50,7 @@ export default function Editor() {
 
   return (
     <div className="editor">
-      <BarraSuperior hojaAbierta={hoja} alAlternarHoja={alternar} />
+      <BarraSuperior />
       <div className="editor__cuerpo">
         <aside className={`editor__izquierda hoja${hoja === 'izquierda' ? ' hoja--abierta' : ''}`}>
           {paso === 1 ? <PanelEstancia /> : <PanelCatalogo />}
@@ -63,7 +67,32 @@ export default function Editor() {
           <ListaAvisos />
         </aside>
       </div>
+      <PestanasDeHojas paso={paso} hoja={hoja} alAlternar={alternar} />
       {aviso !== null && <p className="editor__aviso" role="status">{aviso}</p>}
     </div>
+  )
+}
+
+/** En móvil los paneles son hojas que suben desde abajo; estas pestañas, al alcance del pulgar, las abren. */
+function PestanasDeHojas({ paso, hoja, alAlternar }: { paso: number; hoja: Hoja | null; alAlternar(h: Hoja): void }) {
+  const avisos = useConflictos().length
+  const t = textos.barra
+  return (
+    <nav className="editor__pestanas" aria-label={t.paneles}>
+      <button type="button" aria-expanded={hoja === 'izquierda'} onClick={() => alAlternar('izquierda')}>
+        <Icono nombre={paso === 1 ? 'estancia' : 'catalogo'} />
+        <span>{paso === 1 ? t.estancia : t.catalogo}</span>
+      </button>
+      <button type="button" aria-expanded={hoja === 'derecha'} onClick={() => alAlternar('derecha')}>
+        <Icono nombre="propiedades" />
+        <span>{t.propiedades}</span>
+        {avisos > 0 && (
+          <span className="insignia">
+            <span aria-hidden="true">{avisos}</span>
+            <span className="solo-lectores">{`, ${t.avisos(avisos)}`}</span>
+          </span>
+        )}
+      </button>
+    </nav>
   )
 }

@@ -2,6 +2,7 @@ import type { Conflicto, DocumentoDiseno } from '../../nucleo'
 import { textos } from '../../textos'
 import { almacen, useEditor, type Paso, type Seleccion } from '../estado/almacen'
 import { useConflictos } from '../estado/conflictos'
+import Icono from '../comunes/Icono'
 
 const t = textos.avisos
 
@@ -33,10 +34,10 @@ export default function ListaAvisos() {
     ...conflictos.filter((c) => c.gravedad === 'aviso'),
   ]
   return (
-    <section className="lista-avisos" aria-label={t.titulo}>
+    <section className={`lista-avisos${ordenados.length > 0 ? ' lista-avisos--con-avisos' : ''}`} aria-label={t.titulo}>
       <h2>{`${t.titulo} (${ordenados.length})`}</h2>
       {ordenados.length === 0 ? (
-        <p className="panel__nota">{t.todoBien}</p>
+        <p className="lista-avisos__bien"><Icono nombre="hecho" />{t.todoBien}</p>
       ) : (
         <ul>
           {ordenados.map((c, i) => (
