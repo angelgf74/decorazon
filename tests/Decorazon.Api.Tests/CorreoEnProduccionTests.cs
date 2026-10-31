@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-
 namespace Decorazon.Api.Tests;
 
 /// <summary>
@@ -74,23 +71,5 @@ public class CorreoEnProduccionTests
         using var api = new ApiEnProduccion(("Correo:UsarBrevo", "false"), ("Correo:Simulado", "true"));
 
         using var cliente = api.CreateClient();
-    }
-
-    private sealed class ApiEnProduccion(params (string Clave, string Valor)[] ajustes) : WebApplicationFactory<Program>
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder constructor)
-        {
-            constructor.UseEnvironment("Production");
-            constructor.UseSetting("Jwt:ClaveDeFirma", ApiConPostgresFixture.ClaveDeFirmaDePrueba);
-            constructor.UseSetting("Limpieza:Activa", "false");
-            constructor.UseSetting(
-                "ConnectionStrings:Decorazon",
-                "Host=127.0.0.1;Port=1;Database=inexistente;Username=nadie;Password=nada;Timeout=1;Command Timeout=1");
-
-            foreach (var (clave, valor) in ajustes)
-            {
-                constructor.UseSetting(clave, valor);
-            }
-        }
     }
 }
