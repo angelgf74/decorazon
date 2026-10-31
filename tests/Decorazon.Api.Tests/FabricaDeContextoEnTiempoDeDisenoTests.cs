@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Decorazon.Api.Tests;
 
@@ -19,5 +20,33 @@ public class FabricaDeContextoEnTiempoDeDisenoTests
         using var contexto = FabricaDeContextoEnTiempoDeDiseno.Crear("Host=localhost;Database=sin-conexion");
 
         Assert.False(contexto.Database.HasPendingModelChanges());
+    }
+
+    /// <summary>
+    /// <c>srv subir</c> compila el bundle en local sin secretos: construir el
+    /// modelo no abre conexión, y en el servidor el bundle recibe la cadena por
+    /// variable de entorno. Sin cadena configurada no puede fallar.
+    /// </summary>
+    [Fact]
+    public void SinCadenaConfiguradaUsaUnaDeRellenoParaCompilarElBundle()
+    {
+        var configuracion = new ConfigurationBuilder().Build();
+
+        Assert.Equal(
+            FabricaDeContextoEnTiempoDeDiseno.CadenaSinConexion,
+            FabricaDeContextoEnTiempoDeDiseno.CadenaDeConexion(configuracion));
+    }
+
+    [Fact]
+    public void ConCadenaConfiguradaUsaEsa()
+    {
+        var configuracion = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:Decorazon"] = "Host=local;Database=decorazon",
+            })
+            .Build();
+
+        Assert.Equal("Host=local;Database=decorazon", FabricaDeContextoEnTiempoDeDiseno.CadenaDeConexion(configuracion));
     }
 }
