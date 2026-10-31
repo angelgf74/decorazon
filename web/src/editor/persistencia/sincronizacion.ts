@@ -240,7 +240,11 @@ export function conectarSincronizacion(
     try {
       const { diseno, version } = await obtenerDiseno(t.id)
       t.enVuelo = false
-      if (t !== actual) return
+      // Lo editado mientras se comprobaba, si ya se salió del editor, se sube igual que en enviar().
+      if (t !== actual) {
+        if (hayCambios(t)) void guardar(t)
+        return
+      }
       pararReintentos()
       if (hayCambios(t)) void guardar(t)
       else if (version === t.version) fijar(t, { guardado: 'guardado' })
@@ -248,8 +252,12 @@ export function conectarSincronizacion(
       else abrirDiseno(a, { id: t.id, version, nombre: diseno.nombre, documento: diseno.contenido, pendiente: false, guardado: 'guardado' })
     } catch (e) {
       t.enVuelo = false
+      if (t !== actual) {
+        if (hayCambios(t)) void guardar(t)
+        return
+      }
       // Solo la falta de red deja seguir en "Sin conexión"; lo demás es un error.
-      if (t !== actual || (e instanceof ErrorDeApi && e.estado === 0)) return
+      if (e instanceof ErrorDeApi && e.estado === 0) return
       pararReintentos()
       if (e instanceof ErrorDeApi && e.estado === 404) {
         // Ya no existe: sin cambios propios, la copia sobra; con ellos, decide el usuario.
@@ -312,7 +320,7 @@ export function conectarSincronizacion(
   }
   const alSalir = (e: Event) => {
     copiarYa()
-    if (actual !== null && (hayCambios(actual) || a.getState().guardado === 'pendiente')) e.preventDefault()
+    if ((actual !== null && (hayCambios(actual) || a.getState().guardado === 'pendiente')) || hayGuardadosEnMarcha()) e.preventDefault()
   }
   globalThis.addEventListener?.('online', alVolverLaRed)
   globalThis.addEventListener?.('beforeunload', alSalir)

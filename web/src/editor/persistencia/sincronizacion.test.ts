@@ -480,6 +480,27 @@ describe('sincronización: arreglos de la revisión', () => {
     expect(a.getState().guardado).toBe('guardado')
   })
 
+  it('una edición durante comprobar() se sube aunque se salga del editor', async () => {
+    servidorConVersion(4)
+    let resolver!: (r: { diseno: DisenoServidor; version: number }) => void
+    servidor.obtenerDiseno.mockImplementation(() => new Promise((r) => { resolver = r }))
+    const a = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(a, { esperaMs: 2000, st: falso() }))
+    abrirDiseno(a, elegirApertura(ID, { version: 4, documento: doc, pendiente: false }, null)!)
+    expect(a.getState().guardado).toBe('sinConexion')
+    window.dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(servidor.obtenerDiseno).toHaveBeenCalledTimes(1)
+    a.getState().cambiar(alto(260))
+    // Se sale del editor mientras se comprueba: el trabajo ya no es el actual.
+    a.getState().abrirDelServidor(OTRO, 1, 'Otra', doc)
+    resolver({ diseno: disenoServidor(4), version: 4 })
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(1)
+    expect(servidor.guardarDiseno.mock.calls[0]![0]).toBe(ID)
+    expect(servidor.guardarDiseno.mock.calls[0]![2].doc?.estancia.alto).toBe(260)
+  })
+
   it('sin conexión y sin cambios, si al comprobar el diseño ya no existe (404): borra la copia, avisa y deja de reintentar', async () => {
     servidor.obtenerDiseno.mockRejectedValue(new ErrorDeApi(404, 'No existe o no es tuyo'))
     const st = falso()
@@ -528,6 +549,25 @@ describe('sincronización: arreglos de la revisión', () => {
     await vi.advanceTimersByTimeAsync(2000)
     expect(a.getState().guardado).toBe('guardado')
     expect(salir()).toBe(false)
+  })
+
+  it('beforeunload avisa si un diseño ya dejado sigue guardándose', async () => {
+    servidorConVersion(4)
+    let acabar!: () => void
+    servidor.guardarDiseno.mockImplementation(() => new Promise((resolver) => {
+      acabar = () => resolver(disenoServidor(5, alto(260)(doc)))
+    }))
+    const { a } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(1)
+    // Se abre otro diseño sin cambios: el PUT del primero sigue en marcha.
+    a.getState().abrirDelServidor(OTRO, 1, 'Otra', doc)
+    const e = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(e)
+    expect(e.defaultPrevented).toBe(true)
+    acabar()
+    await vi.advanceTimersByTimeAsync(0)
   })
 })
 
