@@ -275,6 +275,24 @@ describe('sincronización con el servidor', () => {
     expect(b.getState().origen).toMatchObject({ nombre: 'Mi salón', version: 10 })
   })
 
+  it('si la subida falla tras una copia escrita en pleno vuelo, la copia vuelve a marcar el renombrado pendiente', async () => {
+    servidorConVersion(4)
+    const { a, st } = preparar(4)
+    let fallar: (e: Error) => void = () => {}
+    servidor.guardarDiseno.mockImplementationOnce(() => new Promise((_, rechazar) => { fallar = rechazar }))
+    renombrar(a, 'Mi salón')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(1)
+    // Un cambio del documento con la subida en vuelo: la copia agrupada se escribe sin la marca del renombrado.
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(ESPERA_COPIA_MS)
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ nombre: 'Mi salón', nombrePendiente: false })
+    fallar(new ErrorDeApi(0, 'sin red'))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(a.getState().guardado).toBe('sinConexion')
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ nombre: 'Mi salón', nombrePendiente: true, pendiente: true })
+  })
+
   it('412: recargar carga el documento remoto y descarta los cambios locales', async () => {
     const remoto = servidorConVersion(9)
     remoto.contenido = alto(300)(doc)

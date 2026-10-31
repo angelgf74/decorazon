@@ -217,6 +217,8 @@ export function conectarSincronizacion(
       t.enVuelo = false
       if (habiaDoc) t.sucio = true
       if (nombre !== undefined) t.nombrePendiente ??= nombre
+      // Una copia escrita durante la subida no llevaba la marca del renombrado: se reescribe con lo restaurado.
+      copiar(t)
       if (t !== actual) return
       if (e instanceof ErrorDeApi && e.estado === 0) {
         fijar(t, { guardado: 'sinConexion' })
