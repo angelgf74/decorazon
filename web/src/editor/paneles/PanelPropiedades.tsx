@@ -8,6 +8,7 @@ import {
 import { textos } from '../../textos'
 import CampoNumero from '../comunes/CampoNumero'
 import EntradaColor from '../comunes/EntradaColor'
+import Icono from '../comunes/Icono'
 import { almacen, useEditor } from '../estado/almacen'
 import { borrar, duplicar } from '../estado/elementos'
 
@@ -40,7 +41,7 @@ function Pared({ doc, indice }: { doc: DocumentoDiseno; indice: number }) {
       <h2>{`${t.pared} ${indice + 1}`}</h2>
       <CampoNumero etiqueta={t.longitud} valor={longitud} min={10} max={2000} unidad="cm"
         alCambiar={(n) => intentar((d) => cambiarLongitudPared(d, indice, n))} />
-      <div className="panel__botones">
+      <div className="panel__acciones">
         <button type="button" onClick={() => intentar((d) => partirPared(d, indice))}>{t.partir}</button>
       </div>
     </>
@@ -57,8 +58,8 @@ function Vertice({ doc, indice }: { doc: DocumentoDiseno; indice: number }) {
         alCambiar={(x) => intentar((d) => moverVertice(d, indice, { x, y: v.y }))} />
       <CampoNumero etiqueta={t.y} valor={Math.round(v.y)} min={-COORDENADA} max={COORDENADA} unidad="cm"
         alCambiar={(y) => intentar((d) => moverVertice(d, indice, { x: v.x, y }))} />
-      <div className="panel__botones">
-        <button type="button" onClick={() => { if (intentar((d) => quitarVertice(d, indice))) almacen.getState().seleccionar(null) }}>
+      <div className="panel__acciones">
+        <button type="button" className="peligro" onClick={() => { if (intentar((d) => quitarVertice(d, indice))) almacen.getState().seleccionar(null) }}>
           {t.quitarEsquina}
         </button>
       </div>
@@ -81,6 +82,7 @@ function EnPared({ doc, h, alCambiar }: {
   return (
     <>
       <Opciones etiqueta={t.pared} valor={String(h.pared)} opciones={paredes} alCambiar={cambiarPared} />
+      <div className="panel__rejilla">
       <CampoNumero etiqueta={t.posicion} valor={h.posicion} min={0} max={2000} unidad="cm" alCambiar={(n) => alCambiar({ posicion: n })} />
       <CampoNumero etiqueta={t.ancho} valor={h.ancho} min={10} max={2000} unidad="cm" alCambiar={(n) => alCambiar({ ancho: n })} />
       <CampoNumero etiqueta={t.alto} valor={h.alto} min={10} max={alto} unidad="cm" alCambiar={(n) => alCambiar({ alto: n })} />
@@ -88,6 +90,7 @@ function EnPared({ doc, h, alCambiar }: {
         <CampoNumero etiqueta={t.alturaSuelo} valor={h.alturaSuelo} min={0} max={alto} unidad="cm"
           alCambiar={(n) => alCambiar({ alturaSuelo: n })} />
       )}
+      </div>
     </>
   )
 }
@@ -96,7 +99,7 @@ function PropiedadesAbertura({ doc, a }: { doc: DocumentoDiseno; a: Abertura }) 
   const cambiar = (cambios: Partial<Puerta> | Partial<Ventana>) => intentar((d) => editarAbertura(d, a.id, cambios))
   return (
     <>
-      <h2>{t.tipos[a.tipo]}</h2>
+      <h2 className="panel__cabecera"><Icono nombre={a.tipo} />{t.tipos[a.tipo]}</h2>
       <EnPared doc={doc} h={a} alCambiar={cambiar} />
       {a.tipo === 'puerta' ? (
         <>
@@ -122,25 +125,25 @@ function PropiedadesEstructura({ doc, e }: { doc: DocumentoDiseno; e: Estructura
   )
   return (
     <>
-      <h2>{t.tipos[e.tipo]}</h2>
+      <h2 className="panel__cabecera"><Icono nombre={e.tipo} />{t.tipos[e.tipo]}</h2>
       {e.tipo === 'columna' && (
-        <>
+        <div className="panel__rejilla">
           {coordenada(t.x, e.centro.x, (x) => cambiar({ centro: { ...e.centro, x } }))}
           {coordenada(t.y, e.centro.y, (y) => cambiar({ centro: { ...e.centro, y } }))}
           <CampoNumero etiqueta={t.ancho} valor={e.ancho} min={5} max={500} unidad="cm" alCambiar={(n) => cambiar({ ancho: n })} />
           <CampoNumero etiqueta={t.fondo} valor={e.fondo} min={5} max={500} unidad="cm" alCambiar={(n) => cambiar({ fondo: n })} />
           <CampoNumero etiqueta={t.giro} valor={e.rotacion} min={0} max={359} unidad="°" alCambiar={(n) => cambiar({ rotacion: n })} />
-        </>
+        </div>
       )}
       {e.tipo === 'viga' && (
-        <>
+        <div className="panel__rejilla">
           <CampoNumero etiqueta={t.ancho} valor={e.ancho} min={5} max={500} unidad="cm" alCambiar={(n) => cambiar({ ancho: n })} />
           <CampoNumero etiqueta={t.canto} valor={e.canto} min={1} max={alto} unidad="cm" alCambiar={(n) => cambiar({ canto: n })} />
           {coordenada(t.desdeX, e.desde.x, (x) => cambiar({ desde: { ...e.desde, x } }))}
           {coordenada(t.desdeY, e.desde.y, (y) => cambiar({ desde: { ...e.desde, y } }))}
           {coordenada(t.hastaX, e.hasta.x, (x) => cambiar({ hasta: { ...e.hasta, x } }))}
           {coordenada(t.hastaY, e.hasta.y, (y) => cambiar({ hasta: { ...e.hasta, y } }))}
-        </>
+        </div>
       )}
       {e.tipo === 'radiador' && (
         <>
@@ -154,8 +157,8 @@ function PropiedadesEstructura({ doc, e }: { doc: DocumentoDiseno; e: Estructura
 
 function BotonQuitar({ id }: { id: string }) {
   return (
-    <div className="panel__botones">
-      <button type="button" onClick={() => quitar(id)}>{t.quitar}</button>
+    <div className="panel__acciones">
+      <button type="button" className="peligro" onClick={() => quitar(id)}>{t.quitar}</button>
     </div>
   )
 }
@@ -189,7 +192,8 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
   return (
     <>
       <h2>{capitalizar(def.nombre)}</h2>
-      {medida('ancho', t.ancho)}
+      <div className="panel__rejilla">
+        {medida('ancho', t.ancho)}
       {medida('fondo', t.fondo)}
       {medida('alto', t.alto)}
       {!en3d && <CampoNumero etiqueta={t.giro} valor={e.rotacion} min={0} max={359} unidad="°" alCambiar={(n) => editar({ rotacion: n })} />}
@@ -197,6 +201,7 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
         <CampoNumero etiqueta={t.alturaSuelo} valor={e.alturaSuelo} min={0} max={Math.max(0, doc.estancia.alto - e.medidas.alto)} unidad="cm"
           alCambiar={(n) => editar({ alturaSuelo: n })} />
       )}
+      </div>
       {def.variantes.map((v) => (
         <Opciones key={v.clave} etiqueta={v.etiqueta} valor={String(valorVariante(def, e, v.clave))}
           opciones={Object.fromEntries(v.valores.map((x) => [String(x), etiquetaValor(x)]))}
@@ -206,11 +211,41 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
         <CampoColor key={z.clave} zona={z} valor={e.colores[z.clave] ?? z.defecto}
           alCambiar={(c) => editar({ colores: { [z.clave]: c } }, `color:${e.id}:${z.clave}`)} />
       ))}
-      <div className="panel__botones">
+      <div className="panel__acciones">
         {!en3d && <button type="button" onClick={() => duplicar(e.id)}>{t.duplicar}</button>}
-        <button type="button" onClick={() => borrar(e.id)}>{t.borrar}</button>
+        <button type="button" className="peligro" onClick={() => borrar(e.id)}>{t.borrar}</button>
       </div>
     </>
+  )
+}
+
+const ATAJOS_ESTANCIA = [
+  { teclas: ['Ctrl', 'Z'], accion: t.atajo.deshacer },
+  { teclas: ['Ctrl', 'Y'], accion: t.atajo.rehacer },
+  { teclas: ['Supr'], accion: t.atajo.quitar },
+  { teclas: ['Esc'], accion: t.atajo.soltar },
+]
+const ATAJOS_MUEBLES = [...ATAJOS_ESTANCIA, { teclas: ['R'], accion: t.atajo.girar }, { teclas: ['Ctrl', 'D'], accion: t.atajo.duplicar }]
+
+/** Sin nada seleccionado: qué pulsar en el plano y los atajos de teclado de este paso (los de usarAtajos.ts). */
+function SinSeleccion({ paso }: { paso: number }) {
+  const idAtajos = useId()
+  return (
+    <div className="panel__vacio">
+      <h2>{t.nadaSeleccionado}</h2>
+      <p className="panel__nota">{paso === 1 ? t.nada : t.nadaElemento}</p>
+      <section className="atajos" aria-labelledby={idAtajos}>
+        <h3 id={idAtajos} className="panel__titulo">{t.atajos}</h3>
+        <dl>
+          {(paso === 1 ? ATAJOS_ESTANCIA : ATAJOS_MUEBLES).map(({ teclas, accion }) => (
+            <div key={accion} className="atajos__fila">
+              <dt>{teclas.map((k, i) => <span key={k}>{i > 0 && '+'}<kbd>{k}</kbd></span>)}</dt>
+              <dd>{accion}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+    </div>
   )
 }
 
@@ -240,7 +275,7 @@ export default function PanelPropiedades() {
 
   return (
     <div className="panel-propiedades">
-      {contenido ?? <p className="panel__nota">{paso === 1 ? t.nada : t.nadaElemento}</p>}
+      {contenido ?? <SinSeleccion paso={paso} />}
     </div>
   )
 }

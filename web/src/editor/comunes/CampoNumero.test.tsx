@@ -86,4 +86,12 @@ describe('CampoNumero', () => {
     montar()
     expect(screen.getByText('40–400 cm')).toBeInTheDocument()
   })
+
+  it('enseña la unidad junto al número sin meterla en el nombre del campo', () => {
+    const { campo } = montar()
+    const unidad = screen.getByText('cm', { exact: true })
+    expect(unidad).toHaveAttribute('aria-hidden', 'true')
+    expect(campo.parentElement).toContainElement(unidad)
+    expect(screen.getByRole('textbox', { name: 'Ancho' })).toBe(campo)
+  })
 })

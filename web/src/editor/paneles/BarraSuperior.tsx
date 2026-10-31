@@ -4,15 +4,9 @@ import { subirDisenoAnonimo } from '../../cuenta/disenosLocales'
 import { useSesion } from '../../cuenta/sesion'
 import { textos } from '../../textos'
 import Confirmar from '../comunes/Confirmar'
+import Icono from '../comunes/Icono'
 import { almacen, useEditor, type EstadoGuardado } from '../estado/almacen'
 import { renombrar } from '../persistencia/sincronizacion'
-
-export type Hoja = 'izquierda' | 'derecha'
-
-interface Props {
-  hojaAbierta?: Hoja | null
-  alAlternarHoja?(h: Hoja): void
-}
 
 const t = textos.barra
 
@@ -59,7 +53,7 @@ function NombreDelDiseno({ nombre }: { nombre: string }) {
   )
 }
 
-export default function BarraSuperior({ hojaAbierta = null, alAlternarHoja }: Props) {
+export default function BarraSuperior() {
   const paso = useEditor((e) => e.paso)
   const vista = useEditor((e) => e.vista)
   const guardado = useEditor((e) => e.guardado)
@@ -93,50 +87,56 @@ export default function BarraSuperior({ hojaAbierta = null, alAlternarHoja }: Pr
 
   return (
     <header className="barra">
-      <nav className="barra__grupo" aria-label="Pasos">
-        <button type="button" aria-current={paso === 1 ? 'step' : undefined} onClick={() => irAPaso(1)}>{t.paso1}</button>
-        <button type="button" aria-current={paso === 2 ? 'step' : undefined} onClick={() => irAPaso(2)}>{t.paso2}</button>
+      <nav className="barra__grupo pasos" aria-label={t.pasos}>
+        <button type="button" className="pasos__paso" aria-current={paso === 1 ? 'step' : undefined} onClick={() => irAPaso(1)}>
+          <span className="pasos__numero">1</span> <span className="barra__texto">{t.estancia}</span>
+        </button>
+        <button type="button" className="pasos__paso" aria-current={paso === 2 ? 'step' : undefined} onClick={() => irAPaso(2)}>
+          <span className="pasos__numero">2</span> <span className="barra__texto">{t.amueblar}</span>
+        </button>
       </nav>
 
-      <div className="barra__grupo" role="group" aria-label="Vista">
+      <div className="barra__grupo segmentado" role="group" aria-label={t.vista}>
         <button type="button" aria-pressed={vista === '2d'} onClick={() => cambiarVista('2d')}>{t.vista2d}</button>
         <button type="button" aria-pressed={vista === '3d'} onClick={() => cambiarVista('3d')}>{t.vista3d}</button>
       </div>
 
-      <div className="barra__grupo">
-        <button type="button" disabled={!hayPasado} onClick={deshacer}>{t.deshacer}</button>
-        <button type="button" disabled={!hayFuturo} onClick={rehacer}>{t.rehacer}</button>
-        {nombreDiseno === null && <button type="button" onClick={() => setConfirmando(true)}>{t.nuevoDiseno}</button>}
+      <div className="barra__grupo barra__deshacer">
+        <button type="button" className="barra__historial" title={t.pistaDeshacer} disabled={!hayPasado} onClick={deshacer}>
+          <Icono nombre="deshacer" /><span className="barra__texto barra__texto--estrecha">{t.deshacer}</span>
+        </button>
+        <button type="button" className="barra__historial" title={t.pistaRehacer} disabled={!hayFuturo} onClick={rehacer}>
+          <Icono nombre="rehacer" /><span className="barra__texto barra__texto--estrecha">{t.rehacer}</span>
+        </button>
       </div>
 
       {nombreDiseno !== null && <NombreDelDiseno key={nombreDiseno} nombre={nombreDiseno} />}
-
-      <div className="barra__grupo barra__movil">
-        <button type="button" aria-expanded={hojaAbierta === 'izquierda'} onClick={() => alAlternarHoja?.('izquierda')}>
-          {paso === 1 ? t.estancia : t.catalogo}
-        </button>
-        <button type="button" aria-expanded={hojaAbierta === 'derecha'} onClick={() => alAlternarHoja?.('derecha')}>
-          {t.propiedades}
-        </button>
-      </div>
 
       <p className={`barra__guardado barra__guardado--${guardado}`} role="status">
         {textoDeGuardado(guardado, nombreDiseno !== null)}
       </p>
 
-      <nav className="barra__grupo" aria-label="Cuenta">
+      {nombreDiseno === null && (
+        <button type="button" className="enlace barra__nuevo" title={t.nuevoDiseno} onClick={() => setConfirmando(true)}>
+          <Icono nombre="nuevo" /><span className="barra__texto">{t.nuevoDiseno}</span>
+        </button>
+      )}
+
+      <nav className="barra__grupo barra__cuenta" aria-label="Cuenta">
         {haySesion ? (
           <>
             {puedeGuardarEnCuenta && (
-              <button type="button" disabled={subiendo} onClick={() => void guardarEnCuenta()}>{t.guardarEnCuenta}</button>
+              <button type="button" title={t.guardarEnCuenta} disabled={subiendo} onClick={() => void guardarEnCuenta()}>
+                <Icono nombre="guardar" /><span className="barra__texto">{t.guardarEnCuenta}</span>
+              </button>
             )}
-            <Link to="/disenos" className="boton">{t.misDisenos}</Link>
-            <Link to="/cuenta" className="boton">{nombre ?? t.miCuenta}</Link>
+            <Link to="/disenos" className="boton" title={t.misDisenos}><Icono nombre="disenos" /><span className="barra__texto">{t.misDisenos}</span></Link>
+            <Link to="/cuenta" className="boton" title={nombre ?? t.miCuenta}><Icono nombre="cuenta" /><span className="barra__texto">{nombre ?? t.miCuenta}</span></Link>
           </>
         ) : (
           <>
-            <Link to="/registro" className="boton">{t.guardar}</Link>
-            <Link to="/entrar" className="boton">{t.entrar}</Link>
+            <Link to="/registro" className="boton primario" title={t.guardar}><Icono nombre="guardar" /><span className="barra__texto">{t.guardar}</span></Link>
+            <Link to="/entrar" className="boton" title={t.entrar}><Icono nombre="cuenta" /><span className="barra__texto">{t.entrar}</span></Link>
           </>
         )}
       </nav>

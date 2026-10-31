@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { catalogoBase, elementoNuevo } from '../../nucleo'
@@ -82,5 +82,29 @@ describe('PanelEstancia', () => {
     expect(almacen.getState().documento!.estancia.alto).toBe(230)
     await escribir('Grosor de pared', '20')
     expect(almacen.getState().documento!.estancia.grosorPared).toBe(20)
+  })
+
+  it('agrupa el panel en estancia, acabados y añadir al plano', () => {
+    render(<PanelEstancia />)
+    const s = textos.estancia.secciones
+    for (const titulo of [s.estancia, s.acabados, s.anadir]) {
+      expect(screen.getByRole('region', { name: titulo })).toBeInTheDocument()
+    }
+    expect(screen.getByRole('region', { name: s.anadir })).toContainElement(screen.getByRole('button', { name: 'Añadir ventana' }))
+  })
+
+  it('dice en qué pared se añade: la seleccionada o, sin selección, la 1', () => {
+    render(<PanelEstancia />)
+    expect(screen.getByText(textos.estancia.dondeSeAnade)).toBeInTheDocument()
+    act(() => almacen.getState().seleccionar({ tipo: 'pared', indice: 2 }))
+    expect(screen.getByText(textos.estancia.dondeSeAnadePared(3))).toBeInTheDocument()
+  })
+
+  it('la muestra elegida se marca también sin depender del color', () => {
+    render(<PanelEstancia />)
+    const color = almacen.getState().documento!.estancia.colorParedes
+    const elegida = screen.getByRole('button', { name: `Color de las paredes ${color}` })
+    expect(elegida).toHaveAttribute('aria-pressed', 'true')
+    expect(elegida.className).toMatch(/selector-color__muestra--(clara|oscura)/)
   })
 })

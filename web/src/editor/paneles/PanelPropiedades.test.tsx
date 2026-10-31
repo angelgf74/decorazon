@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { anadirElemento, catalogoBase, longitudPared, type Abertura } from '../../nucleo'
@@ -139,5 +139,32 @@ describe('PanelPropiedades con un elemento', () => {
     expect(elemento().colores.cuerpo).toBe('#222222')
     almacen.getState().deshacer()
     expect(elemento().colores.cuerpo).toBe(inicial)
+  })
+})
+
+describe('PanelPropiedades sin selección', () => {
+  const atajos = () => screen.getByRole('region', { name: textos.propiedades.atajos })
+
+  it('en el paso 1 explica qué pulsar y enseña los atajos de la estancia', () => {
+    render(<PanelPropiedades />)
+    expect(screen.getByRole('heading', { name: textos.propiedades.nadaSeleccionado })).toBeInTheDocument()
+    expect(screen.getByText(textos.propiedades.nada)).toBeInTheDocument()
+    expect(within(atajos()).getByText(textos.propiedades.atajo.quitar)).toBeInTheDocument()
+    expect(within(atajos()).queryByText(textos.propiedades.atajo.girar)).toBeNull()
+  })
+
+  it('en el paso 2 añade girar y duplicar', () => {
+    act(() => almacen.getState().irAPaso(2))
+    render(<PanelPropiedades />)
+    expect(screen.getByText(textos.propiedades.nadaElemento)).toBeInTheDocument()
+    expect(within(atajos()).getByText(textos.propiedades.atajo.girar)).toBeInTheDocument()
+    expect(within(atajos()).getByText(textos.propiedades.atajo.duplicar)).toBeInTheDocument()
+  })
+
+  it('"Quitar" se distingue como acción que borra', () => {
+    almacen.getState().cambiar((d) => ({ ...d, aberturas: [puerta] }))
+    almacen.getState().seleccionar({ tipo: 'abertura', id: 'p' })
+    render(<PanelPropiedades />)
+    expect(screen.getByRole('button', { name: 'Quitar' })).toHaveClass('peligro')
   })
 })

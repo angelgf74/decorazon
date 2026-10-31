@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { catalogoBase, elementoNuevo } from '../nucleo'
+import { textos } from '../textos'
 import { almacen, reiniciarAlmacen } from './estado/almacen'
+import { conflictosDe } from './estado/conflictos'
 import Editor from './Editor'
 
 const carga = vi.hoisted(() => ({ fallosPendientes: 0 }))
@@ -43,5 +46,36 @@ describe('Editor: fragmento 3D', () => {
     act(() => almacen.getState().cambiarVista('3d'))
     expect(await screen.findByText('Vista 3D cargada')).toBeInTheDocument()
     expect(screen.queryByText(SIN_CARGA)).toBeNull()
+  })
+})
+
+// jsdom no evalúa media queries: la regla de escritorio oculta las pestañas (display: none) y entonces
+// getByRole no calcula su nombre. Se buscan por su clase y su texto.
+const pestanas = () => document.querySelector<HTMLElement>('nav.editor__pestanas')!
+
+describe('Editor: pestañas de las hojas (móvil)', () => {
+  beforeEach(() => almacen.getState().cambiarVista('2d'))
+
+  it('abren y cierran la hoja de la estancia', async () => {
+    render(<Editor />, { wrapper: MemoryRouter })
+    expect(pestanas()).toHaveAttribute('aria-label', textos.barra.paneles)
+    const estancia = within(pestanas()).getByText(textos.barra.estancia).closest('button')!
+    await userEvent.click(estancia)
+    expect(estancia).toHaveAttribute('aria-expanded', 'true')
+    expect(document.querySelector('.editor__izquierda')).toHaveClass('hoja--abierta')
+    await userEvent.click(estancia)
+    expect(estancia).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('"Propiedades" dice cuántos avisos hay', () => {
+    const def = catalogoBase.get('armario')
+    if (!def) throw new Error('armario')
+    almacen.getState().cambiar((d) => ({ ...d, elementos: [elementoNuevo(def, { x: 1000, y: 100 }, 'a')] }))
+    const n = conflictosDe(almacen.getState().documento!).length
+    expect(n).toBeGreaterThan(0)
+    render(<Editor />, { wrapper: MemoryRouter })
+    const propiedades = within(pestanas()).getByText(textos.barra.propiedades).closest('button')!
+    expect(within(propiedades).getByText(String(n))).toHaveAttribute('aria-hidden', 'true')
+    expect(within(propiedades).getByText(`, ${textos.barra.avisos(n)}`)).toHaveClass('solo-lectores')
   })
 })

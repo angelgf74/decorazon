@@ -14,7 +14,9 @@ import CapaPlanta from './capas/CapaPlanta'
 import CapaTiradores, { TiradorGiro } from './capas/CapaTiradores'
 import type { AlPulsar } from './capas/comun'
 import { ContextoLienzo, puntoDelPlano } from './usarPuntoDelPlano'
+import PistasDelPlano from './PistasDelPlano'
 import { encuadrar, zoomEn, type Vista2D } from './vista'
+import Icono from '../comunes/Icono'
 import './lienzo.css'
 
 const ZOOM_POR_PX_RUEDA = 0.0015
@@ -172,7 +174,10 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
           </ContextoLienzo.Provider>
         </g>
       </svg>
-      <button type="button" className="lienzo__encuadrar" onClick={() => encuadrarVista()}>{textos.lienzo.encuadrar}</button>
+      <button type="button" className="lienzo__encuadrar" onClick={() => encuadrarVista()}>
+        <Icono nombre="encuadrar" /><span className="lienzo__texto-boton">{textos.lienzo.encuadrar}</span>
+      </button>
+      <PistasDelPlano />
     </div>
   )
 }

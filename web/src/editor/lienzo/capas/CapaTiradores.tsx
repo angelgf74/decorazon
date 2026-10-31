@@ -60,7 +60,9 @@ export default function CapaTiradores({ documento, seleccion, escala }: Props) {
         return (
           <g key={`mas${i}`} data-partir={i} className="capa-tiradores__mas" onPointerDown={pulsarMas(i)}>
             <title>{textos.lienzo.partir}</title>
-            <circle cx={c.x} cy={c.y} r={px(RADIO_MAS_PX)} />
+            {/* Invisible y del doble de radio: más fácil de acertar, sobre todo con el dedo. */}
+            <circle className="capa-tiradores__area" cx={c.x} cy={c.y} r={px(RADIO_MAS_PX * 2)} />
+            <circle className="capa-tiradores__boton" cx={c.x} cy={c.y} r={px(RADIO_MAS_PX)} />
             <line x1={c.x - r} y1={c.y} x2={c.x + r} y2={c.y} />
             <line x1={c.x} y1={c.y - r} x2={c.x} y2={c.y + r} />
           </g>
