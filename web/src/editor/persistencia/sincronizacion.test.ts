@@ -622,8 +622,78 @@ describe('sincronización: arreglos de la revisión', () => {
   })
 })
 
+describe('varias pestañas con el mismo diseño', () => {
+  /** Lo que escribe la otra pestaña: se guarda en el almacén compartido y esta pestaña recibe el evento `storage`. */
+  function escribeOtraPestana(st: Storage, pendiente: boolean, alturaDelOtro = 300) {
+    const nuevo = JSON.stringify({ version: 5, nombre: 'Cocina', nombrePendiente: false, documento: alto(alturaDelOtro)(doc), pendiente })
+    st.setItem(claveCopia(ID), nuevo)
+    window.dispatchEvent(new StorageEvent('storage', { key: claveCopia(ID), newValue: nuevo }))
+  }
+
+  it('si otra pestaña escribe la copia ya subida, la que tiene cambios vuelve a escribir la suya', async () => {
+    servidorConVersion(4)
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(ESPERA_COPIA_MS)
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ pendiente: true })
+    escribeOtraPestana(st, false)
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ version: 4, pendiente: true })
+    expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(260)
+  })
+
+  it('si la copia agrupada aún no se había escrito, la escribe al momento y cancela su espera', async () => {
+    servidorConVersion(4)
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    const escritura = vi.spyOn(st, 'setItem')
+    escribeOtraPestana(st, false)
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ pendiente: true })
+    expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(260)
+    const antes = escritura.mock.calls.length
+    await vi.advanceTimersByTimeAsync(ESPERA_COPIA_MS)
+    expect(escritura.mock.calls.length).toBe(antes)
+  })
+
+  it('una copia pendiente de otra pestaña no provoca reescritura', async () => {
+    servidorConVersion(4)
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(ESPERA_COPIA_MS)
+    const escritura = vi.spyOn(st, 'setItem')
+    escribeOtraPestana(st, true)
+    expect(escritura).toHaveBeenCalledTimes(1)
+    expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(300)
+  })
+
+  it('sin cambios propios, o con una clave ajena o un valor ilegible, no escribe nada', async () => {
+    servidorConVersion(4)
+    const { a, st } = preparar(4)
+    const escritura = vi.spyOn(st, 'setItem')
+    window.dispatchEvent(new StorageEvent('storage', { key: claveCopia(ID), newValue: JSON.stringify({ pendiente: false }) }))
+    a.getState().cambiar(alto(260))
+    window.dispatchEvent(new StorageEvent('storage', { key: claveCopia(OTRO), newValue: JSON.stringify({ pendiente: false }) }))
+    window.dispatchEvent(new StorageEvent('storage', { key: claveCopia(ID), newValue: null }))
+    window.dispatchEvent(new StorageEvent('storage', { key: claveCopia(ID), newValue: 'no es json' }))
+    expect(escritura).not.toHaveBeenCalled()
+  })
+
+  it('al desconectar deja de escuchar', async () => {
+    servidorConVersion(4)
+    const a = crearAlmacen()
+    const st = falso()
+    const desconectar = conectarSincronizacion(a, { esperaMs: 2000, st })
+    a.getState().abrirDelServidor(ID, 4, 'Cocina', doc)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(ESPERA_COPIA_MS)
+    desconectar()
+    const escritura = vi.spyOn(st, 'setItem')
+    escribeOtraPestana(st, false)
+    expect(escritura).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('elegirApertura', () => {
-  const copia = (version: number, pendiente: boolean) => ({ version, nombre: 'Local', documento: alto(260)(doc), pendiente })
+  const copia =(version: number, pendiente: boolean) => ({ version, nombre: 'Local', documento: alto(260)(doc), pendiente })
   const remoto = (version: number) => ({ diseno: disenoServidor(version), version })
 
   it('copia pendiente con la misma versión: la local, pendiente', () => {

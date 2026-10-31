@@ -6,7 +6,7 @@ import type { DocumentoDiseno } from '../../nucleo'
 import { textos } from '../../textos'
 import type { EstadoEditor, EstadoGuardado } from '../estado/almacen'
 import type { Origen } from '../estado/origen'
-import { almacenamientoSeguro, borrarCopiaLocal, guardarCopiaLocal, type CopiaLocal } from './local'
+import { almacenamientoSeguro, borrarCopiaLocal, claveCopia, guardarCopiaLocal, type CopiaLocal } from './local'
 
 export const REINTENTO_MS = 30_000
 /** Los cambios seguidos (p. ej. un arrastre) se agrupan en una sola escritura de la copia local. */
@@ -327,7 +327,22 @@ export function conectarSincronizacion(
     copiarYa()
     if ((actual !== null && (hayCambios(actual) || a.getState().guardado === 'pendiente')) || hayGuardadosEnMarcha()) e.preventDefault()
   }
+  // Otra pestaña con el mismo diseño dio su copia por subida: lo pendiente prevalece, así que se reescribe la propia.
+  // Una copia pendiente ajena no se contesta: dos pestañas con cambios no entran en bucle (cada una avisa al salir).
+  const alCambiarElAlmacen = (e: StorageEvent) => {
+    if (actual === null || e.key !== claveCopia(actual.id) || e.newValue === null || !hayCambios(actual)) return
+    try {
+      const dato: unknown = JSON.parse(e.newValue)
+      if (typeof dato !== 'object' || dato === null || (dato as { pendiente?: unknown }).pendiente !== false) return
+    } catch {
+      return
+    }
+    // Sustituye a la copia agrupada, si la había: copiarYa cancela su espera y escribe ya.
+    copiaPendiente = actual
+    copiarYa()
+  }
   globalThis.addEventListener?.('online', alVolverLaRed)
+  globalThis.addEventListener?.('storage', alCambiarElAlmacen)
   globalThis.addEventListener?.('beforeunload', alSalir)
   globalThis.addEventListener?.('pagehide', copiarYa)
   globalThis.document?.addEventListener('visibilitychange', alOcultar)
@@ -399,6 +414,7 @@ export function conectarSincronizacion(
     desuscribir()
     dejar()
     globalThis.removeEventListener?.('online', alVolverLaRed)
+    globalThis.removeEventListener?.('storage', alCambiarElAlmacen)
     globalThis.removeEventListener?.('beforeunload', alSalir)
     globalThis.removeEventListener?.('pagehide', copiarYa)
     globalThis.document?.removeEventListener('visibilitychange', alOcultar)
