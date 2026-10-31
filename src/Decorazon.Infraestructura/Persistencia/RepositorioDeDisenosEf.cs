@@ -6,6 +6,9 @@ namespace Decorazon.Infraestructura.Persistencia;
 
 public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepositorioDeDisenos
 {
+    /// <summary>Nombre de la clave primaria de <c>disenos</c> en la migración inicial.</summary>
+    private const string ClavePrimaria = "pk_disenos";
+
     // Usuario e id en la misma consulta: un diseño ajeno nunca llega a cargarse,
     // así no hay camino por el que un fallo posterior lo devuelva por error.
     public Task<Diseno?> ObtenerAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
@@ -43,6 +46,13 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
         {
             await contexto.SaveChangesAsync(cancelacion);
             return true;
+        }
+        catch (DbUpdateException excepcion) when (ErroresDePostgres.EsUnicidadViolada(excepcion, ClavePrimaria))
+        {
+            // Un alta con el id del cliente chocó con un diseño ya guardado. Se olvida lo
+            // rastreado para que el caso de uso relea el que hay de verdad.
+            contexto.ChangeTracker.Clear();
+            throw new IdentificadorRepetidoException(excepcion);
         }
         catch (Exception excepcion) when (
             excepcion is DbUpdateConcurrencyException

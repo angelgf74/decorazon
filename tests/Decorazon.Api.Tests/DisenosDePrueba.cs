@@ -15,8 +15,9 @@ public static class DisenosDePrueba
 
     public static JsonElement Contenido(string json = ContenidoMinimo) => JsonDocument.Parse(json).RootElement.Clone();
 
-    public static PeticionDeDiseno Peticion(string nombre = "Mi dormitorio", string tipo = "dormitorio", string json = ContenidoMinimo) =>
-        new() { Nombre = nombre, TipoEstancia = tipo, Contenido = Contenido(json) };
+    public static PeticionDeDiseno Peticion(
+        string nombre = "Mi dormitorio", string tipo = "dormitorio", string json = ContenidoMinimo, Guid? id = null) =>
+        new() { Id = id, Nombre = nombre, TipoEstancia = tipo, Contenido = Contenido(json) };
 
     /// <summary>Crea un diseño y devuelve su id; falla el test si no responde 201.</summary>
     public static async Task<Guid> CrearAsync(HttpClient cliente, string nombre = "Mi dormitorio")

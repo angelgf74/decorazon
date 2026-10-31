@@ -11,11 +11,20 @@ public enum EstadoDeDiseno
     TipoNoValido,
     ContenidoNoValido,
     LimiteAlcanzado,
-    VersionDistinta
+    VersionDistinta,
+
+    /// <summary>El alta con ese id ya se hizo: es un reintento y va con el diseño guardado.</summary>
+    YaCreado,
+
+    /// <summary>El id del alta ya lo usa un diseño de otro usuario.</summary>
+    IdentificadorEnUso,
+
+    IdentificadorNoValido
 }
 
 /// <summary>
-/// <see cref="Diseno"/> va con <see cref="EstadoDeDiseno.Correcto"/> y con
+/// <see cref="Diseno"/> va con <see cref="EstadoDeDiseno.Correcto"/>, con
+/// <see cref="EstadoDeDiseno.YaCreado"/> (el guardado) y con
 /// <see cref="EstadoDeDiseno.VersionDistinta"/> (el actual, para que el cliente reconcilie);
 /// <see cref="Contenido"/> solo con <see cref="EstadoDeDiseno.ContenidoNoValido"/>.
 /// </summary>
@@ -37,13 +46,29 @@ public sealed class GestionDeDisenos(IRepositorioDeDisenos disenos, IReloj reloj
     public Task<Diseno?> ObtenerAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
         disenos.ObtenerAsync(usuarioId, id, cancelacion);
 
+    /// <summary>
+    /// Con <see cref="PeticionDeDiseno.Id"/> el alta es idempotente: si ese diseño ya es
+    /// del usuario, devuelve <see cref="EstadoDeDiseno.YaCreado"/> sin tocarlo, aunque el
+    /// cuerpo sea distinto. Así el cliente puede reintentar un alta cuya respuesta perdió.
+    /// </summary>
     public async Task<ResultadoDeDiseno> CrearAsync(
         Guid usuarioId, PeticionDeDiseno peticion, CancellationToken cancelacion = default)
     {
+        if (peticion.Id == Guid.Empty)
+        {
+            return new ResultadoDeDiseno(EstadoDeDiseno.IdentificadorNoValido);
+        }
+
         var conversion = peticion.Convertir();
         if (!conversion.EsValida)
         {
             return Rechazo(conversion);
+        }
+
+        // Antes que el límite: el reintento de un alta que ya se guardó ya cuenta entre los cien.
+        if (peticion.Id is { } id && await disenos.ObtenerAsync(usuarioId, id, cancelacion) is { } existente)
+        {
+            return new ResultadoDeDiseno(EstadoDeDiseno.YaCreado, existente);
         }
 
         if (await disenos.ContarAsync(usuarioId, cancelacion) >= Diseno.MaximoPorUsuario)
@@ -51,13 +76,27 @@ public sealed class GestionDeDisenos(IRepositorioDeDisenos disenos, IReloj reloj
             return new ResultadoDeDiseno(EstadoDeDiseno.LimiteAlcanzado);
         }
 
-        var diseno = Diseno.Crear(usuarioId, conversion.Nombre!, conversion.Tipo, conversion.Contenido!, reloj.Ahora);
+        var diseno = peticion.Id is { } propuesto
+            ? Diseno.Crear(propuesto, usuarioId, conversion.Nombre!, conversion.Tipo, conversion.Contenido!, reloj.Ahora)
+            : Diseno.Crear(usuarioId, conversion.Nombre!, conversion.Tipo, conversion.Contenido!, reloj.Ahora);
         disenos.Anadir(diseno);
 
-        // Solo falla si la cuenta se ha borrado entretanto: para quien llama, ya no hay dónde crearlo.
-        if (!await disenos.GuardarCambiosAsync(cancelacion))
+        try
         {
-            return new ResultadoDeDiseno(EstadoDeDiseno.NoEncontrado);
+            // Solo falla si la cuenta se ha borrado entretanto: para quien llama, ya no hay dónde crearlo.
+            if (!await disenos.GuardarCambiosAsync(cancelacion))
+            {
+                return new ResultadoDeDiseno(EstadoDeDiseno.NoEncontrado);
+            }
+        }
+        catch (IdentificadorRepetidoException)
+        {
+            // El id ya estaba guardado: o lo es de otro usuario (el repositorio no deja verlo),
+            // o un alta simultánea del mismo usuario se adelantó. Se relee para distinguirlos.
+            var actual = await disenos.ObtenerAsync(usuarioId, diseno.Id, cancelacion);
+            return actual is null
+                ? new ResultadoDeDiseno(EstadoDeDiseno.IdentificadorEnUso)
+                : new ResultadoDeDiseno(EstadoDeDiseno.YaCreado, actual);
         }
 
         return new ResultadoDeDiseno(EstadoDeDiseno.Correcto, diseno);

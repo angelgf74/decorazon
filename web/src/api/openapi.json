@@ -480,6 +480,30 @@
               }
             }
           },
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Versión del diseño, entre comillas: \"3\".",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Location": {
+                "description": "Ruta del diseño creado.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeDiseno"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Bad Request",
             "content": {
@@ -834,6 +858,13 @@
       "PeticionDeDiseno": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
           "nombre": {
             "type": [
               "null",

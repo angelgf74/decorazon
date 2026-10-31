@@ -35,5 +35,9 @@ public interface IRepositorioDeDisenos
     /// (su versión ya no es la leída), o porque la cuenta dueña ya no existe. Tras un
     /// <c>false</c> se olvida lo rastreado: una nueva lectura trae lo que hay en el almacén.
     /// </returns>
+    /// <exception cref="IdentificadorRepetidoException">
+    /// Un diseño añadido tiene el id de otro ya guardado, de cualquier usuario. También se
+    /// olvida lo rastreado antes de lanzarla.
+    /// </exception>
     Task<bool> GuardarCambiosAsync(CancellationToken cancelacion = default);
 }

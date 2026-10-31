@@ -14,6 +14,12 @@ namespace Decorazon.Contratos.Disenos;
 /// </remarks>
 public sealed class PeticionDeDiseno
 {
+    /// <summary>
+    /// Solo en <c>POST /disenos</c>, opcional: el id que el cliente ya le dio al diseño.
+    /// Repetir el alta con el mismo id devuelve el diseño ya creado (200) en vez de otro.
+    /// </summary>
+    public Guid? Id { get; set; }
+
     public string? Nombre { get; set; }
 
     /// <summary><c>dormitorio</c>, <c>salon</c> o <c>cocina</c>.</summary>

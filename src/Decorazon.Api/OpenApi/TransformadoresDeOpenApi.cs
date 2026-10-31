@@ -78,11 +78,14 @@ public static class TransformadoresDeOpenApi
 
     /// <summary>
     /// Cabecera <c>ETag</c> en las respuestas que llevan un diseño (y en el 412,
-    /// con la versión actual), y <c>Location</c> en el 201.
+    /// con la versión actual), y <c>Location</c> en el 201 y en el 200 de un <c>POST</c>
+    /// (el alta repetida con el mismo id).
     /// </summary>
     public static RouteHandlerBuilder ConETag(this RouteHandlerBuilder ruta) =>
-        ruta.AddOpenApiOperationTransformer((operacion, _, _) =>
+        ruta.AddOpenApiOperationTransformer((operacion, contexto, _) =>
         {
+            var esPost = HttpMethods.IsPost(contexto.Description.HttpMethod ?? "");
+
             foreach (var (codigo, respuesta) in operacion.Responses ?? [])
             {
                 if (respuesta is not OpenApiResponse editable
@@ -94,7 +97,7 @@ public static class TransformadoresDeOpenApi
                 editable.Headers ??= new Dictionary<string, IOpenApiHeader>();
                 editable.Headers["ETag"] = Cabecera("Versión del diseño, entre comillas: \"3\".");
 
-                if (codigo == "201")
+                if (codigo == "201" || (codigo == "200" && esPost))
                 {
                     editable.Headers["Location"] = Cabecera("Ruta del diseño creado.");
                 }

@@ -33,6 +33,20 @@ public class DisenoTests
     }
 
     [Fact]
+    public void CrearConId_UsaEseId()
+    {
+        var id = Guid.NewGuid();
+        var usuario = Guid.NewGuid();
+
+        var d = Diseno.Crear(id, usuario, Nombre("Mi salón"), TipoDeEstancia.Salon, Contenido(), T0);
+
+        Assert.Equal(id, d.Id);
+        Assert.Equal(usuario, d.UsuarioId);
+        Assert.Equal(1, d.Version);
+        Assert.Equal(T0, d.FechaDeCreacion);
+    }
+
+    [Fact]
     public void Actualizar_sube_la_version_y_la_fecha_de_modificacion()
     {
         var d = Diseno.Crear(Guid.NewGuid(), Nombre("A"), TipoDeEstancia.Salon, Contenido(), T0);

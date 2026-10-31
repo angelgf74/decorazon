@@ -197,6 +197,8 @@ export interface components {
             contrasena: string;
         };
         PeticionDeDiseno: {
+            /** Format: uuid */
+            id?: null | string;
             nombre?: null | string;
             tipoEstancia?: null | string;
             contenido?: Record<string, never>;
@@ -664,6 +666,19 @@ export interface operations {
             };
         };
         responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description Versión del diseño, entre comillas: "3". */
+                    ETag?: string;
+                    /** @description Ruta del diseño creado. */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeDiseno"];
+                };
+            };
             /** @description Created */
             201: {
                 headers: {

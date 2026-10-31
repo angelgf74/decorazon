@@ -13,6 +13,11 @@ internal static class ErroresDePostgres
     public static bool EsUnicidadViolada(DbUpdateException excepcion) =>
         excepcion.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 
+    /// <summary>23505 sobre una restricción concreta, p. ej. la clave primaria de una tabla.</summary>
+    public static bool EsUnicidadViolada(DbUpdateException excepcion, string restriccion) =>
+        excepcion.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } postgres
+        && postgres.ConstraintName == restriccion;
+
     /// <summary>23503: la fila de la que cuelga ya no existe (p. ej. la cuenta se está borrando).</summary>
     public static bool EsClaveForaneaViolada(DbUpdateException excepcion) =>
         excepcion.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation };
