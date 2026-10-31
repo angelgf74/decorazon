@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { almacen, reiniciarAlmacen } from './estado/almacen'
 import Editor from './Editor'
@@ -28,7 +29,7 @@ beforeEach(() => {
 describe('Editor: fragmento 3D', () => {
   it('si no se puede cargar, avisa y "Volver al 2D" vuelve al plano', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    render(<Editor />)
+    render(<Editor />, { wrapper: MemoryRouter })
     expect(await screen.findByText(SIN_CARGA)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Volver al 2D' }))
     expect(almacen.getState().vista).toBe('2d')
@@ -36,7 +37,7 @@ describe('Editor: fragmento 3D', () => {
 
   it('tras un fallo, volver a pulsar 3D reintenta la carga', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    render(<Editor />)
+    render(<Editor />, { wrapper: MemoryRouter })
     expect(await screen.findByText(SIN_CARGA)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Volver al 2D' }))
     act(() => almacen.getState().cambiarVista('3d'))

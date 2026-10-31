@@ -6,6 +6,7 @@ using Decorazon.Infraestructura.Tiempo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Decorazon.Infraestructura;
 
@@ -73,6 +74,14 @@ public static class InyeccionDeDependencias
 
         if (!opciones.UsarBrevo)
         {
+            if (!string.IsNullOrWhiteSpace(opciones.CarpetaDeSimulados))
+            {
+                var carpeta = opciones.CarpetaDeSimulados;
+                servicios.AddScoped<IEnviadorDeCorreo>(proveedor => new EnviadorDeCorreoACarpeta(
+                    carpeta, proveedor.GetRequiredService<ILogger<EnviadorDeCorreoDeConsola>>()));
+                return;
+            }
+
             // Por defecto no se envía correo real. Brevo exige activación explícita.
             servicios.AddScoped<IEnviadorDeCorreo, EnviadorDeCorreoDeConsola>();
             return;

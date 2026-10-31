@@ -259,7 +259,7 @@ public class DisenosTests(ApiConPostgresFixture api) : IClassFixture<ApiConPostg
             """{"nombre":"Exponente","tipoEstancia":"salon","contenido":{"formato":1,"estancia":{"ancho":1e200000},"aberturas":[],"estructura":[],"elementos":[]}}"""));
 
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
-        var error = await respuesta.Content.ReadFromJsonAsync<RespuestaDeError>();
+        var error = await respuesta.Content.ReadFromJsonAsync<RespuestaDeMensaje>();
         Assert.Contains("número", error!.Mensaje);
     }
 
@@ -371,7 +371,7 @@ public class DisenosTests(ApiConPostgresFixture api) : IClassFixture<ApiConPostg
     private static async Task AssertRechazoAsync(HttpResponseMessage respuesta, HttpStatusCode esperado = HttpStatusCode.BadRequest)
     {
         Assert.Equal(esperado, respuesta.StatusCode);
-        var error = await respuesta.Content.ReadFromJsonAsync<RespuestaDeError>();
+        var error = await respuesta.Content.ReadFromJsonAsync<RespuestaDeMensaje>();
         Assert.False(string.IsNullOrWhiteSpace(error?.Mensaje));
     }
 

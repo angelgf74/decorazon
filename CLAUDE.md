@@ -41,7 +41,24 @@ dotnet test Decorazon.slnx --filter "Categoria!=Integracion" # sin Docker
 cd web && npm test                                          # tests del núcleo TS
 cd web && npm run e2e                                      # recorrido de extremo a extremo con Playwright (compila y sirve en el 5322)
                                                             # incluye e2e/vista3d.spec.ts: el 3D con SwiftShader (sin GPU), canvas con contenido y sin errores de consola
+cd web && npm run e2e:cuentas                              # cuentas y diseños con la API real (5320) y PostgreSQL: necesita docker compose up -d
+                                                            # base decorazon_e2e, clave JWT aleatoria y correos en web/test-results/correos
+cd web && npm run api:tipos                                # regenera src/api/esquema.d.ts desde src/api/openapi.json
 ```
+
+`npm run e2e:cuentas` arranca su propia API y su preview: los puertos 5320 y 5322 tienen que estar libres.
+
+## Web ↔ API
+
+- El cliente (`openapi-fetch`) y los tipos (`web/src/api/esquema.d.ts`) salen de `web/src/api/openapi.json`, que escribe el build de la API. Los dos van en git y el CI comprueba que están al día: tras cambiar un contrato, `dotnet build` y `npm run api:tipos`.
+- `web/package.json` lleva un `overrides` para que `openapi-typescript` use el TypeScript 6 del proyecto (su peer pide ^5). Se quita cuando `openapi-typescript` soporte TS 6.
+- `PUT /disenos/{id}` reemplaza el diseño entero: siempre con `nombre`, `tipoEstancia` y `contenido`, más `If-Match`.
+- Claves de `localStorage`:
+  - `decorazon.sesion`: token, caducidad y correo del usuario;
+  - `decorazon.disenoAnonimo`: el diseño sin cuenta;
+  - `decorazon.diseno.<id>`: copia local de cada diseño del servidor, con su versión y si tiene cambios sin subir;
+  - `decorazon.registroEnviado`: el diseño que viajó con el registro; al entrar no se pregunta si guardarlo solo si la cuenta tiene un diseño con ese mismo contenido (se comprueba en el servidor; ante la duda, se pregunta).
+- `cerrarSesion()` (salida voluntaria o borrado de la cuenta) borra las copias `decorazon.diseno.*`, el diseño anónimo y `decorazon.registroEnviado`, y el editor anónimo empieza vacío; "Cerrar sesión" con cambios sin subir pide confirmación antes. `cerrarSesion('caducada')` conserva las copias para subir lo pendiente al volver, y `cerrarSesion({ conservarLocales: true })` (tras cambiar la contraseña, mismo usuario) también. Si otra pestaña cierra la sesión o entra con otra cuenta (evento `storage` sobre `decorazon.sesion`), esta pestaña la olvida, vuelve al anónimo y va al inicio sin borrar nada del almacenamiento; si entra con la misma cuenta, adopta el token nuevo y sigue donde estaba. `iniciarSesion()` no toca `decorazon.sesion` hasta tener la sesión nueva.
 
 Los tests de integración llevan `[Trait("Categoria","Integracion")]`; de ahí el filtro.
 

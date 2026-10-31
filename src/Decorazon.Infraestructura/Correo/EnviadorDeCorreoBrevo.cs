@@ -104,9 +104,15 @@ public sealed class EnviadorDeCorreoBrevo(
         };
 
         HttpResponseMessage respuesta;
+        string? detalle = null;
         try
         {
             respuesta = await cliente.PostAsJsonAsync("v3/smtp/email", peticion, cancelacion);
+
+            if (!respuesta.IsSuccessStatusCode)
+            {
+                detalle = await respuesta.Content.ReadAsStringAsync(cancelacion);
+            }
         }
         catch (Exception excepcion) when (
             excepcion is HttpRequestException
@@ -122,8 +128,6 @@ public sealed class EnviadorDeCorreoBrevo(
         {
             return;
         }
-
-        var detalle = await respuesta.Content.ReadAsStringAsync(cancelacion);
 
         // El destinatario y el motivo sí se registran; el enlace con el token, no.
         // Agotar la cuota de Brevo deja el alta inutilizable, así que este log es

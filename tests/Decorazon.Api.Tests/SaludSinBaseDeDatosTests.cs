@@ -2,8 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Decorazon.Contratos.Salud;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Decorazon.Api.Tests;
 
@@ -74,24 +72,7 @@ public class SaludSinBaseDeDatosTests
             .Select(operacion => operacion.Value.GetProperty("operationId").GetString())
             .ToList();
 
-        Assert.Contains("Salud", ids);
+        Assert.Contains("consultarSalud", ids);
         Assert.Equal(ids.Count, ids.Distinct().Count());
-    }
-
-    private sealed class ApiSinBaseDeDatos : WebApplicationFactory<Program>
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder constructor)
-        {
-            constructor.UseEnvironment("Testing");
-            constructor.UseSetting("Jwt:ClaveDeFirma", ApiConPostgresFixture.ClaveDeFirmaDePrueba);
-            constructor.UseSetting("Limpieza:Activa", "false");
-            // appsettings.json trae Brevo activo (producción); los tests nunca mandan correo.
-            constructor.UseSetting("Correo:UsarBrevo", "false");
-
-            // Puerto sin nada escuchando: la conexión falla de inmediato.
-            constructor.UseSetting(
-                "ConnectionStrings:Decorazon",
-                "Host=127.0.0.1;Port=1;Database=inexistente;Username=nadie;Password=nada;Timeout=1;Command Timeout=1");
-        }
     }
 }

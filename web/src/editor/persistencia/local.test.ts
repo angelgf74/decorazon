@@ -2,7 +2,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { documentoNuevo } from '../../nucleo'
 import { crearAlmacen } from '../estado/almacen'
-import { CLAVE_DESCARTADO, CLAVE_DISENO, conectarPersistencia, guardarDisenoLocal, leerDisenoLocal } from './local'
+import {
+  CLAVE_DESCARTADO, CLAVE_DISENO, conectarPersistencia, guardarCopiaLocal, guardarDisenoLocal, leerCopiaLocal, leerDisenoLocal,
+  listarCopiasLocales,
+} from './local'
 
 function falso(): Storage & { escrituras: number } {
   const m = new Map<string, string>()
@@ -152,5 +155,73 @@ describe('local', () => {
     estado = 'hidden'
     document.dispatchEvent(new Event('visibilitychange'))
     expect(st.escrituras).toBe(1)
+  })
+
+  it('con origen servidor no toca el diseño anónimo', () => {
+    const st = falso()
+    const a = crearAlmacen()
+    conectar(a, st)
+    a.getState().abrirDelServidor('d1', 4, 'Cocina', doc)
+    a.getState().cambiar(alto(260))
+    vi.advanceTimersByTime(1000)
+    globalThis.dispatchEvent(new Event('pagehide'))
+    expect(st.getItem(CLAVE_DISENO)).toBeNull()
+    expect(a.getState().guardado).toBe('guardado')
+  })
+
+  it('un cambio anónimo pendiente se guarda tal cual al abrir un diseño del servidor', () => {
+    const st = falso()
+    const a = crearAlmacen()
+    conectar(a, st)
+    a.getState().crear('salon', 400, 300, 250)
+    a.getState().cambiar(alto(280))
+    a.getState().abrirDelServidor('d1', 4, 'Cocina', documentoNuevo('cocina', 500, 300, 250))
+    vi.advanceTimersByTime(1000)
+    expect(leerDisenoLocal(st)?.estancia.tipo).toBe('salon')
+    expect(leerDisenoLocal(st)?.estancia.alto).toBe(280)
+  })
+
+  it('volver al anónimo no reescribe ni marca pendiente', () => {
+    const st = falso()
+    guardarDisenoLocal(st, doc)
+    const a = crearAlmacen()
+    conectar(a, st)
+    a.getState().abrirDelServidor('d1', 4, 'Cocina', documentoNuevo('cocina', 500, 300, 250))
+    st.escrituras = 0
+    a.getState().volverAAnonimo(st)
+    expect(a.getState().guardado).toBe('guardado')
+    vi.advanceTimersByTime(1000)
+    expect(st.escrituras).toBe(0)
+  })
+
+  it('copia local por id: guarda, lee y rechaza lo inválido', () => {
+    const st = falso()
+    expect(guardarCopiaLocal(st, 'd1', { version: 4, nombre: 'Cocina', documento: doc, pendiente: true })).toBe(true)
+    expect(st.getItem('decorazon.diseno.d1')).not.toBeNull()
+    expect(leerCopiaLocal(st, 'd1')).toEqual({ version: 4, nombre: 'Cocina', documento: doc, pendiente: true })
+    expect(leerCopiaLocal(st, 'd2')).toBeNull()
+    st.setItem('decorazon.diseno.d3', '{roto')
+    expect(leerCopiaLocal(st, 'd3')).toBeNull()
+    st.setItem('decorazon.diseno.d4', JSON.stringify({ version: 'x', documento: doc, pendiente: true }))
+    expect(leerCopiaLocal(st, 'd4')).toBeNull()
+    expect(leerCopiaLocal(null, 'd1')).toBeNull()
+  })
+
+  it('listar copias: parsea cada una una vez y solo lee versión, pendiente, nombre y fecha; el documento se valida al abrirla', () => {
+    const st = falso()
+    guardarCopiaLocal(st, 'd1', { version: 4, nombre: 'Cocina', documento: doc, pendiente: true })
+    st.setItem('decorazon.diseno.d2', JSON.stringify({ version: 2, documento: { formato: 99 }, pendiente: false, guardadaEn: '2026-01-01T00:00:00Z' }))
+    st.setItem('decorazon.diseno.d3', '{roto')
+    st.setItem('decorazon.diseno.d4', JSON.stringify({ version: 'x', documento: doc, pendiente: true }))
+    st.setItem('decorazon.otra', '{}')
+    const parse = vi.spyOn(JSON, 'parse')
+    const lista = listarCopiasLocales(st)
+    expect(parse).toHaveBeenCalledTimes(4)
+    parse.mockRestore()
+    expect(lista).toEqual([
+      { id: 'd1', nombre: 'Cocina', guardadaEn: expect.any(String), pendiente: true },
+      { id: 'd2', guardadaEn: '2026-01-01T00:00:00Z', pendiente: false },
+    ])
+    expect(leerCopiaLocal(st, 'd2')).toBeNull()
   })
 })

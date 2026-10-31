@@ -27,3 +27,8 @@ deploy/systemd/* text eol=lf
 *.wasm binary
 *.woff2 binary
 *.dll binary
+
+# Contrato de la API y tipos generados: el CI los regenera en Linux y compara con
+# `git diff`, así que deben ir siempre con LF.
+web/src/api/openapi.json text eol=lf
+web/src/api/esquema.d.ts text eol=lf

@@ -37,6 +37,18 @@ public class EnviadorDeCorreoBrevoTests
     }
 
     [Fact]
+    public async Task Un_corte_de_red_al_leer_el_cuerpo_del_error_es_CorreoNoEnviado()
+    {
+        var enviador = Enviador(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new ContenidoQueFallaAlLeer()
+        }));
+
+        await Assert.ThrowsAsync<CorreoNoEnviadoException>(() =>
+            enviador.EnviarEnlaceDeAltaAsync(Destinatario, "https://decorazon.test/x"));
+    }
+
+    [Fact]
     public async Task Si_Brevo_no_responde_a_tiempo_es_CorreoNoEnviado()
     {
         var enviador = Enviador(_ => throw new TaskCanceledException("timeout del HttpClient"));
@@ -69,6 +81,18 @@ public class EnviadorDeCorreoBrevoTests
             new HttpClient(new ManejadorFalso(responder)) { BaseAddress = new Uri("https://api.brevo.test/") },
             Options.Create(new OpcionesDeCorreo { UsarBrevo = true, ClaveDeApi = "k", CorreoRemitente = "no-responder@example.com" }),
             NullLogger<EnviadorDeCorreoBrevo>.Instance);
+
+    private sealed class ContenidoQueFallaAlLeer : HttpContent
+    {
+        protected override Task SerializeToStreamAsync(Stream flujo, TransportContext? contexto) =>
+            throw new HttpRequestException("corte de red");
+
+        protected override bool TryComputeLength(out long longitud)
+        {
+            longitud = -1;
+            return false;
+        }
+    }
 
     private sealed class ManejadorFalso(Func<HttpRequestMessage, Task<HttpResponseMessage>> responder) : HttpMessageHandler
     {

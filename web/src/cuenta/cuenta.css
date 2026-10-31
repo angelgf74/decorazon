@@ -1,0 +1,37 @@
+.cuenta {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.cuenta__tarjeta {
+  width: 100%;
+  max-width: 24rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.5rem;
+  border: 1px solid var(--salmon);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.cuenta__tarjeta h1 { margin: 0; color: var(--terracota); font-size: 1.6rem; }
+.cuenta__tarjeta p { margin: 0; line-height: 1.4; }
+
+.cuenta__campo { display: flex; flex-direction: column; gap: 0.25rem; }
+.cuenta__campo input { font: inherit; padding: 0.5rem 0.6rem; border: 1px solid var(--gris); border-radius: 0.4rem; }
+
+.cuenta__ayuda { color: var(--gris); font-size: 0.9rem; }
+.cuenta__aviso { padding: 0.6rem 0.75rem; border-radius: 0.5rem; background: var(--crema); border: 1px solid var(--amarillo); }
+.cuenta__error { color: var(--conflicto); font-weight: 600; }
+
+.cuenta__enlaces { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; }
+.cuenta__enlaces a { color: var(--terracota); }
+
+.cuenta__seccion { display: flex; flex-direction: column; gap: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--salmon); }
+.cuenta__seccion h2 { margin: 0; font-size: 1.1rem; }
+.cuenta__texto { max-width: 36rem; }
+.cuenta__texto h2 { margin: 1rem 0 0.25rem; font-size: 1.1rem; }

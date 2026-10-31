@@ -26,7 +26,7 @@ public static class RegistroEndpoints
     /// </summary>
     internal static IResult CorreoNoEnviado() =>
         Results.Json(
-            new RespuestaDeError("No hemos podido enviar el correo. Inténtalo dentro de un rato."),
+            new RespuestaDeMensaje("No hemos podido enviar el correo. Inténtalo dentro de un rato."),
             statusCode: StatusCodes.Status503ServiceUnavailable);
 
     public static void MapearEndpointsDeRegistro(this IEndpointRouteBuilder rutas)
@@ -34,9 +34,17 @@ public static class RegistroEndpoints
         var grupo = rutas.MapGroup("/cuentas/registro").WithTags("Registro");
 
         grupo.MapPost("", SolicitarAsync)
-            .RequireRateLimiting(LimitesDePeticiones.Registro);
+            .RequireRateLimiting(LimitesDePeticiones.Registro)
+            .WithName("solicitarRegistro")
+            .Produces<RespuestaDeMensaje>()
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status503ServiceUnavailable);
 
-        grupo.MapPost("/confirmar", ConfirmarAsync);
+        grupo.MapPost("/confirmar", ConfirmarAsync)
+            .WithName("confirmarRegistro")
+            .Produces<RespuestaDeMensaje>()
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest);
     }
 
     private static async Task<IResult> SolicitarAsync(
@@ -56,18 +64,18 @@ public static class RegistroEndpoints
         return resultado switch
         {
             ResultadoDeSolicitud.CorreoInvalido =>
-                Results.BadRequest(new RespuestaDeError("Ese correo electrónico no parece válido.")),
+                Results.BadRequest(new RespuestaDeMensaje("Ese correo electrónico no parece válido.")),
 
             // El diseño se valida antes de mirar nada del correo: este 400 no
             // dice si la dirección tiene cuenta.
             ResultadoDeSolicitud.DisenoNoValido =>
-                Results.BadRequest(new RespuestaDeError(
+                Results.BadRequest(new RespuestaDeMensaje(
                     "El diseño que querías guardar no es válido. Revísalo o pide el alta sin él.")),
 
             // Tres por correo y hora, tenga cuenta o no: tampoco delata nada.
             ResultadoDeSolicitud.DemasiadasSolicitudes =>
                 Results.Json(
-                    new RespuestaDeError("Has pedido el alta demasiadas veces. Espera un rato antes de volver a intentarlo."),
+                    new RespuestaDeMensaje("Has pedido el alta demasiadas veces. Espera un rato antes de volver a intentarlo."),
                     statusCode: StatusCodes.Status429TooManyRequests),
 
             ResultadoDeSolicitud.CorreoNoEnviado => CorreoNoEnviado(),
@@ -75,7 +83,7 @@ public static class RegistroEndpoints
             // Aceptada tanto si se ha creado la solicitud como si el correo ya
             // tenía cuenta: distinguirlos convertiría esto en un comprobador de
             // qué direcciones están registradas.
-            _ => Results.Ok(new RespuestaDeError(MensajeDeSolicitudAceptada))
+            _ => Results.Ok(new RespuestaDeMensaje(MensajeDeSolicitudAceptada))
         };
     }
 
@@ -90,18 +98,18 @@ public static class RegistroEndpoints
         return resultado switch
         {
             ResultadoDeCompletarRegistro.Completado =>
-                Results.Ok(new RespuestaDeError("Cuenta creada. Ya puedes iniciar sesión.")),
+                Results.Ok(new RespuestaDeMensaje("Cuenta creada. Ya puedes iniciar sesión.")),
 
             ResultadoDeCompletarRegistro.NombreNoValido =>
-                Results.BadRequest(new RespuestaDeError(
+                Results.BadRequest(new RespuestaDeMensaje(
                     $"Indica tu nombre, de {PeticionDeConfirmarRegistro.LongitudMaximaDeNombre} caracteres como mucho.")),
 
             ResultadoDeCompletarRegistro.ContrasenaNoValida =>
-                Results.BadRequest(new RespuestaDeError(
+                Results.BadRequest(new RespuestaDeMensaje(
                     $"La contraseña debe tener entre {PeticionDeConfirmarRegistro.LongitudMinimaDeContrasena} " +
                     $"y {PeticionDeConfirmarRegistro.LongitudMaximaDeContrasena} caracteres.")),
 
-            _ => Results.BadRequest(new RespuestaDeError(MensajeDeEnlaceNoValido))
+            _ => Results.BadRequest(new RespuestaDeMensaje(MensajeDeEnlaceNoValido))
         };
     }
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { anadirElemento, documentoNuevo, catalogoBase, type DocumentoDiseno } from '../../nucleo'
+import { CLAVE_DISENO } from '../persistencia/local'
 import { crearAlmacen, HISTORIAL_MAXIMO } from './almacen'
 
 const mover = (x: number) => (d: DocumentoDiseno): DocumentoDiseno => ({ ...d, estancia: { ...d.estancia, alto: x } })
@@ -123,5 +124,40 @@ describe('almacén del editor', () => {
     a.getState().seleccionar({ tipo: 'pared', indice: 0 })
     a.getState().irAPaso(2)
     expect(a.getState().seleccion).toBeNull()
+  })
+
+  it('abrirDelServidor deja historial vacío y origen servidor', () => {
+    const a = crearAlmacen()
+    a.getState().crear('salon', 400, 300, 250)
+    a.getState().cambiar(mover(1))
+    const doc = documentoNuevo('cocina', 500, 300, 250)
+    a.getState().abrirDelServidor('d1', 4, 'Cocina', doc)
+    expect(a.getState().documento).toEqual(doc)
+    expect(a.getState().pasado).toEqual([])
+    expect(a.getState().futuro).toEqual([])
+    expect(a.getState().origen).toEqual({ tipo: 'servidor', id: 'd1', version: 4, nombre: 'Cocina' })
+    expect(a.getState().guardado).toBe('guardado')
+  })
+
+  it('volverAAnonimo recupera el diseño anónimo guardado', () => {
+    const anonimo = documentoNuevo('salon', 400, 300, 250)
+    const m = new Map([[CLAVE_DISENO, JSON.stringify({ version: 1, documento: anonimo })]])
+    const st = { getItem: (k: string) => m.get(k) ?? null } as Storage
+    const a = crearAlmacen()
+    a.getState().abrirDelServidor('d1', 4, 'Cocina', documentoNuevo('cocina', 500, 300, 250))
+    a.getState().cambiar(mover(1))
+    a.getState().volverAAnonimo(st)
+    expect(a.getState().origen).toEqual({ tipo: 'anonimo' })
+    expect(a.getState().documento).toEqual(anonimo)
+    expect(a.getState().pasado).toEqual([])
+  })
+
+  it('volverAAnonimo sin almacenamiento recupera el anónimo que había en memoria', () => {
+    const a = crearAlmacen()
+    a.getState().crear('salon', 400, 300, 250)
+    const anonimo = a.getState().documento
+    a.getState().abrirDelServidor('d1', 4, 'Cocina', documentoNuevo('cocina', 500, 300, 250))
+    a.getState().volverAAnonimo(null)
+    expect(a.getState().documento).toBe(anonimo)
   })
 })

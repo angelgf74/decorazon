@@ -45,7 +45,7 @@ public static class LimitesDePeticiones
             // correo del alta): la web enseña el mensaje sin casos especiales.
             opciones.OnRejected = (contexto, cancelacion) =>
                 new ValueTask(contexto.HttpContext.Response.WriteAsJsonAsync(
-                    new RespuestaDeError("Demasiados intentos seguidos. Espera un rato antes de volver a probar."),
+                    new RespuestaDeMensaje("Demasiados intentos seguidos. Espera un rato antes de volver a probar."),
                     cancelacion));
 
             opciones.AddPolicy(Registro, contexto =>

@@ -11,7 +11,7 @@ public sealed class PeticionDeRegistro
 {
     [Required(ErrorMessage = "Indica tu correo electrónico.")]
     [EmailAddress(ErrorMessage = "Ese correo electrónico no parece válido.")]
-    [MaxLength(254)]
+    [MaxLength(254, ErrorMessage = "Ese correo electrónico no parece válido.")]
     public string Correo { get; set; } = string.Empty;
 
     /// <summary>Opcional. Aquí el nombre también lo es: sin él se usa uno por defecto.</summary>
@@ -24,17 +24,18 @@ public sealed class PeticionDeRegistro
 /// </summary>
 public sealed class PeticionDeConfirmarRegistro
 {
-    [Required]
+    [Required(ErrorMessage = "Este enlace no es válido o ha caducado. Pide el alta de nuevo.")]
     public string Token { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Indica tu nombre.")]
-    [MaxLength(LongitudMaximaDeNombre)]
+    [MaxLength(LongitudMaximaDeNombre, ErrorMessage = "Indica tu nombre, de {1} caracteres como mucho.")]
     public string Nombre { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Elige una contraseña.")]
     [MinLength(LongitudMinimaDeContrasena,
         ErrorMessage = "La contraseña debe tener al menos {1} caracteres.")]
-    [MaxLength(LongitudMaximaDeContrasena)]
+    [MaxLength(LongitudMaximaDeContrasena,
+        ErrorMessage = "La contraseña puede tener {1} caracteres como mucho.")]
     public string Contrasena { get; set; } = string.Empty;
 
     /// <summary>Deben coincidir con el dominio; se repiten aquí porque Contratos no lo referencia.</summary>

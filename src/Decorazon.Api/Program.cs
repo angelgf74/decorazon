@@ -1,7 +1,10 @@
 using System.Net;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json.Serialization;
 using Decorazon.Api.Endpoints;
+using Decorazon.Api.OpenApi;
 using Decorazon.Api.Tareas;
 using Decorazon.Aplicacion;
 using Decorazon.Dominio.Puertos;
@@ -18,6 +21,28 @@ using Microsoft.IdentityModel.Tokens;
 var constructor = WebApplication.CreateBuilder(args);
 
 constructor.Host.UseSystemd();
+
+// dotnet build arranca la API dentro de GetDocument.Insider solo para leer el
+// documento OpenAPI. El host no se detiene en Build(): la app sigue con un
+// servidor que no atiende peticiones, por eso se omite la migración de
+// Development (no hay base) y Limpieza:Activa=false evita la tarea de limpieza.
+// Ahí no hay secretos (el entorno lo hereda del build), y las validaciones de
+// arranque impedirían generar el documento.
+// Estos valores ficticios no afectan al documento y no firman ni conectan con
+// nada; se añaden los últimos para que tampoco se lea ningún secreto real.
+// Fuera de ese proceso no se tocan: la API real sigue sin arrancar sin ellos.
+var soloDocumentoOpenApi = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+if (soloDocumentoOpenApi)
+{
+    constructor.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["ConnectionStrings:Decorazon"] = "Host=localhost;Database=solo-documento-openapi",
+        ["Jwt:ClaveDeFirma"] = "solo-para-generar-el-documento-openapi-no-firma-nada",
+        ["Correo:UsarBrevo"] = "false",
+        ["Correo:Simulado"] = "true",
+        ["Limpieza:Activa"] = "false"
+    });
+}
 
 constructor.Services
     .AddAplicacion()
@@ -36,8 +61,19 @@ if (!constructor.Environment.IsDevelopment() && !constructor.Environment.IsEnvir
     opcionesDeCorreo.ValidarFueraDeDesarrollo();
 }
 
-// Documento OpenAPI en /openapi/v1.json: el contrato que consume la web.
-constructor.Services.AddOpenApi();
+// Documento OpenAPI en /openapi/v1.json: el contrato del que sale el cliente de
+// la web. El build lo escribe también en web/src/api/openapi.json.
+constructor.Services.AddOpenApi(opciones => opciones.AnadirTransformadoresDeDecorazon());
+
+// Los números son números: con la tolerancia por defecto de la web (leerlos
+// también de cadenas), el documento describe cada entero como "integer o string".
+constructor.Services.ConfigureHttpJsonOptions(opciones =>
+    opciones.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
+
+// Las DataAnnotations de los contratos se aplican antes del endpoint; sus 400,
+// como los del JSON mal formado, con el cuerpo de siempre.
+constructor.Services.AnadirValidacion();
+constructor.Services.AnadirMensajeEnPeticionesNoValidas();
 
 var opcionesDeJwt = new OpcionesDeJwt();
 constructor.Configuration.GetSection(OpcionesDeJwt.Seccion).Bind(opcionesDeJwt);
@@ -167,7 +203,7 @@ if (constructor.Configuration.GetValue("Limpieza:Activa", true))
 var aplicacion = constructor.Build();
 
 // En desarrollo las migraciones se aplican solas; en producción, al desplegar.
-if (aplicacion.Environment.IsDevelopment())
+if (aplicacion.Environment.IsDevelopment() && !soloDocumentoOpenApi)
 {
     using var ambito = aplicacion.Services.CreateScope();
     await ambito.ServiceProvider.GetRequiredService<DecorazonDbContext>().Database.MigrateAsync();
@@ -178,6 +214,7 @@ if (aplicacion.Environment.IsDevelopment())
 aplicacion.UseForwardedHeaders();
 
 aplicacion.UseCors(PoliticaDeLaWeb);
+aplicacion.UsarMensajeEnPeticionesNoValidas();
 aplicacion.UseRateLimiter();
 aplicacion.UseAuthentication();
 aplicacion.UseAuthorization();

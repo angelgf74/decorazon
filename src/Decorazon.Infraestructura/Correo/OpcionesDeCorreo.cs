@@ -44,6 +44,12 @@ public sealed class OpcionesDeCorreo
     public string BaseDeLaWeb { get; set; } = "http://localhost:5321";
 
     /// <summary>
+    /// Opcional. Con <see cref="UsarBrevo"/> a <c>false</c> y un valor aquí, cada correo se escribe también
+    /// como fichero de texto en esta carpeta (para las pruebas E2E). Fuera de desarrollo se rechaza.
+    /// </summary>
+    public string CarpetaDeSimulados { get; set; } = string.Empty;
+
+    /// <summary>
     /// Comprobaciones que solo valen fuera de Development y de los tests: allí el correo
     /// simulado y la web en http://localhost son lo normal; en un despliegue, un error.
     /// </summary>
@@ -54,6 +60,13 @@ public sealed class OpcionesDeCorreo
             throw new InvalidOperationException(
                 $"'{Seccion}:UsarBrevo' debe ser true fuera de desarrollo: si no, los enlaces de alta y de " +
                 $"contraseña solo irían al log. Para no enviar correo a propósito, pon '{Seccion}:Simulado' a true.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(CarpetaDeSimulados))
+        {
+            throw new InvalidOperationException(
+                $"'{Seccion}:CarpetaDeSimulados' solo vale en desarrollo y pruebas: dejaría en disco los enlaces " +
+                "con token de cada correo. Quítala.");
         }
 
         if (!Uri.TryCreate(BaseDeLaWeb, UriKind.Absolute, out var web) || web.Scheme != Uri.UriSchemeHttps)

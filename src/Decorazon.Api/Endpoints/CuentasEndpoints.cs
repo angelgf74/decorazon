@@ -15,12 +15,20 @@ public static class CuentasEndpoints
             .RequireAuthorization()
             .WithTags("Cuentas");
 
-        grupo.MapGet("", MiCuentaAsync);
+        grupo.MapGet("", MiCuentaAsync)
+            .WithName("obtenerMiCuenta")
+            .Produces<RespuestaDeMiCuenta>()
+            .Produces(StatusCodes.Status401Unauthorized);
 
         // Borrar la cuenta comprueba la contraseña: misma superficie que cambiarla,
         // y mismo cubo.
         grupo.MapDelete("", BorrarmeAsync)
-            .RequireRateLimiting(LimitesDePeticiones.CambioDeContrasena);
+            .RequireRateLimiting(LimitesDePeticiones.CambioDeContrasena)
+            .WithName("borrarMiCuenta")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests);
     }
 
     private static async Task<IResult> MiCuentaAsync(
@@ -57,6 +65,6 @@ public static class CuentasEndpoints
         // haría que la web la cerrara.
         return resultado == ResultadoDeBaja.Correcto
             ? Results.NoContent()
-            : Results.BadRequest(new RespuestaDeError("La contraseña no es correcta."));
+            : Results.BadRequest(new RespuestaDeMensaje("La contraseña no es correcta."));
     }
 }

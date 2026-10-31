@@ -7,7 +7,7 @@ public sealed class PeticionDeOlvidoDeContrasena
 {
     [Required(ErrorMessage = "Indica tu correo electrónico.")]
     [EmailAddress(ErrorMessage = "Ese correo electrónico no parece válido.")]
-    [MaxLength(254)]
+    [MaxLength(254, ErrorMessage = "Ese correo electrónico no parece válido.")]
     public string Correo { get; set; } = string.Empty;
 }
 
@@ -17,13 +17,14 @@ public sealed class PeticionDeOlvidoDeContrasena
 /// </summary>
 public sealed class PeticionDeRestablecerContrasena
 {
-    [Required]
+    [Required(ErrorMessage = "Este enlace no es válido o ha caducado. Pide otro desde el inicio de sesión.")]
     public string Token { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Elige una contraseña.")]
     [MinLength(PeticionDeConfirmarRegistro.LongitudMinimaDeContrasena,
         ErrorMessage = "La contraseña debe tener al menos {1} caracteres.")]
-    [MaxLength(PeticionDeConfirmarRegistro.LongitudMaximaDeContrasena)]
+    [MaxLength(PeticionDeConfirmarRegistro.LongitudMaximaDeContrasena,
+        ErrorMessage = "La contraseña puede tener {1} caracteres como mucho.")]
     public string Contrasena { get; set; } = string.Empty;
 }
 
@@ -42,6 +43,7 @@ public sealed class PeticionDeCambioDeContrasena
     [Required(ErrorMessage = "Elige una contraseña nueva.")]
     [MinLength(PeticionDeConfirmarRegistro.LongitudMinimaDeContrasena,
         ErrorMessage = "La contraseña debe tener al menos {1} caracteres.")]
-    [MaxLength(PeticionDeConfirmarRegistro.LongitudMaximaDeContrasena)]
+    [MaxLength(PeticionDeConfirmarRegistro.LongitudMaximaDeContrasena,
+        ErrorMessage = "La contraseña puede tener {1} caracteres como mucho.")]
     public string Nueva { get; set; } = string.Empty;
 }
