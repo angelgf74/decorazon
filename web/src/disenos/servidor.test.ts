@@ -57,6 +57,17 @@ describe('servidor de diseños', () => {
     expect(cuerpo.contenido.estancia.planta[1]!.x).toBe(400)
   })
 
+  it('crearDiseno manda el id cuando se le pasa', async () => {
+    const doc = documentoNuevo('cocina', 400, 300, 250)
+    fetchSimulado.mockResolvedValueOnce(respuesta(201, completo(doc)))
+    await crearDiseno('Mi cocina', doc, ID)
+    expect(((await fetchSimulado.mock.calls[0]![0].json()) as { id?: string }).id).toBe(ID)
+
+    fetchSimulado.mockResolvedValueOnce(respuesta(201, completo(doc)))
+    await crearDiseno('Mi cocina', doc)
+    expect(await fetchSimulado.mock.calls[1]![0].json()).not.toHaveProperty('id')
+  })
+
   it('un contenido inválido del servidor lanza un error', async () => {
     fetchSimulado.mockResolvedValueOnce(respuesta(200, completo({ formato: 1 })))
     await expect(obtenerDiseno(ID)).rejects.toThrow()

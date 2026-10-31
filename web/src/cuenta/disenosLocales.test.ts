@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DisenoServidor } from '../disenos/servidor'
 import { almacen, reiniciarAlmacen } from '../editor/estado/almacen'
-import { CLAVE_REGISTRO_ENVIADO, guardarCopiaLocal, leerCopiaLocal } from '../editor/persistencia/local'
+import { CLAVE_ID_DE_SUBIDA, CLAVE_REGISTRO_ENVIADO, claveCopia, guardarCopiaLocal, leerCopiaLocal } from '../editor/persistencia/local'
 import { abrirDiseno, conectarSincronizacion, elegirApertura } from '../editor/persistencia/sincronizacion'
 import { catalogoBase, documentoNuevo, elementoNuevo, serializarDocumento, type DocumentoDiseno } from '../nucleo'
 import { respuesta } from '../pruebas/respuesta'
@@ -37,6 +37,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   desconectar()
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
 
@@ -73,6 +74,72 @@ describe('subirDisenoAnonimo', () => {
     fetchSimulado.mockResolvedValueOnce(respuesta(201, disenoServidor(1, doc)))
     expect(await subirDisenoAnonimo(doc)).toEqual({ id: 'd9' })
     expect(leerCopiaLocal(localStorage, 'd9')).toBeNull()
+  })
+
+  const idDelCuerpo = async (n: number) => ((await fetchSimulado.mock.calls[n]![0].clone().json()) as { id?: string }).id
+
+  it('si se pierde la respuesta del alta, el reintento manda el mismo id y no crea otro', async () => {
+    almacen.getState().cargar(doc)
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    expect(await subirDisenoAnonimo(doc)).toMatchObject({ error: expect.any(String) })
+    expect(almacen.getState().documento).not.toBeNull()
+
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, disenoServidor(1, doc)))
+    expect(await subirDisenoAnonimo(doc)).toEqual({ id: 'd9' })
+    const id = await idDelCuerpo(0)
+    expect(id).toMatch(/^[0-9a-f-]{36}$/)
+    expect(await idDelCuerpo(1)).toBe(id)
+  })
+
+  it('un reintento que devuelve el contenido antiguo deja una copia pendiente con el actual', async () => {
+    almacen.getState().cargar(doc)
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await subirDisenoAnonimo(doc)
+    almacen.getState().cambiar(alto(260))
+    const editado = almacen.getState().documento
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, disenoServidor(1, doc)))
+    expect(await subirDisenoAnonimo(editado!)).toEqual({ id: 'd9' })
+    expect(leerCopiaLocal(localStorage, 'd9')).toMatchObject({ version: 1, pendiente: true, documento: editado })
+  })
+
+  it('con la cuota llena, reintentar no duplica', async () => {
+    almacen.getState().cargar(doc)
+    let responder: (r: Response) => void = () => {}
+    fetchSimulado.mockImplementationOnce(() => new Promise<Response>((r) => { responder = r }))
+    const subida = subirDisenoAnonimo(doc)
+    await vi.waitFor(() => expect(fetchSimulado).toHaveBeenCalledOnce())
+    almacen.getState().cambiar(alto(260))
+    const editado = almacen.getState().documento
+    const setItem = Storage.prototype.setItem
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, clave: string, valor: string) {
+      if (clave === claveCopia('d9')) throw new DOMException('cuota', 'QuotaExceededError')
+      setItem.call(this, clave, valor)
+    })
+    responder(respuesta(201, disenoServidor(1, doc)))
+    expect(await subida).toEqual({ id: 'd9' })
+    expect(almacen.getState().documento).toEqual(editado)
+
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, disenoServidor(1, doc)))
+    expect(await subirDisenoAnonimo(editado!)).toEqual({ id: 'd9' })
+    expect(await idDelCuerpo(1)).toBe(await idDelCuerpo(0))
+  })
+
+  it('tras subir, el id de subida se olvida', async () => {
+    almacen.getState().cargar(doc)
+    fetchSimulado.mockResolvedValueOnce(respuesta(201, disenoServidor(1, doc)))
+    await subirDisenoAnonimo(doc)
+    expect(localStorage.getItem(CLAVE_ID_DE_SUBIDA)).toBeNull()
+  })
+
+  it('con un 409 el id de subida se olvida y el siguiente intento usa otro', async () => {
+    almacen.getState().cargar(doc)
+    fetchSimulado.mockResolvedValueOnce(respuesta(409, { mensaje: 'Id ocupado' }))
+    expect(await subirDisenoAnonimo(doc)).toMatchObject({ error: expect.any(String) })
+    expect(localStorage.getItem(CLAVE_ID_DE_SUBIDA)).toBeNull()
+
+    fetchSimulado.mockResolvedValueOnce(respuesta(201, disenoServidor(1, doc)))
+    await subirDisenoAnonimo(doc)
+    expect(await idDelCuerpo(1)).not.toBe(await idDelCuerpo(0))
   })
 })
 

@@ -2,7 +2,7 @@ import { ErrorDeApi } from '../api/cliente'
 import { crearDiseno, listarDisenos, obtenerDiseno } from '../disenos/servidor'
 import { almacen } from '../editor/estado/almacen'
 import {
-  almacenamientoSeguro, borrarCopiasLocales, CLAVE_DESCARTADO, CLAVE_DUENO_COPIAS, CLAVE_REGISTRO_ENVIADO, disenoNoVacio,
+  almacenamientoSeguro, borrarCopiasLocales, CLAVE_DESCARTADO, CLAVE_DUENO_COPIAS, CLAVE_ID_DE_SUBIDA, CLAVE_REGISTRO_ENVIADO, disenoNoVacio,
   guardarCopiaLocal, listarCopiasLocales, type CopiaListada,
   guardarDisenoLocal,
 } from '../editor/persistencia/local'
@@ -18,8 +18,35 @@ export function disenoAnonimo(): DocumentoDiseno | null {
 }
 
 export function descartarDisenoAnonimo(): void {
-  guardarDisenoLocal(almacenamientoSeguro(), null)
+  const st = almacenamientoSeguro()
+  guardarDisenoLocal(st, null)
+  olvidarIdDeSubida(st)
   if (almacen.getState().origen.tipo === 'anonimo') almacen.getState().descartar()
+}
+
+function olvidarIdDeSubida(st: Storage | null): void {
+  try {
+    st?.removeItem(CLAVE_ID_DE_SUBIDA)
+  } catch {
+    // sin acceso: no hay nada que borrar
+  }
+}
+
+/** El id de una subida a medias o uno nuevo, guardado antes del POST para que un reintento lo reutilice. */
+function idDeSubida(st: Storage | null): string {
+  try {
+    const guardado = st?.getItem(CLAVE_ID_DE_SUBIDA)
+    if (guardado) return guardado
+  } catch {
+    // sin acceso: este intento usa un id que no se recordará
+  }
+  const id = crypto.randomUUID()
+  try {
+    st?.setItem(CLAVE_ID_DE_SUBIDA, id)
+  } catch {
+    // sin espacio: igual
+  }
+  return id
 }
 
 // Contenido comparable: validado, redondeado y con las claves ordenadas (jsonb las reordena).
@@ -82,16 +109,20 @@ export type ResultadoDeSubir = { id: string } | { error: string }
 
 /** Sube el diseño anónimo como diseño nuevo de la cuenta; si sale bien, lo descarta del navegador. */
 export async function subirDisenoAnonimo(doc: DocumentoDiseno): Promise<ResultadoDeSubir> {
+  const st = almacenamientoSeguro()
   try {
-    const d = await crearDiseno(textos.disenos.nombrePorDefecto, doc)
-    // Lo editado durante la subida va como copia pendiente: al abrir el diseño, la sincronización lo sube.
+    const d = await crearDiseno(textos.disenos.nombrePorDefecto, doc, idDeSubida(st))
+    // Si lo devuelto difiere del diseño anónimo de ahora (se editó durante la subida, o es un alta anterior con
+    // contenido antiguo), va como copia pendiente: al abrir el diseño, la sincronización sube el actual.
     const actual = disenoAnonimo()
-    const editado = actual !== null && actual !== doc
-    const copiado = editado && guardarCopiaLocal(almacenamientoSeguro(), d.id, { version: d.version, nombre: d.nombre, documento: actual, pendiente: true })
+    const editado = actual !== null && contenidoNormalizado(actual) !== contenidoNormalizado(d.contenido)
+    const copiado = editado && guardarCopiaLocal(st, d.id, { version: d.version, nombre: d.nombre, documento: actual, pendiente: true })
     // Sin copia, lo editado se queda en el diseño anónimo antes que perderse.
     if (!editado || copiado) descartarDisenoAnonimo()
     return { id: d.id }
   } catch (e) {
+    // Con 409 el id es de otra cuenta o no se creó nada (límite de diseños): el siguiente intento estrena id.
+    if (e instanceof ErrorDeApi && e.estado === 409) olvidarIdDeSubida(st)
     return { error: e instanceof ErrorDeApi && e.estado === 409 ? textos.disenos.limiteConDisenoLocal : mensajeDeError(e) }
   }
 }

@@ -7,6 +7,8 @@ export const CLAVE_DESCARTADO = 'decorazon.disenoAnonimo.descartado'
 export const CLAVE_REGISTRO_ENVIADO = 'decorazon.registroEnviado'
 /** Correo de la cuenta dueña de las copias locales de diseños del servidor. */
 export const CLAVE_DUENO_COPIAS = 'decorazon.duenoCopias'
+/** Id con el que se sube el diseño anónimo: un reintento tras perder la respuesta no crea otro diseño. */
+export const CLAVE_ID_DE_SUBIDA = 'decorazon.idDeSubida'
 
 /** Un diseño con algo dentro: no basta con la estancia vacía. */
 export function disenoNoVacio(doc: DocumentoDiseno | null): doc is DocumentoDiseno {
