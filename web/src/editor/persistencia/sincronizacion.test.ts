@@ -677,18 +677,20 @@ describe('varias pestañas con el mismo diseño', () => {
     expect(escritura).not.toHaveBeenCalled()
   })
 
-  it('al desconectar deja de escuchar', async () => {
-    servidorConVersion(4)
-    const a = crearAlmacen()
-    const st = falso()
-    const desconectar = conectarSincronizacion(a, { esperaMs: 2000, st })
-    a.getState().abrirDelServidor(ID, 4, 'Cocina', doc)
-    a.getState().cambiar(alto(260))
-    await vi.advanceTimersByTimeAsync(ESPERA_COPIA_MS)
-    desconectar()
-    const escritura = vi.spyOn(st, 'setItem')
-    escribeOtraPestana(st, false)
-    expect(escritura).toHaveBeenCalledTimes(1)
+  it('al desconectar quita el listener de storage que añadió', () => {
+    const alta = vi.spyOn(window, 'addEventListener')
+    const baja = vi.spyOn(window, 'removeEventListener')
+    try {
+      const desconectar = conectarSincronizacion(crearAlmacen(), { esperaMs: 2000, st: falso() })
+      const registrados = alta.mock.calls.filter(([tipo]) => tipo === 'storage').map(([, f]) => f)
+      expect(registrados).toHaveLength(1)
+      expect(baja.mock.calls.filter(([tipo]) => tipo === 'storage')).toHaveLength(0)
+      desconectar()
+      expect(baja.mock.calls.filter(([tipo]) => tipo === 'storage').map(([, f]) => f)).toEqual(registrados)
+    } finally {
+      alta.mockRestore()
+      baja.mockRestore()
+    }
   })
 })
 
