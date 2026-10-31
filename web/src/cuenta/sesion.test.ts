@@ -6,7 +6,7 @@ import { almacen, reiniciarAlmacen } from '../editor/estado/almacen'
 import { CLAVE_DESCARTADO, CLAVE_DISENO, CLAVE_DUENO_COPIAS, CLAVE_REGISTRO_ENVIADO, guardarDisenoLocal } from '../editor/persistencia/local'
 import { documentoNuevo } from '../nucleo'
 import { conectarSincronizacion } from '../editor/persistencia/sincronizacion'
-import { alCaducarLaSesion, alSalirDeLaSesion, CLAVE_SESION, conectarSesionConApi, conectarSesionEntrePestanas, reiniciarSesion, sesion } from './sesion'
+import { alCaducarLaSesion, alSalirDeLaSesion, CLAVE_SESION, conectarCargaDeUsuario, conectarSesionConApi, conectarSesionEntrePestanas, reiniciarSesion, sesion } from './sesion'
 
 const MANANA = new Date(Date.now() + 86_400_000).toISOString()
 const AYER = new Date(Date.now() - 86_400_000).toISOString()
@@ -356,5 +356,66 @@ describe('cierre de sesión en otra pestaña', () => {
     enOtraPestana(null)
     await vi.advanceTimersByTimeAsync(5000)
     expect(fetchSimulado).not.toHaveBeenCalled()
+  })
+})
+
+describe('carga del usuario al volver la red', () => {
+  const desconectar: Array<() => void> = []
+  afterEach(() => desconectar.splice(0).forEach((d) => d()))
+
+  function conSesionGuardada() {
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: MANANA }))
+    reiniciarSesion()
+  }
+
+  it('sin red al arrancar, el nombre se carga cuando vuelve la conexión', async () => {
+    conSesionGuardada()
+    fetchSimulado
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(respuesta(200, { nombre: 'Ana', correo: 'ana@x.es' }))
+    desconectar.push(conectarCargaDeUsuario())
+    await vi.waitFor(() => expect(fetchSimulado).toHaveBeenCalledOnce())
+    expect(sesion.getState().usuario).toBeNull()
+    window.dispatchEvent(new Event('online'))
+    await vi.waitFor(() => expect(sesion.getState().usuario?.nombre).toBe('Ana'))
+  })
+
+  it('con el usuario ya cargado, online no vuelve a pedirlo', async () => {
+    conSesionGuardada()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, { nombre: 'Ana', correo: 'ana@x.es' }))
+    desconectar.push(conectarCargaDeUsuario())
+    await vi.waitFor(() => expect(sesion.getState().usuario?.nombre).toBe('Ana'))
+    window.dispatchEvent(new Event('online'))
+    expect(fetchSimulado).toHaveBeenCalledOnce()
+  })
+
+  it('sin sesión no pide nada, ni al arrancar ni al volver la red', () => {
+    desconectar.push(conectarCargaDeUsuario())
+    window.dispatchEvent(new Event('online'))
+    expect(fetchSimulado).not.toHaveBeenCalled()
+  })
+
+  it('varios online mientras una carga sigue en curso no duplican la petición', async () => {
+    conSesionGuardada()
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    desconectar.push(conectarCargaDeUsuario())
+    await vi.waitFor(() => expect(fetchSimulado).toHaveBeenCalledOnce())
+    fetchSimulado.mockImplementation(() => new Promise<Response>(() => {}))
+    window.dispatchEvent(new Event('online'))
+    window.dispatchEvent(new Event('online'))
+    await vi.waitFor(() => expect(fetchSimulado).toHaveBeenCalledTimes(2))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(fetchSimulado).toHaveBeenCalledTimes(2)
+  })
+
+  it('la función devuelta quita el listener', async () => {
+    conSesionGuardada()
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    const desconectarCarga = conectarCargaDeUsuario()
+    await vi.waitFor(() => expect(fetchSimulado).toHaveBeenCalledOnce())
+    desconectarCarga()
+    window.dispatchEvent(new Event('online'))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(fetchSimulado).toHaveBeenCalledOnce()
   })
 })
