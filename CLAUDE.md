@@ -97,4 +97,11 @@ Lo que se pinta en 3D sale de `modelo3d` (`piezasDeElemento`, parametrizado por 
 
 ## Despliegue
 
-Con `srv` (skill `servidor`). Pendiente: plan 6. nginx necesitará `tamanoMaximo: "2m"` en `srv.json`: un diseño puede pesar 1 MB y el cuerpo JSON algo más.
+Con `srv` (skill `servidor`), desde la raíz del repo: `srv.json` publica la web estática (`deploy/construir-web.mjs` la compila a partir del commit) en `decorazon.angelgf.com.es` y la API en `decorazon-api.angelgf.com.es` (salud `/salud`, `tamanoMaximo: "2m"` porque un diseño puede pesar 1 MB), con la base `decorazon`.
+
+- Publicar: `srv subir` (ensayo) y `srv subir --publicar`; volver atrás: `srv volver`; logs: `srv logs api`; estado: `srv estado`.
+- Las migraciones las aplica `srv subir` con el bundle de EF; fuera de Development la API no migra sola.
+- Secretos (los pone Angel con `srv secreto <NOMBRE>`; ver solo nombres con `srv secreto --nombres`): `ConnectionStrings__Decorazon`, `Jwt__ClaveDeFirma` y `Correo__ClaveDeApi`. El resto de la configuración de producción está en `appsettings.json`.
+- La web de producción llama a la API de `web/.env.production` (`VITE_API_URL`) y carga la analítica si hay `VITE_ANALITICA_SITIO`.
+- nginx (plantilla de srv) sirve la web con `Cache-Control: no-cache, no-transform`: el service worker y el manifiesto se revalidan siempre.
+- Tras un despliegue, una pestaña con la versión anterior recarga una vez si no encuentra un fragmento (`web/src/recargaPorVersion.ts`).
