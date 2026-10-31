@@ -3,6 +3,8 @@ import { textos } from '../textos'
 import '../cuenta/cuenta.css'
 
 const t = textos.privacidad
+// Puede quedar vacío: entonces la sección de contacto no se muestra.
+const contacto: string = t.contacto
 
 const secciones = [
   [t.guardamosTitulo, t.guardamos],
@@ -23,10 +25,10 @@ export default function Privacidad() {
             <p>{texto}</p>
           </section>
         ))}
-        {t.contacto !== '' && (
+        {contacto !== '' && (
           <section>
             <h2>{t.contactoTitulo}</h2>
-            <p>{t.contacto}</p>
+            <p><a href={`mailto:${contacto}`}>{contacto}</a></p>
           </section>
         )}
         <p className="cuenta__enlaces"><Link to="/">{t.volver}</Link></p>

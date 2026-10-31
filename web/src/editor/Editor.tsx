@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
+import { versionCargada } from '../recargaPorVersion'
 import { textos } from '../textos'
 import { almacen, useEditor } from './estado/almacen'
 import BarraSuperior, { type Hoja } from './paneles/BarraSuperior'
@@ -15,7 +16,13 @@ import './editor.css'
 
 const MS_AVISO = 4000
 
-const vista3dPerezosa = () => lazy(() => import('./vista3d/Vista3D'))
+const vista3dPerezosa = () =>
+  lazy(() =>
+    import('./vista3d/Vista3D').then((modulo) => {
+      versionCargada()
+      return modulo
+    }),
+  )
 
 export default function Editor() {
   useAtajos()

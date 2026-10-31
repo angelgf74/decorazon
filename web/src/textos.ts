@@ -241,7 +241,7 @@ export const textos = {
     borrar: 'Si borras tu cuenta, se borra todo lo que guardamos de ti, diseños incluidos.',
     contactoTitulo: 'Contacto',
     // Lo fija Angel antes de publicar (plan 6); vacío, no se muestra.
-    contacto: '',
+    contacto: 'angelgf@outlook.com',
     volver: 'Volver al inicio',
   },
   api: {
