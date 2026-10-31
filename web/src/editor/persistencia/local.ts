@@ -74,6 +74,8 @@ export const claveCopia = (id: string) => `${PREFIJO_COPIA}${id}`
 export interface CopiaLocal {
   version: number
   nombre?: string
+  /** El `nombre` es un renombrado que el servidor aún no tiene; una copia sin el campo cuenta como false. */
+  nombrePendiente?: boolean
   documento: DocumentoDiseno
   pendiente: boolean
 }
@@ -85,11 +87,11 @@ export function leerCopiaLocal(st: Storage | null, id: string): CopiaLocal | nul
     if (crudo === null) return null
     const dato: unknown = JSON.parse(crudo)
     if (typeof dato !== 'object' || dato === null) return null
-    const { version, nombre, documento, pendiente } = dato as Record<string, unknown>
+    const { version, nombre, nombrePendiente, documento, pendiente } = dato as Record<string, unknown>
     if (typeof version !== 'number' || typeof pendiente !== 'boolean') return null
     const r = validarDocumento(documento)
     if (!r.valido) return null
-    return { version, ...(typeof nombre === 'string' && { nombre }), documento: r.documento, pendiente }
+    return { version, ...(typeof nombre === 'string' && { nombre }), nombrePendiente: nombrePendiente === true, documento: r.documento, pendiente }
   } catch {
     return null
   }

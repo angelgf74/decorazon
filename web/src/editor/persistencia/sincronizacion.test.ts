@@ -242,6 +242,39 @@ describe('sincronización con el servidor', () => {
     expect(a.getState().origen).toMatchObject({ nombre: 'Mi cocina', version: 10 })
   })
 
+  it('renombrado sin conexión, reabrir sin conexión y después 412 con sobrescribir conserva el nombre propio', async () => {
+    const remoto = servidorConVersion(4)
+    const conRed = servidor.guardarDiseno.getMockImplementation()!
+    const st = falso()
+    const a = crearAlmacen()
+    const desconectar = conectarSincronizacion(a, { esperaMs: 2000, st })
+    a.getState().abrirDelServidor(ID, 4, 'Cocina', doc)
+    // Sin red: el renombrado queda pendiente en la copia.
+    servidor.guardarDiseno.mockImplementation(async () => { throw new ErrorDeApi(0, 'sin red') })
+    renombrar(a, 'Mi salón')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(a.getState().guardado).toBe('sinConexion')
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ nombre: 'Mi salón', nombrePendiente: true })
+    desconectar()
+    // Se reabre sin conexión: la apertura conserva el renombrado como pendiente.
+    const b = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(b, { esperaMs: 2000, st }))
+    const apertura = elegirApertura(ID, leerCopiaLocal(st, ID), null)
+    expect(apertura).toMatchObject({ nombre: 'Mi salón', nombrePendiente: 'Mi salón', guardado: 'sinConexion' })
+    abrirDiseno(b, apertura!)
+    // Entre tanto, otro sitio cambia el diseño y su nombre; vuelve la red.
+    remoto.version = 9
+    remoto.nombre = 'Otro'
+    servidor.guardarDiseno.mockImplementation(conRed)
+    globalThis.dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(b.getState().guardado).toBe('conflicto')
+    await resolverConflicto(b, 'sobrescribir')
+    expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 9, expect.objectContaining({ nombre: 'Mi salón' }))
+    expect(remoto.nombre).toBe('Mi salón')
+    expect(b.getState().origen).toMatchObject({ nombre: 'Mi salón', version: 10 })
+  })
+
   it('412: recargar carga el documento remoto y descarta los cambios locales', async () => {
     const remoto = servidorConVersion(9)
     remoto.contenido = alto(300)(doc)

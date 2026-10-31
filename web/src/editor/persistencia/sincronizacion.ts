@@ -36,15 +36,18 @@ export function elegirApertura(
   if (remoto === null) {
     if (copia === null) return null
     const nombre = copia.nombre ?? textos.disenos.nombrePorDefecto
-    return { id, version: copia.version, nombre, documento: copia.documento, pendiente: copia.pendiente, guardado: 'sinConexion' }
+    const conRenombrado = copia.nombrePendiente && copia.nombre !== undefined ? { nombrePendiente: copia.nombre } : {}
+    return { id, version: copia.version, nombre, documento: copia.documento, pendiente: copia.pendiente, ...conRenombrado, guardado: 'sinConexion' }
   }
   const nombreRemoto = remoto.diseno.nombre
   const mismaVersion = copia !== null && copia.version === remoto.version
-  const renombrado = mismaVersion && copia.nombre !== undefined && copia.nombre !== nombreRemoto ? copia.nombre : undefined
+  // La marca de la copia manda; las copias antiguas, sin ella, lo deducen de un nombre distinto del remoto.
+  const marcado = copia?.nombrePendiente === true && copia.nombre !== undefined
+  const renombrado = marcado || (mismaVersion && copia.nombre !== undefined && copia.nombre !== nombreRemoto) ? copia.nombre : undefined
   if (copia?.pendiente && !mismaVersion) {
     // Nunca se pisa en silencio: con otra versión en el servidor, decide el usuario.
     // Un nombre local distinto queda como renombrado pendiente: "Sobrescribir" lo sube y "Recargar" lo descarta.
-    const local = copia.nombre !== undefined && copia.nombre !== nombreRemoto ? copia.nombre : undefined
+    const local = marcado || (copia.nombre !== undefined && copia.nombre !== nombreRemoto) ? copia.nombre : undefined
     return {
       id, version: copia.version, nombre: local ?? nombreRemoto, documento: copia.documento, pendiente: true,
       ...(local !== undefined && { nombrePendiente: local }), guardado: 'conflicto', versionRemota: remoto.version,
@@ -134,7 +137,7 @@ export function conectarSincronizacion(
   const copiar = (t: Trabajo) => {
     // Un trabajo ya dejado no pisa la copia del mismo diseño abierto otra vez.
     if (anulado(t) || (t !== actual && actual?.id === t.id)) return
-    const ok = guardarCopiaLocal(st, t.id, { version: t.version, nombre: t.nombre, documento: t.documento, pendiente: hayCambios(t) })
+    const ok = guardarCopiaLocal(st, t.id, { version: t.version, nombre: t.nombre, documento: t.documento, pendiente: hayCambios(t), nombrePendiente: t.nombrePendiente !== null })
     if (!ok) fijar(t, { aviso: textos.barra.sinCopiaLocal })
   }
 
