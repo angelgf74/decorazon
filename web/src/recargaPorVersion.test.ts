@@ -20,14 +20,25 @@ describe('recarga ante un fragmento de una versión anterior', () => {
     desconectar()
   })
 
-  it('si ya recargó una vez, no vuelve a recargar y deja pasar el error', () => {
-    sessionStorage.setItem(CLAVE_RECARGA, '1')
+  it('si acaba de recargar, no vuelve a recargar y deja pasar el error', () => {
+    sessionStorage.setItem(CLAVE_RECARGA, String(Date.now() - 5_000))
     const recargar = vi.fn()
     const desconectar = conectarRecargaPorVersion(recargar)
     const evento = fallo()
     window.dispatchEvent(evento)
     expect(recargar).not.toHaveBeenCalled()
     expect(evento.defaultPrevented).toBe(false)
+    desconectar()
+  })
+
+  it('una marca de hace más de un minuto (otro despliegue) no impide recargar', () => {
+    sessionStorage.setItem(CLAVE_RECARGA, String(Date.now() - 61_000))
+    const recargar = vi.fn()
+    const desconectar = conectarRecargaPorVersion(recargar)
+    const evento = fallo()
+    window.dispatchEvent(evento)
+    expect(recargar).toHaveBeenCalledTimes(1)
+    expect(evento.defaultPrevented).toBe(true)
     desconectar()
   })
 
