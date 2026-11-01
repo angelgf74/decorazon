@@ -85,4 +85,21 @@ describe('muebles de despacho', () => {
     expect(contienePunto(huella!, { x: 0, y: 0 })).toBe(true)
     expect(contienePunto(huella!, { x: 14, y: 14 })).toBe(false)
   })
+
+  it('lo que está bajo un escritorio no da avisos de paso estrecho: por ahí no se pasa', () => {
+    // Escritorio 160×80 contra la pared de arriba (y de 0 a 80); cajonera y archivador bajo el tablero, a 30 cm entre sí y a 25 y 18 cm de la pared.
+    const doc = documentoNuevo('despacho', 400, 400, 250)
+    doc.elementos = [
+      elemento('escritorio', 200, 40, 0, { ancho: 160, fondo: 80 }, {}, 'mesa'),
+      elemento('cajonera', 150, 52.5, 0, {}, {}, 'caj'),
+      elemento('archivador', 224.5, 49, 0, { alto: 70 }, {}, 'arc'),
+    ]
+    expect(detectarConflictos(doc, catalogoBase).filter((c) => c.tipo === 'pasoEstrecho')).toEqual([])
+  })
+
+  it('una cajonera fuera de la mesa sí avisa del paso estrecho', () => {
+    const doc = documentoNuevo('despacho', 400, 400, 250)
+    doc.elementos = [elemento('cajonera', 200, 57.5, 0, {}, {}, 'caj')]
+    expect(detectarConflictos(doc, catalogoBase).some((c) => c.tipo === 'pasoEstrecho' && c.ids.includes('caj'))).toBe(true)
+  })
 })
