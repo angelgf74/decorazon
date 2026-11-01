@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import type { TipoEstancia } from '../../nucleo'
+import { TIPOS_ESTANCIA, type TipoEstancia } from '../../nucleo'
 import { textos } from '../../textos'
 import CampoNumero from '../comunes/CampoNumero'
 import { useEditor } from '../estado/almacen'
 
 const t = textos.nuevaEstancia
-const TIPOS: TipoEstancia[] = ['dormitorio', 'salon', 'cocina']
 
 interface Props {
   // Si se da, entrega las medidas en lugar de crear la estancia en el almacén del editor.
@@ -25,7 +24,7 @@ export default function NuevaEstancia({ alCrear }: Props) {
       <h1>{t.titulo}</h1>
       <fieldset>
         <legend>{t.tipo}</legend>
-        {TIPOS.map((x) => (
+        {TIPOS_ESTANCIA.map((x) => (
           <label key={x} className="nueva-estancia__tipo">
             <input type="radio" name="tipo" value={x} checked={tipo === x} onChange={() => setTipo(x)} />
             {t.tipos[x]}

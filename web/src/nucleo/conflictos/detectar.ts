@@ -1,6 +1,6 @@
 import type { DocumentoDiseno, Elemento } from '../modelo/documento'
 import type { Catalogo, DefinicionTipo, ZonaApertura } from '../catalogo/tipos'
-import { distanciaConvexos, interseccionConvexos } from '../geometria/convexo'
+import { distanciaConvexos, interseccionConvexos, penetracion } from '../geometria/convexo'
 import { areaConSigno, cajaPlanta, distanciaSegmentos } from '../geometria/poligono'
 import { penetracion3D, solapeZ, type Prisma } from '../geometria/prisma'
 import type { Punto } from '../geometria/vector'
@@ -185,7 +185,13 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
   }
 
   // Pasos estrechos (aviso).
-  const bloquean = piezas.filter((p) => p.def.bloqueaPaso)
+  // Lo que está bajo el tablero de algo que se apoya en el suelo (una cajonera bajo un escritorio) no marca ningún paso:
+  // por ahí no se camina, y el paso lo marca el propio tablero.
+  const techo = (p: Pieza) => Math.max(...p.volumenes.map((v) => v.zMax))
+  const bajoTablero = (p: Pieza) => piezas.some((q) => q !== p
+    && q.volumenes.some((w) => w.zMin <= TOLERANCIA_CM)
+    && q.volumenes.some((w) => w.zMin >= techo(p) - TOLERANCIA_CM && p.volumenes.some((v) => penetracion(v.huella, w.huella) > TOLERANCIA_CM)))
+  const bloquean = piezas.filter((p) => p.def.bloqueaPaso && !bajoTablero(p))
   const estrecho = (d: number) => d >= HUECO_IGNORADO_CM - 1e-6 && d < PASO_MINIMO_CM
   for (let i = 0; i < bloquean.length; i++) {
     const a = bloquean[i]

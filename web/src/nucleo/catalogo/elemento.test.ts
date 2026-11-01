@@ -41,6 +41,11 @@ describe('catalogoDeEstancia', () => {
     expect(ids(g.decoracion)).toEqual(expect.arrayContaining(['alfombra', 'cortina']))
     expect(g.decoracion.every((d) => d.categoria === 'decoracion')).toBe(true)
   })
+  it('en un despacho están los muebles de oficina y los de trabajo que ya había', () => {
+    const d = catalogoDeEstancia(catalogoBase, 'despacho')
+    expect(ids(d.deLaEstancia)).toEqual(expect.arrayContaining(['escritorio', 'silla', 'estanteria', 'sillon', 'aparador']))
+    expect(ids(d.deLaEstancia)).not.toContain('cama')
+  })
   it('cada grupo va ordenado por nombre', () => {
     for (const lista of [g.deLaEstancia, g.otros, g.decoracion]) {
       const nombres = lista.map((d) => d.nombre)

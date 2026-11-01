@@ -8,6 +8,7 @@ public class TiposDeEstanciaTests
     [InlineData("dormitorio", TipoDeEstancia.Dormitorio)]
     [InlineData("salon", TipoDeEstancia.Salon)]
     [InlineData("cocina", TipoDeEstancia.Cocina)]
+    [InlineData("despacho", TipoDeEstancia.Despacho)]
     public void Convierte_en_los_dos_sentidos(string texto, TipoDeEstancia esperado)
     {
         Assert.True(TiposDeEstancia.TryDesdeTexto(texto, out var tipo));

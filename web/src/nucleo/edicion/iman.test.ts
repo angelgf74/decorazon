@@ -166,4 +166,28 @@ describe('imantar entre muebles: solo los que chocan', () => {
     expect(r.posicion).toEqual({ x: 160, y: 165 })
     expect(r.pegadoA).toEqual(['b1'])
   })
+  describe('bajo un tablero', () => {
+    const conEscritorio = (): DocumentoDiseno => {
+      const doc = documentoNuevo('despacho', 400, 400, 250)
+      doc.elementos = [{ ...elementoNuevo(catalogoBase.get('escritorio')!, { x: 200, y: 200 }, 'mesa') }]
+      return doc
+    }
+    const de = (tipo: string, posicion: Punto, rotacion = 0): Elemento =>
+      ({ ...elementoNuevo(catalogoBase.get(tipo)!, { ...posicion }, 'x'), rotacion })
+
+    it('una silla metida bajo el escritorio hasta el respaldo se queda donde está', () => {
+      // Tablero de y 170 a 230; la silla girada 180° en y=240 tiene el asiento de 215 a 265 y el respaldo fuera.
+      expect(imantar(conEscritorio(), catalogoBase, de('silla', { x: 200, y: 240 }, 180), { libre: false }).posicion).toEqual({ x: 200, y: 240 })
+      expect(imantar(conEscritorio(), catalogoBase, de('silla-oficina', { x: 200, y: 250 }, 180), { libre: false }).posicion).toEqual({ x: 200, y: 250 })
+    })
+    it('una cajonera que entra unos centímetros bajo el tablero no sale empujada', () => {
+      expect(imantar(conEscritorio(), catalogoBase, de('cajonera', { x: 200, y: 250 }), { libre: false }).posicion).toEqual({ x: 200, y: 250 })
+    })
+    it('una silla que se acerca sin llegar se sigue pegando al borde', () => {
+      // En y=270 el asiento empieza en 245: a 15 cm del tablero; se pega con el asiento en 230.
+      const r = imantar(conEscritorio(), catalogoBase, de('silla', { x: 200, y: 270 }, 180), { libre: false })
+      expect(r.posicion).toEqual({ x: 200, y: 255 })
+      expect(r.pegadoA).toEqual(['mesa'])
+    })
+  })
 })

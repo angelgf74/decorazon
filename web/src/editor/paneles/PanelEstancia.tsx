@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from 'react'
 import {
-  anadirAbertura, anadirEstructura, cajaPlanta, editarEstancia, esRectangular, redimensionarRectangulo,
+  anadirAbertura, anadirEstructura, cajaPlanta, editarEstancia, esRectangular, redimensionarRectangulo, TIPOS_ESTANCIA,
   type DocumentoDiseno, type Estancia, type ResultadoEdicion, type TipoEstancia,
 } from '../../nucleo'
 import { textos } from '../../textos'
@@ -10,7 +10,6 @@ import Icono from '../comunes/Icono'
 import { almacen, useEditor } from '../estado/almacen'
 
 const t = textos.estancia
-const TIPOS: TipoEstancia[] = ['dormitorio', 'salon', 'cocina']
 const MUESTRAS_PAREDES = ['#f4f1ea', '#e9e1d3', '#d9cbb0', '#cfd8d3', '#e6d3cf', '#ffffff']
 const MUESTRAS_SUELO = ['#c8a77e', '#a98462', '#8b6b4a', '#d9d4c7', '#9a9a96', '#e8e4dc']
 
@@ -104,7 +103,7 @@ export default function PanelEstancia() {
         <div className="panel__campo">
           <label className="panel__etiqueta" htmlFor={idTipo}>{t.tipo}</label>
           <select id={idTipo} value={estancia.tipo} onChange={(e) => cambiarEstancia({ tipo: e.target.value as TipoEstancia })}>
-            {TIPOS.map((x) => <option key={x} value={x}>{textos.nuevaEstancia.tipos[x]}</option>)}
+            {TIPOS_ESTANCIA.map((x) => <option key={x} value={x}>{textos.nuevaEstancia.tipos[x]}</option>)}
           </select>
         </div>
         {!esRectangular(planta) && <p className="panel__nota">{textos.edicion.noRectangular}</p>}

@@ -1,5 +1,5 @@
 import { areaConSigno, esSimple } from '../geometria/poligono'
-import { FORMATO_ACTUAL, type DocumentoDiseno, type Punto } from './documento'
+import { FORMATO_ACTUAL, TIPOS_ESTANCIA, type DocumentoDiseno, type Punto } from './documento'
 
 export type ResultadoValidacion =
   | { valido: true; documento: DocumentoDiseno }
@@ -9,7 +9,6 @@ type Obj = Record<string, unknown>
 
 const esObjeto = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v)
 const esEntero = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v)
-const TIPOS_ESTANCIA = ['dormitorio', 'salon', 'cocina']
 
 class Validador {
   errores: string[] = []
@@ -41,7 +40,7 @@ class Validador {
   booleano(v: unknown, ruta: string) {
     if (typeof v !== 'boolean') this.err(ruta, 'debe ser verdadero o falso')
   }
-  opcion(v: unknown, ruta: string, validas: string[]) {
+  opcion(v: unknown, ruta: string, validas: readonly string[]) {
     if (typeof v !== 'string' || !validas.includes(v)) this.err(ruta, `debe ser uno de: ${validas.join(', ')}`)
   }
   punto(v: unknown, ruta: string): Punto | null {

@@ -86,6 +86,17 @@ export function cuerpoConZocalo(e: Elemento, puertas: number, zona: string): Pie
   ]
 }
 
+/** Óvalo inscrito en ancho×fondo entre z0 y z1: una caja central y un cilindro en cada extremo del lado mayor. */
+export function ovalo(e: Elemento, z0: number, z1: number, zona: string): PiezaLocal[] {
+  const { ancho, fondo } = e.medidas
+  const r = Math.min(ancho, fondo) / 2
+  const tramo = Math.abs(ancho - fondo) / 2
+  const centros = ancho >= fondo ? [[-tramo, 0], [tramo, 0]] : [[0, -tramo], [0, tramo]]
+  const piezas = centros.map(([cx, cy]) => cilindro(cx!, cy!, r, z0, z1, zona))
+  if (tramo < 0.5) return [piezas[0]!]
+  return [ancho >= fondo ? caja(-tramo, -r, z0, tramo, r, z1, zona) : caja(-r, -tramo, z0, r, tramo, z1, zona), ...piezas]
+}
+
 /** Tablero de 3 cm sobre cuatro patas de 5 cm. */
 export function mesaConPatas(e: Elemento, zonaTablero: string, zonaPatas: string): PiezaLocal[] {
   const { ancho, fondo, alto } = e.medidas

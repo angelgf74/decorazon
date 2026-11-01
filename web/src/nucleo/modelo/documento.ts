@@ -1,5 +1,6 @@
 export const FORMATO_ACTUAL = 1
-export type TipoEstancia = 'dormitorio' | 'salon' | 'cocina'
+export type TipoEstancia = 'dormitorio' | 'salon' | 'cocina' | 'despacho'
+export const TIPOS_ESTANCIA: readonly TipoEstancia[] = ['dormitorio', 'salon', 'cocina', 'despacho']
 import type { Punto } from '../geometria/vector'
 export type { Punto }
 export interface Estancia { tipo: TipoEstancia; alto: number; grosorPared: number; planta: Punto[]; colorParedes: string; colorSuelo: string }

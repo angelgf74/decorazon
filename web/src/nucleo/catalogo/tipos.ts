@@ -1,5 +1,6 @@
 import type { Elemento, TipoEstancia } from '../modelo/documento'
 import type { Prisma } from '../geometria/prisma'
+import type { Punto } from '../geometria/vector'
 import type { PiezaLocal } from '../modelo3d/tipos'
 
 export interface Rango { min: number; max: number; defecto: number }
@@ -27,6 +28,8 @@ export interface DefinicionTipo {
   sobreVentana: boolean
   /** Volúmenes en coordenadas del mundo. */
   volumenes(e: Elemento): Prisma[]
+  /** Huellas que pinta el plano, en coordenadas del mundo; sin ella, las de los volúmenes. */
+  planta?: (e: Elemento) => Punto[][]
   zonasApertura(e: Elemento): ZonaApertura[]
   /** Piezas 3D en el sistema local del elemento; sin ella se usa una caja del tamaño del elemento. */
   modelo3d?: (e: Elemento) => PiezaLocal[]

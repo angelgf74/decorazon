@@ -28,6 +28,14 @@ import { planta } from './definiciones/planta'
 import { cuadro } from './definiciones/cuadro'
 import { cortina } from './definiciones/cortina'
 
-const tipos = [cama, armario, comoda, alfombra, mesita, escritorio, silla, estanteria, sofa, sillon, mesaCentro, muebleTv, mesa, aparador, moduloBajo, moduloAlto, columnaCocina, encimera, frigorifico, lavavajillas, placa, fregadero, taburete, lampara, planta, cuadro, cortina]
+import { sillaOficina } from './definiciones/sillaOficina'
+import { escritorioL } from './definiciones/escritorioL'
+import { cajonera } from './definiciones/cajonera'
+import { archivador } from './definiciones/archivador'
+import { mesaReuniones } from './definiciones/mesaReuniones'
+import { papelera } from './definiciones/papelera'
+import { reposapies } from './definiciones/reposapies'
+
+const tipos = [cama, armario, comoda, alfombra, mesita, escritorio, silla, estanteria, sofa, sillon, mesaCentro, muebleTv, mesa, aparador, moduloBajo, moduloAlto, columnaCocina, encimera, frigorifico, lavavajillas, placa, fregadero, taburete, lampara, planta, cuadro, cortina, sillaOficina, escritorioL, cajonera, archivador, mesaReuniones, papelera, reposapies]
 
 export const catalogoBase: Catalogo = new Map(tipos.map((d) => [d.id, d]))
