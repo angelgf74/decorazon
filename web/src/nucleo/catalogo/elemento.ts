@@ -20,6 +20,11 @@ export function ajustarMedidas(def: DefinicionTipo, m: Medidas): Medidas {
   return { ancho: aj(m.ancho, def.medidas.ancho), fondo: aj(m.fondo, def.medidas.fondo), alto: aj(m.alto, def.medidas.alto) }
 }
 
+/** Huellas del elemento en el plano. */
+export function huellasEnPlanta(def: DefinicionTipo, e: Elemento): Punto[][] {
+  return def.planta ? def.planta(e) : def.volumenes(e).map((v) => v.huella)
+}
+
 const porNombre = (a: DefinicionTipo, b: DefinicionTipo) => a.nombre.localeCompare(b.nombre, 'es')
 
 /** Catálogo para la paleta: muebles de la estancia, el resto de muebles y la decoración, cada grupo por nombre. */

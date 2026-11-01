@@ -1,4 +1,4 @@
-import { catalogoBase, rectangulo, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
+import { catalogoBase, huellasEnPlanta, rectangulo, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
 import type { Seleccion } from '../../estado/almacen'
 import { manejador, puntos, type AlPulsar } from './comun'
 
@@ -10,7 +10,7 @@ const COLOR_SIN_ZONA = '#d8d2ca'
 
 function Pieza({ e, elegido }: { e: Elemento; elegido: boolean }) {
   const def = catalogoBase.get(e.tipo)
-  const huellas = def ? def.volumenes(e).map((v) => v.huella) : [rectangulo(e.posicion, e.medidas.ancho, e.medidas.fondo, e.rotacion)]
+  const huellas = def ? huellasEnPlanta(def, e) : [rectangulo(e.posicion, e.medidas.ancho, e.medidas.fondo, e.rotacion)]
   const zona = def?.zonasColor[0]
   const relleno = zona ? (e.colores[zona.clave] ?? zona.defecto) : COLOR_SIN_ZONA
   const nombre = def ? def.nombre.charAt(0).toUpperCase() + def.nombre.slice(1) : e.tipo

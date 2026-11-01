@@ -1,5 +1,5 @@
 import type { DefinicionTipo } from '../tipos'
-import { cajaEntera } from '../aperturas'
+import { asientoYRespaldo, huellaEntera } from '../aperturas'
 import { caja, patas4 } from '../modelos'
 
 export const silla: DefinicionTipo = {
@@ -9,7 +9,8 @@ export const silla: DefinicionTipo = {
   variantes: [],
   zonasColor: [{ clave: 'asiento', etiqueta: 'Asiento', material: 'madera', defecto: '#8b6b4a' }],
   pisable: false, bloqueaPaso: false, sobreVentana: false,
-  volumenes: cajaEntera,
+  volumenes: (e) => asientoYRespaldo(e, 45, 3),
+  planta: huellaEntera,
   modelo3d(e) {
     const { ancho, fondo, alto } = e.medidas
     return [

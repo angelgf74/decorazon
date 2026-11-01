@@ -1,5 +1,5 @@
 import type { DefinicionTipo } from '../tipos'
-import { cajaEntera } from '../aperturas'
+import { huellaEntera, tableroConPatas } from '../aperturas'
 import { mesaConPatas } from '../modelos'
 
 export const escritorio: DefinicionTipo = {
@@ -9,7 +9,8 @@ export const escritorio: DefinicionTipo = {
   variantes: [],
   zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#c9a77c' }, { clave: 'patas', etiqueta: 'Patas', material: 'metal', defecto: '#3a3a3a' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
-  volumenes: cajaEntera,
+  volumenes: tableroConPatas,
+  planta: huellaEntera,
   modelo3d: (e) => mesaConPatas(e, 'tablero', 'patas'),
   zonasApertura: () => [],
 }

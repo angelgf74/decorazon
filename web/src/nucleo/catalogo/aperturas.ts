@@ -1,5 +1,6 @@
 import type { Elemento } from '../modelo/documento'
 import type { Prisma } from '../geometria/prisma'
+import type { Punto } from '../geometria/vector'
 import { sectorCircunscrito } from '../geometria/formas'
 import type { ZonaApertura } from './tipos'
 import { aMundo, cajaMundo } from './transformar'
@@ -8,6 +9,31 @@ import { aMundo, cajaMundo } from './transformar'
 export function cajaEntera(e: Elemento): Prisma[] {
   const { ancho, fondo, alto } = e.medidas
   return [cajaMundo(e, -ancho / 2, -fondo / 2, ancho / 2, fondo / 2, 0, alto)]
+}
+
+/** La huella ancho×fondo entera, para el plano de las piezas que chocan por partes. */
+export function huellaEntera(e: Elemento): Punto[][] {
+  return [cajaEntera(e)[0]!.huella]
+}
+
+/** Tablero de 3 cm y cuatro patas de 5 cm metidas 3 cm, como `mesaConPatas`: lo que quepa debajo no choca. */
+export function tableroConPatas(e: Elemento): Prisma[] {
+  const { ancho, fondo, alto } = e.medidas
+  const xs = [-ancho / 2 + 3, ancho / 2 - 8]
+  const ys = [-fondo / 2 + 3, fondo / 2 - 8]
+  return [
+    cajaMundo(e, -ancho / 2, -fondo / 2, ancho / 2, fondo / 2, alto - 3, alto),
+    ...xs.flatMap((x) => ys.map((y) => cajaMundo(e, x, y, x + 5, y + 5, 0, alto - 3))),
+  ]
+}
+
+/** Asiento a lo ancho y fondo hasta `asiento` cm y respaldo de `grueso` cm detrás (y local negativa) hasta arriba. */
+export function asientoYRespaldo(e: Elemento, asiento: number, grueso: number): Prisma[] {
+  const { ancho, fondo, alto } = e.medidas
+  return [
+    cajaMundo(e, -ancho / 2, -fondo / 2, ancho / 2, fondo / 2, 0, asiento),
+    cajaMundo(e, -ancho / 2, -fondo / 2, ancho / 2, -fondo / 2 + grueso, asiento, alto),
+  ]
 }
 
 /** `hojas` iguales a lo ancho del frente: las pares con la bisagra a la izquierda, las impares a la derecha. */
