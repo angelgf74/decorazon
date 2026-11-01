@@ -1,4 +1,4 @@
-import { catalogoBase, huellasEnPlanta, rectangulo, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
+import { catalogoBase, huellasEnPlanta, nombreEnPlanta, rectangulo, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
 import type { Seleccion } from '../../estado/almacen'
 import { manejador, puntos, type AlPulsar } from './comun'
 
@@ -13,7 +13,6 @@ function Pieza({ e, elegido }: { e: Elemento; elegido: boolean }) {
   const huellas = def ? huellasEnPlanta(def, e) : [rectangulo(e.posicion, e.medidas.ancho, e.medidas.fondo, e.rotacion)]
   const zona = def?.zonasColor[0]
   const relleno = zona ? (e.colores[zona.clave] ?? zona.defecto) : COLOR_SIN_ZONA
-  const nombre = def ? def.nombre.charAt(0).toUpperCase() + def.nombre.slice(1) : e.tipo
   return (
     <>
       {/* La selección es un halo por debajo: el contorno rojo de un conflicto sigue a la vista. */}
@@ -22,11 +21,16 @@ function Pieza({ e, elegido }: { e: Elemento; elegido: boolean }) {
       {def?.zonasApertura(e).map((z, i) => (
         <polygon key={`a${i}`} className="capa-elementos__apertura" points={puntos(z.huella)} strokeDasharray="6 4" />
       ))}
-      {e.medidas.ancho > ANCHO_NOMBRE_CM && (
-        <text className="lienzo__texto" x={e.posicion.x} y={e.posicion.y}>{nombre}</text>
-      )}
     </>
   )
+}
+
+function Nombre({ e }: { e: Elemento }) {
+  if (e.medidas.ancho <= ANCHO_NOMBRE_CM) return null
+  const def = catalogoBase.get(e.tipo)
+  const nombre = def ? def.nombre.charAt(0).toUpperCase() + def.nombre.slice(1) : e.tipo
+  const { x, y } = def ? nombreEnPlanta(def, e) : e.posicion
+  return <text className="lienzo__texto" x={x} y={y}>{nombre}</text>
 }
 
 export default function CapaElementos({ documento, conflictos, seleccion, alPulsar }: Props) {
@@ -50,6 +54,10 @@ export default function CapaElementos({ documento, conflictos, seleccion, alPuls
           </g>
         )
       })}
+      {/* Los nombres, por encima de todas las piezas: lo que está bajo una mesa no tapa el suyo. */}
+      <g className="capa-elementos__nombres">
+        {orden.map((e) => <Nombre key={e.id} e={e} />)}
+      </g>
     </g>
   )
 }

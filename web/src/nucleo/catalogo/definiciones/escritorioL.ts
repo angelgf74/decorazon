@@ -1,6 +1,6 @@
 import { valorVariante, type DefinicionTipo } from '../tipos'
-import type { Elemento } from '../../modelo/documento'
-import { cajaMundo } from '../transformar'
+import type { Elemento, Punto } from '../../modelo/documento'
+import { aMundo, cajaMundo } from '../transformar'
 import { caja } from '../modelos'
 
 /** Fondo de cada tablero de la L y lado de las patas, en cm. */
@@ -18,6 +18,19 @@ function tableros(e: Elemento): Rect[] {
   const yFin = -fondo / 2 + FONDO_TABLERO
   const [ax0, ax1] = derecha ? [ancho / 2 - FONDO_TABLERO, ancho / 2] : [-ancho / 2, -ancho / 2 + FONDO_TABLERO]
   return [[-ancho / 2, -fondo / 2, ancho / 2, yFin], [ax0, yFin, ax1, fondo / 2]]
+}
+
+/** La L entera en coordenadas locales, en el mismo sentido que `cajaMundo`: un solo polígono, sin línea entre los tableros. */
+function contornoL(e: Elemento): Punto[] {
+  const { ancho, fondo } = e.medidas
+  const yFin = -fondo / 2 + FONDO_TABLERO
+  const atras = [{ x: -ancho / 2, y: -fondo / 2 }, { x: ancho / 2, y: -fondo / 2 }]
+  if (valorVariante(escritorioL, e, 'ala') === 'derecha') {
+    const xAla = ancho / 2 - FONDO_TABLERO
+    return [...atras, { x: ancho / 2, y: fondo / 2 }, { x: xAla, y: fondo / 2 }, { x: xAla, y: yFin }, { x: -ancho / 2, y: yFin }]
+  }
+  const xAla = -ancho / 2 + FONDO_TABLERO
+  return [...atras, { x: ancho / 2, y: yFin }, { x: xAla, y: yFin }, { x: xAla, y: fondo / 2 }, { x: -ancho / 2, y: fondo / 2 }]
 }
 
 /** Esquina [x0, y0] de cada una de las cinco patas: en las esquinas de la L salvo la de dentro. */
@@ -47,7 +60,9 @@ export const escritorioL: DefinicionTipo = {
       ...patas(e).map(([x, y]) => cajaMundo(e, x, y, x + PATA, y + PATA, 0, alto - 3)),
     ]
   },
-  planta: (e) => tableros(e).map(([x0, y0, x1, y1]) => cajaMundo(e, x0, y0, x1, y1, 0, 0).huella),
+  planta: (e) => [contornoL(e).map((p) => aMundo(e, p))],
+  // En el centro del tablero principal: `e.posicion` cae en la esquina vacía de la L.
+  posicionNombre: (e) => aMundo(e, { x: 0, y: -e.medidas.fondo / 2 + FONDO_TABLERO / 2 }),
   modelo3d(e) {
     const alto = e.medidas.alto
     return [

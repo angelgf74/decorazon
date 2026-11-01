@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { catalogoBase } from '../catalogoBase'
-import { huellasEnPlanta } from '../elemento'
+import { huellasEnPlanta, nombreEnPlanta } from '../elemento'
 import { documentoNuevo } from '../../modelo/crear'
 import { detectarConflictos } from '../../conflictos/detectar'
 import { contienePunto } from '../../geometria/poligono'
@@ -47,20 +47,25 @@ describe('muebles de despacho', () => {
     expect(def('cajonera').zonasApertura(elemento('cajonera', 0, 0, 0))).toHaveLength(1)
   })
 
-  it('escritorio en L: dos tableros y cinco patas; en el plano, la L', () => {
-    const derecha = elemento('escritorio-l', 0, 0, 0)
-    expect(def('escritorio-l').volumenes(derecha)).toHaveLength(7)
-    const [, alaDerecha] = huellasEnPlanta(def('escritorio-l'), derecha)
-    expect(Math.min(...alaDerecha!.map((p) => p.x))).toBeGreaterThan(0)
-    const [, alaIzquierda] = huellasEnPlanta(def('escritorio-l'), elemento('escritorio-l', 0, 0, 0, {}, { ala: 'izquierda' }))
-    expect(Math.max(...alaIzquierda!.map((p) => p.x))).toBeLessThan(0)
+  it('escritorio en L: dos tableros y cinco patas; en el plano, una sola L de seis vértices, sin línea entre los tableros', () => {
+    expect(def('escritorio-l').volumenes(elemento('escritorio-l', 0, 0, 0))).toHaveLength(7)
+    // 160×140: tablero principal de y −70 a −10; ala de 60 de ancho hasta y 70.
+    const derecha = huellasEnPlanta(def('escritorio-l'), elemento('escritorio-l', 0, 0, 0))
+    expect(derecha).toHaveLength(1)
+    expect(derecha[0]).toHaveLength(6)
+    for (const p of [{ x: -60, y: -40 }, { x: 60, y: -40 }, { x: 50, y: 50 }]) expect(contienePunto(derecha[0]!, p)).toBe(true)
+    expect(contienePunto(derecha[0]!, { x: -60, y: 50 })).toBe(false)
+    const [izquierda] = huellasEnPlanta(def('escritorio-l'), elemento('escritorio-l', 0, 0, 0, {}, { ala: 'izquierda' }))
+    expect(contienePunto(izquierda!, { x: -50, y: 50 })).toBe(true)
+    expect(contienePunto(izquierda!, { x: 60, y: 50 })).toBe(false)
   })
 
-  it('escritorio en L: la esquina de dentro queda libre', () => {
-    // 160×140 con el ala a la derecha: la esquina libre es la de delante a la izquierda.
-    const huellas = huellasEnPlanta(def('escritorio-l'), elemento('escritorio-l', 0, 0, 0))
-    expect(huellas.some((h) => contienePunto(h, { x: -60, y: 50 }))).toBe(false)
-    expect(huellas.some((h) => contienePunto(h, { x: 60, y: 50 }))).toBe(true)
+  it('escritorio en L: el nombre va en el tablero principal, no en la esquina vacía', () => {
+    expect(nombreEnPlanta(def('escritorio-l'), elemento('escritorio-l', 100, 100, 0))).toEqual({ x: 100, y: 60 })
+    const girado = nombreEnPlanta(def('escritorio-l'), elemento('escritorio-l', 100, 100, 90))
+    expect(girado.x).toBeCloseTo(140, 9)
+    expect(girado.y).toBeCloseTo(100, 9)
+    expect(nombreEnPlanta(def('escritorio'), elemento('escritorio', 100, 100, 0))).toEqual({ x: 100, y: 100 })
   })
 
   it('archivador: cajones según el alto o puertas según el ancho', () => {
