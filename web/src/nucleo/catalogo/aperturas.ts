@@ -36,6 +36,26 @@ export function asientoYRespaldo(e: Elemento, asiento: number, grueso: number): 
   ]
 }
 
+/** Óvalo inscrito en ancho×fondo (círculo si son iguales): dos semicírculos unidos por rectas a lo largo del lado mayor. */
+export function huellaOvalada(e: Elemento, segmentos = 12): Punto[] {
+  const { ancho, fondo } = e.medidas
+  const r = Math.min(ancho, fondo) / 2
+  const tramo = Math.abs(ancho - fondo) / 2
+  const aLoAncho = ancho >= fondo
+  const puntos: Punto[] = []
+  // En un círculo los dos semicírculos comparten extremos: sin el primero de cada uno no se repiten.
+  const primero = tramo > 0 ? 0 : 1
+  for (const lado of [1, -1]) {
+    const c = aLoAncho ? { x: lado * tramo, y: 0 } : { x: 0, y: lado * tramo }
+    const desde = aLoAncho ? (lado === 1 ? -90 : 90) : (lado === 1 ? 0 : 180)
+    for (let k = primero; k <= segmentos; k++) {
+      const a = ((desde + (180 * k) / segmentos) * Math.PI) / 180
+      puntos.push({ x: c.x + r * Math.cos(a), y: c.y + r * Math.sin(a) })
+    }
+  }
+  return puntos.map((p) => aMundo(e, p))
+}
+
 /** `hojas` iguales a lo ancho del frente: las pares con la bisagra a la izquierda, las impares a la derecha. */
 export function puertasAbatibles(e: Elemento, hojas: number, zDesde = 0, zHasta = e.medidas.alto): ZonaApertura[] {
   const { ancho, fondo } = e.medidas
