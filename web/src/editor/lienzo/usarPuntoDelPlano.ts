@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, type PointerEvent as PointerEventReact, type RefObject } from 'react'
+import { createContext, useCallback, useContext, type RefObject } from 'react'
 import type { Punto } from '../../nucleo'
 import { aPlano, type Vista2D } from './vista'
 
@@ -10,7 +10,8 @@ export interface ContextoLienzo {
 
 export const ContextoLienzo = createContext<ContextoLienzo | null>(null)
 
-type EventoConPosicion = PointerEvent | PointerEventReact | DragEvent
+/** Un evento de puntero o de arrastre, o el detalle del que suelta un tipo con el dedo. */
+type EventoConPosicion = { clientX: number; clientY: number }
 
 export function puntoDelPlano({ plano, vista }: ContextoLienzo, ev: EventoConPosicion): Punto {
   const g = plano.current

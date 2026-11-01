@@ -116,6 +116,29 @@ public class CarrerasTests(ApiConCarrerasFixture api) : IClassFixture<ApiConCarr
         Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
     }
 
+    /// <summary>
+    /// Dos pestañas suben a la vez el mismo diseño nuevo: la segunda pasa la comprobación
+    /// de que no existe, choca con la clave primaria al guardar y responde 200 con el que
+    /// guardó la primera.
+    /// </summary>
+    [Fact]
+    public async Task DosAltasSimultaneasConElMismoId_UnaFilaYAmbasCorrectas()
+    {
+        var cliente = await CuentasDePrueba.ConSesionAsync(api);
+        var id = Guid.NewGuid();
+        HttpResponseMessage? laOtra = null;
+        api.Carrera.Armar(async () =>
+            laOtra = await cliente.PostAsJsonAsync("/disenos", DisenosDePrueba.Peticion("Mi salón", "salon", id: id)));
+
+        var respuesta = await cliente.PostAsJsonAsync("/disenos", DisenosDePrueba.Peticion("Mi salón", "salon", id: id));
+
+        Assert.Equal(HttpStatusCode.Created, laOtra!.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Equal("\"1\"", respuesta.Headers.ETag?.Tag);
+        Assert.Equal(id, (await respuesta.Content.ReadFromJsonAsync<RespuestaDeDiseno>())!.Id);
+        Assert.Equal(id, Assert.Single((await cliente.GetFromJsonAsync<List<RespuestaDeResumenDeDiseno>>("/disenos"))!).Id);
+    }
+
     private Task BorrarDisenoAsync(Guid id) =>
         api.ConOtroContextoAsync(contexto => contexto.Disenos.Where(diseno => diseno.Id == id).ExecuteDeleteAsync());
 

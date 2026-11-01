@@ -11,4 +11,6 @@ export interface Conflicto {
   mensaje: string
   /** Polígono en planta (mundo) que choca, para pintarlo en rojo. Los pasos estrechos no lo llevan. */
   zona?: Punto[]
+  /** Parte de `zona` que no choca (la que queda dentro de la estancia); se pinta como hueco de la zona. Solo en `fueraDeEstancia`. */
+  huecoDeZona?: Punto[]
 }

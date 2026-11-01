@@ -28,7 +28,19 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
     public Task<int> ContarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
         Task.FromResult(_disenos.Count(diseno => diseno.UsuarioId == usuarioId));
 
-    public void Anadir(Diseno diseno) => _disenos.Add(diseno);
+    // Un id ya guardado, de quien sea, no entra: el próximo guardado falla como la clave primaria.
+    private bool _idRepetido;
+
+    public void Anadir(Diseno diseno)
+    {
+        if (_disenos.Any(guardado => guardado.Id == diseno.Id))
+        {
+            _idRepetido = true;
+            return;
+        }
+
+        _disenos.Add(diseno);
+    }
 
     public void Borrar(Diseno diseno) => _disenos.Remove(diseno);
 
@@ -44,6 +56,12 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
     public Task<bool> GuardarCambiosAsync(CancellationToken cancelacion = default)
     {
         GuardadosSolicitados++;
+
+        if (_idRepetido)
+        {
+            _idRepetido = false;
+            throw new IdentificadorRepetidoException();
+        }
 
         if (Carrera is { } carrera)
         {

@@ -8,7 +8,7 @@ import { hayCambiosSinSubir } from '../../cuenta/disenosLocales'
 import { CLAVE_SESION, reiniciarSesion } from '../../cuenta/sesion'
 import { almacen, reiniciarAlmacen } from '../../editor/estado/almacen'
 import { guardarCopiaLocal, guardarDisenoLocal, leerCopiaLocal } from '../../editor/persistencia/local'
-import { conectarSincronizacion } from '../../editor/persistencia/sincronizacion'
+import { conectarSincronizacion, ESPERA_COPIA_MS } from '../../editor/persistencia/sincronizacion'
 import { documentoNuevo } from '../../nucleo'
 import EditorDeDiseno from './EditorDeDiseno'
 
@@ -126,6 +126,7 @@ describe('EditorDeDiseno', () => {
       expect(almacen.getState().guardado).toBe('pendiente')
       // Con mucha carga, React puede pintar el cambio del almacén un poco después del act.
       expect(await screen.findByText('Guardando…')).toHaveAttribute('role', 'status')
+      await act(() => vi.advanceTimersByTimeAsync(ESPERA_COPIA_MS))
       expect(leerCopiaLocal(localStorage, ID)).toMatchObject({ version: 4, pendiente: true })
       await act(() => vi.advanceTimersByTimeAsync(2000))
       expect(servidor.guardarDiseno).toHaveBeenCalledTimes(1)

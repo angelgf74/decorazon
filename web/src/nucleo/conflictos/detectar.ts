@@ -1,7 +1,7 @@
 import type { DocumentoDiseno, Elemento } from '../modelo/documento'
 import type { Catalogo, DefinicionTipo, ZonaApertura } from '../catalogo/tipos'
 import { distanciaConvexos, interseccionConvexos } from '../geometria/convexo'
-import { cajaPlanta, distanciaSegmentos } from '../geometria/poligono'
+import { areaConSigno, cajaPlanta, distanciaSegmentos } from '../geometria/poligono'
 import { penetracion3D, solapeZ, type Prisma } from '../geometria/prisma'
 import type { Punto } from '../geometria/vector'
 import { cantidadMostrada, redondearAbajo, TOLERANCIA_CM } from '../geometria/tolerancia'
@@ -73,7 +73,10 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
     }
     if (sale > TOLERANCIA_CM && saleVol) {
       const n = cantidadMostrada(sale)
-      conflictos.push({ tipo: 'fueraDeEstancia', gravedad: 'error', ids: [a.e.id], cantidadCm: n, mensaje: mensajeFueraDeEstancia(a.ref, n), zona: saleVol.huella })
+      // La planta puede ser cóncava y la huella siempre es convexa: la huella hace de ventana. Con menos de 1 cm² dentro, se pinta entera.
+      const dentro = interseccionConvexos(planta, saleVol.huella)
+      const huecoDeZona = dentro.length > 0 && areaConSigno(dentro) >= 1 ? dentro : undefined
+      conflictos.push({ tipo: 'fueraDeEstancia', gravedad: 'error', ids: [a.e.id], cantidadCm: n, mensaje: mensajeFueraDeEstancia(a.ref, n), zona: saleVol.huella, ...(huecoDeZona && { huecoDeZona }) })
     }
 
     // Techo.

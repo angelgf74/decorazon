@@ -15,9 +15,9 @@ describe('API pública del núcleo', () => {
     expect(nucleo.IMAN_CM).toBe(15)
     for (const f of ['obstaculosDeEstancia', 'rectangulo', 'rotar', 'distanciaAlBorde', 'documentoNuevo', 'validarDocumento', 'detectarConflictos',
       'desplazarPoligono', 'esRectangular', 'longitudPared', 'redimensionarRectangulo', 'cambiarLongitudPared', 'moverVertice', 'alinearVertice',
-      'partirPared', 'quitarVertice', 'imantar', 'cotasAParedes', 'anadirElemento', 'moverElemento', 'editarElemento', 'duplicarElemento',
+      'partirPared', 'quitarVertice', 'imantar', 'cotasAParedes', 'cotasEnPared', 'anadirElemento', 'moverElemento', 'editarElemento', 'duplicarElemento',
       'quitarElemento', 'anadirAbertura', 'anadirEstructura', 'editarAbertura', 'editarEstructura', 'quitarDeEstancia', 'redondearNumeros',
-      'serializarDocumento', 'capitalizar', 'valorVariante', 'catalogoDeEstancia'] as const) {
+      'serializarDocumento', 'tiradorDeGiro', 'capitalizar', 'valorVariante', 'catalogoDeEstancia'] as const) {
       expect(typeof nucleo[f]).toBe('function')
     }
   })

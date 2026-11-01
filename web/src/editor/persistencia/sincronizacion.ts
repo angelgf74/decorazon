@@ -6,9 +6,11 @@ import type { DocumentoDiseno } from '../../nucleo'
 import { textos } from '../../textos'
 import type { EstadoEditor, EstadoGuardado } from '../estado/almacen'
 import type { Origen } from '../estado/origen'
-import { almacenamientoSeguro, borrarCopiaLocal, guardarCopiaLocal, type CopiaLocal } from './local'
+import { almacenamientoSeguro, borrarCopiaLocal, claveCopia, guardarCopiaLocal, type CopiaLocal } from './local'
 
 export const REINTENTO_MS = 30_000
+/** Los cambios seguidos (p. ej. un arrastre) se agrupan en una sola escritura de la copia local. */
+export const ESPERA_COPIA_MS = 500
 
 export type Eleccion = 'recargar' | 'sobrescribir'
 
@@ -34,15 +36,18 @@ export function elegirApertura(
   if (remoto === null) {
     if (copia === null) return null
     const nombre = copia.nombre ?? textos.disenos.nombrePorDefecto
-    return { id, version: copia.version, nombre, documento: copia.documento, pendiente: copia.pendiente, guardado: 'sinConexion' }
+    const conRenombrado = copia.nombrePendiente && copia.nombre !== undefined ? { nombrePendiente: copia.nombre } : {}
+    return { id, version: copia.version, nombre, documento: copia.documento, pendiente: copia.pendiente, ...conRenombrado, guardado: 'sinConexion' }
   }
   const nombreRemoto = remoto.diseno.nombre
   const mismaVersion = copia !== null && copia.version === remoto.version
-  const renombrado = mismaVersion && copia.nombre !== undefined && copia.nombre !== nombreRemoto ? copia.nombre : undefined
+  // La marca de la copia manda; las copias antiguas, sin ella, lo deducen de un nombre distinto del remoto.
+  const marcado = copia?.nombrePendiente === true && copia.nombre !== undefined
+  const renombrado = marcado || (mismaVersion && copia.nombre !== undefined && copia.nombre !== nombreRemoto) ? copia.nombre : undefined
   if (copia?.pendiente && !mismaVersion) {
     // Nunca se pisa en silencio: con otra versión en el servidor, decide el usuario.
     // Un nombre local distinto queda como renombrado pendiente: "Sobrescribir" lo sube y "Recargar" lo descarta.
-    const local = copia.nombre !== undefined && copia.nombre !== nombreRemoto ? copia.nombre : undefined
+    const local = marcado || (copia.nombre !== undefined && copia.nombre !== nombreRemoto) ? copia.nombre : undefined
     return {
       id, version: copia.version, nombre: local ?? nombreRemoto, documento: copia.documento, pendiente: true,
       ...(local !== undefined && { nombrePendiente: local }), guardado: 'conflicto', versionRemota: remoto.version,
@@ -109,14 +114,17 @@ const avisosDeBorrado = new WeakMap<StoreApi<EstadoEditor>, (id: string) => void
 
 export function conectarSincronizacion(
   a: StoreApi<EstadoEditor>,
-  opciones: { esperaMs: number; st: Storage | null } = { esperaMs: 2000, st: almacenamientoSeguro() },
+  opciones: { esperaMs: number; esperaCopiaMs?: number; st: Storage | null } = { esperaMs: 2000, st: almacenamientoSeguro() },
 ): () => void {
-  const { esperaMs, st } = opciones
+  const { esperaMs, esperaCopiaMs = ESPERA_COPIA_MS, st } = opciones
   let actual: Trabajo | null = null
   // El último origen que fijó esta sincronización: distingue sus cambios de versión de una apertura.
   let origenPropio: Origen | null = null
   let temporizador: ReturnType<typeof setTimeout> | undefined
   let reintentos: ReturnType<typeof setInterval> | undefined
+  // Copia local agrupada: el trabajo cuyo último cambio aún no se ha escrito y su temporizador.
+  let copiaPendiente: Trabajo | null = null
+  let temporizadorCopia: ReturnType<typeof setTimeout> | undefined
 
   const fijar = (t: Trabajo, cambios: Partial<EstadoEditor>) => {
     if (t === actual) a.setState(cambios)
@@ -129,8 +137,22 @@ export function conectarSincronizacion(
   const copiar = (t: Trabajo) => {
     // Un trabajo ya dejado no pisa la copia del mismo diseño abierto otra vez.
     if (anulado(t) || (t !== actual && actual?.id === t.id)) return
-    const ok = guardarCopiaLocal(st, t.id, { version: t.version, nombre: t.nombre, documento: t.documento, pendiente: hayCambios(t) })
+    const ok = guardarCopiaLocal(st, t.id, { version: t.version, nombre: t.nombre, documento: t.documento, pendiente: hayCambios(t), nombrePendiente: t.nombrePendiente !== null })
     if (!ok) fijar(t, { aviso: textos.barra.sinCopiaLocal })
+  }
+
+  // Escribe ya la copia agrupada, si la hay.
+  const copiarYa = () => {
+    clearTimeout(temporizadorCopia)
+    temporizadorCopia = undefined
+    const t = copiaPendiente
+    copiaPendiente = null
+    if (t !== null) copiar(t)
+  }
+  const programarCopia = (t: Trabajo) => {
+    copiaPendiente = t
+    clearTimeout(temporizadorCopia)
+    temporizadorCopia = setTimeout(copiarYa, esperaCopiaMs)
   }
 
   const programar = (ms: number) => {
@@ -195,6 +217,8 @@ export function conectarSincronizacion(
       t.enVuelo = false
       if (habiaDoc) t.sucio = true
       if (nombre !== undefined) t.nombrePendiente ??= nombre
+      // Una copia escrita durante la subida no llevaba la marca del renombrado: se reescribe con lo restaurado.
+      copiar(t)
       if (t !== actual) return
       if (e instanceof ErrorDeApi && e.estado === 0) {
         fijar(t, { guardado: 'sinConexion' })
@@ -221,7 +245,11 @@ export function conectarSincronizacion(
     try {
       const { diseno, version } = await obtenerDiseno(t.id)
       t.enVuelo = false
-      if (t !== actual) return
+      // Lo editado mientras se comprobaba, si ya se salió del editor, se sube igual que en enviar().
+      if (t !== actual) {
+        if (hayCambios(t)) void guardar(t)
+        return
+      }
       pararReintentos()
       if (hayCambios(t)) void guardar(t)
       else if (version === t.version) fijar(t, { guardado: 'guardado' })
@@ -229,8 +257,12 @@ export function conectarSincronizacion(
       else abrirDiseno(a, { id: t.id, version, nombre: diseno.nombre, documento: diseno.contenido, pendiente: false, guardado: 'guardado' })
     } catch (e) {
       t.enVuelo = false
+      if (t !== actual) {
+        if (hayCambios(t)) void guardar(t)
+        return
+      }
       // Solo la falta de red deja seguir en "Sin conexión"; lo demás es un error.
-      if (t !== actual || (e instanceof ErrorDeApi && e.estado === 0)) return
+      if (e instanceof ErrorDeApi && e.estado === 0) return
       pararReintentos()
       if (e instanceof ErrorDeApi && e.estado === 404) {
         // Ya no existe: sin cambios propios, la copia sobra; con ellos, decide el usuario.
@@ -248,6 +280,8 @@ export function conectarSincronizacion(
     clearTimeout(temporizador)
     temporizador = undefined
     pararReintentos()
+    // Antes de soltar el trabajo: uno ya dejado no escribe si el mismo diseño se abre otra vez.
+    copiarYa()
     const t = actual
     actual = null
     origenPropio = null
@@ -268,7 +302,7 @@ export function conectarSincronizacion(
     if (t === null || estado.origen.tipo !== 'servidor' || estado.documento === null) return
     t.documento = estado.documento
     t.sucio = true
-    copiar(t)
+    programarCopia(t)
     if (t.perdido || estado.guardado === 'conflicto') return
     if (estado.guardado === 'sinConexion') {
       iniciarReintentos()
@@ -286,11 +320,32 @@ export function conectarSincronizacion(
   const alVolverLaRed = () => {
     if (actual !== null && a.getState().guardado === 'sinConexion') void guardar(actual)
   }
+  const alOcultar = () => {
+    if (globalThis.document?.visibilityState === 'hidden') copiarYa()
+  }
   const alSalir = (e: Event) => {
-    if (actual !== null && (hayCambios(actual) || a.getState().guardado === 'pendiente')) e.preventDefault()
+    copiarYa()
+    if ((actual !== null && (hayCambios(actual) || a.getState().guardado === 'pendiente')) || hayGuardadosEnMarcha()) e.preventDefault()
+  }
+  // Otra pestaña con el mismo diseño dio su copia por subida: lo pendiente prevalece, así que se reescribe la propia.
+  // Una copia pendiente ajena no se contesta: dos pestañas con cambios no entran en bucle (cada una avisa al salir).
+  const alCambiarElAlmacen = (e: StorageEvent) => {
+    if (actual === null || e.key !== claveCopia(actual.id) || e.newValue === null || !hayCambios(actual)) return
+    try {
+      const dato: unknown = JSON.parse(e.newValue)
+      if (typeof dato !== 'object' || dato === null || (dato as { pendiente?: unknown }).pendiente !== false) return
+    } catch {
+      return
+    }
+    // Sustituye a la copia agrupada, si la había: copiarYa cancela su espera y escribe ya.
+    copiaPendiente = actual
+    copiarYa()
   }
   globalThis.addEventListener?.('online', alVolverLaRed)
+  globalThis.addEventListener?.('storage', alCambiarElAlmacen)
   globalThis.addEventListener?.('beforeunload', alSalir)
+  globalThis.addEventListener?.('pagehide', copiarYa)
+  globalThis.document?.addEventListener('visibilitychange', alOcultar)
 
   controladores.set(a, {
     abierto(ap) {
@@ -359,7 +414,10 @@ export function conectarSincronizacion(
     desuscribir()
     dejar()
     globalThis.removeEventListener?.('online', alVolverLaRed)
+    globalThis.removeEventListener?.('storage', alCambiarElAlmacen)
     globalThis.removeEventListener?.('beforeunload', alSalir)
+    globalThis.removeEventListener?.('pagehide', copiarYa)
+    globalThis.document?.removeEventListener('visibilitychange', alOcultar)
     controladores.delete(a)
   }
 }

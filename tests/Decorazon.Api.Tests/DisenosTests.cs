@@ -353,6 +353,60 @@ public class DisenosTests(ApiConPostgresFixture api) : IClassFixture<ApiConPostg
         Assert.Equal(Diseno.MaximoPorUsuario, (await cliente.GetFromJsonAsync<List<RespuestaDeResumenDeDiseno>>("/disenos"))!.Count);
     }
 
+    // ------------------------------------------------ Alta con id del cliente
+
+    /// <summary>
+    /// El cliente reintenta el alta si no le llegó la respuesta: el segundo POST
+    /// devuelve el mismo diseño, con 200, y no crea otro.
+    /// </summary>
+    [Fact]
+    public async Task Post_ConElMismoId_DosVeces_DevuelveElMismoDisenoYUnaSolaFila()
+    {
+        var cliente = await CuentasDePrueba.ConSesionAsync(api);
+        var id = Guid.NewGuid();
+
+        var primero = await cliente.PostAsJsonAsync("/disenos", DisenosDePrueba.Peticion("Mi salón", "salon", id: id));
+        var segundo = await cliente.PostAsJsonAsync("/disenos", DisenosDePrueba.Peticion("Mi salón", "salon", id: id));
+
+        Assert.Equal(HttpStatusCode.Created, primero.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, segundo.StatusCode);
+        var creado = (await primero.Content.ReadFromJsonAsync<RespuestaDeDiseno>())!;
+        var repetido = (await segundo.Content.ReadFromJsonAsync<RespuestaDeDiseno>())!;
+        Assert.Equal(id, creado.Id);
+        Assert.Equal(id, repetido.Id);
+        Assert.Equal(creado.Version, repetido.Version);
+        Assert.Equal("\"1\"", segundo.Headers.ETag?.Tag);
+        Assert.Equal($"/disenos/{id}", segundo.Headers.Location?.OriginalString);
+        Assert.Equal(id, Assert.Single((await cliente.GetFromJsonAsync<List<RespuestaDeResumenDeDiseno>>("/disenos"))!).Id);
+    }
+
+    [Fact]
+    public async Task Post_ConIdDeOtroUsuario_Responde409ConMensaje_YNoTocaElSuyo()
+    {
+        var duena = await CuentasDePrueba.ConSesionAsync(api);
+        var otra = await CuentasDePrueba.ConSesionAsync(api);
+        var id = Guid.NewGuid();
+        Assert.Equal(HttpStatusCode.Created,
+            (await duena.PostAsJsonAsync("/disenos", DisenosDePrueba.Peticion("De la dueña", id: id))).StatusCode);
+
+        var respuesta = await otra.PostAsJsonAsync("/disenos", DisenosDePrueba.Peticion("Otro", "cocina", id: id));
+
+        await AssertRechazoAsync(respuesta, HttpStatusCode.Conflict);
+        Assert.Empty((await otra.GetFromJsonAsync<List<RespuestaDeResumenDeDiseno>>("/disenos"))!);
+        Assert.Equal("De la dueña", (await duena.GetFromJsonAsync<RespuestaDeDiseno>($"/disenos/{id}"))!.Nombre);
+    }
+
+    [Fact]
+    public async Task Post_ConIdVacio_Responde400()
+    {
+        var cliente = await CuentasDePrueba.ConSesionAsync(api);
+
+        var respuesta = await cliente.PostAsJsonAsync("/disenos", DisenosDePrueba.Peticion(id: Guid.Empty));
+
+        await AssertRechazoAsync(respuesta);
+        Assert.Empty((await cliente.GetFromJsonAsync<List<RespuestaDeResumenDeDiseno>>("/disenos"))!);
+    }
+
     // ---------------------------------------------------------- Auxiliares
 
     private static Task<HttpResponseMessage> PutAsync(HttpClient cliente, Guid id, PeticionDeDiseno cuerpo, string? ifMatch)

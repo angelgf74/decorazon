@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { rectangulo } from '../geometria/formas'
 import { documentoNuevo } from '../modelo/crear'
-import { cotasAParedes } from './cotas'
+import { cotasAParedes, cotasEnPared } from './cotas'
 
 const planta = documentoNuevo('dormitorio', 400, 330, 250).estancia.planta
 
@@ -32,5 +32,17 @@ describe('cotasAParedes', () => {
     const ele = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 200, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 300 }, { x: 0, y: 300 }]
     const cotas = cotasAParedes(ele, rectangulo({ x: 50, y: 200 }, 40, 40, 0))
     expect(cotas.map(c => c.valor)).toEqual([180, 30, 80, 30])
+  })
+})
+
+describe('cotasEnPared', () => {
+  it('puerta de 82 a 50 cm del inicio en una pared de 400 da 50 y 268', () => {
+    const cotas = cotasEnPared(planta, 0, 50, 82)
+    expect(cotas.map(c => c.valor)).toEqual([50, 268])
+    expect(cotas[0]).toEqual({ desde: { x: 0, y: 0 }, hasta: { x: 50, y: 0 }, valor: 50 })
+    expect(cotas[1]).toEqual({ desde: { x: 132, y: 0 }, hasta: { x: 400, y: 0 }, valor: 268 })
+  })
+  it('una puerta pegada al inicio da una sola cota', () => {
+    expect(cotasEnPared(planta, 0, 0, 82).map(c => c.valor)).toEqual([318])
   })
 })

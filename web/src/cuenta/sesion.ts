@@ -186,6 +186,27 @@ export function conectarSesionEntrePestanas(): () => void {
   return () => globalThis.removeEventListener?.('storage', alCambiar)
 }
 
+/**
+ * Carga el nombre del usuario al arrancar con sesión y, si falló (sin red), lo reintenta cada vez que vuelve la conexión.
+ * Los errores se ignoran: la sesión sigue valiendo y el 401 ya lo gestiona la API.
+ */
+export function conectarCargaDeUsuario(): () => void {
+  let cargando = false
+  const intentar = () => {
+    const { haySesion, usuario, cargarUsuario } = sesion.getState()
+    if (cargando || !haySesion() || usuario !== null) return
+    cargando = true
+    cargarUsuario()
+      .catch(() => {})
+      .finally(() => {
+        cargando = false
+      })
+  }
+  intentar()
+  globalThis.addEventListener?.('online', intentar)
+  return () => globalThis.removeEventListener?.('online', intentar)
+}
+
 // Para las pruebas: vuelve al estado guardado en el navegador.
 export function reiniciarSesion(): void {
   avisoDeCaducidad = () => {}

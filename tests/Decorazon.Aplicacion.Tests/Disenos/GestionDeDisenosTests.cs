@@ -23,12 +23,13 @@ public class GestionDeDisenosTests
 
     private int GuardadosDeLaOperacion => _disenos.GuardadosSolicitados - _guardadosPrevios;
 
-    private static PeticionDeDiseno Peticion(string? nombre = "Salón", string? tipo = "salon", string? contenido = Contenido) =>
-        new(nombre, tipo, contenido);
+    private static PeticionDeDiseno Peticion(
+        string? nombre = "Salón", string? tipo = "salon", string? contenido = Contenido, Guid? id = null) =>
+        new(nombre, tipo, contenido, id);
 
-    private async Task<Diseno> CrearUnoAsync(Guid? usuario = null, string nombre = "Salón")
+    private async Task<Diseno> CrearUnoAsync(Guid? usuario = null, string nombre = "Salón", Guid? id = null)
     {
-        var resultado = await CasoDeUso.CrearAsync(usuario ?? _usuario, Peticion(nombre));
+        var resultado = await CasoDeUso.CrearAsync(usuario ?? _usuario, Peticion(nombre, id: id));
         Assert.Equal(EstadoDeDiseno.Correcto, resultado.Estado);
         _guardadosPrevios = _disenos.GuardadosSolicitados;
         return resultado.Diseno!;
@@ -102,6 +103,78 @@ public class GestionDeDisenosTests
         Assert.Equal(EstadoDeDiseno.ContenidoNoValido, resultado.Estado);
         Assert.Equal(ResultadoDeContenido.NoEsJson, resultado.Contenido);
         Assert.Empty(_disenos.Todos);
+        Assert.Equal(0, GuardadosDeLaOperacion);
+    }
+
+    [Fact]
+    public async Task CrearConId_UsaEseId()
+    {
+        var id = Guid.NewGuid();
+
+        var resultado = await CasoDeUso.CrearAsync(_usuario, Peticion(id: id));
+
+        Assert.Equal(EstadoDeDiseno.Correcto, resultado.Estado);
+        Assert.Equal(id, resultado.Diseno!.Id);
+        Assert.Equal(id, Assert.Single(_disenos.Todos).Id);
+    }
+
+    [Fact]
+    public async Task CrearConIdExistenteDelMismoUsuario_DevuelveYaCreadoSinAnadir()
+    {
+        var id = Guid.NewGuid();
+        var existente = await CrearUnoAsync(id: id);
+
+        var resultado = await CasoDeUso.CrearAsync(_usuario, Peticion("Otro nombre", id: id));
+
+        Assert.Equal(EstadoDeDiseno.YaCreado, resultado.Estado);
+        Assert.Same(existente, resultado.Diseno);
+        Assert.Equal("Salón", existente.Nombre.Valor);
+        Assert.Single(_disenos.Todos);
+        Assert.Equal(0, GuardadosDeLaOperacion);
+    }
+
+    [Fact]
+    public async Task CrearConIdDeOtroUsuario_DevuelveIdentificadorEnUso()
+    {
+        var id = Guid.NewGuid();
+        var ajeno = await CrearUnoAsync(Guid.NewGuid(), id: id);
+
+        var resultado = await CasoDeUso.CrearAsync(_usuario, Peticion(id: id));
+
+        Assert.Equal(EstadoDeDiseno.IdentificadorEnUso, resultado.Estado);
+        Assert.Null(resultado.Diseno);
+        Assert.Same(ajeno, Assert.Single(_disenos.Todos));
+    }
+
+    [Fact]
+    public async Task CrearConIdVacio_DevuelveIdentificadorNoValido()
+    {
+        var resultado = await CasoDeUso.CrearAsync(_usuario, Peticion(id: Guid.Empty));
+
+        Assert.Equal(EstadoDeDiseno.IdentificadorNoValido, resultado.Estado);
+        Assert.Empty(_disenos.Todos);
+        Assert.Equal(0, GuardadosDeLaOperacion);
+    }
+
+    /// <summary>
+    /// Un reintento del alta que llegó a guardarse no debe chocar con el límite: el
+    /// diseño ya cuenta entre los cien, y responder 409 haría creer que no se guardó.
+    /// </summary>
+    [Fact]
+    public async Task ReintentoConCienDisenos_DevuelveYaCreadoYNoLimite()
+    {
+        var id = Guid.NewGuid();
+        var reintentado = await CrearUnoAsync(nombre: "D0", id: id);
+        for (var i = 1; i < Diseno.MaximoPorUsuario; i++)
+        {
+            await CrearUnoAsync(nombre: $"D{i}");
+        }
+
+        var resultado = await CasoDeUso.CrearAsync(_usuario, Peticion("D0", id: id));
+
+        Assert.Equal(EstadoDeDiseno.YaCreado, resultado.Estado);
+        Assert.Same(reintentado, resultado.Diseno);
+        Assert.Equal(Diseno.MaximoPorUsuario, _disenos.Todos.Count);
         Assert.Equal(0, GuardadosDeLaOperacion);
     }
 

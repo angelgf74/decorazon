@@ -46,8 +46,9 @@ export function distanciaConvexos(a: Punto[], b: Punto[]): number {
 const horario = (p: Punto[]): Punto[] => (areaConSigno(p) < 0 ? [...p].reverse() : p)
 
 /**
- * Polígono común de dos convexos (Sutherland–Hodgman), en sentido horario, o [] si no se solapan o solo se tocan.
- * Vale con cualquier sentido de vértices.
+ * Polígono común de `a` (sujeto) y `b` (ventana de recorte) con Sutherland–Hodgman, en sentido horario, o [] si no se
+ * solapan o solo se tocan. La ventana `b` tiene que ser convexa; el sujeto `a` puede ser cualquier polígono simple (si es
+ * cóncavo, el resultado puede llevar aristas degeneradas de área cero, inofensivas al pintar). Vale con cualquier sentido de vértices.
  */
 export function interseccionConvexos(a: Punto[], b: Punto[]): Punto[] {
   const clip = horario(b)

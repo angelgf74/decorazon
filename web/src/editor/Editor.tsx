@@ -53,7 +53,7 @@ export default function Editor() {
       <BarraSuperior />
       <div className="editor__cuerpo">
         <aside className={`editor__izquierda hoja${hoja === 'izquierda' ? ' hoja--abierta' : ''}`}>
-          {paso === 1 ? <PanelEstancia /> : <PanelCatalogo />}
+          {paso === 1 ? <PanelEstancia /> : <PanelCatalogo alEmpezarArrastre={() => setHoja(null)} />}
         </aside>
         <div className="editor__lienzo">
           {vista === '3d' ? (

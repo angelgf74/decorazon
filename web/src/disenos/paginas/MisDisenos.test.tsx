@@ -84,6 +84,56 @@ describe('MisDisenos', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Has llegado al límite de 100 diseños')
   })
 
+  it('duplicar un diseño que ya no existe recarga la lista', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [RECIENTE]))
+    montar()
+    const fila = (await screen.findByText('Reciente')).closest('li')!
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta(404, { mensaje: 'No existe' }))
+      .mockResolvedValueOnce(respuesta(200, []))
+    await userEvent.click(within(fila).getByRole('button', { name: 'Duplicar' }))
+    expect(await screen.findByText('Aún no tienes diseños')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('No existe')
+    const listados = fetchSimulado.mock.calls.filter(([p]) => p.method === 'GET' && new URL(p.url).pathname === '/disenos')
+    expect(listados).toHaveLength(2)
+  })
+
+  it('borrar un diseño que ya no existe lo quita de la lista y de las copias', async () => {
+    conSesion()
+    guardarCopiaLocal(localStorage, 'a', { version: 1, documento: documentoNuevo('salon', 400, 300, 250), pendiente: false })
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [ANTIGUO, RECIENTE]))
+    montar()
+    const fila = (await screen.findByText('Antiguo')).closest('li')!
+    await userEvent.click(within(fila).getByRole('button', { name: 'Borrar' }))
+    const mensaje = screen.getByText('¿Borrar «Antiguo»? No se puede deshacer.')
+    fetchSimulado.mockResolvedValueOnce(respuesta(404, { mensaje: 'No existe' }))
+    await userEvent.click(within(mensaje.closest('dialog')!).getByRole('button', { name: 'Borrar' }))
+    await vi.waitFor(() => expect(screen.queryByText('Antiguo')).not.toBeInTheDocument())
+    expect(leerCopiaLocal(localStorage, 'a')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('una fecha inválida se ve como "Sin fecha" y va al final', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [resumen('x', 'Rota', 'no es una fecha'), ANTIGUO, RECIENTE]))
+    montar()
+    const filas = await screen.findAllByRole('listitem')
+    expect(within(filas[0]!).getByText('Reciente')).toBeInTheDocument()
+    expect(within(filas[1]!).getByText('Antiguo')).toBeInTheDocument()
+    expect(within(filas[2]!).getByText('Rota')).toBeInTheDocument()
+    expect(within(filas[2]!).getByText('Sin fecha')).toBeInTheDocument()
+    expect(screen.queryByText(/Invalid Date/)).toBeNull()
+  })
+
+  it('un tipo "constructor" no se toma por un tipo de estancia', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [resumen('x', 'Raro', '2025-01-01T10:00:00Z', 'constructor')]))
+    montar()
+    const fila = (await screen.findByText('Raro')).closest('li')!
+    expect(within(fila).getByText('constructor')).toBeInTheDocument()
+  })
+
   it('renombrar con 412 recarga la lista y avisa', async () => {
     conSesion()
     fetchSimulado.mockResolvedValueOnce(respuesta(200, [RECIENTE]))

@@ -27,8 +27,9 @@ export async function obtenerDiseno(id: string): Promise<{ diseno: DisenoServido
   return { diseno: validar(r), version: r.version }
 }
 
-export async function crearDiseno(nombre: string, doc: DocumentoDiseno): Promise<DisenoServidor> {
-  const body = { nombre, tipoEstancia: doc.estancia.tipo, contenido: contenidoParaEnviar(doc) }
+/** Con `id`, el alta es idempotente: repetirla devuelve el diseño ya creado en lugar de crear otro. */
+export async function crearDiseno(nombre: string, doc: DocumentoDiseno, id?: string): Promise<DisenoServidor> {
+  const body = { ...(id !== undefined && { id }), nombre, tipoEstancia: doc.estancia.tipo, contenido: contenidoParaEnviar(doc) }
   return validar(exigir(await api.POST('/disenos', { body })))
 }
 

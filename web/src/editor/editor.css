@@ -216,11 +216,42 @@
   text-align: left;
 }
 .panel-catalogo__tipo:hover:not(:disabled) { border-color: var(--borde); }
-.panel-catalogo__texto { display: flex; flex-direction: column; min-width: 0; }
+.panel-catalogo__texto { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .panel-catalogo__nombre { font-size: var(--texto-m); font-weight: 600; }
 .panel-catalogo__tipo small { color: var(--gris); font-size: var(--texto-s); white-space: nowrap; }
 .panel-catalogo__tipo .icono { color: var(--terracota); }
 @media (pointer: fine) { .panel-catalogo__tipo { cursor: grab; } }
+/* Con el dedo la lista se desplaza: se arrastra solo desde el asa, que ocupa todo el alto de la tarjeta. */
+.panel-catalogo__asa { display: none; }
+@media (pointer: coarse) {
+  .panel-catalogo__asa {
+    display: grid;
+    place-items: center;
+    align-self: stretch;
+    min-width: var(--objetivo);
+    margin: calc(-1 * var(--esp-2)) 0 calc(-1 * var(--esp-2)) calc(-1 * var(--esp-3));
+    touch-action: none;
+    user-select: none;
+  }
+  .panel-catalogo__tipo .panel-catalogo__asa .icono { color: var(--gris); }
+}
+.panel-catalogo__fantasma {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  padding: var(--esp-2) var(--esp-3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: 0 6px 20px rgb(43 38 34 / 0.18);
+  font-size: var(--texto-m);
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  /* Por encima del dedo, que no lo tape. */
+  transform: translate(-50%, calc(-100% - var(--esp-6)));
+}
 
 .lista-avisos { padding: var(--esp-3); border: 1px solid var(--borde-suave); border-radius: var(--radio); background: var(--superficie); }
 .lista-avisos h2 { margin: 0 0 var(--esp-2); font-size: 1rem; }

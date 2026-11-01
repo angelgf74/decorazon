@@ -21,6 +21,8 @@ public static class TextosDeEstado
         EstadoDeDiseno.LimiteAlcanzado =>
             $"Ya tienes {Diseno.MaximoPorUsuario} diseños, el máximo. Borra alguno para guardar otro.",
         EstadoDeDiseno.NoEncontrado => "Ese diseño no existe.",
+        EstadoDeDiseno.IdentificadorEnUso => "Ese identificador de diseño ya está en uso.",
+        EstadoDeDiseno.IdentificadorNoValido => "El identificador del diseño no es válido.",
         _ => "El diseño no es válido."
     };
 

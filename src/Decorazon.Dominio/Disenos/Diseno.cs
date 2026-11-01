@@ -17,9 +17,9 @@ public sealed class Diseno
         Contenido = null!;
     }
 
-    private Diseno(Guid usuarioId, NombreDeDiseno nombre, TipoDeEstancia tipo, ContenidoDeDiseno contenido, DateTimeOffset ahora)
+    private Diseno(Guid id, Guid usuarioId, NombreDeDiseno nombre, TipoDeEstancia tipo, ContenidoDeDiseno contenido, DateTimeOffset ahora)
     {
-        Id = Guid.NewGuid();
+        Id = id;
         UsuarioId = usuarioId;
         Nombre = nombre;
         Tipo = tipo;
@@ -39,7 +39,11 @@ public sealed class Diseno
     public int Version { get; private set; }
 
     public static Diseno Crear(Guid usuarioId, NombreDeDiseno nombre, TipoDeEstancia tipo, ContenidoDeDiseno contenido, DateTimeOffset ahora) =>
-        new(usuarioId, nombre, tipo, contenido, ahora);
+        new(Guid.NewGuid(), usuarioId, nombre, tipo, contenido, ahora);
+
+    /// <summary>Con el id que ya le dio el cliente, para que reintentar el alta no lo duplique.</summary>
+    public static Diseno Crear(Guid id, Guid usuarioId, NombreDeDiseno nombre, TipoDeEstancia tipo, ContenidoDeDiseno contenido, DateTimeOffset ahora) =>
+        new(id, usuarioId, nombre, tipo, contenido, ahora);
 
     public void Actualizar(NombreDeDiseno nombre, TipoDeEstancia tipo, ContenidoDeDiseno contenido, DateTimeOffset ahora)
     {
@@ -58,7 +62,7 @@ public sealed class Diseno
             : Nombre.Valor;
 
         NombreDeDiseno.TryCrear(baseDelNombre + SufijoDeCopia, out var nombre);
-        return new Diseno(UsuarioId, nombre, Tipo, Contenido, ahora);
+        return new Diseno(Guid.NewGuid(), UsuarioId, nombre, Tipo, Contenido, ahora);
     }
 
     private static string RecortarSinPartirPares(string texto, int longitud) =>

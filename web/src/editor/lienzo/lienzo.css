@@ -54,7 +54,7 @@
 .capa-elementos__halo { fill: none; stroke: var(--terracota); stroke-width: 8; stroke-opacity: 0.5; stroke-linejoin: round; pointer-events: none; }
 
 .capa-conflictos { pointer-events: none; }
-.capa-conflictos polygon { fill: var(--conflicto); fill-opacity: 0.35; stroke: var(--conflicto); stroke-width: 1; }
+.capa-conflictos :is(polygon, path) { fill: var(--conflicto); fill-opacity: 0.35; stroke: var(--conflicto); stroke-width: 1; }
 
 .capa-planta__pared { fill: transparent; }
 .capa-planta__pared:hover { fill: rgb(255 209 102 / 0.55); }

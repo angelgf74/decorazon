@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import { iniciarAnalitica } from './analitica'
 import { conectarRecargaPorVersion } from './recargaPorVersion'
-import { conectarSesionConApi, conectarSesionEntrePestanas, sesion } from './cuenta/sesion'
+import { conectarCargaDeUsuario, conectarSesionConApi, conectarSesionEntrePestanas } from './cuenta/sesion'
 import { almacen } from './editor/estado/almacen'
 import { almacenamientoSeguro, conectarPersistencia, leerDisenoLocal } from './editor/persistencia/local'
 import { conectarSincronizacion } from './editor/persistencia/sincronizacion'
@@ -19,7 +19,7 @@ conectarRecargaPorVersion()
 iniciarAnalitica()
 conectarSesionConApi()
 conectarSesionEntrePestanas()
-if (sesion.getState().haySesion()) sesion.getState().cargarUsuario().catch(() => {})
+conectarCargaDeUsuario()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

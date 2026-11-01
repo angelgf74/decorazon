@@ -4,6 +4,8 @@ import type { DocumentoDiseno } from '../modelo/documento'
 import { validarDocumento } from '../modelo/validar'
 import { catalogoBase } from '../catalogo/catalogoBase'
 import { elemento } from '../catalogo/definiciones/ayuda.test-util'
+import { interseccionConvexos } from '../geometria/convexo'
+import { rectangulo } from '../geometria/formas'
 import { areaConSigno } from '../geometria/poligono'
 import { detectarConflictos, HUECO_IGNORADO_CM, PASO_MINIMO_CM } from './detectar'
 import type { TipoConflicto } from './tipos'
@@ -28,14 +30,29 @@ describe('detectarConflictos', () => {
       expect(c[0].zona).toBeDefined()
       expect(areaConSigno(c[0].zona!)).toBeCloseTo(12 * 60, 6)
     })
-    it('armario girado que atraviesa la pared: la zona es su huella', () => {
+    it('armario girado que atraviesa la pared: la zona es su huella y el hueco, la parte que queda dentro', () => {
       const doc = base()
       const a = elemento('armario', 20, 20, 30, {}, {}, 'a1')
       doc.elementos.push(a)
       const c = de(doc, 'fueraDeEstancia')
       expect(c).toHaveLength(1)
       const huella = catalogoBase.get('armario')!.volumenes(a)[0].huella
-      expect(areaConSigno(c[0].zona!)).toBeCloseTo(areaConSigno(huella), 6)
+      const area = areaConSigno(huella)
+      expect(areaConSigno(c[0].zona!)).toBeCloseTo(area, 6)
+      expect(c[0].huecoDeZona).toBeDefined()
+      // Lo que sale: fuera por la izquierda (x < 0) o por arriba (y < 0), sin contar dos veces la esquina.
+      const parte = (x: number, y: number) => areaConSigno(interseccionConvexos(huella, rectangulo({ x, y }, 10000, 10000, 0)))
+      const sale = parte(-5000, 0) + parte(0, -5000) - parte(-5000, -5000)
+      expect(sale).toBeGreaterThan(1)
+      expect(areaConSigno(c[0].huecoDeZona!) + sale).toBeCloseTo(area, 6)
+    })
+    it('un mueble entero fuera no tiene hueco', () => {
+      const doc = base()
+      doc.elementos.push(elemento('armario', -200, -200, 0, {}, {}, 'a1'))
+      const c = de(doc, 'fueraDeEstancia')
+      expect(c).toHaveLength(1)
+      expect(c[0].zona).toBeDefined()
+      expect(c[0].huecoDeZona).toBeUndefined()
     })
     it('apertura contra la pared: la zona es la huella entera de la zona de apertura', () => {
       const doc = base()

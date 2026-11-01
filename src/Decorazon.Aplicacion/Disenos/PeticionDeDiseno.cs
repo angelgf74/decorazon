@@ -6,7 +6,8 @@ namespace Decorazon.Aplicacion.Disenos;
 /// Los datos de un diseño tal como llegan de fuera, todavía sin validar.
 /// Lo reutilizan el registro (diseño hecho sin cuenta) y la gestión de diseños.
 /// </summary>
-public sealed record PeticionDeDiseno(string? Nombre, string? TipoEstancia, string? ContenidoJson)
+/// <param name="Id">El id que propone el cliente; solo lo usa el alta de la gestión de diseños.</param>
+public sealed record PeticionDeDiseno(string? Nombre, string? TipoEstancia, string? ContenidoJson, Guid? Id = null)
 {
     /// <summary>
     /// Único sitio donde una petición se convierte en tipos del dominio, para que

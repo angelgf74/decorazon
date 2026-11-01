@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { createEvent, fireEvent, render } from '@testing-library/react'
+import { act, createEvent, fireEvent, render } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { catalogoBase, elementoNuevo, longitudPared, type Abertura, type Punto } from '../../nucleo'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
@@ -33,6 +33,15 @@ describe('Lienzo', () => {
     const { container } = render(<Lienzo />)
     expect(container.querySelector('[data-conflicto]')).toBeNull()
     expect(container.querySelector('[data-zona-conflicto]')).toBeNull()
+  })
+
+  it('un mueble que sale de la estancia pinta un path evenodd', () => {
+    colocar('armario', 'a', { x: 20, y: 100 })
+    const { container } = render(<Lienzo />)
+    const zona = container.querySelector('[data-zona-conflicto]')
+    expect(zona?.tagName).toBe('path')
+    expect(zona?.getAttribute('fill-rule')).toBe('evenodd')
+    expect(zona?.getAttribute('d')?.match(/M/g)).toHaveLength(2)
   })
 
   it('dibuja discontinuo el barrido de un armario de puertas abatibles', () => {
@@ -174,6 +183,44 @@ describe('Lienzo: paso 1', () => {
     expect(almacen.getState().documento!.estancia.planta[2]).toEqual({ x: 400, y: 400 })
   })
 
+  it('al seleccionar una puerta se ven sus dos cotas en la pared', () => {
+    almacen.getState().cambiar((d) => ({ ...d, aberturas: [{ ...puerta, ancho: 82 }] }))
+    almacen.getState().irAPaso(1)
+    const { container } = render(<Lienzo />)
+    expect(container.querySelector('[data-cota-en-pared]')).toBeNull()
+    act(() => almacen.getState().seleccionar({ tipo: 'abertura', id: 'p' }))
+    const textos = [...container.querySelectorAll('[data-cota-en-pared] text')].map((t) => t.textContent)
+    expect(textos).toEqual(['50 cm', '268 cm'])
+  })
+
+  it('un radiador seleccionado muestra sus cotas y una columna no', () => {
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      estructura: [
+        { id: 'r', tipo: 'radiador', pared: 0, posicion: 100, ancho: 60, alto: 60, fondo: 10, alturaSuelo: 10 },
+        { id: 'c', tipo: 'columna', centro: { x: 200, y: 200 }, ancho: 30, fondo: 30, rotacion: 0 },
+      ],
+    }))
+    almacen.getState().irAPaso(1)
+    const { container } = render(<Lienzo />)
+    act(() => almacen.getState().seleccionar({ tipo: 'estructura', id: 'r' }))
+    expect([...container.querySelectorAll('[data-cota-en-pared] text')].map((t) => t.textContent)).toEqual(['100 cm', '240 cm'])
+    act(() => almacen.getState().seleccionar({ tipo: 'estructura', id: 'c' }))
+    expect(container.querySelector('[data-cota-en-pared]')).toBeNull()
+  })
+
+  it('al arrastrarla se actualizan', () => {
+    almacen.getState().cambiar((d) => ({ ...d, aberturas: [{ ...puerta, ancho: 82 }] }))
+    almacen.getState().irAPaso(1)
+    const { container } = render(<Lienzo />)
+    const vano = pieza(container, '[data-abertura="p"] polygon')
+    fireEvent.pointerDown(vano, { pointerId: 1, clientX: 90, clientY: -5 })
+    fireEvent.pointerMove(vano, { pointerId: 1, clientX: 150.4, clientY: 40 })
+    const textos = [...container.querySelectorAll('[data-cota-en-pared] text')].map((t) => t.textContent)
+    expect(textos).toEqual(['110 cm', '208 cm'])
+    fireEvent.pointerUp(vano, { pointerId: 1 })
+  })
+
   it('arrastrar una puerta la lleva por su pared, recortada al final', () => {
     almacen.getState().cambiar((d) => ({ ...d, aberturas: [puerta] }))
     const { container } = render(<Lienzo />)
@@ -286,6 +333,41 @@ describe('Lienzo: paso 2', () => {
     expect(almacen.getState().grupo).toBeNull()
     almacen.getState().deshacer()
     expect(armario().rotacion).toBe(0)
+  })
+
+  it('el tirador de un mueble contra la pared se dibuja detrás y arrastrarlo no lo voltea', () => {
+    colocar('armario', 'a', { x: 200, y: 300 })
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a' })
+    const { container } = render(<Lienzo />)
+    const tirador = pieza(container, '[data-giro]')
+    // Delante caería en y = 360, fuera de los 330 de la estancia: pasa detrás (300 - 30 - 30).
+    expect([tirador.getAttribute('cx'), tirador.getAttribute('cy')]).toEqual(['200', '240'])
+    fireEvent.pointerDown(tirador, { pointerId: 1, clientX: 200, clientY: 240 })
+    fireEvent.pointerMove(tirador, { pointerId: 1, clientX: 210, clientY: 240 })
+    expect(armario().rotacion).toBe(0)
+    fireEvent.pointerMove(tirador, { pointerId: 1, clientX: 300, clientY: 300 })
+    expect(armario().rotacion).toBe(90)
+    fireEvent.pointerUp(tirador, { pointerId: 1 })
+  })
+
+  it('el tirador no cambia de lado mientras se arrastra, aunque el frente quede libre al girar, y vuelve a elegir al soltar', () => {
+    colocar('armario', 'a', { x: 200, y: 300 })
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a' })
+    const { container } = render(<Lienzo />)
+    const sitio = () => {
+      const t = pieza(container, '[data-giro]')
+      return [Number(t.getAttribute('cx')), Number(t.getAttribute('cy'))]
+    }
+    const distancia = armario().medidas.fondo / 2 + 30
+    expect(sitio()).toEqual([200, 300 - distancia])
+    fireEvent.pointerDown(pieza(container, '[data-giro]'), { pointerId: 1, clientX: 200, clientY: 300 - distancia })
+    fireEvent.pointerMove(pieza(container, '[data-giro]'), { pointerId: 1, clientX: 300, clientY: 300 })
+    expect(armario().rotacion).toBe(90)
+    // Con el armario a 90° su frente (hacia -x) cae dentro, pero el tirador sigue detrás: a +x.
+    expect(sitio()).toEqual([200 + distancia, 300])
+    fireEvent.pointerUp(pieza(container, '[data-giro]'), { pointerId: 1 })
+    // Soltado, vuelve a preferir el frente.
+    expect(sitio()).toEqual([200 - distancia, 300])
   })
 
   it('soltar un tipo del catálogo lo añade en ese punto y lo selecciona', () => {

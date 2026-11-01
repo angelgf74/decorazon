@@ -46,6 +46,7 @@ public static class DisenosEndpoints
         grupo.MapPost("", CrearAsync)
             .WithName("crearDiseno")
             .Produces<RespuestaDeDiseno>(StatusCodes.Status201Created)
+            .Produces<RespuestaDeDiseno>()
             .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
             .Produces<RespuestaDeMensaje>(StatusCodes.Status409Conflict)
             .ConETag();
@@ -86,7 +87,7 @@ public static class DisenosEndpoints
     /// pasa como vacío, y el dominio lo rechaza con los demás.
     /// </summary>
     public static PeticionDelCasoDeUso ACasoDeUso(PeticionDeDiseno peticion) =>
-        new(peticion.Nombre, peticion.TipoEstancia, peticion.Contenido?.GetRawText());
+        new(peticion.Nombre, peticion.TipoEstancia, peticion.Contenido?.GetRawText(), peticion.Id);
 
     private static async Task<IResult> ListarAsync(
         ClaimsPrincipal usuario,
@@ -123,9 +124,20 @@ public static class DisenosEndpoints
 
         var resultado = await casoDeUso.CrearAsync(usuarioId, ACasoDeUso(peticion), cancelacion);
 
-        return resultado.Estado == EstadoDeDiseno.Correcto
-            ? Creado(respuesta, resultado.Diseno!)
-            : Rechazo(resultado);
+        switch (resultado.Estado)
+        {
+            case EstadoDeDiseno.Correcto:
+                return Creado(respuesta, resultado.Diseno!);
+
+            case EstadoDeDiseno.YaCreado:
+                // Un reintento: lo mismo que el 201, pero 200 porque esta vez no se ha creado nada.
+                PonerETag(respuesta, resultado.Diseno!);
+                respuesta.Headers.Location = RutaDe(resultado.Diseno!);
+                return Results.Ok(Detalle(resultado.Diseno!));
+
+            default:
+                return Rechazo(resultado);
+        }
     }
 
     private static async Task<IResult> ObtenerAsync(
@@ -266,8 +278,10 @@ public static class DisenosEndpoints
     private static IResult Creado(HttpResponse respuesta, Diseno diseno)
     {
         PonerETag(respuesta, diseno);
-        return Results.Created($"/disenos/{diseno.Id}", Detalle(diseno));
+        return Results.Created(RutaDe(diseno), Detalle(diseno));
     }
+
+    private static string RutaDe(Diseno diseno) => $"/disenos/{diseno.Id}";
 
     /// <summary>ETag fuerte con comillas: <c>"3"</c>.</summary>
     private static void PonerETag(HttpResponse respuesta, Diseno diseno) =>
@@ -283,7 +297,7 @@ public static class DisenosEndpoints
         return resultado.Estado switch
         {
             EstadoDeDiseno.NoEncontrado => Results.NotFound(error),
-            EstadoDeDiseno.LimiteAlcanzado => Results.Conflict(error),
+            EstadoDeDiseno.LimiteAlcanzado or EstadoDeDiseno.IdentificadorEnUso => Results.Conflict(error),
             _ => Results.BadRequest(error)
         };
     }

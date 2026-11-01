@@ -1,5 +1,7 @@
+import { hueco } from '../conflictos/estancia'
 import { redondearAbajo, TOLERANCIA_CM } from '../geometria/tolerancia'
 import { cruz, escalar, normalizar, restar, sumar, type Punto } from '../geometria/vector'
+import { longitudPared } from './planta'
 
 export interface Cota { desde: Punto; hasta: Punto; valor: number }
 
@@ -35,4 +37,15 @@ export function cotasAParedes(planta: Punto[], rect: Punto[]): Cota[] {
     cotas.push({ desde, hasta: sumar(desde, escalar(normal, t)), valor: redondearAbajo(t) })
   }
   return cotas
+}
+
+/** Cotas de un hueco en su pared: del vértice inicial al hueco y del hueco al vértice siguiente; omite la que queda pegada. */
+export function cotasEnPared(planta: Punto[], pared: number, posicion: number, ancho: number): Cota[] {
+  const h = hueco(planta, pared, 0)
+  const largo = longitudPared(planta, pared)
+  const en = (t: number) => sumar(h.cercano, escalar(h.d, t))
+  const tramos: [number, number][] = [[0, posicion], [posicion + ancho, largo]]
+  return tramos
+    .filter(([a, b]) => b - a > TOLERANCIA_CM)
+    .map(([a, b]) => ({ desde: en(a), hasta: en(b), valor: redondearAbajo(b - a) }))
 }
