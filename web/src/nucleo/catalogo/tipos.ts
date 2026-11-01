@@ -30,6 +30,8 @@ export interface DefinicionTipo {
   volumenes(e: Elemento): Prisma[]
   /** Huellas que pinta el plano, en coordenadas del mundo; sin ella, las de los volúmenes. */
   planta?: (e: Elemento) => Punto[][]
+  /** Dónde se escribe el nombre en el plano, en coordenadas del mundo; sin ella, en `e.posicion`. */
+  posicionNombre?: (e: Elemento) => Punto
   zonasApertura(e: Elemento): ZonaApertura[]
   /** Piezas 3D en el sistema local del elemento; sin ella se usa una caja del tamaño del elemento. */
   modelo3d?: (e: Elemento) => PiezaLocal[]
