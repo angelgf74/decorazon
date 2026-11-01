@@ -22,7 +22,7 @@ public sealed class PeticionDeDiseno
 
     public string? Nombre { get; set; }
 
-    /// <summary><c>dormitorio</c>, <c>salon</c> o <c>cocina</c>.</summary>
+    /// <summary><c>dormitorio</c>, <c>salon</c>, <c>cocina</c> o <c>despacho</c>.</summary>
     public string? TipoEstancia { get; set; }
 
     public JsonElement? Contenido { get; set; }
