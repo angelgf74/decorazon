@@ -3,7 +3,7 @@ import { cajaEntera } from '../aperturas'
 import { mesaConPatas } from '../modelos'
 
 export const escritorio: DefinicionTipo = {
-  id: 'escritorio', nombre: 'escritorio', genero: 'm', categoria: 'mueble', estancias: ['dormitorio', 'salon'],
+  id: 'escritorio', nombre: 'escritorio', genero: 'm', categoria: 'mueble', estancias: ['dormitorio', 'salon', 'despacho'],
   medidas: { ancho: { min: 80, max: 200, defecto: 120 }, fondo: { min: 50, max: 80, defecto: 60 }, alto: { min: 70, max: 80, defecto: 75 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],

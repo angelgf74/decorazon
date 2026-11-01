@@ -3,7 +3,7 @@ import { cajaEntera } from '../aperturas'
 import { caja, patas4 } from '../modelos'
 
 export const silla: DefinicionTipo = {
-  id: 'silla', nombre: 'silla', genero: 'f', categoria: 'mueble', estancias: ['dormitorio', 'salon', 'cocina'],
+  id: 'silla', nombre: 'silla', genero: 'f', categoria: 'mueble', estancias: ['dormitorio', 'salon', 'cocina', 'despacho'],
   medidas: { ancho: { min: 40, max: 60, defecto: 45 }, fondo: { min: 40, max: 60, defecto: 50 }, alto: { min: 75, max: 110, defecto: 85 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],

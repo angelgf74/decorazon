@@ -3,7 +3,7 @@ import { cajaEntera } from '../aperturas'
 import { caja } from '../modelos'
 
 export const cuadro: DefinicionTipo = {
-  id: 'cuadro', nombre: 'cuadro', genero: 'm', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina'],
+  id: 'cuadro', nombre: 'cuadro', genero: 'm', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina', 'despacho'],
   medidas: { ancho: { min: 20, max: 200, defecto: 60 }, fondo: { min: 2, max: 6, defecto: 3 }, alto: { min: 20, max: 150, defecto: 40 } },
   alturaSuelo: 140, alturaSueloEditable: true,
   variantes: [],

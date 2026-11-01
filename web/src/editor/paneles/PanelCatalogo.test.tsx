@@ -21,6 +21,14 @@ describe('PanelCatalogo', () => {
     expect(within(grupos[0]!).getByRole('button', { name: /^Módulo bajo/ })).toBeTruthy()
   })
 
+  it('en un despacho, el primer grupo es "Para tu despacho" y contiene el escritorio', () => {
+    almacen.getState().crear('despacho', 400, 330, 250)
+    render(<PanelCatalogo />)
+    const grupos = screen.getAllByRole('region')
+    expect(grupos[0]).toBe(screen.getByRole('region', { name: 'Para tu despacho' }))
+    expect(within(grupos[0]!).getByRole('button', { name: /^Escritorio/ })).toBeTruthy()
+  })
+
   it('pulsar "Armario" en "Otros muebles" lo añade en el centro y lo deja seleccionado', async () => {
     almacen.getState().crear('salon', 400, 330, 250)
     almacen.getState().irAPaso(2)

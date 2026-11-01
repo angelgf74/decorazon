@@ -3,7 +3,7 @@ import { cajaEntera } from '../aperturas'
 import { cilindro } from '../modelos'
 
 export const lampara: DefinicionTipo = {
-  id: 'lampara-pie', nombre: 'lámpara de pie', genero: 'f', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina'],
+  id: 'lampara-pie', nombre: 'lámpara de pie', genero: 'f', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina', 'despacho'],
   medidas: { ancho: { min: 25, max: 60, defecto: 40 }, fondo: { min: 25, max: 60, defecto: 40 }, alto: { min: 120, max: 200, defecto: 160 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],
