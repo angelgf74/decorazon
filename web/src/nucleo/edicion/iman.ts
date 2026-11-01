@@ -1,5 +1,6 @@
 import type { Catalogo } from '../catalogo/tipos'
 import { rectangulo } from '../geometria/formas'
+import { penetracion3D, type Prisma } from '../geometria/prisma'
 import { TOLERANCIA_CM } from '../geometria/tolerancia'
 import { escalar, longitud, normalizar, punto, restar, rotar, sumar, type Punto } from '../geometria/vector'
 import type { DocumentoDiseno, Elemento } from '../modelo/documento'
@@ -112,6 +113,10 @@ export function imantar(
   const solapanEnAltura = (o: Elemento) =>
     Math.min(e.alturaSuelo + e.medidas.alto, o.alturaSuelo + o.medidas.alto) - Math.max(e.alturaSuelo, o.alturaSuelo) > TOLERANCIA_CM
   const objetivos = pisable(e) ? [] : doc.elementos.filter(o => o.id !== e.id && !pisable(o) && solapanEnAltura(o))
+  // Lo que ya se cruza en planta sin chocar de verdad (una silla bajo una mesa) está bien colocado: no se empuja fuera.
+  const defE = catalogo.get(e.tipo)
+  const volumenes = (x: Elemento): Prisma[] => catalogo.get(x.tipo)?.volumenes(x) ?? []
+  const chocan = (a: Prisma[], b: Prisma[]) => a.some(x => b.some(y => penetracion3D(x, y) > TOLERANCIA_CM))
   const ejes = ejesLocales(rotacion)
   ejes.forEach((u, k) => {
     if (bloqueados.has(k)) return
@@ -126,6 +131,8 @@ export function imantar(
       const [b0, b1] = proyeccion(otro, u)
       const [d0, d1] = proyeccion(otro, v)
       if (Math.min(c1, d1) - Math.max(c0, d0) <= EPS) continue
+      const enPlanta = Math.min(a1, b1) - Math.max(a0, b0) > EPS
+      if (enPlanta && defE && !chocan(defE.volumenes({ ...e, posicion, rotacion }), volumenes(o))) continue
       const desplazamiento = b0 + b1 > a0 + a1 ? b0 - a1 : b1 - a0
       if (Math.abs(desplazamiento) <= IMAN_CM && (!mejor || Math.abs(desplazamiento) < Math.abs(mejor.desplazamiento))) {
         mejor = { id: o.id, desplazamiento }
