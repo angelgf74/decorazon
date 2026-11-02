@@ -17,7 +17,22 @@ describe('CapaElementos', () => {
     expect(nombres.map((t) => t.textContent)).toEqual(['Escritorio en L', 'Reposapiés'])
     const ultimaHuella = [...capa.querySelectorAll('.capa-elementos__huella')].at(-1)!
     for (const t of nombres) expect(ultimaHuella.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    // El de la L, en el centro del tablero principal (160×140: y de 30 a 90).
-    expect([nombres[0]!.getAttribute('x'), nombres[0]!.getAttribute('y')]).toEqual(['100', '60'])
+    // El de la L, en el centro del tablero principal (160×140: y de 30 a 90); el reposapiés cae en el mismo sitio, así
+    // que los dos nombres se reparten una línea arriba y otra abajo de y = 60.
+    expect(nombres[0]!.getAttribute('x')).toBe('100')
+    expect((Number(nombres[0]!.getAttribute('y')) + Number(nombres[1]!.getAttribute('y'))) / 2).toBeCloseTo(60)
+  })
+
+  it('el espejo colgado sobre el lavabo: los dos nombres, uno encima del otro, el del espejo arriba', () => {
+    const doc = documentoNuevo('bano', 300, 250, 250)
+    doc.elementos = [
+      // Contra la pared de la derecha (x = 300): los nombres caen en la misma línea, a 21,5 cm.
+      { ...elementoNuevo(catalogoBase.get('lavabo')!, { x: 277, y: 150 }, 'l'), rotacion: 90 },
+      { ...elementoNuevo(catalogoBase.get('espejo')!, { x: 298.5, y: 150 }, 'e'), rotacion: 90 },
+    ]
+    const { container } = render(<svg><CapaElementos documento={doc} conflictos={[]} seleccion={null} escala={1} /></svg>)
+    const y = (texto: string) => Number([...container.querySelectorAll('text')].find((t) => t.textContent === texto)!.getAttribute('y'))
+    // A escala 1 (px por cm), una línea son 14 cm.
+    expect(y('Lavabo') - y('Espejo')).toBeCloseTo(14)
   })
 })

@@ -235,7 +235,7 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
             <CapaPlanta documento={documento} seleccion={seleccion} alPulsarPared={paso === 1 ? pulsarPared : undefined} />
             <CapaEstructura documento={documento} seleccion={seleccion} vigas={false} alPulsar={paso === 1 ? pulsar.estructura : undefined} />
             <CapaAberturas documento={documento} seleccion={seleccion} alPulsar={paso === 1 ? pulsar.abertura : undefined} />
-            <CapaElementos documento={documento} conflictos={conflictos} seleccion={seleccion} alPulsar={paso === 2 ? pulsar.elemento : undefined} />
+            <CapaElementos documento={documento} conflictos={conflictos} seleccion={seleccion} alPulsar={paso === 2 ? pulsar.elemento : undefined} escala={vista.escala} />
             {/* Las vigas van por el techo: encima de los muebles. */}
             <CapaEstructura documento={documento} seleccion={seleccion} vigas alPulsar={paso === 1 ? pulsar.estructura : undefined} />
             <CapaConflictos conflictos={conflictos} />

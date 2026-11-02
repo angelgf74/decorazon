@@ -21,7 +21,7 @@ export function CapasDelPlano({ doc, vista, rayado }: { doc: DocumentoDiseno; vi
       <CapaPlanta documento={doc} />
       <CapaEstructura documento={doc} seleccion={null} vigas={false} rayado={rayado} />
       <CapaAberturas documento={doc} seleccion={null} />
-      <CapaElementos documento={doc} conflictos={[]} seleccion={null} />
+      <CapaElementos documento={doc} conflictos={[]} seleccion={null} escala={vista.escala} />
       <CapaEstructura documento={doc} seleccion={null} vigas rayado={rayado} />
       <CapaCotas documento={doc} seleccion={null} escala={vista.escala} soloVer />
     </g>
