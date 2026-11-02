@@ -28,11 +28,15 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
                 diseno.Tipo,
                 diseno.FechaDeCreacion,
                 diseno.FechaDeModificacion,
-                diseno.Version))
+                diseno.Version,
+                diseno.EnlaceCompartido))
             .ToListAsync(cancelacion);
 
     public Task<int> ContarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
         contexto.Disenos.CountAsync(diseno => diseno.UsuarioId == usuarioId, cancelacion);
+
+    public Task<Diseno?> ObtenerCompartidoAsync(string enlace, CancellationToken cancelacion = default) =>
+        contexto.Disenos.AsNoTracking().FirstOrDefaultAsync(diseno => diseno.EnlaceCompartido == enlace, cancelacion);
 
     // Solo rastrea: lo guarda GuardarCambiosAsync o el guardado de otro repositorio
     // que comparta el contexto (así el alta con diseño es una sola transacción).

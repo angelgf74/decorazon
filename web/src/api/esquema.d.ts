@@ -36,6 +36,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/compartidos/{enlace}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["leerDisenoCompartido"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cuentas/registro": {
         parameters: {
             query?: never;
@@ -180,6 +196,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/disenos/{id}/enlace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["compartirDiseno"];
+        post?: never;
+        delete: operations["dejarDeCompartirDiseno"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -230,6 +262,17 @@ export interface components {
             /** Format: int32 */
             version: number;
             contenido: Record<string, never>;
+            enlace: null | string;
+        };
+        RespuestaDeDisenoCompartido: {
+            nombre: string;
+            tipoEstancia: string;
+            /** Format: date-time */
+            fechaDeModificacion: string;
+            contenido: Record<string, never>;
+        };
+        RespuestaDeEnlace: {
+            enlace: string;
         };
         RespuestaDeInicioDeSesion: {
             token: string;
@@ -254,6 +297,7 @@ export interface components {
             fechaDeModificacion: string;
             /** Format: int32 */
             version: number;
+            enlace: null | string;
         };
         RespuestaDeSalud: {
             estado: string;
@@ -335,6 +379,46 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
+        };
+    };
+    leerDisenoCompartido: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enlace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeDisenoCompartido"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -878,6 +962,66 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
+        };
+    };
+    compartirDiseno: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeEnlace"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
+        };
+    };
+    dejarDeCompartirDiseno: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -11,4 +11,5 @@ public sealed record ResumenDeDiseno(
     TipoDeEstancia Tipo,
     DateTimeOffset FechaDeCreacion,
     DateTimeOffset FechaDeModificacion,
-    int Version);
+    int Version,
+    string? EnlaceCompartido);

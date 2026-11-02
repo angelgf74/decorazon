@@ -34,6 +34,11 @@ namespace Decorazon.Infraestructura.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("contenido");
 
+                    b.Property<string>("EnlaceCompartido")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("enlace_compartido");
+
                     b.Property<DateTimeOffset>("FechaDeCreacion")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_de_creacion");
@@ -65,6 +70,10 @@ namespace Decorazon.Infraestructura.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_disenos");
+
+                    b.HasIndex("EnlaceCompartido")
+                        .IsUnique()
+                        .HasDatabaseName("ix_disenos_enlace_compartido");
 
                     b.HasIndex("UsuarioId", "FechaDeModificacion")
                         .HasDatabaseName("ix_disenos_usuario_modificacion");

@@ -22,11 +22,14 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
             _disenos.Where(diseno => diseno.UsuarioId == usuarioId)
                 .OrderByDescending(diseno => diseno.FechaDeModificacion)
                 .Select(diseno => new ResumenDeDiseno(
-                    diseno.Id, diseno.Nombre, diseno.Tipo, diseno.FechaDeCreacion, diseno.FechaDeModificacion, diseno.Version))
+                    diseno.Id, diseno.Nombre, diseno.Tipo, diseno.FechaDeCreacion, diseno.FechaDeModificacion, diseno.Version, diseno.EnlaceCompartido))
                 .ToList());
 
     public Task<int> ContarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
         Task.FromResult(_disenos.Count(diseno => diseno.UsuarioId == usuarioId));
+
+    public Task<Diseno?> ObtenerCompartidoAsync(string enlace, CancellationToken cancelacion = default) =>
+        Task.FromResult(_disenos.FirstOrDefault(diseno => diseno.EnlaceCompartido == enlace));
 
     // Un id ya guardado, de quien sea, no entra: el próximo guardado falla como la clave primaria.
     private bool _idRepetido;

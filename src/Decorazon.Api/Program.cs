@@ -226,6 +226,7 @@ aplicacion.MapearEndpointsDeSesiones();
 aplicacion.MapearEndpointsDeContrasenas();
 aplicacion.MapearEndpointsDeCuentas();
 aplicacion.MapearEndpointsDeDisenos();
+aplicacion.MapearEndpointsDeCompartir();
 
 aplicacion.Run();
 

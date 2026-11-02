@@ -100,4 +100,50 @@ public class DisenoTests
         Assert.True(copia.Length <= NombreDeDiseno.LongitudMaxima);
         Assert.False(char.IsHighSurrogate(copia[^9]));
     }
+
+    [Fact]
+    public void Compartir_guarda_el_enlace_sin_cambiar_la_version_ni_la_fecha()
+    {
+        var d = Diseno.Crear(Guid.NewGuid(), Nombre("Mi salón"), TipoDeEstancia.Salon, Contenido(), T0);
+
+        d.Compartir("enlace-1");
+
+        Assert.Equal("enlace-1", d.EnlaceCompartido);
+        Assert.Equal(1, d.Version);
+        Assert.Equal(T0, d.FechaDeModificacion);
+    }
+
+    [Fact]
+    public void Compartir_un_diseno_ya_compartido_deja_el_enlace_que_tenia()
+    {
+        var d = Diseno.Crear(Guid.NewGuid(), Nombre("Mi salón"), TipoDeEstancia.Salon, Contenido(), T0);
+        d.Compartir("enlace-1");
+
+        d.Compartir("enlace-2");
+
+        Assert.Equal("enlace-1", d.EnlaceCompartido);
+    }
+
+    [Fact]
+    public void DejarDeCompartir_quita_el_enlace_y_volver_a_compartir_pone_el_nuevo()
+    {
+        var d = Diseno.Crear(Guid.NewGuid(), Nombre("Mi salón"), TipoDeEstancia.Salon, Contenido(), T0);
+        d.Compartir("enlace-1");
+
+        d.DejarDeCompartir();
+        Assert.Null(d.EnlaceCompartido);
+
+        d.Compartir("enlace-2");
+        Assert.Equal("enlace-2", d.EnlaceCompartido);
+        Assert.Equal(1, d.Version);
+    }
+
+    [Fact]
+    public void Duplicar_no_copia_el_enlace()
+    {
+        var d = Diseno.Crear(Guid.NewGuid(), Nombre("Mi salón"), TipoDeEstancia.Salon, Contenido(), T0);
+        d.Compartir("enlace-1");
+
+        Assert.Null(d.Duplicar(T0).EnlaceCompartido);
+    }
 }

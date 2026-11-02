@@ -95,6 +95,56 @@
         }
       }
     },
+    "/compartidos/{enlace}": {
+      "get": {
+        "tags": [
+          "Compartidos"
+        ],
+        "operationId": "leerDisenoCompartido",
+        "parameters": [
+          {
+            "name": "enlace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeDisenoCompartido"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cuentas/registro": {
       "post": {
         "tags": [
@@ -801,6 +851,89 @@
           }
         ]
       }
+    },
+    "/disenos/{id}/enlace": {
+      "put": {
+        "tags": [
+          "Disenos"
+        ],
+        "operationId": "compartirDiseno",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeEnlace"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Disenos"
+        ],
+        "operationId": "dejarDeCompartirDiseno",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -956,7 +1089,8 @@
           "fechaDeCreacion",
           "fechaDeModificacion",
           "version",
-          "contenido"
+          "contenido",
+          "enlace"
         ],
         "type": "object",
         "properties": {
@@ -984,6 +1118,47 @@
           },
           "contenido": {
             "type": "object"
+          },
+          "enlace": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RespuestaDeDisenoCompartido": {
+        "required": [
+          "nombre",
+          "tipoEstancia",
+          "fechaDeModificacion",
+          "contenido"
+        ],
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "tipoEstancia": {
+            "type": "string"
+          },
+          "fechaDeModificacion": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contenido": {
+            "type": "object"
+          }
+        }
+      },
+      "RespuestaDeEnlace": {
+        "required": [
+          "enlace"
+        ],
+        "type": "object",
+        "properties": {
+          "enlace": {
+            "type": "string"
           }
         }
       },
@@ -1036,7 +1211,8 @@
           "tipoEstancia",
           "fechaDeCreacion",
           "fechaDeModificacion",
-          "version"
+          "version",
+          "enlace"
         ],
         "type": "object",
         "properties": {
@@ -1061,6 +1237,12 @@
           "version": {
             "type": "integer",
             "format": "int32"
+          },
+          "enlace": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -1110,6 +1292,9 @@
     },
     {
       "name": "Sesiones"
+    },
+    {
+      "name": "Compartidos"
     },
     {
       "name": "Registro"

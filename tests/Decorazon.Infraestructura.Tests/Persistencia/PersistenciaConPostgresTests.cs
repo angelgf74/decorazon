@@ -211,8 +211,43 @@ public sealed class PersistenciaConPostgresTests(PostgresFixture postgres)
         await using var lectura = PostgresFixture.Contexto(cadena);
         var resumen = Assert.Single(await new RepositorioDeDisenosEf(lectura).ListarResumenesAsync(usuario.Id));
 
-        Assert.Equal(new ResumenDeDiseno(diseno.Id, Nombre("Cocina"), TipoDeEstancia.Cocina, Ahora, Ahora, 1), resumen);
+        Assert.Equal(new ResumenDeDiseno(diseno.Id, Nombre("Cocina"), TipoDeEstancia.Cocina, Ahora, Ahora, 1, null), resumen);
         Assert.Empty(lectura.ChangeTracker.Entries());
+    }
+
+    /// <summary>
+    /// El enlace se guarda sin tocar la versión, se encuentra sin usuario y sin rastrear,
+    /// y dos diseños no pueden compartir el mismo.
+    /// </summary>
+    [Fact]
+    public async Task Un_diseno_compartido_se_lee_por_su_enlace_y_el_enlace_es_unico()
+    {
+        var (cadena, usuario) = await BaseConUsuarioAsync();
+        var diseno = Diseno.Crear(usuario.Id, Nombre("Cocina"), TipoDeEstancia.Cocina, Contenido(), Ahora);
+        diseno.Compartir("enlace-unico");
+        await using (var contexto = PostgresFixture.Contexto(cadena))
+        {
+            var escritura = new RepositorioDeDisenosEf(contexto);
+            escritura.Anadir(diseno);
+            Assert.True(await escritura.GuardarCambiosAsync());
+        }
+
+        await using (var lectura = PostgresFixture.Contexto(cadena))
+        {
+            var repositorio = new RepositorioDeDisenosEf(lectura);
+            var leido = await repositorio.ObtenerCompartidoAsync("enlace-unico");
+            Assert.Equal(diseno.Id, leido?.Id);
+            Assert.Equal(1, leido?.Version);
+            Assert.Empty(lectura.ChangeTracker.Entries());
+            Assert.Null(await repositorio.ObtenerCompartidoAsync("otro"));
+        }
+
+        var otro = Diseno.Crear(usuario.Id, Nombre("Baño"), TipoDeEstancia.Bano, Contenido(), Ahora);
+        otro.Compartir("enlace-unico");
+        await using var choque = PostgresFixture.Contexto(cadena);
+        var repositorioDelChoque = new RepositorioDeDisenosEf(choque);
+        repositorioDelChoque.Anadir(otro);
+        await Assert.ThrowsAnyAsync<Microsoft.EntityFrameworkCore.DbUpdateException>(() => repositorioDelChoque.GuardarCambiosAsync());
     }
 
     [Fact]

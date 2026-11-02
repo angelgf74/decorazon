@@ -29,15 +29,18 @@ public sealed class PeticionDeDiseno
 }
 
 /// <summary>Un diseño en el listado de <c>GET /disenos</c>, sin el contenido.</summary>
+/// <param name="Enlace">El token con que se comparte, o null si no se comparte.</param>
 public sealed record RespuestaDeResumenDeDiseno(
     Guid Id,
     string Nombre,
     string TipoEstancia,
     DateTimeOffset FechaDeCreacion,
     DateTimeOffset FechaDeModificacion,
-    int Version);
+    int Version,
+    string? Enlace);
 
 /// <summary>Un diseño completo. Su <see cref="Version"/> es la misma que la cabecera <c>ETag</c>.</summary>
+/// <param name="Enlace">El token con que se comparte, o null si no se comparte.</param>
 public sealed record RespuestaDeDiseno(
     Guid Id,
     string Nombre,
@@ -45,6 +48,23 @@ public sealed record RespuestaDeDiseno(
     DateTimeOffset FechaDeCreacion,
     DateTimeOffset FechaDeModificacion,
     int Version,
+    JsonElement Contenido,
+    string? Enlace);
+
+/// <summary>
+/// <c>PUT /disenos/{id}/enlace</c>: el token del enlace. La web compone la dirección
+/// pública con él (<c>/compartido/&lt;enlace&gt;</c>).
+/// </summary>
+public sealed record RespuestaDeEnlace(string Enlace);
+
+/// <summary>
+/// <c>GET /compartidos/{enlace}</c>: lo que ve quien tiene el enlace. Sin id, sin
+/// usuario y sin el propio enlace: nada que lleve a la cuenta del dueño.
+/// </summary>
+public sealed record RespuestaDeDisenoCompartido(
+    string Nombre,
+    string TipoEstancia,
+    DateTimeOffset FechaDeModificacion,
     JsonElement Contenido);
 
 /// <summary>

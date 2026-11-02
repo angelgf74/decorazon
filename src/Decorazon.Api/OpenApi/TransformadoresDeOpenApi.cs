@@ -49,7 +49,7 @@ public static class TransformadoresDeOpenApi
         opciones.AddSchemaTransformer((esquema, contexto, _) =>
         {
             var tipo = contexto.JsonTypeInfo.Type;
-            if ((tipo == typeof(PeticionDeDiseno) || tipo == typeof(RespuestaDeDiseno))
+            if ((tipo == typeof(PeticionDeDiseno) || tipo == typeof(RespuestaDeDiseno) || tipo == typeof(RespuestaDeDisenoCompartido))
                 && esquema.Properties?.ContainsKey("contenido") == true)
             {
                 esquema.Properties["contenido"] = new OpenApiSchema { Type = JsonSchemaType.Object };

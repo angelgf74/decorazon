@@ -23,6 +23,7 @@ public static class InyeccionDeDependencias
         servicios.AddScoped<CambiarContrasena>();
         servicios.AddScoped<BorrarCuenta>();
         servicios.AddScoped<GestionDeDisenos>();
+        servicios.AddScoped<CompartirDisenos>();
         servicios.AddScoped<LimpiarCaducados>();
 
         return servicios;
