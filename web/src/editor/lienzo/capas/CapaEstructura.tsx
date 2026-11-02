@@ -9,6 +9,8 @@ interface Props {
   /** true: solo las vigas, que van por el techo y se pintan encima de los muebles; false: columnas y radiadores. */
   vigas: boolean
   alPulsar?: AlPulsar
+  /** id del `PatronRayado` con el que se rellenan las columnas. */
+  rayado?: string
 }
 
 const centro = (ps: Punto[]): Punto => ({
@@ -16,8 +18,18 @@ const centro = (ps: Punto[]): Punto => ({
   y: ps.reduce((s, p) => s + p.y, 0) / ps.length,
 })
 
-/** La columna se rellena con el patrón `#lienzo-rayado`, que define el `Lienzo`. */
-export default function CapaEstructura({ documento, seleccion, vigas, alPulsar }: Props) {
+/** Rayado de las columnas; cada svg que pinta la estructura define el suyo. */
+export function PatronRayado({ id }: { id: string }) {
+  return (
+    <pattern id={id} patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="#d8d2ca" />
+      <line x1="0" y1="0" x2="0" y2="6" stroke="#6f6862" strokeWidth="2" />
+    </pattern>
+  )
+}
+
+/** La columna se rellena con el patrón `rayado` (por defecto, el que define el `Lienzo`). */
+export default function CapaEstructura({ documento, seleccion, vigas, alPulsar, rayado = 'lienzo-rayado' }: Props) {
   // Las huellas salen del núcleo, las mismas con las que se calculan los conflictos.
   const huellas = new Map(obstaculosDeEstancia(documento).fisicos.map((o) => [o.id, o.prisma.huella]))
   return (
@@ -43,7 +55,7 @@ export default function CapaEstructura({ documento, seleccion, vigas, alPulsar }
               <polygon
                 className="capa-estructura__contorno"
                 points={puntos(huella)}
-                fill={e.tipo === 'columna' ? 'url(#lienzo-rayado)' : undefined}
+                fill={e.tipo === 'columna' ? `url(#${rayado})` : undefined}
               />
             )}
           </g>

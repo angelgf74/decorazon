@@ -53,7 +53,8 @@ function NombreDelDiseno({ nombre }: { nombre: string }) {
   )
 }
 
-export default function BarraSuperior() {
+/** `alImprimir` abre la hoja para imprimir o guardar como PDF. */
+export default function BarraSuperior({ alImprimir }: { alImprimir?: () => void }) {
   const paso = useEditor((e) => e.paso)
   const vista = useEditor((e) => e.vista)
   const guardado = useEditor((e) => e.guardado)
@@ -118,6 +119,12 @@ export default function BarraSuperior() {
       {nombreDiseno === null && (
         <button type="button" className="enlace barra__nuevo" title={t.nuevoDiseno} onClick={() => setConfirmando(true)}>
           <Icono nombre="nuevo" /><span className="barra__texto">{t.nuevoDiseno}</span>
+        </button>
+      )}
+
+      {alImprimir && (
+        <button type="button" className="enlace barra__imprimir" title={textos.hoja.imprimir} onClick={alImprimir}>
+          <Icono nombre="imprimir" /><span className="barra__texto">{textos.hoja.imprimir}</span>
         </button>
       )}
 

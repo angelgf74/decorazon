@@ -76,6 +76,15 @@ describe('Mueble3D', () => {
     }
   })
 
+  it('sin resaltes (captura para imprimir): ni rojo, ni terracota, ni contorno aunque esté seleccionado y en conflicto', async () => {
+    const a = armario()
+    montar(a, cama())
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a1' })
+    const r = await ReactThreeTestRenderer.create(<Mueble3D elemento={a} sinResaltes />)
+    expect(new Set(emisivos(r.scene.findAll((n) => n.type === 'Mesh')))).toEqual(new Set(['000000']))
+    expect(r.scene.findAll((n) => n.type === 'LineSegments2')).toHaveLength(0)
+  })
+
   it('seleccionado sin conflicto también lleva el contorno', async () => {
     const a = armario()
     montar(a)

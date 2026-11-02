@@ -12,7 +12,8 @@ function cursor(valor: string) {
   document.body.style.cursor = valor
 }
 
-function Mueble3D({ elemento }: { elemento: Elemento }) {
+/** `sinResaltes`: sin selección ni conflicto, como en la captura de la hoja para imprimir. */
+function Mueble3D({ elemento, sinResaltes = false }: { elemento: Elemento; sinResaltes?: boolean }) {
   const { id } = elemento
   const conflictos = useConflictos()
   const seleccionado = useEditor((e) => e.seleccion?.tipo === 'elemento' && e.seleccion.id === id)
@@ -23,7 +24,7 @@ function Mueble3D({ elemento }: { elemento: Elemento }) {
   useEffect(() => () => cursor(''), [])
 
   const enConflicto = conflictos.some((c) => c.gravedad === 'error' && (c.ids[0] === id || c.ids[1] === id))
-  const estado: EstadoPieza = enConflicto ? 'conflicto' : seleccionado ? 'seleccionado' : 'normal'
+  const estado: EstadoPieza = sinResaltes ? 'normal' : enConflicto ? 'conflicto' : seleccionado ? 'seleccionado' : 'normal'
 
   function alPulsar(ev: ThreeEvent<MouseEvent>) {
     ev.stopPropagation()
@@ -42,7 +43,7 @@ function Mueble3D({ elemento }: { elemento: Elemento }) {
 
   return (
     <group>
-      {piezas.map((p, k) => <Pieza key={k} pieza={p} estado={estado} eventos={eventos} contorno={seleccionado} />)}
+      {piezas.map((p, k) => <Pieza key={k} pieza={p} estado={estado} eventos={eventos} contorno={!sinResaltes && seleccionado} />)}
     </group>
   )
 }

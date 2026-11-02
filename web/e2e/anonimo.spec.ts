@@ -86,3 +86,22 @@ test('vista 3D: los botones de la barra reciben clics reales del ratón', async 
   await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2)
   await expect(boton).toHaveAttribute('aria-pressed', 'true')
 })
+
+test('hoja para imprimir: plano, lista de muebles y la vista 3D capturada en su página', async ({ page }) => {
+  await page.goto('/disenar')
+  await page.getByRole('button', { name: 'Crear estancia' }).click()
+  await page.getByRole('button', { name: '2 Amueblar' }).click()
+  await page.getByRole('button', { name: /^Cama/ }).click()
+  await page.getByRole('button', { name: 'Imprimir', exact: true }).click()
+
+  const hoja = page.getByRole('dialog', { name: 'Hoja para imprimir' })
+  await expect(hoja.getByRole('img', { name: 'Plano' })).toBeVisible()
+  await expect(hoja.getByRole('table').getByRole('cell', { name: 'Cama', exact: true })).toBeVisible()
+  // La imagen sale de un lienzo WebGL aparte; hasta tenerla no se puede imprimir.
+  await expect(hoja.getByRole('img', { name: 'Vista 3D' })).toBeVisible({ timeout: 20_000 })
+  await expect(hoja.getByRole('button', { name: 'Imprimir o guardar PDF' })).toBeEnabled()
+  expect(await hoja.getByRole('img', { name: 'Vista 3D' }).getAttribute('src')).toMatch(/^data:image\/png;base64,/)
+
+  await hoja.getByRole('button', { name: 'Cerrar' }).click()
+  await expect(hoja).toBeHidden()
+})

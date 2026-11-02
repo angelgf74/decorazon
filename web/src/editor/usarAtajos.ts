@@ -12,7 +12,8 @@ function enCampo(destino: EventTarget | null): boolean {
 export function useAtajos(): void {
   useEffect(() => {
     function alPulsar(e: KeyboardEvent) {
-      if (enCampo(e.target) || document.querySelector('dialog[open]') !== null) return
+      // Con un diálogo abierto (también la hoja para imprimir) el diseño de detrás no se toca.
+      if (enCampo(e.target) || document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]') !== null) return
       // Mientras una pieza sigue al puntero, solo Escape actúa: lo que edita espera a que se suelte.
       if (hayArrastre() && e.key !== 'Escape') return
       const e0 = almacen.getState()

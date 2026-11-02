@@ -79,3 +79,30 @@ describe('Editor: pestañas de las hojas (móvil)', () => {
     expect(within(propiedades).getByText(`, ${textos.barra.avisos(n)}`)).toHaveClass('solo-lectores')
   })
 })
+
+describe('Editor: hoja para imprimir', () => {
+  it('"Imprimir" abre la hoja y "Cerrar" vuelve al editor con el foco en el botón', async () => {
+    almacen.getState().cambiarVista('2d')
+    render(<Editor />, { wrapper: MemoryRouter })
+    const boton = screen.getByRole('button', { name: 'Imprimir' })
+    await userEvent.click(boton)
+    expect(screen.getByRole('dialog', { name: 'Hoja para imprimir' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    expect(screen.queryByRole('dialog', { name: 'Hoja para imprimir' })).toBeNull()
+    expect(boton).toHaveFocus()
+  })
+
+  it('con la hoja abierta, los atajos del editor no tocan el diseño de detrás', async () => {
+    almacen.getState().cambiarVista('2d')
+    almacen.getState().irAPaso(2)
+    almacen.getState().cambiar((d) => ({ ...d, elementos: [elementoNuevo(catalogoBase.get('cama')!, { x: 200, y: 165 }, 'c')] }))
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'c' })
+    render(<Editor />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+    await userEvent.keyboard('{Delete}')
+    expect(almacen.getState().documento!.elementos).toHaveLength(1)
+    // Deshacer tampoco: quitaría la cama recién añadida.
+    await userEvent.keyboard('{Control>}z{/Control}')
+    expect(almacen.getState().documento!.elementos).toHaveLength(1)
+  })
+})
