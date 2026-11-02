@@ -99,3 +99,16 @@
   .hoja-impresion__pagina--3d { break-before: page; }
   .hoja-impresion__plano { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Plano a pantalla completa: el plano se queda todos los gestos (mover, pellizcar). */
+.plano-ampliado { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; background: var(--crema); }
+.plano-ampliado:focus { outline: none; }
+.plano-ampliado__barra { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); padding: var(--esp-2) var(--esp-4); border-bottom: 1px solid var(--borde-suave); background: var(--superficie); }
+.plano-ampliado__titulo { margin: 0 auto 0 0; font-weight: 600; }
+.plano-ampliado__barra .boton-icono span { font-size: 1.4rem; line-height: 1; }
+.plano-ampliado__plano { flex: 1; width: 100%; min-height: 0; touch-action: none; cursor: grab; }
+.plano-ampliado__plano:active { cursor: grabbing; }
+/* En pantalla estrecha, solo el icono: la barra cabe en una línea y el nombre sigue ahí para los lectores. */
+@media (max-width: 30rem) {
+  .plano-ampliado__etiqueta { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useId, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ErrorDeApi } from '../../api/cliente'
 import { empezarAnonimoCon, sustituiriaDisenoAnonimo } from '../../cuenta/disenosLocales'
@@ -7,6 +7,8 @@ import { useSesion } from '../../cuenta/sesion'
 import Confirmar from '../../editor/comunes/Confirmar'
 import SinFallos from '../../editor/comunes/SinFallos'
 import { hayWebgl } from '../../editor/comunes/webgl'
+import Icono from '../../editor/comunes/Icono'
+import PlanoAmpliado from '../../editor/hoja/PlanoAmpliado'
 import PlanoDelDiseno from '../../editor/hoja/PlanoDelDiseno'
 import TablaDeMuebles from '../../editor/hoja/TablaDeMuebles'
 import { cajaPlanta } from '../../nucleo'
@@ -18,6 +20,30 @@ const t = textos.compartir
 
 // Con three (~1 MB): solo se carga cuando se pide verla.
 const Vista3DSoloVer = lazy(() => import('../../editor/vista3d/Vista3DSoloVer'))
+
+/** El plano de la página puede ser algo más alto que ancho: en el móvil, las estancias alargadas no quedan diminutas. */
+const ALTO_POR_ANCHO_DEL_PLANO = 1.4
+
+/**
+ * Ancho en px del elemento, medido al montarse (antes de pintar: el plano no se ve primero a otro tamaño) y al
+ * cambiar (girar el móvil). Si el navegador no mide, undefined.
+ */
+function useAncho(ref: RefObject<HTMLElement | null>, activo: boolean): number | undefined {
+  const [ancho, setAncho] = useState<number>()
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!activo || !el) return
+    const medir = () => {
+      const w = Math.round(el.getBoundingClientRect().width)
+      setAncho(w > 0 ? w : undefined)
+    }
+    medir()
+    const observador = new ResizeObserver(medir)
+    observador.observe(el)
+    return () => observador.disconnect()
+  }, [ref, activo])
+  return ancho
+}
 
 const LONGITUD_MAXIMA_NOMBRE = 100
 const SUFIJO_COPIA = ' (copia)'
@@ -54,6 +80,10 @@ export default function VistaCompartida() {
   const [conWebgl] = useState(hayWebgl)
   // La 3D no se monta hasta pedirla: en el móvil, sus controles se quedarían el gesto de desplazar la página.
   const [ver3d, setVer3d] = useState(false)
+  const [ampliado, setAmpliado] = useState(false)
+  const botonAmpliar = useRef<HTMLButtonElement>(null)
+  const zonaPlano = useRef<HTMLDivElement>(null)
+  const anchoPlano = useAncho(zonaPlano, estado.tipo === 'listo')
   const idPlano = useId()
   const id3d = useId()
   const idMuebles = useId()
@@ -142,8 +172,16 @@ export default function VistaCompartida() {
       </header>
 
       <section className="compartido__seccion" aria-labelledby={idPlano}>
-        <h2 id={idPlano}>{textos.hoja.plano}</h2>
-        <PlanoDelDiseno doc={doc} rayado="compartido-rayado" className="compartido__plano" />
+        <div className="compartido__titulo-plano">
+          <h2 id={idPlano}>{textos.hoja.plano}</h2>
+          <button ref={botonAmpliar} type="button" onClick={() => setAmpliado(true)}><Icono nombre="encuadrar" />{textos.hoja.ampliar}</button>
+        </div>
+        {/* Dibujado al ancho que ocupa: el svg no se encoge y sus textos salen al tamaño del editor. */}
+        <div ref={zonaPlano}>
+          <PlanoDelDiseno doc={doc} rayado="compartido-rayado" className="compartido__plano"
+            {...(anchoPlano !== undefined && { ancho: anchoPlano, altoMaximo: Math.round(anchoPlano * ALTO_POR_ANCHO_DEL_PLANO) })} />
+        </div>
+        {ampliado && <PlanoAmpliado doc={doc} alCerrar={() => { setAmpliado(false); botonAmpliar.current?.focus() }} />}
       </section>
 
       <section className="compartido__seccion" aria-labelledby={id3d}>
