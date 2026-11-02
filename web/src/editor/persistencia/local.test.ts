@@ -82,6 +82,19 @@ describe('local', () => {
     expect(a.getState().guardado).toBe('error')
   })
 
+  it('cambios sin pausa (un arrastre largo): escribe como muy tarde 2 s después del primero', () => {
+    const st = falso()
+    const a = crearAlmacen()
+    conectar(a, st)
+    a.getState().crear('salon', 400, 300, 250)
+    for (let n = 1; n <= 25; n++) {
+      a.getState().cambiar(alto(250 + n))
+      vi.advanceTimersByTime(100)
+    }
+    expect(st.escrituras).toBe(1)
+    expect(leerDisenoLocal(st)!.estancia.alto).toBeGreaterThanOrEqual(268)
+  })
+
   it('agrupa cambios: una escritura 500 ms después del último', () => {
     const st = falso()
     const a = crearAlmacen()
@@ -198,7 +211,7 @@ describe('local', () => {
     const st = falso()
     expect(guardarCopiaLocal(st, 'd1', { version: 4, nombre: 'Cocina', documento: doc, pendiente: true })).toBe(true)
     expect(st.getItem('decorazon.diseno.d1')).not.toBeNull()
-    expect(leerCopiaLocal(st, 'd1')).toEqual({ version: 4, nombre: 'Cocina', nombrePendiente: false, documento: doc, pendiente: true })
+    expect(leerCopiaLocal(st, 'd1')).toEqual({ version: 4, nombre: 'Cocina', documento: doc, pendiente: true })
     expect(leerCopiaLocal(st, 'd2')).toBeNull()
     st.setItem('decorazon.diseno.d3', '{roto')
     expect(leerCopiaLocal(st, 'd3')).toBeNull()
@@ -207,7 +220,7 @@ describe('local', () => {
     expect(leerCopiaLocal(null, 'd1')).toBeNull()
   })
 
-  it('la copia conserva la marca de nombre pendiente y una copia antigua sin ella se lee como false', () => {
+  it('la copia conserva la marca de nombre pendiente; en una copia antigua sin ella queda sin definir', () => {
     const st = falso()
     guardarCopiaLocal(st, 'd1', { version: 4, nombre: 'Mi salón', nombrePendiente: true, documento: doc, pendiente: true })
     expect(leerCopiaLocal(st, 'd1')).toMatchObject({ nombre: 'Mi salón', nombrePendiente: true })
@@ -215,7 +228,9 @@ describe('local', () => {
     expect(leerCopiaLocal(st, 'd2')?.nombrePendiente).toBe(false)
     // Lo que escribía la versión anterior: sin el campo.
     st.setItem('decorazon.diseno.d3', JSON.stringify({ version: 4, nombre: 'Cocina', documento: doc, pendiente: true }))
-    expect(leerCopiaLocal(st, 'd3')).toMatchObject({ nombre: 'Cocina', nombrePendiente: false, pendiente: true })
+    expect(leerCopiaLocal(st, 'd3')).toMatchObject({ nombre: 'Cocina', pendiente: true })
+    // Sin la marca, elegirApertura lo deduce del nombre; con ella a false, no.
+    expect(leerCopiaLocal(st, 'd3')?.nombrePendiente).toBeUndefined()
   })
 
   it('listar copias: parsea cada una una vez y solo lee versión, pendiente, nombre y fecha; el documento se valida al abrirla', () => {

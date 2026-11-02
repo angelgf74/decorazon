@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import type { ThreeEvent } from '@react-three/fiber'
 import { catalogoBase, piezasDeElemento, type Elemento } from '../../nucleo'
 import { almacen, useEditor } from '../estado/almacen'
@@ -12,7 +12,7 @@ function cursor(valor: string) {
   document.body.style.cursor = valor
 }
 
-export default function Mueble3D({ elemento }: { elemento: Elemento }) {
+function Mueble3D({ elemento }: { elemento: Elemento }) {
   const { id } = elemento
   const conflictos = useConflictos()
   const seleccionado = useEditor((e) => e.seleccion?.tipo === 'elemento' && e.seleccion.id === id)
@@ -46,3 +46,7 @@ export default function Mueble3D({ elemento }: { elemento: Elemento }) {
     </group>
   )
 }
+
+// El almacén conserva la referencia de los muebles que no cambian: sus piezas (useMemo) no se recalculan al editar otro.
+// Aún se vuelven a renderizar porque useConflictos depende del documento entero.
+export default memo(Mueble3D)

@@ -53,6 +53,20 @@ describe('almacén del editor', () => {
     expect(a.getState().aviso).toBeNull()
   })
 
+  it('cambiar un mueble conserva la referencia de los demás: la 3D no los vuelve a calcular', () => {
+    const a = crearAlmacen()
+    a.getState().crear('salon', 400, 300, 250)
+    a.getState().cambiar((d) => anadirElemento(d, catalogoBase, 'sofa', { x: 100, y: 100 }).documento)
+    a.getState().cambiar((d) => anadirElemento(d, catalogoBase, 'sofa', { x: 300, y: 200 }).documento)
+    const antes = a.getState().documento!
+    const dos = antes.elementos[1]!.id
+    a.getState().cambiar((d) => ({ ...d, elementos: d.elementos.map((e) => (e.id === dos ? { ...e, posicion: { x: 250.123, y: 200 } } : e)) }))
+    const despues = a.getState().documento!
+    expect(despues.elementos[0]).toBe(antes.elementos[0])
+    expect(despues.estancia).toBe(antes.estancia)
+    expect(despues.elementos[1]!.posicion).toEqual({ x: 250.12, y: 200 })
+  })
+
   it('cambiar con el mismo objeto no hace nada', () => {
     const a = crearAlmacen()
     a.getState().crear('salon', 400, 300, 250)

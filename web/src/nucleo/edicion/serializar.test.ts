@@ -10,6 +10,17 @@ describe('redondearNumeros', () => {
     const r = redondearNumeros({ a: 6.123233995736766e-17, b: [100.004999], c: -0 })
     expect(r).toEqual({ a: 0, b: [100], c: 0 })
     expect(Object.is(r.c, 0)).toBe(true)
+    expect(Object.is(redondearNumeros([-0])[0], 0)).toBe(true)
+  })
+  it('copia solo lo que cambia: lo ya redondeado conserva la referencia', () => {
+    const quieto = { posicion: { x: 10, y: 20.5 }, colores: { cuerpo: '#fff' } }
+    const v = { quieto, movido: { x: 1.23456 }, lista: [quieto] }
+    const r = redondearNumeros(v)
+    expect(r.quieto).toBe(quieto)
+    expect(r.lista[0]).toBe(quieto)
+    expect(r.movido).toEqual({ x: 1.23 })
+    expect(r).not.toBe(v)
+    expect(redondearNumeros(quieto)).toBe(quieto)
   })
   it('no muta la entrada', () => {
     const v = { a: [1.234] }

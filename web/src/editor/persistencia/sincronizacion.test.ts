@@ -127,6 +127,26 @@ describe('sincronización con el servidor', () => {
     expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(270)
   })
 
+  it('cambios sin pausa: la copia se escribe como muy tarde a los 2 s del primero', async () => {
+    servidorConVersion(4)
+    const { a, st } = preparar(4)
+    for (let n = 1; n <= 20; n++) {
+      a.getState().cambiar(alto(250 + n))
+      await vi.advanceTimersByTimeAsync(100)
+    }
+    expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBeGreaterThanOrEqual(268)
+  })
+
+  it('cambios sin pausa: el guardado sale como muy tarde a los 10 s del primero', async () => {
+    servidorConVersion(4)
+    const { a } = preparar(4)
+    for (let n = 1; n <= 100; n++) {
+      a.getState().cambiar(alto(250 + (n % 100)))
+      await vi.advanceTimersByTimeAsync(100)
+    }
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(1)
+  })
+
   it('pagehide escribe la copia pendiente al momento', () => {
     servidorConVersion(4)
     const { a, st } = preparar(4)
@@ -734,6 +754,26 @@ describe('elegirApertura', () => {
     const o = a.getState().origen
     expect(o.tipo === 'servidor' && o.nombre).toBe(nombre)
     if (eleccion === 'sobrescribir') expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Local' }))
+  })
+
+  it('misma versión con otro nombre y la marca a false (la pestaña se cerró con el renombrado en vuelo): el renombrado no se pierde', () => {
+    // Con la misma versión nadie más ha podido renombrar: cada guardado sube la versión.
+    expect(elegirApertura(ID, { ...copia(4, true), nombrePendiente: false }, remoto(4))).toMatchObject({ nombre: 'Local', nombrePendiente: 'Local', guardado: 'pendiente' })
+  })
+
+  it('en conflicto, una copia marcada sin renombrado no toma por propio el nombre viejo si se renombró en otro sitio', () => {
+    const r = elegirApertura(ID, { ...copia(4, true), nombre: 'Cocina vieja', nombrePendiente: false }, remoto(6))
+    expect(r).toMatchObject({ nombre: 'Cocina', guardado: 'conflicto' })
+    expect(r?.nombrePendiente).toBeUndefined()
+  })
+
+  it('sobrescribir tras un renombrado hecho en otro sitio sube el contenido y conserva el nombre remoto', async () => {
+    servidorConVersion(6)
+    const a = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(a, { esperaMs: 2000, st: falso() }))
+    abrirDiseno(a, elegirApertura(ID, { ...copia(4, true), nombre: 'Cocina vieja', nombrePendiente: false }, remoto(6))!)
+    await resolverConflicto(a, 'sobrescribir')
+    expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Cocina' }))
   })
 
   it('sin conexión: la copia local', () => {

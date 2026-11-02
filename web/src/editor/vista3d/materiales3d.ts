@@ -11,7 +11,16 @@ const RESALTE: Record<Exclude<EstadoPieza, 'normal'>, { color: string; intensida
   conflicto: { color: '#D62828', intensidad: 0.5 },
 }
 
+/**
+ * Cada color intermedio del selector crea un material: la caché guarda los más recientes y libera el resto.
+ * Liberar uno que aún usa alguna pieza no la rompe: three lo vuelve a preparar al pintarla.
+ */
+export const LIMITE_MATERIALES = 256
+
+// Un Map recorre en orden de inserción: el primero es el usado hace más tiempo.
 const cache = new Map<string, Material>()
+
+export const materialesEnCache = (): number => cache.size
 
 function crear(material: MaterialPBR, color: string, estado: EstadoPieza): Material {
   const { rugosidad, metalicidad, opacidad } = PBR[material]
@@ -32,10 +41,13 @@ function crear(material: MaterialPBR, color: string, estado: EstadoPieza): Mater
 /** Material compartido por material, color y estado. */
 export function materialDe(material: MaterialPBR, color: string, estado: EstadoPieza = 'normal'): Material {
   const clave = `${material}|${color}|${estado}`
-  let m = cache.get(clave)
-  if (!m) {
-    m = crear(material, color, estado)
-    cache.set(clave, m)
+  const m = cache.get(clave) ?? crear(material, color, estado)
+  cache.delete(clave)
+  cache.set(clave, m)
+  for (const [viejo, sobrante] of cache) {
+    if (cache.size <= LIMITE_MATERIALES) break
+    cache.delete(viejo)
+    sobrante.dispose()
   }
   return m
 }

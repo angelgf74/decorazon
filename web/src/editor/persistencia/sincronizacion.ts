@@ -6,11 +6,13 @@ import type { DocumentoDiseno } from '../../nucleo'
 import { textos } from '../../textos'
 import type { EstadoEditor, EstadoGuardado } from '../estado/almacen'
 import type { Origen } from '../estado/origen'
-import { almacenamientoSeguro, borrarCopiaLocal, claveCopia, guardarCopiaLocal, type CopiaLocal } from './local'
+import { almacenamientoSeguro, borrarCopiaLocal, claveCopia, ESPERA_MAXIMA_COPIA_MS, esperaAgrupada, guardarCopiaLocal, type CopiaLocal } from './local'
 
 export const REINTENTO_MS = 30_000
 /** Los cambios seguidos (p. ej. un arrastre) se agrupan en una sola escritura de la copia local. */
 export const ESPERA_COPIA_MS = 500
+/** Con cambios sin pausa, el guardado en el servidor sale igualmente cada tanto. */
+export const ESPERA_MAXIMA_ENVIO_MS = 10_000
 
 export type Eleccion = 'recargar' | 'sobrescribir'
 
@@ -41,13 +43,17 @@ export function elegirApertura(
   }
   const nombreRemoto = remoto.diseno.nombre
   const mismaVersion = copia !== null && copia.version === remoto.version
-  // La marca de la copia manda; las copias antiguas, sin ella, lo deducen de un nombre distinto del remoto.
+  // La marca de la copia manda. Con la misma versión un nombre distinto es siempre propio (cada guardado sube la versión;
+  // pasa si la pestaña se cerró con el renombrado en vuelo y la marca ya a false). Con otra versión solo lo deducen las
+  // copias antiguas, sin la marca: con ella a false, un nombre distinto es un renombrado hecho en otro sitio, que no se pisa.
   const marcado = copia?.nombrePendiente === true && copia.nombre !== undefined
-  const renombrado = marcado || (mismaVersion && copia.nombre !== undefined && copia.nombre !== nombreRemoto) ? copia.nombre : undefined
+  const distinto = copia !== null && copia.nombre !== undefined && copia.nombre !== nombreRemoto
+  const deducido = distinto && copia.nombrePendiente === undefined
+  const renombrado = marcado || (mismaVersion && distinto) ? copia.nombre : undefined
   if (copia?.pendiente && !mismaVersion) {
     // Nunca se pisa en silencio: con otra versión en el servidor, decide el usuario.
     // Un nombre local distinto queda como renombrado pendiente: "Sobrescribir" lo sube y "Recargar" lo descarta.
-    const local = marcado || (copia.nombre !== undefined && copia.nombre !== nombreRemoto) ? copia.nombre : undefined
+    const local = marcado || deducido ? copia.nombre : undefined
     return {
       id, version: copia.version, nombre: local ?? nombreRemoto, documento: copia.documento, pendiente: true,
       ...(local !== undefined && { nombrePendiente: local }), guardado: 'conflicto', versionRemota: remoto.version,
@@ -125,6 +131,9 @@ export function conectarSincronizacion(
   // Copia local agrupada: el trabajo cuyo último cambio aún no se ha escrito y su temporizador.
   let copiaPendiente: Trabajo | null = null
   let temporizadorCopia: ReturnType<typeof setTimeout> | undefined
+  // Cuándo empezaron los cambios aún sin copiar y sin enviar: acotan la espera agrupada.
+  let copiaDesde: number | null = null
+  let envioDesde: number | null = null
 
   const fijar = (t: Trabajo, cambios: Partial<EstadoEditor>) => {
     if (t === actual) a.setState(cambios)
@@ -145,6 +154,7 @@ export function conectarSincronizacion(
   const copiarYa = () => {
     clearTimeout(temporizadorCopia)
     temporizadorCopia = undefined
+    copiaDesde = null
     const t = copiaPendiente
     copiaPendiente = null
     if (t !== null) copiar(t)
@@ -152,13 +162,15 @@ export function conectarSincronizacion(
   const programarCopia = (t: Trabajo) => {
     copiaPendiente = t
     clearTimeout(temporizadorCopia)
-    temporizadorCopia = setTimeout(copiarYa, esperaCopiaMs)
+    copiaDesde ??= Date.now()
+    temporizadorCopia = setTimeout(copiarYa, esperaAgrupada(copiaDesde, Date.now(), esperaCopiaMs, ESPERA_MAXIMA_COPIA_MS))
   }
 
   const programar = (ms: number) => {
     clearTimeout(temporizador)
     temporizador = setTimeout(() => {
       temporizador = undefined
+      envioDesde = null
       if (actual !== null) void guardar(actual)
     }, ms)
   }
@@ -179,6 +191,7 @@ export function conectarSincronizacion(
     t.perdido = true
     clearTimeout(temporizador)
     temporizador = undefined
+    envioDesde = null
     pararReintentos()
     copiar(t)
     fijar(t, { guardado: 'error', aviso: textos.editorDeDiseno.noExiste })
@@ -229,6 +242,7 @@ export function conectarSincronizacion(
         t.conflicto = true
         clearTimeout(temporizador)
         temporizador = undefined
+        envioDesde = null
         pararReintentos()
         fijar(t, { guardado: 'conflicto', versionRemota: e.version ?? null })
       } else {
@@ -279,6 +293,7 @@ export function conectarSincronizacion(
   const dejar = () => {
     clearTimeout(temporizador)
     temporizador = undefined
+    envioDesde = null
     pararReintentos()
     // Antes de soltar el trabajo: uno ya dejado no escribe si el mismo diseño se abre otra vez.
     copiarYa()
@@ -309,7 +324,8 @@ export function conectarSincronizacion(
       return
     }
     if (estado.guardado !== 'pendiente') a.getState().marcarGuardado('pendiente')
-    programar(esperaMs)
+    envioDesde ??= Date.now()
+    programar(esperaAgrupada(envioDesde, Date.now(), esperaMs, ESPERA_MAXIMA_ENVIO_MS))
   }
 
   const desuscribir = a.subscribe((estado, previo) => {
