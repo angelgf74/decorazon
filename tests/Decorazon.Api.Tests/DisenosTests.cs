@@ -164,7 +164,7 @@ public class DisenosTests(ApiConPostgresFixture api) : IClassFixture<ApiConPostg
     [InlineData("", "dormitorio")]
     [InlineData("   ", "dormitorio")]
     [InlineData("Mi diseño", "Salón")]
-    [InlineData("Mi diseño", "bano")]
+    [InlineData("Mi diseño", "terraza")]
     public async Task NombreOTipoNoValidos_Responden400ConMensaje(string nombre, string tipo)
     {
         var cliente = await CuentasDePrueba.ConSesionAsync(api);
