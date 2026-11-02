@@ -87,3 +87,16 @@ export function puertaAbatibleAbajo(e: Elemento, altoPuerta: number, zDesde: num
   const { ancho, fondo } = e.medidas
   return [{ nombre: 'la puerta', ...cajaMundo(e, -ancho / 2, fondo / 2, ancho / 2, fondo / 2 + altoPuerta, zDesde, zDesde + altoPuerta) }]
 }
+
+/** Espacio libre delante del inodoro, el bidé y el lavabo, y delante de la entrada a la ducha y a la bañera, en cm. */
+export const ESPACIO_DE_USO_CM = 70
+export const ESPACIO_DE_ENTRADA_CM = 60
+/** Lo que cuelga por encima (un espejo, un armario de pared) no estorba a quien está de pie delante. */
+const ALTO_ESPACIO_LIBRE = 100
+
+/** Espacio libre de `profundo` cm delante del frente, de `ancho` cm centrado, del suelo a 1 m. */
+export function espacioDelante(e: Elemento, nombre: string, profundo: number, ancho = e.medidas.ancho): ZonaApertura[] {
+  const { fondo } = e.medidas
+  const huella = [{ x: -ancho / 2, y: fondo / 2 }, { x: ancho / 2, y: fondo / 2 }, { x: ancho / 2, y: fondo / 2 + profundo }, { x: -ancho / 2, y: fondo / 2 + profundo }]
+  return [{ nombre, huella: huella.map((p) => aMundo(e, p)), zMin: 0, zMax: ALTO_ESPACIO_LIBRE }]
+}

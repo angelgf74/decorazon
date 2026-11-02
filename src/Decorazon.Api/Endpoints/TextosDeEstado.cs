@@ -16,7 +16,7 @@ public static class TextosDeEstado
         EstadoDeDiseno.NombreNoValido =>
             $"Ponle un nombre al diseño, de {NombreDeDiseno.LongitudMaxima} caracteres como mucho.",
         EstadoDeDiseno.TipoNoValido =>
-            "El tipo de estancia debe ser dormitorio, salon, cocina o despacho.",
+            "El tipo de estancia debe ser dormitorio, salon, cocina, despacho o bano.",
         EstadoDeDiseno.ContenidoNoValido => DeContenido(contenido),
         EstadoDeDiseno.LimiteAlcanzado =>
             $"Ya tienes {Diseno.MaximoPorUsuario} diseños, el máximo. Borra alguno para guardar otro.",

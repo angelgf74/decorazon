@@ -1,7 +1,7 @@
 export const textos = {
   inicio: {
     titulo: 'Decorazon',
-    frase: 'Diseña tu dormitorio, salón, cocina o despacho con medidas reales y comprueba que todo cabe y se abre',
+    frase: 'Diseña tu dormitorio, salón, cocina, despacho o baño con medidas reales y comprueba que todo cabe y se abre',
     empezar: 'Empezar a diseñar',
     seguir: 'Seguir con tu diseño',
     nuevo: 'Empezar uno nuevo',
@@ -36,7 +36,7 @@ export const textos = {
   nuevaEstancia: {
     titulo: 'Nueva estancia',
     tipo: 'Tipo de estancia',
-    tipos: { dormitorio: 'Dormitorio', salon: 'Salón', cocina: 'Cocina', despacho: 'Despacho' },
+    tipos: { dormitorio: 'Dormitorio', salon: 'Salón', cocina: 'Cocina', despacho: 'Despacho', bano: 'Baño' },
     ancho: 'Ancho',
     largo: 'Largo',
     alto: 'Alto',
@@ -159,7 +159,7 @@ export const textos = {
   },
   catalogo: {
     paraTu: 'Para tu',
-    estancias: { dormitorio: 'dormitorio', salon: 'salón', cocina: 'cocina', despacho: 'despacho' },
+    estancias: { dormitorio: 'dormitorio', salon: 'salón', cocina: 'cocina', despacho: 'despacho', bano: 'baño' },
     decoracion: 'Decoración',
     otros: 'Otros muebles',
     ayuda: 'Pulsa un mueble para ponerlo en el centro o arrástralo al plano',

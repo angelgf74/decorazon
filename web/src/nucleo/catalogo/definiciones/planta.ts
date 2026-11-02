@@ -3,7 +3,7 @@ import { cajaEntera } from '../aperturas'
 import { cilindro } from '../modelos'
 
 export const planta: DefinicionTipo = {
-  id: 'planta', nombre: 'planta', genero: 'f', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina', 'despacho'],
+  id: 'planta', nombre: 'planta', genero: 'f', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina', 'despacho', 'bano'],
   medidas: { ancho: { min: 20, max: 100, defecto: 40 }, fondo: { min: 20, max: 100, defecto: 40 }, alto: { min: 30, max: 200, defecto: 100 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],

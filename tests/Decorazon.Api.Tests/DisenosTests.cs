@@ -187,6 +187,19 @@ public class DisenosTests(ApiConPostgresFixture api) : IClassFixture<ApiConPostg
         Assert.Equal("despacho", leido.TipoEstancia);
     }
 
+    [Fact]
+    public async Task Bano_SeCreaYSeLeeConSuTipo()
+    {
+        var cliente = await CuentasDePrueba.ConSesionAsync(api);
+
+        var creado = await cliente.PostAsJsonAsync("/disenos", DisenosDePrueba.Peticion("Mi baño", "bano"));
+        Assert.Equal(HttpStatusCode.Created, creado.StatusCode);
+        var id = (await creado.Content.ReadFromJsonAsync<RespuestaDeDiseno>())!.Id;
+
+        var leido = (await cliente.GetFromJsonAsync<RespuestaDeDiseno>($"/disenos/{id}"))!;
+        Assert.Equal("bano", leido.TipoEstancia);
+    }
+
     /// <summary>
     /// PostgreSQL no admite el carácter nulo en una columna de texto (22021): si
     /// el nombre llegara a la base, sería un 500.

@@ -31,12 +31,23 @@ describe('PanelCatalogo', () => {
     }
   })
 
+  it('en un baño, el primer grupo es "Para tu baño" con los sanitarios, y el espejo va en la decoración', () => {
+    almacen.getState().crear('bano', 250, 200, 250)
+    render(<PanelCatalogo />)
+    const grupos = screen.getAllByRole('region')
+    expect(grupos[0]).toBe(screen.getByRole('region', { name: 'Para tu baño' }))
+    for (const nombre of [/^Inodoro/, /^Bidé/, /^Lavabo/, /^Plato de ducha/, /^Bañera/, /^Lavadora/, /^Columna de baño/, /^Armario de espejo/]) {
+      expect(within(grupos[0]!).getByRole('button', { name: nombre })).toBeTruthy()
+    }
+    expect(within(screen.getByRole('region', { name: 'Decoración' })).getByRole('button', { name: /^Espejo/ })).toBeTruthy()
+  })
+
   it('pulsar "Armario" en "Otros muebles" lo añade en el centro y lo deja seleccionado', async () => {
     almacen.getState().crear('salon', 400, 330, 250)
     almacen.getState().irAPaso(2)
     render(<PanelCatalogo />)
     const otros = screen.getByRole('region', { name: 'Otros muebles' })
-    const boton = within(otros).getByRole('button', { name: /^Armario/ })
+    const boton = within(otros).getByRole('button', { name: /^Armario(?! de espejo)/ })
     expect(boton.getAttribute('draggable')).toBe('true')
     expect(boton.textContent).toContain('100 × 60 cm')
     await userEvent.click(boton)
@@ -55,7 +66,7 @@ describe('PanelCatalogo en una L', () => {
     almacen.getState().cambiar((d) => ({ ...d, estancia: { ...d.estancia, planta: ele } }))
     almacen.getState().irAPaso(2)
     render(<PanelCatalogo />)
-    await userEvent.click(within(screen.getByRole('region', { name: 'Otros muebles' })).getByRole('button', { name: /^Armario/ }))
+    await userEvent.click(within(screen.getByRole('region', { name: 'Otros muebles' })).getByRole('button', { name: /^Armario(?! de espejo)/ }))
     const armario = almacen.getState().documento!.elementos[0]!
     expect(contienePunto(ele, armario.posicion)).toBe(true)
   })
@@ -65,7 +76,7 @@ describe('PanelCatalogo en una L', () => {
     render(<PanelCatalogo />)
     await userEvent.type(screen.getByRole('searchbox', { name: textos.catalogo.buscar }), 'LAMPARA')
     expect(screen.getByRole('button', { name: /^Lámpara de pie/ })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^Armario/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Armario(?! de espejo)/ })).toBeNull()
   })
 
   it('sin coincidencias lo dice y no deja grupos vacíos', async () => {
@@ -96,7 +107,7 @@ describe('PanelCatalogo con el dedo', () => {
     const { container } = render(<><PanelCatalogo /><Lienzo /></>)
     const svg = container.querySelector('.lienzo__svg')!
     document.elementFromPoint = vi.fn(() => svg)
-    const asa = asaDe(/^Armario/)
+    const asa = asaDe(/^Armario(?! de espejo)/)
     fireEvent.pointerDown(asa, { ...dedo, clientX: 50, clientY: 50 })
     fireEvent.pointerMove(asa, { ...dedo, clientX: 90, clientY: 100 })
     expect(fantasma()?.textContent).toBe('Armario')
@@ -116,7 +127,7 @@ describe('PanelCatalogo con el dedo', () => {
   it('soltar fuera del plano no añade nada ni dispara el clic', () => {
     const { container } = render(<><PanelCatalogo /><Lienzo /></>)
     document.elementFromPoint = vi.fn(() => container.querySelector('.panel-catalogo__buscar'))
-    const asa = asaDe(/^Armario/)
+    const asa = asaDe(/^Armario(?! de espejo)/)
     fireEvent.pointerDown(asa, { ...dedo, clientX: 50, clientY: 50 })
     fireEvent.pointerMove(asa, { ...dedo, clientX: 60, clientY: 80 })
     fireEvent.pointerUp(asa, { ...dedo, clientX: 60, clientY: 80 })
@@ -129,11 +140,11 @@ describe('PanelCatalogo con el dedo', () => {
     const alEmpezar = vi.fn()
     const { container } = render(<><PanelCatalogo alEmpezarArrastre={alEmpezar} /><Lienzo /></>)
     document.elementFromPoint = vi.fn(() => container.querySelector('.lienzo__svg'))
-    fireEvent.pointerDown(asaDe(/^Armario/), { ...dedo, clientX: 50, clientY: 50 })
-    fireEvent.pointerMove(asaDe(/^Armario/), { ...dedo, clientX: 70, clientY: 70 })
+    fireEvent.pointerDown(asaDe(/^Armario(?! de espejo)/), { ...dedo, clientX: 50, clientY: 50 })
+    fireEvent.pointerMove(asaDe(/^Armario(?! de espejo)/), { ...dedo, clientX: 70, clientY: 70 })
     expect(alEmpezar).toHaveBeenCalledTimes(1)
     // Si el sistema cancela el toque, el arrastre acaba sin añadir nada.
-    fireEvent.pointerCancel(asaDe(/^Armario/), { ...dedo, clientX: 120, clientY: 140 })
+    fireEvent.pointerCancel(asaDe(/^Armario(?! de espejo)/), { ...dedo, clientX: 120, clientY: 140 })
     expect(fantasma()).toBeNull()
     expect(almacen.getState().documento!.elementos).toHaveLength(0)
   })
@@ -142,7 +153,7 @@ describe('PanelCatalogo con el dedo', () => {
     const alEmpezar = vi.fn()
     const { container } = render(<><PanelCatalogo alEmpezarArrastre={alEmpezar} /><Lienzo /></>)
     document.elementFromPoint = vi.fn(() => container.querySelector('.lienzo__svg'))
-    const asa = asaDe(/^Armario/)
+    const asa = asaDe(/^Armario(?! de espejo)/)
     fireEvent.pointerDown(asa, { ...dedo, clientX: 50, clientY: 50 })
     fireEvent.pointerMove(asa, { ...dedo, clientX: 51, clientY: 51 })
     expect(fantasma()).toBeNull()

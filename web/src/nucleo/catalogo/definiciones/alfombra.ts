@@ -3,7 +3,7 @@ import { cajaEntera } from '../aperturas'
 import { caja } from '../modelos'
 
 export const alfombra: DefinicionTipo = {
-  id: 'alfombra', nombre: 'alfombra', genero: 'f', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina', 'despacho'],
+  id: 'alfombra', nombre: 'alfombra', genero: 'f', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina', 'despacho', 'bano'],
   medidas: { ancho: { min: 60, max: 400, defecto: 200 }, fondo: { min: 40, max: 400, defecto: 140 }, alto: { min: 1, max: 3, defecto: 1 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],

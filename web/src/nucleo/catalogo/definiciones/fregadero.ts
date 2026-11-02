@@ -1,15 +1,9 @@
 import type { DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
-import { caja, cilindro } from '../modelos'
+import { caja, cilindro, oscurecer } from '../modelos'
 
 const PROFUNDIDAD_CUBETA = 18
 const COLOR_CUBETA = '#c0c2c4'
-
-/** El mismo color con cada canal multiplicado por `k`; lo que no sea #rrggbb queda igual. */
-function oscurecer(hex: string, k: number): string {
-  if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex
-  return `#${[1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('')}`
-}
 
 export const fregadero: DefinicionTipo = {
   id: 'fregadero', nombre: 'fregadero', genero: 'm', categoria: 'mueble', estancias: ['cocina'],

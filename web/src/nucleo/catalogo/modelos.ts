@@ -137,3 +137,26 @@ export function asientoTapizado(e: Elemento, plazas: number, chaise: LadoChaise,
   }
   return piezas
 }
+
+/** El mismo color con cada canal multiplicado por `k`; lo que no sea #rrggbb queda igual. */
+export function oscurecer(hex: string, k: number): string {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex
+  return `#${[1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('')}`
+}
+
+/** Taza de inodoro o bidé entre z0 y z1: recta por detrás desde `yAtras` y redondeada por delante, con el radio de medio ancho. */
+export function taza(e: Elemento, yAtras: number, z0: number, z1: number, zona: string): PiezaLocal[] {
+  const { ancho, fondo } = e.medidas
+  const r = ancho / 2
+  const yCentro = fondo / 2 - r
+  return [caja(-r, yAtras, z0, r, yCentro, z1, zona), cilindro(0, yCentro, r, z0, z1, zona)]
+}
+
+/** Cristal de mampara de 1 cm en el borde del frente, de x0 a x1 y de z0 a z1, con su perfil arriba. */
+export function mampara(e: Elemento, x0: number, x1: number, z0: number, z1: number, zonaPerfil: string): PiezaLocal[] {
+  const y1 = e.medidas.fondo / 2
+  return [
+    { ...caja(x0, y1 - 1, z0, x1, y1, z1 - 2, zonaPerfil), material: 'cristal', color: '#dcebef' },
+    caja(x0, y1 - 1, z1 - 2, x1, y1, z1, zonaPerfil),
+  ]
+}

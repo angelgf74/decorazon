@@ -6,6 +6,7 @@ public enum TipoDeEstancia
     Salon,
     Cocina,
     Despacho,
+    Bano,
 }
 
 /// <summary>
@@ -23,6 +24,7 @@ public static class TiposDeEstancia
             case "salon": tipo = TipoDeEstancia.Salon; return true;
             case "cocina": tipo = TipoDeEstancia.Cocina; return true;
             case "despacho": tipo = TipoDeEstancia.Despacho; return true;
+            case "bano": tipo = TipoDeEstancia.Bano; return true;
             default: tipo = default; return false;
         }
     }
@@ -33,6 +35,7 @@ public static class TiposDeEstancia
         TipoDeEstancia.Salon => "salon",
         TipoDeEstancia.Cocina => "cocina",
         TipoDeEstancia.Despacho => "despacho",
+        TipoDeEstancia.Bano => "bano",
         _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, null),
     };
 }
