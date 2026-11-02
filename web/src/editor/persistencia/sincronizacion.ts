@@ -43,13 +43,15 @@ export function elegirApertura(
   }
   const nombreRemoto = remoto.diseno.nombre
   const mismaVersion = copia !== null && copia.version === remoto.version
-  // La marca de la copia manda; las copias antiguas, sin ella, lo deducen de un nombre distinto del remoto.
+  // La marca de la copia manda; solo las copias antiguas, sin ella, lo deducen de un nombre distinto del remoto.
+  // Con la marca a false un nombre distinto es un renombrado hecho en otro sitio, que no se pisa.
   const marcado = copia?.nombrePendiente === true && copia.nombre !== undefined
-  const renombrado = marcado || (mismaVersion && copia.nombre !== undefined && copia.nombre !== nombreRemoto) ? copia.nombre : undefined
+  const deducido = copia !== null && copia.nombrePendiente === undefined && copia.nombre !== undefined && copia.nombre !== nombreRemoto
+  const renombrado = marcado || (mismaVersion && deducido) ? copia.nombre : undefined
   if (copia?.pendiente && !mismaVersion) {
     // Nunca se pisa en silencio: con otra versión en el servidor, decide el usuario.
     // Un nombre local distinto queda como renombrado pendiente: "Sobrescribir" lo sube y "Recargar" lo descarta.
-    const local = marcado || (copia.nombre !== undefined && copia.nombre !== nombreRemoto) ? copia.nombre : undefined
+    const local = marcado || deducido ? copia.nombre : undefined
     return {
       id, version: copia.version, nombre: local ?? nombreRemoto, documento: copia.documento, pendiente: true,
       ...(local !== undefined && { nombrePendiente: local }), guardado: 'conflicto', versionRemota: remoto.version,

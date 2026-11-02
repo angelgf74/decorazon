@@ -756,6 +756,21 @@ describe('elegirApertura', () => {
     if (eleccion === 'sobrescribir') expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Local' }))
   })
 
+  it('en conflicto, una copia marcada sin renombrado no toma por propio el nombre viejo si se renombró en otro sitio', () => {
+    const r = elegirApertura(ID, { ...copia(4, true), nombre: 'Cocina vieja', nombrePendiente: false }, remoto(6))
+    expect(r).toMatchObject({ nombre: 'Cocina', guardado: 'conflicto' })
+    expect(r?.nombrePendiente).toBeUndefined()
+  })
+
+  it('sobrescribir tras un renombrado hecho en otro sitio sube el contenido y conserva el nombre remoto', async () => {
+    servidorConVersion(6)
+    const a = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(a, { esperaMs: 2000, st: falso() }))
+    abrirDiseno(a, elegirApertura(ID, { ...copia(4, true), nombre: 'Cocina vieja', nombrePendiente: false }, remoto(6))!)
+    await resolverConflicto(a, 'sobrescribir')
+    expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Cocina' }))
+  })
+
   it('sin conexión: la copia local', () => {
     expect(elegirApertura(ID, copia(4, true), null)).toMatchObject({ version: 4, nombre: 'Local', pendiente: true, guardado: 'sinConexion' })
     expect(elegirApertura(ID, null, null)).toBeNull()

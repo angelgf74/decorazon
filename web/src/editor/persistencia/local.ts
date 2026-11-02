@@ -76,7 +76,7 @@ export const claveCopia = (id: string) => `${PREFIJO_COPIA}${id}`
 export interface CopiaLocal {
   version: number
   nombre?: string
-  /** El `nombre` es un renombrado que el servidor aún no tiene; una copia sin el campo cuenta como false. */
+  /** El `nombre` es un renombrado que el servidor aún no tiene. Sin el campo (copias antiguas) se deduce del nombre al abrir. */
   nombrePendiente?: boolean
   documento: DocumentoDiseno
   pendiente: boolean
@@ -93,7 +93,8 @@ export function leerCopiaLocal(st: Storage | null, id: string): CopiaLocal | nul
     if (typeof version !== 'number' || typeof pendiente !== 'boolean') return null
     const r = validarDocumento(documento)
     if (!r.valido) return null
-    return { version, ...(typeof nombre === 'string' && { nombre }), nombrePendiente: nombrePendiente === true, documento: r.documento, pendiente }
+    // Sin la marca (copias antiguas) queda sin definir: elegirApertura lo deduce del nombre.
+    return { version, ...(typeof nombre === 'string' && { nombre }), ...(typeof nombrePendiente === 'boolean' && { nombrePendiente }), documento: r.documento, pendiente }
   } catch {
     return null
   }
