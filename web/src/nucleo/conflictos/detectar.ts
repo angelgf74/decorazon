@@ -43,7 +43,7 @@ function maxPenetracion(a: Prisma[], b: Prisma[]): Par | undefined {
 
 /** Como `maxPenetracion` para una zona de apertura; si es espacio libre del suelo, lo que falta se mide solo en planta entre los volúmenes que cruza en altura. */
 function penetracionZona(zona: ZonaApertura, volumenes: Prisma[]): Par | undefined {
-  if (!zona.soloPlanta) return maxPenetracion([zona], volumenes)
+  if (!zona.espacioLibre) return maxPenetracion([zona], volumenes)
   let mejor: Par | undefined
   for (const v of volumenes) {
     if (separacionCajas(zona.huella, v.huella) >= 0 || solapeZ(zona, v) <= TOLERANCIA_CM) continue
@@ -139,13 +139,13 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
     }
 
     // Aperturas del mueble: una vez por nombre de zona y por lo que choca (mueble, obstáculo o pared), con la mayor penetración.
-    const choques = new Map<string, { p: number; ids: string[]; zona: string; contra: Ref; huella: Punto[] }>()
+    const choques = new Map<string, { p: number; ids: string[]; zona: string; aviso: boolean; contra: Ref; huella: Punto[] }>()
     const anotar = (p: number, otro: string | null, zona: ZonaApertura, contra: Ref, huella: () => Punto[]) => {
       if (p <= TOLERANCIA_CM) return
       const clave = `${otro ?? ''}|${zona.nombre}`
       const previo = choques.get(clave)
       if (!previo || p > previo.p) {
-        choques.set(clave, { p, ids: otro === null ? [a.e.id] : [a.e.id, otro], zona: zona.nombre, contra, huella: huella() })
+        choques.set(clave, { p, ids: otro === null ? [a.e.id] : [a.e.id, otro], zona: zona.nombre, aviso: zona.espacioLibre === true, contra, huella: huella() })
       }
     }
     for (const zona of a.zonas) {
@@ -160,9 +160,9 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
       }
       anotar(penetracionEnParedes(planta, zona.huella), null, zona, PARED, () => zona.huella)
     }
-    for (const { p, ids, zona, contra, huella } of choques.values()) {
+    for (const { p, ids, zona, aviso, contra, huella } of choques.values()) {
       const n = cantidadMostrada(p)
-      conflictos.push({ tipo: 'apertura', gravedad: 'error', ids, cantidadCm: n, mensaje: mensajeAperturaMueble(zona, a.ref, contra, n), zona: huella })
+      conflictos.push({ tipo: 'apertura', gravedad: aviso ? 'aviso' : 'error', ids, cantidadCm: n, mensaje: mensajeAperturaMueble(zona, a.ref, contra, n), zona: huella })
     }
   }
 

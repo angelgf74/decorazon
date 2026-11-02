@@ -37,6 +37,17 @@ describe('Lienzo', () => {
     expect(container.querySelector('[data-zona-conflicto]')).toBeNull()
   })
 
+  it('al inodoro le falta espacio delante: la zona se pinta como aviso y el inodoro no se marca en rojo', () => {
+    almacen.getState().crear('bano', 250, 100, 250)
+    almacen.getState().irAPaso(2)
+    colocar('inodoro', 'i', { x: 100, y: 33 })
+    const { container } = render(<Lienzo />)
+    expect(container.querySelector('[data-conflicto]')).toBeNull()
+    const zonas = [...container.querySelectorAll('[data-zona-conflicto]')]
+    expect(zonas).toHaveLength(1)
+    expect(zonas[0]!.getAttribute('data-zona-conflicto')).toBe('aviso')
+  })
+
   it('un mueble que sale de la estancia pinta un path evenodd', () => {
     colocar('armario', 'a', { x: 20, y: 100 })
     const { container } = render(<Lienzo />)

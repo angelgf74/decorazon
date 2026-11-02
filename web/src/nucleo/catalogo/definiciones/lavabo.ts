@@ -64,5 +64,5 @@ export const lavabo: DefinicionTipo = {
       ]),
     ]
   },
-  zonasApertura: (e) => espacioDelante(e, 'el espacio de uso', ESPACIO_DE_USO_CM),
+  zonasApertura: (e) => espacioDelante(e, 'el espacio de uso', ESPACIO_DE_USO_CM, Math.max(e.medidas.ancho, ESPACIO_DE_USO_CM)),
 }

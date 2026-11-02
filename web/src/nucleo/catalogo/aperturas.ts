@@ -98,5 +98,5 @@ const ALTO_ESPACIO_LIBRE = 100
 export function espacioDelante(e: Elemento, nombre: string, profundo: number, ancho = e.medidas.ancho): ZonaApertura[] {
   const { fondo } = e.medidas
   const huella = [{ x: -ancho / 2, y: fondo / 2 }, { x: ancho / 2, y: fondo / 2 }, { x: ancho / 2, y: fondo / 2 + profundo }, { x: -ancho / 2, y: fondo / 2 + profundo }]
-  return [{ nombre, huella: huella.map((p) => aMundo(e, p)), zMin: 0, zMax: ALTO_ESPACIO_LIBRE, soloPlanta: true }]
+  return [{ nombre, huella: huella.map((p) => aMundo(e, p)), zMin: 0, zMax: ALTO_ESPACIO_LIBRE, espacioLibre: true }]
 }

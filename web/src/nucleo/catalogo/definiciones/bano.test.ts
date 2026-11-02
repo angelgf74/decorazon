@@ -34,7 +34,7 @@ describe('piezas de baño', () => {
 
   it('inodoro con la pared de enfrente a 55 cm: el espacio de uso choca con la pared y faltan 15 cm', () => {
     expect(enBano(250, 121, elemento('inodoro', 100, 33, 0, {}, {}, 'i'))).toEqual([
-      expect.objectContaining({ tipo: 'apertura', ids: ['i'], mensaje: 'El espacio de uso del inodoro choca con la pared: faltan 15 cm' }),
+      expect.objectContaining({ tipo: 'apertura', gravedad: 'aviso', ids: ['i'], mensaje: 'El espacio de uso del inodoro choca con la pared: faltan 15 cm' }),
     ])
   })
 
@@ -63,6 +63,19 @@ describe('piezas de baño', () => {
     expect(enBano(250, 200, elemento('inodoro', 30, 33, 0, {}, {}, 'i'))).toEqual([
       expect.objectContaining({ ids: ['i'], mensaje: 'El espacio de uso del inodoro choca con la pared: faltan 5 cm' }),
     ])
+  })
+
+  it('lavabo de 40 cm a 30 cm de la pared lateral: su espacio de uso también es de 70 cm de ancho y faltan 5 cm', () => {
+    expect(enBano(250, 200, elemento('lavabo', 30, 23, 0, { ancho: 40 }, {}, 'l'))).toEqual([
+      expect.objectContaining({ ids: ['l'], mensaje: 'El espacio de uso del lavabo choca con la pared: faltan 5 cm' }),
+    ])
+  })
+
+  it('las puertas que no abren siguen siendo errores: la mampara abatible y la puerta de la lavadora', () => {
+    const ducha = enBano(250, 191, elemento('ducha', 60, 40, 0, {}, { mampara: 'abatible' }, 'd'), elemento('lavabo', 40, 168, 180, {}, {}, 'l'))
+    expect(ducha.find((c) => c.ids[0] === 'd')?.gravedad).toBe('error')
+    const lavadora = enBano(250, 200, elemento('lavadora', 30, 30, 0, {}, {}, 'lav'), elemento('columna-bano', 30, 105, 180, {}, {}, 'col'))
+    expect(lavadora.find((c) => c.tipo === 'apertura' && c.ids[0] === 'lav')?.gravedad).toBe('error')
   })
 
   it('inodoro y bidé uno al lado del otro con una alfombrilla delante: sin avisos', () => {
@@ -105,7 +118,7 @@ describe('piezas de baño', () => {
   it('bañera con la pared de enfrente a 50 cm: el espacio de entrada choca con la pared y faltan 10 cm', () => {
     // Fondo 75: frente en y = 75 y espacio de entrada hasta 135.
     expect(enBano(250, 125, elemento('banera', 125, 37.5, 0, {}, {}, 'b'))).toEqual([
-      expect.objectContaining({ tipo: 'apertura', ids: ['b'], mensaje: 'El espacio de entrada de la bañera choca con la pared: faltan 10 cm' }),
+      expect.objectContaining({ tipo: 'apertura', gravedad: 'aviso', ids: ['b'], mensaje: 'El espacio de entrada de la bañera choca con la pared: faltan 10 cm' }),
     ])
   })
 

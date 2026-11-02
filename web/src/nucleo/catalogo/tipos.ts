@@ -8,8 +8,11 @@ export interface DefinicionVariante { clave: string; etiqueta: string; valores: 
 export interface ZonaColor { clave: string; etiqueta: string; material: 'tela' | 'madera' | 'lacado' | 'metal' | 'vidrio' | 'ceramica'; defecto: string }
 export interface ZonaApertura extends Prisma {
   nombre: string
-  /** Espacio libre del suelo: lo que falta se mide solo en planta, porque una pieza baja (un plato de ducha) estorba igual que una alta. */
-  soloPlanta?: boolean
+  /**
+   * Espacio libre del suelo: lo que falta se mide solo en planta, porque una pieza baja (un plato de ducha) estorba igual que una alta,
+   * y es un aviso, no un error: en los baños pequeños es habitual tener algo menos.
+   */
+  espacioLibre?: boolean
 }
 
 export interface DefinicionTipo {
