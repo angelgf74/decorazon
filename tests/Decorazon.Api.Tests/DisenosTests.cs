@@ -164,7 +164,7 @@ public class DisenosTests(ApiConPostgresFixture api) : IClassFixture<ApiConPostg
     [InlineData("", "dormitorio")]
     [InlineData("   ", "dormitorio")]
     [InlineData("Mi diseño", "Salón")]
-    [InlineData("Mi diseño", "bano")]
+    [InlineData("Mi diseño", "terraza")]
     public async Task NombreOTipoNoValidos_Responden400ConMensaje(string nombre, string tipo)
     {
         var cliente = await CuentasDePrueba.ConSesionAsync(api);
@@ -185,6 +185,19 @@ public class DisenosTests(ApiConPostgresFixture api) : IClassFixture<ApiConPostg
 
         var leido = (await cliente.GetFromJsonAsync<RespuestaDeDiseno>($"/disenos/{id}"))!;
         Assert.Equal("despacho", leido.TipoEstancia);
+    }
+
+    [Fact]
+    public async Task Bano_SeCreaYSeLeeConSuTipo()
+    {
+        var cliente = await CuentasDePrueba.ConSesionAsync(api);
+
+        var creado = await cliente.PostAsJsonAsync("/disenos", DisenosDePrueba.Peticion("Mi baño", "bano"));
+        Assert.Equal(HttpStatusCode.Created, creado.StatusCode);
+        var id = (await creado.Content.ReadFromJsonAsync<RespuestaDeDiseno>())!.Id;
+
+        var leido = (await cliente.GetFromJsonAsync<RespuestaDeDiseno>($"/disenos/{id}"))!;
+        Assert.Equal("bano", leido.TipoEstancia);
     }
 
     /// <summary>

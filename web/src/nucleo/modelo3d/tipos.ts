@@ -4,8 +4,8 @@ export type Vec3 = [number, number, number]
 /** 'cristal' es el de las ventanas (transparente); 'vidrio' el de placas y hornos (oscuro y opaco). */
 export type MaterialPBR = ZonaColor['material'] | 'cristal' | 'pared' | 'suelo'
 
-/** Pieza en el sistema local del elemento, en cm: x a lo ancho, y a lo fondo (frente en +y), z desde e.alturaSuelo. `material` y `color`, si se indican, anulan los de la zona. */
-export type PiezaLocal = { material?: ZonaColor['material']; color?: string } & (
+/** Pieza en el sistema local del elemento, en cm: x a lo ancho, y a lo fondo (frente en +y), z desde e.alturaSuelo. `material` y `color`, si se indican, anulan los de la zona ('cristal' para las mamparas). */
+export type PiezaLocal = { material?: ZonaColor['material'] | 'cristal'; color?: string } & (
   | { forma: 'caja'; x0: number; y0: number; z0: number; x1: number; y1: number; z1: number; zona: string }
   | { forma: 'cilindro'; cx: number; cy: number; r: number; z0: number; z1: number; zona: string }
 )

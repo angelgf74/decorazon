@@ -81,7 +81,7 @@ public class RegistroConDisenoTests(ApiConPostgresFixture api) : IClassFixture<A
     [InlineData("""{"tipoEstancia":"salon"}""")]
     [InlineData("""{"tipoEstancia":"salon","contenido":null}""")]
     [InlineData("""{"tipoEstancia":"salon","contenido":[]}""")]
-    [InlineData("""{"tipoEstancia":"bano","contenido":{"formato":1,"estancia":{},"aberturas":[],"estructura":[],"elementos":[]}}""")]
+    [InlineData("""{"tipoEstancia":"terraza","contenido":{"formato":1,"estancia":{},"aberturas":[],"estructura":[],"elementos":[]}}""")]
     [InlineData("""{"tipoEstancia":"salon","contenido":{"formato":2,"estancia":{},"aberturas":[],"estructura":[],"elementos":[]}}""")]
     [InlineData("""{"tipoEstancia":"salon","contenido":{"formato":1,"estancia":{"n":"\uD800"},"aberturas":[],"estructura":[],"elementos":[]}}""")]
     [InlineData("""{"tipoEstancia":"salon","contenido":{"formato":1,"estancia":{"n":"\u0000"},"aberturas":[],"estructura":[],"elementos":[]}}""")]

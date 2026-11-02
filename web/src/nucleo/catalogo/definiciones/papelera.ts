@@ -3,7 +3,7 @@ import { huellaOvalada } from '../aperturas'
 import { ovalo } from '../modelos'
 
 export const papelera: DefinicionTipo = {
-  id: 'papelera', nombre: 'papelera', genero: 'f', categoria: 'mueble', estancias: ['despacho'],
+  id: 'papelera', nombre: 'papelera', genero: 'f', categoria: 'mueble', estancias: ['despacho', 'bano'],
   medidas: { ancho: { min: 20, max: 40, defecto: 30 }, fondo: { min: 20, max: 40, defecto: 30 }, alto: { min: 25, max: 60, defecto: 35 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],

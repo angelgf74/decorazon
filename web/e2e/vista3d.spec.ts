@@ -10,7 +10,7 @@ test('vista 3D: canvas con contenido, sin errores y paredes alternables', async 
   await page.getByRole('radio', { name: 'Dormitorio' }).check()
   await page.getByRole('button', { name: 'Crear estancia' }).click()
   await page.getByRole('button', { name: '2 Amueblar' }).click()
-  await page.getByRole('button', { name: /^Armario/ }).click()
+  await page.getByRole('button', { name: /^Armario(?! de espejo)/ }).click()
   await page.getByRole('button', { name: /^Cama/ }).click()
   await expect(page.locator('[data-elemento]')).toHaveCount(2)
 
@@ -64,7 +64,7 @@ test.describe('vista 3D: sombras', () => {
     await page.getByRole('radio', { name: 'Dormitorio' }).check()
     await page.getByRole('button', { name: 'Crear estancia' }).click()
     await page.getByRole('button', { name: '2 Amueblar' }).click()
-    await page.getByRole('button', { name: /^Armario/ }).click()
+    await page.getByRole('button', { name: /^Armario(?! de espejo)/ }).click()
     await page.getByRole('button', { name: /^Cama/ }).click()
     await expect(page.locator('[data-elemento]')).toHaveCount(2)
     // Armario contra la pared del fondo a la izquierda y cama en el centro, sin girar (dormitorio de 400 × 330 sin ventanas).

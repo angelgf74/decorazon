@@ -60,7 +60,7 @@ test('diseñar sin cuenta, registrarse y encontrar el diseño en la cuenta', asy
   await page.getByRole('link', { name: 'Empezar a diseñar' }).click()
   await page.getByRole('button', { name: 'Crear estancia' }).click()
   await page.getByRole('button', { name: '2 Amueblar' }).click()
-  await page.getByRole('button', { name: /^Armario/ }).click()
+  await page.getByRole('button', { name: /^Armario(?! de espejo)/ }).click()
   await expect(page.locator('[data-elemento]')).toHaveCount(1)
 
   await page.getByRole('link', { name: 'Guardar', exact: true }).click()

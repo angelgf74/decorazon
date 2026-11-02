@@ -3,7 +3,7 @@ import { cajaEntera } from '../aperturas'
 import { caja } from '../modelos'
 
 export const estanteria: DefinicionTipo = {
-  id: 'estanteria', nombre: 'estantería', genero: 'f', categoria: 'mueble', estancias: ['dormitorio', 'salon', 'despacho'],
+  id: 'estanteria', nombre: 'estantería', genero: 'f', categoria: 'mueble', estancias: ['dormitorio', 'salon', 'despacho', 'bano'],
   medidas: { ancho: { min: 40, max: 200, defecto: 80 }, fondo: { min: 20, max: 50, defecto: 30 }, alto: { min: 60, max: 240, defecto: 180 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],

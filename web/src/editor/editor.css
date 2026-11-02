@@ -274,7 +274,7 @@
   text-align: left;
 }
 .lista-avisos__punto { flex: none; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--conflicto); }
-.lista-avisos__punto--aviso { background: #e0a100; }
+.lista-avisos__punto--aviso { background: var(--aviso); }
 
 /* --- Tableta --- */
 

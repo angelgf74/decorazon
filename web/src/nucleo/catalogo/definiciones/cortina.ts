@@ -3,7 +3,7 @@ import { cajaEntera } from '../aperturas'
 import { caja } from '../modelos'
 
 export const cortina: DefinicionTipo = {
-  id: 'cortina', nombre: 'cortina', genero: 'f', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina', 'despacho'],
+  id: 'cortina', nombre: 'cortina', genero: 'f', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina', 'despacho', 'bano'],
   medidas: { ancho: { min: 60, max: 400, defecto: 160 }, fondo: { min: 5, max: 20, defecto: 10 }, alto: { min: 100, max: 300, defecto: 240 } },
   alturaSuelo: 0, alturaSueloEditable: true,
   variantes: [],

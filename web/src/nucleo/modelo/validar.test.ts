@@ -21,6 +21,9 @@ describe('validarDocumento', () => {
   it('un despacho es válido', () => {
     expect(validarDocumento(documentoNuevo('despacho', 400, 330, 250))).toMatchObject({ valido: true })
   })
+  it('un baño es válido', () => {
+    expect(validarDocumento(documentoNuevo('bano', 250, 200, 250))).toMatchObject({ valido: true })
+  })
   it('null no lanza y es inválido', () => {
     expect(validarDocumento(null)).toMatchObject({ valido: false })
   })

@@ -29,6 +29,13 @@ describe('NuevaEstancia', () => {
     expect(almacen.getState().documento?.estancia.tipo).toBe('despacho')
   })
 
+  it('crea un baño', async () => {
+    render(<NuevaEstancia />)
+    await userEvent.click(screen.getByRole('radio', { name: 'Baño' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Crear estancia' }))
+    expect(almacen.getState().documento?.estancia.tipo).toBe('bano')
+  })
+
   it('Intro en un campo confirma el valor sin enviar el formulario', async () => {
     render(<NuevaEstancia />)
     const ancho = screen.getByLabelText('Ancho')
