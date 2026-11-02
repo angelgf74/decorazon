@@ -38,6 +38,9 @@ public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDat
         Assert.True(PideBearer(rutas.GetProperty("/disenos/{id}/enlace").GetProperty("put")));
         Assert.True(PideBearer(rutas.GetProperty("/disenos/{id}/enlace").GetProperty("delete")));
         Assert.False(PideBearer(rutas.GetProperty("/compartidos/{enlace}").GetProperty("get")));
+        Assert.True(PideBearer(rutas.GetProperty("/disenos/{id}/vista-previa").GetProperty("put")));
+        Assert.False(PideBearer(rutas.GetProperty("/compartidos/{enlace}/imagen").GetProperty("get")));
+        Assert.False(PideBearer(rutas.GetProperty("/compartidos/{enlace}/tarjeta").GetProperty("get")));
         Assert.False(PideBearer(rutas.GetProperty("/cuentas/contrasena/olvido").GetProperty("post")));
     }
 
@@ -92,7 +95,7 @@ public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDat
                 "borrarDiseno", "borrarMiCuenta", "cambiarContrasena", "confirmarRegistro", "consultarSalud",
                 "crearDiseno", "duplicarDiseno", "iniciarSesion", "listarDisenos", "obtenerDiseno",
                 "obtenerMiCuenta", "restablecerContrasena", "solicitarOlvidoDeContrasena", "solicitarRegistro",
-                "actualizarDiseno", "compartirDiseno", "dejarDeCompartirDiseno", "leerDisenoCompartido"
+                "actualizarDiseno", "compartirDiseno", "dejarDeCompartirDiseno", "leerDisenoCompartido", "subirVistaPrevia", "leerVistaPrevia", "leerTarjeta"
             }.Order(),
             ids.Order());
     }
@@ -109,6 +112,8 @@ public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDat
     [InlineData("/cuentas/registro", "post", "429")]
     [InlineData("/cuentas/contrasena/olvido", "post", "429")]
     [InlineData("/compartidos/{enlace}", "get", "429")]
+    [InlineData("/compartidos/{enlace}/imagen", "get", "429")]
+    [InlineData("/compartidos/{enlace}/tarjeta", "get", "429")]
     public async Task Documento_DeclaraLos400YLos429QueDaLaApi(string ruta, string metodo, string codigo)
     {
         using var documento = await LeerDocumentoAsync();

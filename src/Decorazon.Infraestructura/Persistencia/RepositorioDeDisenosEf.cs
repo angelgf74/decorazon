@@ -9,6 +9,8 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
     /// <summary>Nombre de la clave primaria de <c>disenos</c> en la migración inicial.</summary>
     private const string ClavePrimaria = "pk_disenos";
 
+    private const string ClavePrimariaDeVistas = "pk_vistas_previas";
+
     // Usuario e id en la misma consulta: un diseño ajeno nunca llega a cargarse,
     // así no hay camino por el que un fallo posterior lo devuelva por error.
     public Task<Diseno?> ObtenerAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
@@ -56,6 +58,42 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
         await contexto.Disenos
             .Where(diseno => diseno.UsuarioId == usuarioId && diseno.Id == id)
             .ExecuteUpdateAsync(cambios => cambios.SetProperty(diseno => diseno.EnlaceCompartido, (string?)null), cancelacion) > 0;
+
+    public async Task<bool> GuardarVistaPreviaAsync(Guid usuarioId, Guid id, byte[] imagen, DateTimeOffset fecha, CancellationToken cancelacion = default)
+    {
+        if (!await contexto.Disenos.AnyAsync(diseno => diseno.UsuarioId == usuarioId && diseno.Id == id, cancelacion))
+        {
+            return false;
+        }
+
+        var existente = await contexto.VistasPrevias.FindAsync([id], cancelacion);
+        if (existente is null) contexto.VistasPrevias.Add(VistaPrevia.Crear(id, imagen, fecha));
+        else existente.Sustituir(imagen, fecha);
+
+        try
+        {
+            await contexto.SaveChangesAsync(cancelacion);
+            return true;
+        }
+        catch (DbUpdateException excepcion) when (ErroresDePostgres.EsUnicidadViolada(excepcion, ClavePrimariaDeVistas))
+        {
+            // Otra subida del mismo diseño se adelantó: su imagen vale igual (las dos son de este momento).
+            contexto.ChangeTracker.Clear();
+            return true;
+        }
+        catch (DbUpdateException excepcion) when (ErroresDePostgres.EsClaveForaneaViolada(excepcion))
+        {
+            // El diseño se borró entre comprobarlo y guardar.
+            contexto.ChangeTracker.Clear();
+            return false;
+        }
+    }
+
+    public Task<VistaPrevia?> ObtenerVistaPreviaAsync(string enlace, CancellationToken cancelacion = default) =>
+        contexto.VistasPrevias
+            .AsNoTracking()
+            .Where(vista => contexto.Disenos.Any(diseno => diseno.Id == vista.DisenoId && diseno.EnlaceCompartido == enlace))
+            .FirstOrDefaultAsync(cancelacion);
 
     // Solo rastrea: lo guarda GuardarCambiosAsync o el guardado de otro repositorio
     // que comparta el contexto (así el alta con diseño es una sola transacción).

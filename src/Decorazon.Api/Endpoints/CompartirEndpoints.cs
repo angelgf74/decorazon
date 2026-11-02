@@ -4,6 +4,8 @@ using Decorazon.Aplicacion.Disenos;
 using Decorazon.Contratos;
 using Decorazon.Contratos.Disenos;
 using Decorazon.Dominio.Disenos;
+using Decorazon.Infraestructura.Correo;
+using Microsoft.Extensions.Options;
 
 namespace Decorazon.Api.Endpoints;
 
@@ -15,6 +17,11 @@ namespace Decorazon.Api.Endpoints;
 public static class CompartirEndpoints
 {
     private const string MensajeDeEnlaceQueNoFunciona = "Este enlace ya no funciona.";
+
+    private const string MensajeDeVistaPreviaNoValida = "La vista previa debe ser una imagen JPEG de 300 KB como mucho.";
+
+    /// <summary>El icono de la web, para la tarjeta sin vista previa.</summary>
+    private const string RutaDelIcono = "/iconos/icono-512.png";
 
     public static void MapearEndpointsDeCompartir(this IEndpointRouteBuilder rutas)
     {
@@ -31,6 +38,29 @@ public static class CompartirEndpoints
             .WithName("dejarDeCompartirDiseno")
             .Produces(StatusCodes.Status204NoContent)
             .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound);
+
+        dueno.MapPut("/{id:guid}/vista-previa", SubirVistaPreviaAsync)
+            .WithName("subirVistaPrevia")
+            .Accepts<byte[]>("image/jpeg")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound);
+
+        rutas.MapGet("/compartidos/{enlace}/imagen", LeerVistaPreviaAsync)
+            .WithTags("Compartidos")
+            .WithName("leerVistaPrevia")
+            .RequireRateLimiting(LimitesDePeticiones.Tarjetas)
+            .Produces(StatusCodes.Status200OK, contentType: "image/jpeg")
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests);
+
+        rutas.MapGet("/compartidos/{enlace}/tarjeta", LeerTarjetaAsync)
+            .WithTags("Compartidos")
+            .WithName("leerTarjeta")
+            .RequireRateLimiting(LimitesDePeticiones.Tarjetas)
+            .Produces(StatusCodes.Status200OK, contentType: "text/html")
+            .Produces(StatusCodes.Status404NotFound, contentType: "text/html")
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests);
 
         rutas.MapGet("/compartidos/{enlace}", LeerAsync)
             .WithTags("Compartidos")
@@ -99,6 +129,101 @@ public static class CompartirEndpoints
             TiposDeEstancia.ATexto(diseno.Tipo),
             diseno.FechaDeModificacion,
             documento.RootElement.Clone()));
+    }
+
+    /// <summary>
+    /// El cuerpo es la imagen tal cual (<c>image/jpeg</c>), no JSON: se lee a mano y se corta en cuanto pasa del máximo,
+    /// sin cargar en memoria más de lo admitido.
+    /// </summary>
+    private static async Task<IResult> SubirVistaPreviaAsync(
+        Guid id,
+        HttpRequest peticion,
+        ClaimsPrincipal usuario,
+        CompartirDisenos casoDeUso,
+        CancellationToken cancelacion)
+    {
+        if (!usuario.TryObtenerId(out var usuarioId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var noValida = Results.BadRequest(new RespuestaDeMensaje(MensajeDeVistaPreviaNoValida));
+        if (peticion.ContentType?.Split(';')[0].Trim() != "image/jpeg" || peticion.ContentLength > VistaPrevia.TamanoMaximoEnBytes)
+        {
+            return noValida;
+        }
+
+        using var imagen = new MemoryStream();
+        var trozo = new byte[16 * 1024];
+        int leidos;
+        while ((leidos = await peticion.Body.ReadAsync(trozo, cancelacion)) > 0)
+        {
+            imagen.Write(trozo, 0, leidos);
+            if (imagen.Length > VistaPrevia.TamanoMaximoEnBytes) return noValida;
+        }
+
+        return await casoDeUso.GuardarVistaPreviaAsync(usuarioId, id, imagen.ToArray(), cancelacion) switch
+        {
+            ResultadoDeVistaPrevia.Guardada => Results.NoContent(),
+            ResultadoDeVistaPrevia.NoValida => noValida,
+            _ => NoEncontrado()
+        };
+    }
+
+    /// <summary>
+    /// Pública mientras el diseño se comparta. Se puede guardar unos minutos: su dirección en la tarjeta lleva la
+    /// fecha, así que una imagen nueva se pide con otra dirección.
+    /// </summary>
+    private static async Task<IResult> LeerVistaPreviaAsync(
+        string enlace,
+        HttpResponse respuesta,
+        CompartirDisenos casoDeUso,
+        CancellationToken cancelacion)
+    {
+        var vista = await casoDeUso.ObtenerVistaPreviaAsync(enlace, cancelacion);
+        if (vista is null)
+        {
+            respuesta.Headers.CacheControl = "no-store";
+            return Results.NotFound(new RespuestaDeMensaje(MensajeDeEnlaceQueNoFunciona));
+        }
+
+        respuesta.Headers.CacheControl = "public, max-age=300";
+        return Results.File(vista.Imagen, "image/jpeg");
+    }
+
+    /// <summary>
+    /// La tarjeta que leen WhatsApp y compañía (nginx les manda aquí las visitas a /compartido/&lt;enlace&gt; de la
+    /// web). La dirección de la imagen sale del host de la petición: nginx la reenvía con el de la API.
+    /// </summary>
+    private static async Task<IResult> LeerTarjetaAsync(
+        string enlace,
+        HttpRequest peticion,
+        HttpResponse respuesta,
+        CompartirDisenos casoDeUso,
+        IOptions<OpcionesDeCorreo> opcionesDeCorreo,
+        CancellationToken cancelacion)
+    {
+        respuesta.Headers.CacheControl = "no-store";
+        var web = opcionesDeCorreo.Value.BaseDeLaWeb.TrimEnd('/');
+        var icono = web + RutaDelIcono;
+
+        var diseno = await casoDeUso.ObtenerCompartidoAsync(enlace, cancelacion);
+        if (diseno is null)
+        {
+            return Results.Content(TarjetaDeDiseno.Generica(web, icono), "text/html; charset=utf-8", statusCode: StatusCodes.Status404NotFound);
+        }
+
+        var vista = await casoDeUso.ObtenerVistaPreviaAsync(enlace, cancelacion);
+        var imagen = vista is null
+            ? null
+            : $"{peticion.Scheme}://{peticion.Host}/compartidos/{Uri.EscapeDataString(enlace)}/imagen?v={vista.Fecha.ToUnixTimeSeconds()}";
+        var html = TarjetaDeDiseno.DeDiseno(
+            diseno.Nombre.Valor,
+            TiposDeEstancia.ATexto(diseno.Tipo),
+            $"{web}/compartido/{Uri.EscapeDataString(enlace)}",
+            imagen,
+            icono);
+        return Results.Content(html, "text/html; charset=utf-8");
     }
 
     private static IResult NoEncontrado() =>

@@ -38,6 +38,22 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
         return Task.FromResult(diseno?.EnlaceCompartido);
     }
 
+    private readonly Dictionary<Guid, VistaPrevia> _vistas = [];
+
+    public Task<bool> GuardarVistaPreviaAsync(Guid usuarioId, Guid id, byte[] imagen, DateTimeOffset fecha, CancellationToken cancelacion = default)
+    {
+        if (!_disenos.Any(d => d.UsuarioId == usuarioId && d.Id == id)) return Task.FromResult(false);
+        if (_vistas.TryGetValue(id, out var existente)) existente.Sustituir(imagen, fecha);
+        else _vistas[id] = VistaPrevia.Crear(id, imagen, fecha);
+        return Task.FromResult(true);
+    }
+
+    public Task<VistaPrevia?> ObtenerVistaPreviaAsync(string enlace, CancellationToken cancelacion = default)
+    {
+        var diseno = _disenos.FirstOrDefault(d => d.EnlaceCompartido == enlace);
+        return Task.FromResult(diseno is not null && _vistas.TryGetValue(diseno.Id, out var vista) ? vista : null);
+    }
+
     public Task<bool> DejarDeCompartirAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default)
     {
         var diseno = _disenos.FirstOrDefault(d => d.UsuarioId == usuarioId && d.Id == id);
