@@ -94,9 +94,9 @@ export const ESPACIO_DE_ENTRADA_CM = 60
 /** Lo que cuelga por encima (un espejo, un armario de pared) no estorba a quien está de pie delante. */
 const ALTO_ESPACIO_LIBRE = 100
 
-/** Espacio libre de `profundo` cm delante del frente, de `ancho` cm centrado, del suelo a 1 m. */
+/** Espacio libre de `profundo` cm delante del frente, de `ancho` cm centrado, del suelo a 1 m (desde el suelo de la estancia, no desde `e.alturaSuelo`: es donde se pisa). */
 export function espacioDelante(e: Elemento, nombre: string, profundo: number, ancho = e.medidas.ancho): ZonaApertura[] {
   const { fondo } = e.medidas
   const huella = [{ x: -ancho / 2, y: fondo / 2 }, { x: ancho / 2, y: fondo / 2 }, { x: ancho / 2, y: fondo / 2 + profundo }, { x: -ancho / 2, y: fondo / 2 + profundo }]
-  return [{ nombre, huella: huella.map((p) => aMundo(e, p)), zMin: 0, zMax: ALTO_ESPACIO_LIBRE }]
+  return [{ nombre, huella: huella.map((p) => aMundo(e, p)), zMin: 0, zMax: ALTO_ESPACIO_LIBRE, soloPlanta: true }]
 }

@@ -53,6 +53,18 @@ describe('piezas de baño', () => {
     ]))
   })
 
+  it('inodoro frente a un plato de ducha bajo a 30 cm: faltan 40 cm, no el alto del plato', () => {
+    // Ducha sin mampara girada 180°, de y 96 a 176: el espacio de uso (y 66..136) entra 40 cm en ella.
+    const c = enBano(250, 176, elemento('inodoro', 100, 33, 0, {}, {}, 'i'), elemento('ducha', 100, 136, 180, {}, { mampara: 'ninguna' }, 'd'))
+    expect(c.map((x) => x.mensaje)).toContain('El espacio de uso del inodoro choca con el plato de ducha: faltan 40 cm')
+  })
+
+  it('inodoro a 30 cm de la pared lateral: su espacio de uso es de 70 cm de ancho y faltan 5 cm', () => {
+    expect(enBano(250, 200, elemento('inodoro', 30, 33, 0, {}, {}, 'i'))).toEqual([
+      expect.objectContaining({ ids: ['i'], mensaje: 'El espacio de uso del inodoro choca con la pared: faltan 5 cm' }),
+    ])
+  })
+
   it('inodoro y bidé uno al lado del otro con una alfombrilla delante: sin avisos', () => {
     expect(enBano(250, 200,
       elemento('inodoro', 60, 33, 0),

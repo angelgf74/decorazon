@@ -41,6 +41,18 @@ function maxPenetracion(a: Prisma[], b: Prisma[]): Par | undefined {
   return mejor
 }
 
+/** Como `maxPenetracion` para una zona de apertura; si es espacio libre del suelo, lo que falta se mide solo en planta entre los volúmenes que cruza en altura. */
+function penetracionZona(zona: ZonaApertura, volumenes: Prisma[]): Par | undefined {
+  if (!zona.soloPlanta) return maxPenetracion([zona], volumenes)
+  let mejor: Par | undefined
+  for (const v of volumenes) {
+    if (separacionCajas(zona.huella, v.huella) >= 0 || solapeZ(zona, v) <= TOLERANCIA_CM) continue
+    const p = penetracion(zona.huella, v.huella)
+    if (!mejor || p > mejor.p) mejor = { p, a: zona, b: v }
+  }
+  return mejor
+}
+
 /** Zona en planta de un choque: intersección de las huellas del par; si saliera vacía por ruido numérico, la huella del primero. */
 function zonaDe(par: Par): Punto[] {
   const z = interseccionConvexos(par.a.huella, par.b.huella)
@@ -139,12 +151,12 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
     for (const zona of a.zonas) {
       for (const b of piezas) {
         if (b === a || b.def.pisable) continue
-        const par = maxPenetracion([zona], b.volumenes)
+        const par = penetracionZona(zona, b.volumenes)
         if (par) anotar(par.p, b.e.id, zona, b.ref, () => zonaDe(par))
       }
       for (const o of obstaculos.fisicos) {
-        const p = penetracion3D(zona, o.prisma)
-        anotar(p, o.id, zona, refDe(o), () => zonaDe({ p, a: zona, b: o.prisma }))
+        const par = penetracionZona(zona, [o.prisma])
+        if (par) anotar(par.p, o.id, zona, refDe(o), () => zonaDe(par))
       }
       anotar(penetracionEnParedes(planta, zona.huella), null, zona, PARED, () => zona.huella)
     }
