@@ -72,8 +72,7 @@ describe('VistaCompartida', () => {
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 358, bottom: 300, width: 358, height: 300, toJSON: () => ({}) })
     fetchSimulado.mockResolvedValueOnce(respuesta(200, compartido()))
     montar()
-    const plano = await screen.findByRole('img', { name: 'Plano' })
-    expect(plano.getAttribute('viewBox')).toMatch(/^0 0 358 /)
+    await vi.waitFor(() => expect(screen.getByRole('img', { name: 'Plano' }).getAttribute('viewBox')).toMatch(/^0 0 358 /))
     vi.restoreAllMocks()
   })
 

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ErrorDeApi } from '../../api/cliente'
 import { empezarAnonimoCon, sustituiriaDisenoAnonimo } from '../../cuenta/disenosLocales'
@@ -25,12 +25,12 @@ const Vista3DSoloVer = lazy(() => import('../../editor/vista3d/Vista3DSoloVer'))
 const ALTO_POR_ANCHO_DEL_PLANO = 1.4
 
 /**
- * Ancho en px del elemento, medido al montarse y al cambiar (girar el móvil). Hasta medirlo, o si el navegador no
- * mide, undefined.
+ * Ancho en px del elemento, medido al montarse (antes de pintar: el plano no se ve primero a otro tamaño) y al
+ * cambiar (girar el móvil). Si el navegador no mide, undefined.
  */
 function useAncho(ref: RefObject<HTMLElement | null>, activo: boolean): number | undefined {
   const [ancho, setAncho] = useState<number>()
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = ref.current
     if (!activo || !el) return
     const medir = () => {
