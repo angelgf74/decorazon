@@ -16,10 +16,13 @@ function Disparar({ alCapturar }: { alCapturar(url: string): void }) {
   return null
 }
 
-/** Pinta la escena fuera de la pantalla, desde la cámara inicial y sin resaltes, y devuelve la imagen. */
-export default function Captura3D({ doc, alCapturar }: { doc: DocumentoDiseno; alCapturar(url: string): void }) {
+/**
+ * Pinta la escena fuera de la pantalla, desde la cámara inicial y sin resaltes, y devuelve la imagen. El tamaño lo da
+ * la clase del contenedor (fuera de la pantalla): la cámara encuadra para él.
+ */
+export default function Captura3D({ doc, alCapturar, className = 'hoja-impresion__lienzo3d' }: { doc: DocumentoDiseno; alCapturar(url: string): void; className?: string }) {
   return (
-    <div className="hoja-impresion__lienzo3d" aria-hidden="true">
+    <div className={className} aria-hidden="true">
       <Canvas shadows dpr={1} camera={{ fov: 45 }} gl={{ preserveDrawingBuffer: true }}>
         <Escena doc={doc} ocultar encuadres={0} sinResaltes />
         <Disparar alCapturar={alCapturar} />

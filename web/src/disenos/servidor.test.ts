@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { documentoNuevo } from '../nucleo'
 import { respuesta } from '../pruebas/respuesta'
-import { compartirDiseno, crearDiseno, dejarDeCompartir, direccionCompartida, guardarDiseno, obtenerCompartido, obtenerDiseno } from './servidor'
+import { compartirDiseno, crearDiseno, dejarDeCompartir, direccionCompartida, guardarDiseno, obtenerCompartido, obtenerDiseno, subirVistaPrevia } from './servidor'
 
 const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
 const ID = '11111111-1111-1111-1111-111111111111'
@@ -106,6 +106,16 @@ describe('servidor de diseños', () => {
     expect(new URL(fetchSimulado.mock.calls[0]![0].url).pathname).toBe('/compartidos/tok_1')
     fetchSimulado.mockResolvedValueOnce(respuesta(200, { nombre: 'Roto', tipoEstancia: 'bano', fechaDeModificacion: '2026-11-02T10:00:00Z', contenido: { formato: 9 } }))
     await expect(obtenerCompartido('tok_2')).rejects.toThrow()
+  })
+
+  it('subirVistaPrevia manda la imagen tal cual, en image/jpeg, con PUT', async () => {
+    fetchSimulado.mockResolvedValueOnce(respuesta(204))
+    await subirVistaPrevia(ID, new Blob(['jpeg'], { type: 'image/jpeg' }))
+    const peticion = fetchSimulado.mock.calls[0]![0]
+    expect(peticion.method).toBe('PUT')
+    expect(new URL(peticion.url).pathname).toBe(`/disenos/${ID}/vista-previa`)
+    expect(peticion.headers.get('Content-Type')).toBe('image/jpeg')
+    expect(await peticion.text()).toBe('jpeg')
   })
 
   it('direccionCompartida compone la dirección pública del enlace en esta web', () => {

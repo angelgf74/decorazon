@@ -78,6 +78,16 @@ export function direccionCompartida(enlace: string): string {
   return `${location.origin}/compartido/${encodeURIComponent(enlace)}`
 }
 
+/** La imagen de la tarjeta del enlace, tal cual (JPEG): el cuerpo no es JSON. */
+export async function subirVistaPrevia(id: string, imagen: Blob): Promise<void> {
+  exigir(await api.PUT('/disenos/{id}/vista-previa', {
+    params: { path: { id } },
+    body: imagen as unknown as string,
+    bodySerializer: (cuerpo) => cuerpo as unknown as BodyInit,
+    headers: { 'Content-Type': 'image/jpeg' },
+  }))
+}
+
 export async function borrarDiseno(id: string): Promise<void> {
   exigir(await api.DELETE('/disenos/{id}', { params: { path: { id } } }))
 }

@@ -1,0 +1,2 @@
+/* La escena de la vista previa, fuera de la pantalla y al tamaño de las tarjetas grandes (1200×630). */
+.vista-previa__lienzo3d { position: fixed; top: 0; left: -10000px; width: 1200px; height: 630px; pointer-events: none; }

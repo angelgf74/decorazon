@@ -9,6 +9,14 @@ import { documentoNuevo } from '../../nucleo'
 import { respuesta } from '../../pruebas/respuesta'
 import MisDisenos from './MisDisenos'
 
+// Sin WebGL en jsdom: el generador de la vista previa entrega una imagen al momento.
+vi.mock('../vistaPrevia/GeneradorDeVistaPrevia', () => ({
+  default: ({ alTerminar }: { alTerminar(b: Blob | null): void }) => {
+    queueMicrotask(() => alTerminar(new Blob(['jpeg'], { type: 'image/jpeg' })))
+    return null
+  },
+}))
+
 const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
 
 function resumen(id: string, nombre: string, modificado: string, tipo = 'cocina') {
@@ -101,6 +109,22 @@ describe('MisDisenos', () => {
     expect(escribir).toHaveBeenCalledWith(`${location.origin}/compartido/tok_1`)
     expect(within(dialogo).getByRole('status')).toBe(estado)
     expect(estado).toHaveTextContent('Enlace copiado')
+  })
+
+  it('al crear el enlace, en segundo plano, lee el diseño, hace la vista previa y la sube', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [RECIENTE]))
+    montar()
+    const fila = (await screen.findByText('Reciente')).closest('li')!
+    await userEvent.click(within(fila).getByRole('button', { name: 'Compartir' }))
+    const dialogo = screen.getByRole('dialog', { name: 'Compartir «Reciente»' })
+    const doc = documentoNuevo('salon', 400, 300, 250)
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta(200, { enlace: 'tok_1' }))
+      .mockResolvedValueOnce(respuesta(200, { ...RECIENTE, contenido: doc, enlace: 'tok_1' }))
+      .mockResolvedValueOnce(respuesta(204))
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Crear enlace' }))
+    await vi.waitFor(() => expect(fetchSimulado.mock.calls.some(([p]) => p.method === 'PUT' && new URL(p.url).pathname === '/disenos/b/vista-previa')).toBe(true))
   })
 
   it('Dejar de compartir, tras confirmarlo, retira el enlace y quita la marca', async () => {

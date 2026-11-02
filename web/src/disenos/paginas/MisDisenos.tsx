@@ -8,9 +8,11 @@ import Confirmar from '../../editor/comunes/Confirmar'
 import { useDialogoModal } from '../../editor/comunes/usarDialogoModal'
 import NuevaEstancia from '../../editor/paneles/NuevaEstancia'
 import { almacenamientoSeguro, borrarCopiaLocal, type CopiaListada } from '../../editor/persistencia/local'
-import { documentoNuevo, type TipoEstancia } from '../../nucleo'
+import { documentoNuevo, type DocumentoDiseno, type TipoEstancia } from '../../nucleo'
 import { textos } from '../../textos'
-import { borrarDiseno, crearDiseno, duplicarDiseno, guardarDiseno, listarDisenos, obtenerDiseno, type ResumenDiseno } from '../servidor'
+import { borrarDiseno, crearDiseno, duplicarDiseno, guardarDiseno, listarDisenos, obtenerDiseno, subirVistaPrevia, type ResumenDiseno } from '../servidor'
+import { apuntarVistaPrevia } from '../vistaPrevia/frecuencia'
+import GeneradorDeVistaPrevia from '../vistaPrevia/GeneradorDeVistaPrevia'
 import DialogoCompartir from './DialogoCompartir'
 import '../disenos.css'
 
@@ -65,6 +67,8 @@ export default function MisDisenos() {
   const [editando, setEditando] = useState<{ id: string; nombre: string } | null>(null)
   const [borrando, setBorrando] = useState<ResumenDiseno | null>(null)
   const [compartiendo, setCompartiendo] = useState<string | null>(null)
+  // La vista previa del diseño que se acaba de compartir, que se hace y se sube en segundo plano.
+  const [vistaPendiente, setVistaPendiente] = useState<{ id: string; doc: DocumentoDiseno } | null>(null)
   const [ocupado, setOcupado] = useState(false)
 
   const recargar = useCallback(async () => {
@@ -222,11 +226,26 @@ export default function MisDisenos() {
         return d && (
           <DialogoCompartir
             diseno={d}
-            alCambiar={(enlace) => setLista((actual) => actual?.map((x) => (x.id === d.id ? { ...x, enlace } : x)) ?? null)}
+            alCambiar={(enlace) => {
+              setLista((actual) => actual?.map((x) => (x.id === d.id ? { ...x, enlace } : x)) ?? null)
+              // Recién compartido: la tarjeta del enlace necesita su imagen. Un fallo no se enseña: saldrá el icono.
+              if (enlace !== null) obtenerDiseno(d.id).then(({ diseno }) => setVistaPendiente({ id: d.id, doc: diseno.contenido }), () => {})
+            }}
             alCerrar={() => setCompartiendo(null)}
           />
         )
       })()}
+      {vistaPendiente && (
+        <GeneradorDeVistaPrevia
+          key={vistaPendiente.id}
+          doc={vistaPendiente.doc}
+          alTerminar={(imagen) => {
+            const { id } = vistaPendiente
+            setVistaPendiente(null)
+            if (imagen) subirVistaPrevia(id, imagen).then(() => apuntarVistaPrevia(id), () => {})
+          }}
+        />
+      )}
       {creando && <DialogoNuevo alCrear={(...m) => void crear(...m)} alCerrar={() => setCreando(false)} />}
       <Confirmar
         abierto={borrando !== null}
