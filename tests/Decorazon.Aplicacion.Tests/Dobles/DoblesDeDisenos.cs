@@ -31,6 +31,20 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
     public Task<Diseno?> ObtenerCompartidoAsync(string enlace, CancellationToken cancelacion = default) =>
         Task.FromResult(_disenos.FirstOrDefault(diseno => diseno.EnlaceCompartido == enlace));
 
+    public Task<string?> CompartirAsync(Guid usuarioId, Guid id, string enlace, CancellationToken cancelacion = default)
+    {
+        var diseno = _disenos.FirstOrDefault(d => d.UsuarioId == usuarioId && d.Id == id);
+        diseno?.Compartir(enlace);
+        return Task.FromResult(diseno?.EnlaceCompartido);
+    }
+
+    public Task<bool> DejarDeCompartirAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default)
+    {
+        var diseno = _disenos.FirstOrDefault(d => d.UsuarioId == usuarioId && d.Id == id);
+        diseno?.DejarDeCompartir();
+        return Task.FromResult(diseno is not null);
+    }
+
     // Un id ya guardado, de quien sea, no entra: el próximo guardado falla como la clave primaria.
     private bool _idRepetido;
 

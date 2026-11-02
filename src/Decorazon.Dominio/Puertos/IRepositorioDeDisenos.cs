@@ -26,6 +26,17 @@ public interface IRepositorioDeDisenos
     Task<Diseno?> ObtenerCompartidoAsync(string enlace, CancellationToken cancelacion = default);
 
     /// <summary>
+    /// Pone <paramref name="enlace"/> al diseño del usuario si aún no se compartía (como <see cref="Diseno.Compartir"/>), en una sola
+    /// escritura condicionada: dos peticiones a la vez acaban con el mismo enlace. No toca la versión ni lo rastreado.
+    /// </summary>
+    /// <returns>El enlace con que queda compartido (el que ya tuviera o este), o null si no existe o es de otro.</returns>
+    Task<string?> CompartirAsync(Guid usuarioId, Guid id, string enlace, CancellationToken cancelacion = default);
+
+    /// <summary>Quita el enlace del diseño del usuario, en una sola escritura que no toca la versión.</summary>
+    /// <returns>False si no existe o es de otro.</returns>
+    Task<bool> DejarDeCompartirAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default);
+
+    /// <summary>
     /// Solo rastrea el diseño: no lo persiste. <see cref="GuardarCambiosAsync"/> lo guarda
     /// (o el guardado de otro repositorio que comparta la misma unidad de trabajo).
     /// </summary>

@@ -32,6 +32,11 @@ describe('PlanoAmpliado', () => {
     expect(alCerrar).toHaveBeenCalledTimes(2)
   })
 
+  it('las cotas son solo para ver: no llevan la clase de las que se pulsan', () => {
+    render(<PlanoAmpliado doc={doc} alCerrar={() => {}} />)
+    expect(screen.getByRole('img', { name: 'Plano' }).querySelector('.capa-cotas--solo-ver')).not.toBeNull()
+  })
+
   it('«Acercar» y «Alejar» cambian la escala, y «Encuadrar» vuelve a la de partida', async () => {
     render(<PlanoAmpliado doc={doc} alCerrar={() => {}} />)
     const inicial = vista().escala

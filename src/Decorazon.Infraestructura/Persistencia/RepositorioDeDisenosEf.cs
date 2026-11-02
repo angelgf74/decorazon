@@ -38,6 +38,25 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
     public Task<Diseno?> ObtenerCompartidoAsync(string enlace, CancellationToken cancelacion = default) =>
         contexto.Disenos.AsNoTracking().FirstOrDefaultAsync(diseno => diseno.EnlaceCompartido == enlace, cancelacion);
 
+    // ExecuteUpdate: un UPDATE directo, fuera del seguimiento y sin comparar la versión. La condición
+    // "enlace_compartido IS NULL" hace que de dos peticiones simultáneas solo la primera escriba.
+    public async Task<string?> CompartirAsync(Guid usuarioId, Guid id, string enlace, CancellationToken cancelacion = default)
+    {
+        await contexto.Disenos
+            .Where(diseno => diseno.UsuarioId == usuarioId && diseno.Id == id && diseno.EnlaceCompartido == null)
+            .ExecuteUpdateAsync(cambios => cambios.SetProperty(diseno => diseno.EnlaceCompartido, enlace), cancelacion);
+
+        return await contexto.Disenos
+            .Where(diseno => diseno.UsuarioId == usuarioId && diseno.Id == id)
+            .Select(diseno => diseno.EnlaceCompartido)
+            .FirstOrDefaultAsync(cancelacion);
+    }
+
+    public async Task<bool> DejarDeCompartirAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
+        await contexto.Disenos
+            .Where(diseno => diseno.UsuarioId == usuarioId && diseno.Id == id)
+            .ExecuteUpdateAsync(cambios => cambios.SetProperty(diseno => diseno.EnlaceCompartido, (string?)null), cancelacion) > 0;
+
     // Solo rastrea: lo guarda GuardarCambiosAsync o el guardado de otro repositorio
     // que comparta el contexto (así el alta con diseño es una sola transacción).
     public void Anadir(Diseno diseno) => contexto.Disenos.Add(diseno);

@@ -69,6 +69,7 @@
 .capa-planta__pared.lienzo--seleccionado { fill: var(--terracota); }
 
 .capa-cotas__cota { cursor: pointer; }
+.capa-cotas--solo-ver .capa-cotas__cota { cursor: default; }
 .capa-cotas__cota line { stroke: var(--gris); stroke-width: 1; }
 .capa-cotas__cota .lienzo__texto {
   pointer-events: auto;

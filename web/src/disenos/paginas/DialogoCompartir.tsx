@@ -102,12 +102,13 @@ export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props)
             </div>
           ) : (
             <div className="dialogo-compartir__acciones">
+              {/* Siempre en la página: una región viva que aparece de golpe no siempre se anuncia. */}
+              <span className="dialogo-compartir__estado" role="status">{copiado ? t.copiado : ''}</span>
               <button ref={enfocar('copiar')} type="button" className="primario" onClick={() => void copiar()}>{t.copiar}</button>
               <button ref={enfocar('dejar')} type="button" className="peligro" disabled={ocupado} onClick={() => { foco.current = 'cancelar'; setConfirmando(true) }}>{t.dejar}</button>
               <button type="button" disabled={ocupado} onClick={alCerrar}>{t.cerrar}</button>
             </div>
           )}
-          <p className="dialogo-compartir__estado" role="status">{copiado ? t.copiado : ''}</p>
         </>
       )}
       {aviso && <p className="disenos__aviso" role="alert">{aviso}</p>}

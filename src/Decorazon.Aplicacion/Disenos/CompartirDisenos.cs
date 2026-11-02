@@ -13,63 +13,14 @@ public sealed class CompartirDisenos(IRepositorioDeDisenos disenos, IGeneradorDe
     /// <summary>Lo que mide como mucho un enlace válido: lo demás ni se busca.</summary>
     public const int LongitudMaximaDelEnlace = 64;
 
-    /// <summary>
-    /// Si un guardado del editor se cuela entre la lectura y la escritura, la versión ya no
-    /// coincide y no se guarda nada: se relee y se vuelve a intentar.
-    /// </summary>
-    private const int Intentos = 3;
-
     /// <returns>El enlace (el mismo si ya se compartía), o null si el diseño no existe o es de otro.</returns>
-    public async Task<string?> CompartirAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default)
-    {
-        for (var intento = 0; intento < Intentos; intento++)
-        {
-            var diseno = await disenos.ObtenerAsync(usuarioId, id, cancelacion);
-            if (diseno is null)
-            {
-                return null;
-            }
-
-            if (diseno.EnlaceCompartido is { } enlace)
-            {
-                return enlace;
-            }
-
-            diseno.Compartir(tokens.GenerarToken());
-            if (await disenos.GuardarCambiosAsync(cancelacion))
-            {
-                return diseno.EnlaceCompartido;
-            }
-        }
-
-        return null;
-    }
+    /// <remarks>Se genera uno nuevo cada vez; si el diseño ya tenía enlace, el repositorio lo conserva y este se descarta.</remarks>
+    public Task<string?> CompartirAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
+        disenos.CompartirAsync(usuarioId, id, tokens.GenerarToken(), cancelacion);
 
     /// <returns>False si el diseño no existe o es de otro; retirar uno que no se comparte es true.</returns>
-    public async Task<bool> DejarDeCompartirAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default)
-    {
-        for (var intento = 0; intento < Intentos; intento++)
-        {
-            var diseno = await disenos.ObtenerAsync(usuarioId, id, cancelacion);
-            if (diseno is null)
-            {
-                return false;
-            }
-
-            if (diseno.EnlaceCompartido is null)
-            {
-                return true;
-            }
-
-            diseno.DejarDeCompartir();
-            if (await disenos.GuardarCambiosAsync(cancelacion))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    public Task<bool> DejarDeCompartirAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
+        disenos.DejarDeCompartirAsync(usuarioId, id, cancelacion);
 
     /// <summary>Un enlace con forma imposible (vacío, largo, caracteres fuera de base64url) ni se busca.</summary>
     public Task<Diseno?> ObtenerCompartidoAsync(string enlace, CancellationToken cancelacion = default) =>
