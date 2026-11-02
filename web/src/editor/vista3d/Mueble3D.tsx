@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import type { ThreeEvent } from '@react-three/fiber'
 import { catalogoBase, piezasDeElemento, type Elemento } from '../../nucleo'
 import { almacen, useEditor } from '../estado/almacen'
@@ -12,7 +12,7 @@ function cursor(valor: string) {
   document.body.style.cursor = valor
 }
 
-export default function Mueble3D({ elemento }: { elemento: Elemento }) {
+function Mueble3D({ elemento }: { elemento: Elemento }) {
   const { id } = elemento
   const conflictos = useConflictos()
   const seleccionado = useEditor((e) => e.seleccion?.tipo === 'elemento' && e.seleccion.id === id)
@@ -46,3 +46,6 @@ export default function Mueble3D({ elemento }: { elemento: Elemento }) {
     </group>
   )
 }
+
+// Editar un mueble no vuelve a pintar los demás: el almacén conserva la referencia de los que no cambian.
+export default memo(Mueble3D)
