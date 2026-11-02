@@ -19,15 +19,42 @@ export default function Inicio() {
 
   return (
     <main className="inicio">
-      {aviso && <p className="inicio__aviso" role="status">{aviso}</p>}
-      <h1>{t.titulo}</h1>
-      <p>{t.frase}</p>
-      <Link to="/disenar" className="boton primario">{hayDocumento ? t.seguir : t.empezar}</Link>
-      {haySesion && <Link to="/disenos" className="boton">{t.misDisenos}</Link>}
-      {hayDocumento && (
-        <button type="button" className="enlace" onClick={() => setConfirmando(true)}>{t.nuevo}</button>
-      )}
-      <footer className="inicio__pie"><Link to="/privacidad">{t.privacidad}</Link></footer>
+      <div className="inicio__contenido">
+        {aviso && <p className="inicio__aviso" role="status">{aviso}</p>}
+        <header className="inicio__cabecera">
+          <img className="inicio__logo" src="/favicon.svg" alt="" width="64" height="64" />
+          <h1>{t.titulo}</h1>
+          <p className="inicio__frase">{t.frase}</p>
+        </header>
+
+        <div className="inicio__acciones">
+          <Link to="/disenar" className="boton primario inicio__principal">{hayDocumento ? t.seguir : t.empezar}</Link>
+          {hayDocumento && (
+            <button type="button" className="enlace" onClick={() => setConfirmando(true)}>{t.nuevo}</button>
+          )}
+        </div>
+
+        {haySesion ? (
+          <section className="inicio__cuenta" aria-labelledby="inicio-cuenta">
+            <h2 id="inicio-cuenta">{t.tuCuenta}</h2>
+            <div className="inicio__cuenta-acciones">
+              <Link to="/disenos" className="boton">{t.misDisenos}</Link>
+              <Link to="/cuenta" className="inicio__enlace">{t.miCuenta}</Link>
+            </div>
+          </section>
+        ) : (
+          <section className="inicio__cuenta" aria-labelledby="inicio-cuenta">
+            <h2 id="inicio-cuenta">{t.yaTienesCuenta}</h2>
+            <p className="inicio__nota">{t.porQueEntrar}</p>
+            <div className="inicio__cuenta-acciones">
+              <Link to="/entrar" className="boton">{t.entrar}</Link>
+              <Link to="/registro" className="inicio__enlace">{t.crearCuenta}</Link>
+            </div>
+          </section>
+        )}
+
+        <footer className="inicio__pie"><Link to="/privacidad">{t.privacidad}</Link></footer>
+      </div>
       <Confirmar
         abierto={confirmando}
         mensaje={t.confirmarNuevo}
