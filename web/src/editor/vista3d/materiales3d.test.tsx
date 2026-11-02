@@ -2,7 +2,7 @@ import ReactThreeTestRenderer from '@react-three/test-renderer'
 import type { MeshPhysicalMaterial } from 'three'
 import { describe, expect, it } from 'vitest'
 import type { Vec3 } from '../../nucleo'
-import { materialDe } from './materiales3d'
+import { LIMITE_MATERIALES, materialDe, materialesEnCache } from './materiales3d'
 import Pieza from './Pieza'
 
 describe('materialDe', () => {
@@ -30,5 +30,20 @@ describe('Pieza: sombras', () => {
     expect(vidrio.scene.findAll((n) => n.type === 'Mesh')[0]!.instance.castShadow).toBe(true)
     const cristal = await ReactThreeTestRenderer.create(<Pieza pieza={{ ...caja, material: 'cristal', color: '#cfe3ea' }} />)
     expect(cristal.scene.findAll((n) => n.type === 'Mesh')[0]!.instance.castShadow).toBe(false)
+  })
+
+  it('arrastrar el selector de color no llena la caché: guarda como mucho el límite y libera los menos usados', () => {
+    const primero = materialDe('madera', '#000001')
+    let liberado = false
+    primero.addEventListener('dispose', () => { liberado = true })
+    const usado = materialDe('madera', '#000002')
+    for (let n = 3; n < LIMITE_MATERIALES + 50; n++) {
+      materialDe('madera', '#' + n.toString(16).padStart(6, '0'))
+      // Uno que se sigue usando no sale de la caché.
+      materialDe('madera', '#000002')
+    }
+    expect(materialesEnCache()).toBeLessThanOrEqual(LIMITE_MATERIALES)
+    expect(liberado).toBe(true)
+    expect(materialDe('madera', '#000002')).toBe(usado)
   })
 })
