@@ -1,0 +1,36 @@
+/* Página pública de un diseño compartido: móvil primero, una columna. */
+.compartido {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: var(--esp-4) var(--esp-4) var(--esp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-6);
+}
+
+.compartido--mensaje { align-items: flex-start; gap: var(--esp-3); padding-top: 3rem; }
+.compartido--mensaje h1 { margin: 0; color: var(--terracota); }
+.compartido--mensaje p { margin: 0; }
+
+.compartido__portada { display: flex; flex-direction: column; gap: var(--esp-2); }
+.compartido__marca { display: inline-flex; align-items: center; gap: var(--esp-2); align-self: flex-start; color: var(--tinta); font-weight: 600; text-decoration: none; }
+.compartido__portada h1 { margin: var(--esp-2) 0 0; color: var(--terracota); font-size: clamp(1.6rem, 6vw, 2.2rem); line-height: 1.15; overflow-wrap: anywhere; }
+.compartido__datos { margin: 0; color: var(--gris); }
+
+.compartido__copia { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2) var(--esp-3); margin-top: var(--esp-2); }
+.compartido__copia p { margin: 0; color: var(--gris); font-size: var(--texto-s); }
+.compartido__aviso { margin: 0; padding: 0.6rem 0.75rem; border-radius: var(--radio); background: var(--crema); border: 1px solid var(--peligro); }
+
+.compartido__seccion { display: flex; flex-direction: column; gap: var(--esp-3); }
+.compartido__seccion h2 { margin: 0; padding-bottom: var(--esp-1); border-bottom: 1px solid var(--borde-suave); font-size: 1.1rem; }
+
+.compartido__plano { display: block; width: 100%; height: auto; background: var(--superficie); border: 1px solid var(--borde-suave); border-radius: var(--radio); }
+
+/* Alto fijo: la 3D llena el ancho y deja ver la página por debajo. */
+.compartido__3d { height: min(70vh, 30rem); border: 1px solid var(--borde-suave); border-radius: var(--radio); overflow: hidden; background: var(--superficie); }
+.compartido__3d > p { margin: 0; padding: var(--esp-4); color: var(--gris); }
+
+/* La tabla de muebles, que en pantalla estrecha se desplaza en vez de romper la página. */
+.compartido__seccion:has(.hoja-impresion__tabla) { overflow-x: auto; }
+
+.compartido__pie { color: var(--gris); font-size: var(--texto-s); text-align: center; }

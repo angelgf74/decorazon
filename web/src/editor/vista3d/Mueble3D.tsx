@@ -12,7 +12,7 @@ function cursor(valor: string) {
   document.body.style.cursor = valor
 }
 
-/** `sinResaltes`: sin selección ni conflicto, como en la captura de la hoja para imprimir. */
+/** `sinResaltes`: solo para ver (la captura de la hoja para imprimir, un diseño compartido): sin selección, conflicto ni clics. */
 function Mueble3D({ elemento, sinResaltes = false }: { elemento: Elemento; sinResaltes?: boolean }) {
   const { id } = elemento
   const conflictos = useConflictos()
@@ -43,7 +43,7 @@ function Mueble3D({ elemento, sinResaltes = false }: { elemento: Elemento; sinRe
 
   return (
     <group>
-      {piezas.map((p, k) => <Pieza key={k} pieza={p} estado={estado} eventos={eventos} contorno={!sinResaltes && seleccionado} />)}
+      {piezas.map((p, k) => <Pieza key={k} pieza={p} estado={estado} eventos={sinResaltes ? undefined : eventos} contorno={!sinResaltes && seleccionado} />)}
     </group>
   )
 }

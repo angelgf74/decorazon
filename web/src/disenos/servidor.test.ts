@@ -1,7 +1,8 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { documentoNuevo } from '../nucleo'
 import { respuesta } from '../pruebas/respuesta'
-import { crearDiseno, guardarDiseno, obtenerDiseno } from './servidor'
+import { compartirDiseno, crearDiseno, dejarDeCompartir, direccionCompartida, guardarDiseno, obtenerCompartido, obtenerDiseno } from './servidor'
 
 const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
 const ID = '11111111-1111-1111-1111-111111111111'
@@ -78,5 +79,36 @@ describe('servidor de diseños', () => {
     const r = await obtenerDiseno(ID)
     expect(r.version).toBe(3)
     expect(r.diseno.contenido.estancia.tipo).toBe('cocina')
+  })
+
+  it('compartirDiseno pide el enlace con PUT y devuelve el token', async () => {
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, { enlace: 'tok_1' }))
+    expect(await compartirDiseno(ID)).toBe('tok_1')
+    const peticion = fetchSimulado.mock.calls[0]![0]
+    expect(peticion.method).toBe('PUT')
+    expect(new URL(peticion.url).pathname).toBe(`/disenos/${ID}/enlace`)
+  })
+
+  it('dejarDeCompartir retira el enlace con DELETE', async () => {
+    fetchSimulado.mockResolvedValueOnce(respuesta(204))
+    await dejarDeCompartir(ID)
+    const peticion = fetchSimulado.mock.calls[0]![0]
+    expect(peticion.method).toBe('DELETE')
+    expect(new URL(peticion.url).pathname).toBe(`/disenos/${ID}/enlace`)
+  })
+
+  it('obtenerCompartido lee el diseño del enlace y valida su contenido', async () => {
+    const doc = documentoNuevo('bano', 250, 200, 250)
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, { nombre: 'Baño', tipoEstancia: 'bano', fechaDeModificacion: '2026-11-02T10:00:00Z', contenido: doc }))
+    const d = await obtenerCompartido('tok_1')
+    expect(d.nombre).toBe('Baño')
+    expect(d.contenido.estancia.tipo).toBe('bano')
+    expect(new URL(fetchSimulado.mock.calls[0]![0].url).pathname).toBe('/compartidos/tok_1')
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, { nombre: 'Roto', tipoEstancia: 'bano', fechaDeModificacion: '2026-11-02T10:00:00Z', contenido: { formato: 9 } }))
+    await expect(obtenerCompartido('tok_2')).rejects.toThrow()
+  })
+
+  it('direccionCompartida compone la dirección pública del enlace en esta web', () => {
+    expect(direccionCompartida('tok_1')).toBe(`${location.origin}/compartido/tok_1`)
   })
 })

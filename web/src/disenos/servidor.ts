@@ -55,6 +55,29 @@ export async function duplicarDiseno(id: string): Promise<DisenoServidor> {
   return validar(exigir(await api.POST('/disenos/{id}/duplicar', { params: { path: { id } } })))
 }
 
+export async function compartirDiseno(id: string): Promise<string> {
+  return exigir(await api.PUT('/disenos/{id}/enlace', { params: { path: { id } } })).enlace
+}
+
+export async function dejarDeCompartir(id: string): Promise<void> {
+  exigir(await api.DELETE('/disenos/{id}/enlace', { params: { path: { id } } }))
+}
+
+export type DisenoCompartido = Omit<components['schemas']['RespuestaDeDisenoCompartido'], 'contenido'> & { contenido: DocumentoDiseno }
+
+/** Lo que ve quien tiene el enlace, sin sesión. Un contenido que no pasa la validación es un error, como en los demás. */
+export async function obtenerCompartido(enlace: string): Promise<DisenoCompartido> {
+  const r = exigir(await api.GET('/compartidos/{enlace}', { params: { path: { enlace } } }))
+  const v = validarDocumento(r.contenido)
+  if (!v.valido) throw new Error(`El diseño compartido no es válido: ${v.errores.join('; ')}`)
+  return { ...r, contenido: v.documento }
+}
+
+/** La dirección pública del enlace en esta misma web. */
+export function direccionCompartida(enlace: string): string {
+  return `${location.origin}/compartido/${encodeURIComponent(enlace)}`
+}
+
 export async function borrarDiseno(id: string): Promise<void> {
   exigir(await api.DELETE('/disenos/{id}', { params: { path: { id } } }))
 }

@@ -24,6 +24,12 @@ describe('iniciarAnalitica', () => {
     expect(scripts[0].async).toBe(true)
   })
 
+  it('no carga el tracker en la página de un diseño compartido: el enlace va en la ruta', () => {
+    history.replaceState(null, '', '/compartido/secreto')
+    iniciarAnalitica('abc')
+    expect(document.querySelectorAll('script[data-site-id]')).toHaveLength(0)
+  })
+
   it('no carga el tracker en páginas con token en la URL', () => {
     history.replaceState(null, '', '/registro/confirmar?token=secreto')
     iniciarAnalitica('abc')

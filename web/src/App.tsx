@@ -8,6 +8,7 @@ import Registro from './cuenta/paginas/Registro'
 import RestablecerContrasena from './cuenta/paginas/RestablecerContrasena'
 import EditorDeDiseno from './disenos/paginas/EditorDeDiseno'
 import MisDisenos from './disenos/paginas/MisDisenos'
+import VistaCompartida from './disenos/paginas/VistaCompartida'
 import Editor from './editor/Editor'
 import Inicio from './paginas/Inicio'
 import Privacidad from './paginas/Privacidad'
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/disenar" element={<Editor />} />
         <Route path="/disenos" element={<MisDisenos />} />
         <Route path="/disenos/:id" element={<EditorDeDiseno />} />
+        <Route path="/compartido/:enlace" element={<VistaCompartida />} />
         <Route path="/entrar" element={<Entrar />} />
         <Route path="/registro" element={<Registro />} />
         <Route path="/registro/confirmar" element={<ConfirmarRegistro />} />

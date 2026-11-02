@@ -18,7 +18,7 @@ const alto = (n: number) => (d: DocumentoDiseno): DocumentoDiseno => ({ ...d, es
 function disenoServidor(version: number, contenido: DocumentoDiseno): DisenoServidor {
   return {
     id: 'd9', nombre: 'Diseño sin título', tipoEstancia: 'salon', fechaDeCreacion: '2026-01-01T00:00:00Z',
-    fechaDeModificacion: '2026-01-01T00:00:00Z', version, contenido,
+    fechaDeModificacion: '2026-01-01T00:00:00Z', version, contenido, enlace: null,
   }
 }
 

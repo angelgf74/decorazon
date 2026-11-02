@@ -11,6 +11,7 @@ import { almacenamientoSeguro, borrarCopiaLocal, type CopiaListada } from '../..
 import { documentoNuevo, type TipoEstancia } from '../../nucleo'
 import { textos } from '../../textos'
 import { borrarDiseno, crearDiseno, duplicarDiseno, guardarDiseno, listarDisenos, obtenerDiseno, type ResumenDiseno } from '../servidor'
+import DialogoCompartir from './DialogoCompartir'
 import '../disenos.css'
 
 const t = textos.disenos
@@ -63,6 +64,7 @@ export default function MisDisenos() {
   const [creando, setCreando] = useState(false)
   const [editando, setEditando] = useState<{ id: string; nombre: string } | null>(null)
   const [borrando, setBorrando] = useState<ResumenDiseno | null>(null)
+  const [compartiendo, setCompartiendo] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
 
   const recargar = useCallback(async () => {
@@ -200,9 +202,11 @@ export default function MisDisenos() {
                     <strong>{d.nombre}</strong>
                     <span>{tipoEnTexto(d.tipoEstancia)}</span>
                     <span>{fechaRelativa(d.fechaDeModificacion)}</span>
+                    {d.enlace && <span className="disenos__compartido">{textos.compartir.marca}</span>}
                   </div>
                   <div className="disenos__acciones">
                     <button type="button" className="primario" onClick={() => navegar(`/disenos/${d.id}`)}>{t.abrir}</button>
+                    <button type="button" onClick={() => setCompartiendo(d.id)}>{textos.compartir.boton}</button>
                     <button type="button" onClick={() => setEditando({ id: d.id, nombre: d.nombre })}>{t.renombrar}</button>
                     <button type="button" disabled={ocupado} onClick={() => void duplicar(d.id)}>{t.duplicar}</button>
                     <button type="button" disabled={ocupado} onClick={() => setBorrando(d)}>{t.borrar}</button>
@@ -213,6 +217,16 @@ export default function MisDisenos() {
           ))}
         </ul>
       )}
+      {(() => {
+        const d = lista?.find((x) => x.id === compartiendo)
+        return d && (
+          <DialogoCompartir
+            diseno={d}
+            alCambiar={(enlace) => setLista((actual) => actual?.map((x) => (x.id === d.id ? { ...x, enlace } : x)) ?? null)}
+            alCerrar={() => setCompartiendo(null)}
+          />
+        )
+      })()}
       {creando && <DialogoNuevo alCrear={(...m) => void crear(...m)} alCerrar={() => setCreando(false)} />}
       <Confirmar
         abierto={borrando !== null}

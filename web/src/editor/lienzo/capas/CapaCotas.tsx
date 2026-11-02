@@ -5,13 +5,14 @@ import {
 import { almacen, type Seleccion } from '../../estado/almacen'
 import { esBotonPrincipal } from './comun'
 
-interface Props { documento: DocumentoDiseno; seleccion: Seleccion; escala: number }
+/** `soloVer`: las cotas no se pulsan (la hoja para imprimir, un diseño compartido). */
+interface Props { documento: DocumentoDiseno; seleccion: Seleccion; escala: number; soloVer?: boolean }
 
 /** Distancia en px de pantalla de la línea de cota a la cara exterior del muro. */
 const SEPARACION_COTA_PX = 34
 
 /** Cota de longitud de cada pared, por fuera del muro; pulsarla selecciona la pared. */
-export default function CapaCotas({ documento, seleccion, escala }: Props) {
+export default function CapaCotas({ documento, seleccion, escala, soloVer = false }: Props) {
   const { planta, grosorPared } = documento.estancia
   const fuera = grosorPared + SEPARACION_COTA_PX / escala
 
@@ -31,7 +32,7 @@ export default function CapaCotas({ documento, seleccion, escala }: Props) {
         const m = sumar(a, escalar(h.d, l / 2))
         const elegida = seleccion?.tipo === 'pared' && seleccion.indice === i
         return (
-          <g key={i} data-cota={i} className={`capa-cotas__cota${elegida ? ' lienzo--seleccionado' : ''}`} onPointerDown={pulsar(i)}>
+          <g key={i} data-cota={i} className={`capa-cotas__cota${elegida ? ' lienzo--seleccionado' : ''}`} onPointerDown={soloVer ? undefined : pulsar(i)}>
             <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
             <text className="lienzo__texto" x={m.x} y={m.y}>{`${Math.round(l)} cm`}</text>
           </g>

@@ -145,6 +145,36 @@ test('contraseña olvidada: el enlace del correo permite elegir otra y entrar co
   await expect(page.locator('.disenos__fila').filter({ hasText: 'Mi primer diseño' })).toHaveCount(1)
 })
 
+test('compartir: el enlace se abre sin sesión, enseña el diseño y deja copiarlo; al retirarlo deja de funcionar', async ({ page, browser }) => {
+  await entrar(page, contrasenaNueva)
+  await expect(page).toHaveURL(/\/disenos$/)
+  const fila = page.locator('.disenos__fila').filter({ hasText: 'Mi primer diseño' })
+  await fila.getByRole('button', { name: 'Compartir' }).click()
+  const dialogo = page.getByRole('dialog', { name: 'Compartir «Mi primer diseño»' })
+  await dialogo.getByRole('button', { name: 'Crear enlace' }).click()
+  const enlace = await dialogo.getByLabel('Enlace').inputValue()
+  expect(enlace).toMatch(/^http:\/\/localhost:5322\/compartido\/[A-Za-z0-9_-]+$/)
+  await expect(fila.getByText('Compartido')).toBeVisible()
+
+  // Otra persona, sin sesión ni nada en su navegador.
+  const invitado = await browser.newContext()
+  const suya = await invitado.newPage()
+  await suya.goto(enlace)
+  await expect(suya.getByRole('heading', { level: 1, name: 'Mi primer diseño' })).toBeVisible()
+  await expect(suya.getByRole('img', { name: 'Plano' }).locator('[data-elemento]')).toHaveCount(1)
+  await expect(suya.getByRole('table')).toContainText('Armario')
+  await suya.getByRole('button', { name: 'Hacer una copia' }).click()
+  await expect(suya).toHaveURL(/\/disenar$/)
+  await expect(suya.locator('[data-elemento]')).toHaveCount(1)
+
+  await dialogo.getByRole('button', { name: 'Dejar de compartir' }).click()
+  await dialogo.getByRole('button', { name: 'Sí, dejar de compartir' }).click()
+  await expect(fila.getByText('Compartido')).toHaveCount(0)
+  await suya.goto(enlace)
+  await expect(suya.getByRole('heading', { name: 'Este enlace ya no funciona' })).toBeVisible()
+  await invitado.close()
+})
+
 test('borrar la cuenta vuelve al inicio y ya no se puede entrar con ella', async ({ page }) => {
   await entrar(page, contrasenaNueva)
   await expect(page).toHaveURL(/\/disenos$/)
