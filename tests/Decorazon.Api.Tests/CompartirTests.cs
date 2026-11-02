@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Decorazon.Contratos.Cuentas;
 using Decorazon.Contratos.Disenos;
 
 namespace Decorazon.Api.Tests;
@@ -138,6 +139,21 @@ public class CompartirTests(ApiConPostgresFixture api) : IClassFixture<ApiConPos
         var enlace = await CompartirAsync(dueno, id);
 
         Assert.Equal(HttpStatusCode.NoContent, (await dueno.DeleteAsync($"/disenos/{id}")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NotFound, (await api.CreateClient().GetAsync($"/compartidos/{enlace}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task BorrarLaCuenta_ApagaSusEnlaces()
+    {
+        var dueno = await CuentasDePrueba.ConSesionAsync(api);
+        var enlace = await CompartirAsync(dueno, await DisenosDePrueba.CrearAsync(dueno));
+
+        var baja = await dueno.SendAsync(new HttpRequestMessage(HttpMethod.Delete, "/cuentas/yo")
+        {
+            Content = JsonContent.Create(new PeticionDeBaja { Contrasena = CuentasDePrueba.Contrasena })
+        });
+        Assert.True(baja.IsSuccessStatusCode);
 
         Assert.Equal(HttpStatusCode.NotFound, (await api.CreateClient().GetAsync($"/compartidos/{enlace}")).StatusCode);
     }

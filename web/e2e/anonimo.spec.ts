@@ -79,11 +79,15 @@ test('vista 3D: los botones de la barra reciben clics reales del ratón', async 
   await page.getByRole('button', { name: '3D', exact: true }).click()
 
   const boton = page.getByRole('button', { name: 'Ocultar paredes delante' })
+  // Se mide antes de cada clic: si algo mueve la barra entre los dos (un aviso que aparece), el clic sigue yendo al botón.
+  const clicReal = async () => {
+    const caja = (await boton.boundingBox())!
+    await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2)
+  }
   await expect(boton).toHaveAttribute('aria-pressed', 'true')
-  const caja = (await boton.boundingBox())!
-  await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2)
+  await clicReal()
   await expect(boton).toHaveAttribute('aria-pressed', 'false')
-  await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2)
+  await clicReal()
   await expect(boton).toHaveAttribute('aria-pressed', 'true')
 })
 

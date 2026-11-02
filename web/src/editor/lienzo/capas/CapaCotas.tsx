@@ -23,7 +23,7 @@ export default function CapaCotas({ documento, seleccion, escala, soloVer = fals
   }
 
   return (
-    <g className="capa-cotas">
+    <g className={`capa-cotas${soloVer ? ' capa-cotas--solo-ver' : ''}`}>
       {planta.map((_, i) => {
         const l = longitudPared(planta, i)
         const h = hueco(planta, i, 0)

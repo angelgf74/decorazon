@@ -250,6 +250,40 @@ public sealed class PersistenciaConPostgresTests(PostgresFixture postgres)
         await Assert.ThrowsAnyAsync<Microsoft.EntityFrameworkCore.DbUpdateException>(() => repositorioDelChoque.GuardarCambiosAsync());
     }
 
+    /// <summary>
+    /// Compartir solo pone el enlace si no lo tenía: dos peticiones a la vez (dos pestañas) acaban con el mismo,
+    /// el primero. Ninguna de las dos cosas toca la versión: un guardado del editor no choca con ellas.
+    /// </summary>
+    [Fact]
+    public async Task Compartir_conserva_el_primer_enlace_y_retirar_lo_quita_sin_tocar_la_version()
+    {
+        var (cadena, usuario) = await BaseConUsuarioAsync();
+        var diseno = Diseno.Crear(usuario.Id, Nombre("Cocina"), TipoDeEstancia.Cocina, Contenido(), Ahora);
+        await using (var contexto = PostgresFixture.Contexto(cadena))
+        {
+            var escritura = new RepositorioDeDisenosEf(contexto);
+            escritura.Anadir(diseno);
+            await escritura.GuardarCambiosAsync();
+        }
+
+        await using var lectura = PostgresFixture.Contexto(cadena);
+        var repositorio = new RepositorioDeDisenosEf(lectura);
+
+        Assert.Equal("primero", await repositorio.CompartirAsync(usuario.Id, diseno.Id, "primero"));
+        Assert.Equal("primero", await repositorio.CompartirAsync(usuario.Id, diseno.Id, "segundo"));
+        Assert.Null(await repositorio.CompartirAsync(Guid.NewGuid(), diseno.Id, "ajeno"));
+        Assert.Null(await repositorio.CompartirAsync(usuario.Id, Guid.NewGuid(), "inexistente"));
+
+        Assert.True(await repositorio.DejarDeCompartirAsync(usuario.Id, diseno.Id));
+        Assert.True(await repositorio.DejarDeCompartirAsync(usuario.Id, diseno.Id));
+        Assert.False(await repositorio.DejarDeCompartirAsync(Guid.NewGuid(), diseno.Id));
+        Assert.Equal("segundo", await repositorio.CompartirAsync(usuario.Id, diseno.Id, "segundo"));
+
+        var leido = await repositorio.ObtenerAsync(usuario.Id, diseno.Id);
+        Assert.Equal(1, leido!.Version);
+        Assert.Equal("segundo", leido.EnlaceCompartido);
+    }
+
     [Fact]
     public async Task Completar_el_registro_crea_usuario_y_diseno_y_deja_la_solicitud_consumida_sin_diseno()
     {

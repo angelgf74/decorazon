@@ -86,6 +86,23 @@ describe('MisDisenos', () => {
     expect(document.activeElement).toBe(within(dialogo).getByRole('button', { name: 'Copiar enlace' }))
   })
 
+  it('«Copiar enlace» lo copia al portapapeles y lo anuncia en una región que ya estaba', async () => {
+    conSesion()
+    const escribir = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText: escribir } })
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [{ ...RECIENTE, enlace: 'tok_1' }]))
+    montar()
+    const fila = (await screen.findByText('Reciente')).closest('li')!
+    await userEvent.click(within(fila).getByRole('button', { name: 'Compartir' }))
+    const dialogo = screen.getByRole('dialog', { name: 'Compartir «Reciente»' })
+    const estado = within(dialogo).getByRole('status')
+    expect(estado).toHaveTextContent('')
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Copiar enlace' }))
+    expect(escribir).toHaveBeenCalledWith(`${location.origin}/compartido/tok_1`)
+    expect(within(dialogo).getByRole('status')).toBe(estado)
+    expect(estado).toHaveTextContent('Enlace copiado')
+  })
+
   it('Dejar de compartir, tras confirmarlo, retira el enlace y quita la marca', async () => {
     conSesion()
     fetchSimulado.mockResolvedValueOnce(respuesta(200, [{ ...RECIENTE, enlace: 'tok_1' }]))

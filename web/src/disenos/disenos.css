@@ -38,7 +38,7 @@
 .dialogo-compartir p { margin: 0; }
 .dialogo-compartir__campo { font-size: var(--texto-s); font-weight: 600; }
 .dialogo-compartir input { font: inherit; width: 100%; min-height: var(--objetivo); padding: 0.4rem 0.6rem; border: 1px solid var(--gris); border-radius: 0.4rem; background: var(--crema); }
-.dialogo-compartir__nota, .dialogo-compartir__estado { color: var(--gris); font-size: var(--texto-s); }
-.dialogo-compartir__estado:empty { display: none; }
+.dialogo-compartir__nota { color: var(--gris); font-size: var(--texto-s); }
+.dialogo-compartir__estado { margin-right: auto; align-self: center; color: var(--gris); font-size: var(--texto-s); }
 .dialogo-compartir__confirmar { display: flex; flex-direction: column; gap: var(--esp-2); padding: var(--esp-3); border: 1px solid var(--peligro); border-radius: var(--radio); }
 .dialogo-compartir__acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
