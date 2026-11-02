@@ -34,7 +34,8 @@ const t = textos.hoja
 export function filasDeMuebles(doc: DocumentoDiseno, catalogo: Catalogo): FilaMueble[] {
   return doc.elementos.map((e) => {
     const def = catalogo.get(e.tipo)
-    const { ancho, fondo, alto } = e.medidas
+    const { ancho, fondo } = e.medidas
+    const alto = def?.altoReal?.(e) ?? e.medidas.alto
     return {
       id: e.id,
       nombre: def ? capitalizar(def.nombre) : e.tipo,

@@ -1,11 +1,11 @@
 import type { ZonaColor } from '../catalogo/tipos'
 
 export type Vec3 = [number, number, number]
-/** 'cristal' es el de las ventanas (transparente); 'vidrio' el de placas y hornos (oscuro y opaco). */
-export type MaterialPBR = ZonaColor['material'] | 'cristal' | 'pared' | 'suelo'
+/** 'cristal' es el de las ventanas (transparente y con luz); 'mampara', el de las duchas (transparente, sin luz); 'vidrio' el de placas y hornos (oscuro y opaco). */
+export type MaterialPBR = ZonaColor['material'] | 'cristal' | 'mampara' | 'pared' | 'suelo'
 
-/** Pieza en el sistema local del elemento, en cm: x a lo ancho, y a lo fondo (frente en +y), z desde e.alturaSuelo. `material` y `color`, si se indican, anulan los de la zona ('cristal' para las mamparas). */
-export type PiezaLocal = { material?: ZonaColor['material'] | 'cristal'; color?: string } & (
+/** Pieza en el sistema local del elemento, en cm: x a lo ancho, y a lo fondo (frente en +y), z desde e.alturaSuelo. `material` y `color`, si se indican, anulan los de la zona ('mampara' para el cristal de las duchas). */
+export type PiezaLocal = { material?: ZonaColor['material'] | 'mampara'; color?: string } & (
   | { forma: 'caja'; x0: number; y0: number; z0: number; x1: number; y1: number; z1: number; zona: string }
   | { forma: 'cilindro'; cx: number; cy: number; r: number; z0: number; z1: number; zona: string }
 )

@@ -4,7 +4,14 @@ import type { Punto } from '../geometria/vector'
 import type { PiezaLocal } from '../modelo3d/tipos'
 
 export interface Rango { min: number; max: number; defecto: number }
-export interface DefinicionVariante { clave: string; etiqueta: string; valores: (string | number | boolean)[]; defecto: string | number | boolean }
+export interface DefinicionVariante {
+  clave: string
+  etiqueta: string
+  valores: (string | number | boolean)[]
+  defecto: string | number | boolean
+  /** Valores que admite este elemento cuando dependen de él (dos senos solo con 1 m de ancho); sin ella, todos. */
+  valoresPara?: (e: Elemento) => (string | number | boolean)[]
+}
 export interface ZonaColor { clave: string; etiqueta: string; material: 'tela' | 'madera' | 'lacado' | 'metal' | 'vidrio' | 'ceramica'; defecto: string }
 export interface ZonaApertura extends Prisma {
   nombre: string
@@ -23,6 +30,8 @@ export interface DefinicionTipo {
   estancias: TipoEstancia[]
   medidas: { ancho: Rango; fondo: Rango; alto: Rango }
   alturaSuelo: number
+  /** Alto de verdad cuando no es el de las medidas (el inodoro con la cisterna empotrada: la taza); entonces el alto no se edita. */
+  altoReal?: (e: Elemento) => number | undefined
   /** El panel deja cambiar la altura desde el suelo, entre 0 y `estancia.alto − alto`. */
   alturaSueloEditable: boolean
   variantes: DefinicionVariante[]
@@ -59,10 +68,23 @@ export function capitalizar(texto: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
-/** Valor de una variante del elemento; si falta o no es uno de los valores de la definición, su defecto. */
-export function valorVariante(def: DefinicionTipo, e: Elemento, clave: string): string | number | boolean {
+function variante(def: DefinicionTipo, clave: string): DefinicionVariante {
   const d = def.variantes.find((x) => x.clave === clave)
   if (!d) throw new Error(`variante desconocida: ${clave}`)
+  return d
+}
+
+/** Valores de una variante que admite el elemento. */
+export function valoresVariante(def: DefinicionTipo, e: Elemento, clave: string): (string | number | boolean)[] {
+  const d = variante(def, clave)
+  return d.valoresPara?.(e) ?? d.valores
+}
+
+/** Valor de una variante del elemento; si falta o el elemento no lo admite, su defecto (o, si tampoco lo admite, el primero que sí). */
+export function valorVariante(def: DefinicionTipo, e: Elemento, clave: string): string | number | boolean {
+  const d = variante(def, clave)
+  const validos = valoresVariante(def, e, clave)
   const v = e.variantes[clave]
-  return v !== undefined && d.valores.includes(v) ? v : d.defecto
+  if (v !== undefined && validos.includes(v)) return v
+  return validos.includes(d.defecto) ? d.defecto : validos[0]!
 }

@@ -11,6 +11,8 @@ export const inodoro: DefinicionTipo = {
   id: 'inodoro', nombre: 'inodoro', genero: 'm', categoria: 'mueble', estancias: ['bano'],
   medidas: { ancho: { min: 35, max: 45, defecto: 38 }, fondo: { min: 48, max: 75, defecto: 66 }, alto: { min: 70, max: 90, defecto: 78 } },
   alturaSuelo: 0, alturaSueloEditable: false,
+  // Con la cisterna empotrada solo queda la taza: el alto de las medidas (el de la cisterna) no cuenta.
+  altoReal: (e) => (valorVariante(inodoro, e, 'cisterna') === true ? undefined : TAZA),
   variantes: [{ clave: 'cisterna', etiqueta: 'Cisterna vista', valores: [true, false], defecto: true }],
   zonasColor: [{ clave: 'loza', etiqueta: 'Loza', material: 'ceramica', defecto: '#f4f4f2' }],
   // Su espacio de uso hace de paso: entre sanitarios no se avisa de pasos estrechos.

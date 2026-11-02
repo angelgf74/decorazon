@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import {
   cambiarLongitudPared, capitalizar, catalogoBase, editarAbertura, editarElemento, editarEstructura, longitudPared, moverVertice, partirPared,
-  quitarDeEstancia, quitarVertice, valorVariante,
+  quitarDeEstancia, quitarVertice, valoresVariante, valorVariante,
   type Abertura, type Columna, type DocumentoDiseno, type Elemento, type Estructura, type Medidas, type Puerta,
   type Radiador, type ResultadoEdicion, type Ventana, type Viga, type ZonaColor,
 } from '../../nucleo'
@@ -193,7 +193,7 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
       <div className="panel__rejilla">
         {medida('ancho', t.ancho)}
       {medida('fondo', t.fondo)}
-      {medida('alto', t.alto)}
+      {def.altoReal?.(e) === undefined && medida('alto', t.alto)}
       {!en3d && <CampoNumero etiqueta={t.giro} valor={e.rotacion} min={0} max={359} unidad="°" alCambiar={(n) => editar({ rotacion: n })} />}
       {def.alturaSueloEditable && (
         <CampoNumero etiqueta={t.alturaSuelo} valor={e.alturaSuelo} min={0} max={Math.max(0, doc.estancia.alto - e.medidas.alto)} unidad="cm"
@@ -202,7 +202,7 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
       </div>
       {def.variantes.map((v) => (
         <Opciones key={v.clave} etiqueta={v.etiqueta} valor={String(valorVariante(def, e, v.clave))}
-          opciones={Object.fromEntries(v.valores.map((x) => [String(x), etiquetaValor(x)]))}
+          opciones={Object.fromEntries(valoresVariante(def, e, v.clave).map((x) => [String(x), etiquetaValor(x)]))}
           alCambiar={(s) => editar({ variantes: { [v.clave]: v.valores.find((x) => String(x) === s) ?? v.defecto } })} />
       ))}
       {def.zonasColor.map((z) => (

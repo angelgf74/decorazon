@@ -9,12 +9,14 @@ const ENCIMERA = 3
 const MUEBLE_SUSPENDIDO = 50
 const GRIFO = 18
 const ANCHO_DOS_SENOS = 100
+/** Lo que separa el grifo de la pared: más que el fondo de un espejo, que puede colgar sobre él. */
+const SEPARACION_GRIFO = 6
 const LOZA = '#f4f4f2'
 
-/** Centro en x de cada seno: con menos de 1 m de ancho, uno solo aunque se pidan dos. */
+/** Centro en x de cada seno. */
 function senos(e: Elemento): number[] {
   const { ancho } = e.medidas
-  return valorVariante(lavabo, e, 'senos') === 2 && ancho >= ANCHO_DOS_SENOS ? [-ancho / 4, ancho / 4] : [0]
+  return valorVariante(lavabo, e, 'senos') === 2 ? [-ancho / 4, ancho / 4] : [0]
 }
 
 export const lavabo: DefinicionTipo = {
@@ -24,7 +26,8 @@ export const lavabo: DefinicionTipo = {
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [
     { clave: 'montaje', etiqueta: 'Mueble', valores: ['suspendido', 'al suelo'], defecto: 'suspendido' },
-    { clave: 'senos', etiqueta: 'Senos', valores: [1, 2], defecto: 1 },
+    // Con menos de 1 m de ancho no caben dos.
+    { clave: 'senos', etiqueta: 'Senos', valores: [1, 2], defecto: 1, valoresPara: (e) => (e.medidas.ancho >= ANCHO_DOS_SENOS ? [1, 2] : [1]) },
   ],
   zonasColor: [
     { clave: 'mueble', etiqueta: 'Mueble', material: 'madera', defecto: '#8b6b4a' },
@@ -37,7 +40,7 @@ export const lavabo: DefinicionTipo = {
     const z0 = valorVariante(lavabo, e, 'montaje') === 'suspendido' ? alto - MUEBLE_SUSPENDIDO : 0
     return [
       cajaMundo(e, -ancho / 2, -fondo / 2, ancho / 2, fondo / 2, z0, alto),
-      ...senos(e).map((x) => cajaMundo(e, x - 2.5, -fondo / 2 + 3, x + 2.5, -fondo / 2 + 15, alto, alto + GRIFO)),
+      ...senos(e).map((x) => cajaMundo(e, x - 2.5, -fondo / 2 + SEPARACION_GRIFO, x + 2.5, -fondo / 2 + 15, alto, alto + GRIFO)),
     ]
   },
   planta: huellaEntera,
@@ -50,7 +53,7 @@ export const lavabo: DefinicionTipo = {
     const puertas = ancho <= 60 ? 1 : 2
     const xs = senos(e)
     const anchoSeno = Math.min(ancho / xs.length - 12, 50)
-    const yGrifo = -fondo / 2 + 7
+    const yGrifo = -fondo / 2 + SEPARACION_GRIFO + 1.5
     return [
       ...(suspendido ? [] : [caja(-ancho / 2 + 3, -fondo / 2 + 3, 0, ancho / 2 - 3, yFrenteCuerpo(e, true), 8, 'mueble')]),
       caja(-ancho / 2, -fondo / 2, zCuerpo, ancho / 2, yFrenteCuerpo(e, true), zTablero, 'mueble'),

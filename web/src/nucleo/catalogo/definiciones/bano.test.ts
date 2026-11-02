@@ -4,6 +4,7 @@ import { documentoNuevo } from '../../modelo/crear'
 import { detectarConflictos } from '../../conflictos/detectar'
 import type { Elemento } from '../../modelo/documento'
 import { elemento } from './ayuda.test-util'
+import { valoresVariante, valorVariante } from '../tipos'
 
 const NUEVOS = ['inodoro', 'bide', 'lavabo', 'ducha', 'banera', 'espejo', 'armario-espejo', 'lavadora', 'columna-bano']
 const COMPARTIDOS = ['cuadro', 'planta', 'lampara-pie', 'alfombra', 'cortina', 'papelera', 'estanteria']
@@ -95,6 +96,24 @@ describe('piezas de baño', () => {
     const zMin = (variantes: Elemento['variantes']) => Math.min(...def('lavabo').volumenes(elemento('lavabo', 0, 0, 0, {}, variantes)).map((v) => v.zMin))
     expect(zMin({})).toBeGreaterThan(0)
     expect(zMin({ montaje: 'al suelo' })).toBe(0)
+  })
+
+  it('lavabo de menos de 1 m: dos senos no se pueden elegir y, si se pidieron, vale como uno', () => {
+    const estrecho = elemento('lavabo', 0, 0, 0, { ancho: 80 }, { senos: 2 })
+    expect(valoresVariante(def('lavabo'), estrecho, 'senos')).toEqual([1])
+    expect(valorVariante(def('lavabo'), estrecho, 'senos')).toBe(1)
+    const ancho = elemento('lavabo', 0, 0, 0, { ancho: 120 }, { senos: 2 })
+    expect(valoresVariante(def('lavabo'), ancho, 'senos')).toEqual([1, 2])
+    expect(valorVariante(def('lavabo'), ancho, 'senos')).toBe(2)
+  })
+
+  it('inodoro con cisterna empotrada: su alto de verdad es el de la taza; con cisterna vista, el de las medidas', () => {
+    expect(def('inodoro').altoReal?.(elemento('inodoro', 0, 0, 0, {}, { cisterna: false }))).toBe(40)
+    expect(def('inodoro').altoReal?.(elemento('inodoro', 0, 0, 0))).toBeUndefined()
+  })
+
+  it('espejo de 5 cm de fondo a 110 cm sobre un lavabo a 95 cm: el grifo no lo toca', () => {
+    expect(enBano(250, 200, elemento('lavabo', 125, 23, 0, { alto: 95 }), elemento('espejo', 125, 2.5, 0, { fondo: 5 }))).toEqual([])
   })
 
   it('plato de ducha: sin mampara, solo el plato; con mampara, el cristal hasta 195 cm por encima del plato', () => {
