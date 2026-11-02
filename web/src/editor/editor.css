@@ -92,7 +92,8 @@
 
 .nueva-estancia { max-width: 26rem; margin: 3rem auto; padding: 0 1rem; }
 .nueva-estancia fieldset { border: 1px solid var(--borde); border-radius: var(--radio); }
-.nueva-estancia__tipo { margin-right: 1rem; }
+/* Cada opción va entera: el círculo no se queda al final de una línea con su nombre en la siguiente. */
+.nueva-estancia__tipo { display: inline-flex; align-items: center; gap: 0.25rem; margin-right: 1rem; white-space: nowrap; }
 
 .editor__aviso {
   position: fixed;
