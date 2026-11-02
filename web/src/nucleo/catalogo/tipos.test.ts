@@ -15,8 +15,8 @@ describe('artículos', () => {
   })
 })
 describe('catálogo base y aMundo', () => {
-  it('tiene los cuarenta y tres tipos', () => {
-    expect([...catalogoBase.keys()].sort()).toEqual(['alfombra', 'aparador', 'archivador', 'armario', 'armario-espejo', 'banera', 'bide', 'cajonera', 'cama', 'columna-bano', 'columna-cocina', 'comoda', 'cortina', 'cuadro', 'ducha', 'encimera', 'escritorio', 'escritorio-l', 'espejo', 'estanteria', 'fregadero', 'frigorifico', 'inodoro', 'lampara-pie', 'lavabo', 'lavadora', 'lavavajillas', 'mesa', 'mesa-centro', 'mesa-reuniones', 'mesita', 'modulo-alto', 'modulo-bajo', 'mueble-tv', 'papelera', 'placa', 'planta', 'reposapies', 'silla', 'silla-oficina', 'sillon', 'sofa', 'taburete'])
+  it('tiene los cincuenta y dos tipos', () => {
+    expect([...catalogoBase.keys()].sort()).toEqual(['alfombra', 'aparador', 'archivador', 'armario', 'armario-espejo', 'banera', 'bide', 'cajonera', 'cama', 'campana', 'chimenea', 'columna-bano', 'columna-cocina', 'comoda', 'cortina', 'cuadro', 'ducha', 'encimera', 'escritorio', 'escritorio-l', 'espejo', 'estanteria', 'fregadero', 'frigorifico', 'inodoro', 'isla', 'lampara-pie', 'lavabo', 'lavadora', 'lavavajillas', 'libreria', 'mesa', 'mesa-alta', 'mesa-auxiliar', 'mesa-centro', 'mesa-reuniones', 'mesita', 'modulo-alto', 'modulo-bajo', 'mueble-tv', 'papelera', 'placa', 'planta', 'puf', 'reposapies', 'silla', 'silla-oficina', 'sillon', 'sofa', 'sofa-rinconera', 'taburete', 'vitrina'])
   })
   it('aMundo rota en horario', () => {
     const p = aMundo(elementoDe('x', 10, 10, 90, 10, 10, 10), { x: 0, y: 5 })
