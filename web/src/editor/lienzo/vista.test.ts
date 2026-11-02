@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aPantalla, aPlano, encuadrar, ESCALA_MAX, zoomEn } from './vista'
+import { aPantalla, aPlano, encuadrar, ESCALA_MAX, MARGEN_ENCUADRE_PX, pellizcar, zoomEn } from './vista'
 
 const planta = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 0, y: 330 }]
 
@@ -31,5 +31,34 @@ describe('vista', () => {
 
   it('zoomEn recorta la escala', () => {
     expect(zoomEn({ x: 0, y: 0, escala: 1 }, 1e6, { x: 10, y: 10 }).escala).toBe(ESCALA_MAX)
+  })
+
+  it('el margen por defecto deja sitio a las cotas, que van a 34 px del muro con el texto centrado en su línea', () => {
+    expect(MARGEN_ENCUADRE_PX).toBeGreaterThanOrEqual(64)
+    const v = encuadrar(planta, 390, 400)
+    expect(aPantalla(v, { x: 0, y: 0 }).x).toBeCloseTo(MARGEN_ENCUADRE_PX)
+  })
+
+  it('pellizcar: separar los dedos al doble amplía al doble alrededor del punto medio', () => {
+    const inicio = { x: 10, y: 20, escala: 1 }
+    const v = pellizcar(inicio, [{ x: 100, y: 100 }, { x: 200, y: 100 }], [{ x: 50, y: 100 }, { x: 250, y: 100 }])
+    expect(v.escala).toBeCloseTo(2)
+    // El punto del plano que estaba bajo el punto medio (150, 100) sigue ahí.
+    const p = aPlano(inicio, { x: 150, y: 100 })
+    expect(aPantalla(v, p).x).toBeCloseTo(150)
+    expect(aPantalla(v, p).y).toBeCloseTo(100)
+  })
+
+  it('pellizcar: mover los dos dedos a la vez desplaza el plano con ellos', () => {
+    const inicio = { x: 0, y: 0, escala: 1.5 }
+    const v = pellizcar(inicio, [{ x: 100, y: 100 }, { x: 200, y: 100 }], [{ x: 130, y: 60 }, { x: 230, y: 60 }])
+    expect(v).toEqual({ x: 30, y: -40, escala: 1.5 })
+  })
+
+  it('pellizcar: respeta los límites de escala y no se rompe con los dedos juntos', () => {
+    const v = pellizcar({ x: 0, y: 0, escala: ESCALA_MAX }, [{ x: 0, y: 0 }, { x: 10, y: 0 }], [{ x: 0, y: 0 }, { x: 100, y: 0 }])
+    expect(v.escala).toBe(ESCALA_MAX)
+    const juntos = pellizcar({ x: 0, y: 0, escala: 1 }, [{ x: 5, y: 5 }, { x: 5, y: 5 }], [{ x: 0, y: 0 }, { x: 10, y: 0 }])
+    expect(Number.isFinite(juntos.escala)).toBe(true)
   })
 })

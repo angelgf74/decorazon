@@ -71,6 +71,7 @@ export const textos = {
       paso2: ['Pulsa o arrastra un mueble del catálogo', 'Arrastra el círculo para girarlo (con Mayúsculas, sin saltos)', 'Arrastra el fondo para moverte'],
       paso2Tactil: ['Arrastra un mueble por su asa ⠿ hasta el plano', 'Arrastra el círculo para girarlo', 'Arrastra el fondo para moverte'],
       rueda: 'Rueda para acercar',
+      pellizco: 'Pellizca con dos dedos para acercar',
       ocultar: 'Ocultar pistas',
       mostrar: 'Mostrar pistas',
     },

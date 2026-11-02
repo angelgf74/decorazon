@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type PointerEvent, type ReactNode } from 'react'
-import { desplazarPoligono } from '../../nucleo'
+import { desplazarPoligono, type Punto } from '../../nucleo'
 import { textos } from '../../textos'
 import { useConflictos } from '../estado/conflictos'
 import { almacen, useEditor } from '../estado/almacen'
 import { anadirTipo } from '../estado/elementos'
-import { EVENTO_SOLTAR_TIPO, MIME_TIPO, pulsarAbertura, pulsarElemento, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano, type DetalleSoltarTipo } from './arrastres'
+import { cortarArrastre, EVENTO_SOLTAR_TIPO, MIME_TIPO, pulsarAbertura, pulsarElemento, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano, type DetalleSoltarTipo } from './arrastres'
 import CapaAberturas from './capas/CapaAberturas'
 import CapaCotas, { CotasElemento, CotasEnPared } from './capas/CapaCotas'
 import CapaConflictos from './capas/CapaConflictos'
@@ -15,7 +15,7 @@ import CapaTiradores, { TiradorGiro } from './capas/CapaTiradores'
 import type { AlPulsar } from './capas/comun'
 import { ContextoLienzo, puntoDelPlano } from './usarPuntoDelPlano'
 import PistasDelPlano from './PistasDelPlano'
-import { encuadrar, zoomEn, type Vista2D } from './vista'
+import { encuadrar, pellizcar, zoomEn, type Vista2D } from './vista'
 import Icono from '../comunes/Icono'
 import './lienzo.css'
 
@@ -24,6 +24,13 @@ const PX_POR_LINEA = 16
 const VISTA_INICIAL: Vista2D = { x: 0, y: 0, escala: 1 }
 
 interface Arrastre { id: number; x: number; y: number; vista: Vista2D; movido: boolean }
+interface Pellizco { inicio: Vista2D; antes: [Punto, Punto] }
+
+/** Los dos primeros dedos: los del pellizco. */
+function dosToques(toques: Map<number, Punto>): [Punto, Punto] {
+  const [a, b] = toques.values()
+  return [a!, b!]
+}
 
 const pulsarPared = (indice: number) => almacen.getState().seleccionar({ tipo: 'pared', indice })
 
@@ -44,6 +51,12 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
   const [arrastrando, setArrastrando] = useState(false)
   const arrastre = useRef<Arrastre | null>(null)
   const [arrastrado, setArrastrado] = useState<string | null>(null)
+  // Dedos sobre el plano, en px del svg, caigan donde caigan; con dos, pellizco.
+  const toques = useRef(new Map<number, Punto>())
+  const pellizco = useRef<Pellizco | null>(null)
+  // Mientras no se mueva a mano, al cambiar el tamaño (abrir una hoja en el móvil) se vuelve a encuadrar.
+  const movidaAMano = useRef(false)
+  const tamano = useRef({ ancho: 0, alto: 0 })
   const contexto = useMemo(() => ({ plano, vista: vistaActual }), [])
   // Paso 1: pulsar una abertura o una pieza de estructura la selecciona y empieza a arrastrarla.
   const aPlano: APlano = (ev) => puntoDelPlano(contexto, ev)
@@ -65,6 +78,8 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
     if (!doc || !caja || caja.width === 0 || caja.height === 0) return false
     const { planta, grosorPared } = doc.estancia
     aplicar(() => encuadrar(desplazarPoligono(planta, grosorPared), caja.width, caja.height))
+    movidaAMano.current = false
+    tamano.current = { ancho: caja.width, alto: caja.height }
     return true
   }, [aplicar])
 
@@ -73,7 +88,15 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
     if (!el) return
     let encuadrado = encuadrarVista()
     const observador = new ResizeObserver(() => {
-      if (!encuadrado) encuadrado = encuadrarVista()
+      if (!encuadrado || !movidaAMano.current) {
+        encuadrado = encuadrarVista()
+        return
+      }
+      // Movido a mano: se conserva lo que había en el centro.
+      const caja = el.getBoundingClientRect()
+      const antes = tamano.current
+      tamano.current = { ancho: caja.width, alto: caja.height }
+      aplicar((v) => ({ ...v, x: v.x + (caja.width - antes.ancho) / 2, y: v.y + (caja.height - antes.alto) / 2 }))
     })
     observador.observe(el)
     // React registra la rueda como pasiva: hace falta un oyente propio para poder cancelar el desplazamiento de la página.
@@ -81,6 +104,7 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
       ev.preventDefault()
       const caja = el.getBoundingClientRect()
       const delta = ev.deltaMode === 1 ? ev.deltaY * PX_POR_LINEA : ev.deltaY
+      movidaAMano.current = true
       aplicar((v) => zoomEn(v, Math.exp(-delta * ZOOM_POR_PX_RUEDA), { x: ev.clientX - caja.left, y: ev.clientY - caja.top }))
     }
     el.addEventListener('wheel', rueda, { passive: false })
@@ -102,6 +126,49 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
     return () => el.removeEventListener(EVENTO_SOLTAR_TIPO, soltar)
   }, [contexto])
 
+  // Un dedo que se levanta deja de contar aunque se suelte fuera del plano; con uno solo, el pellizco acaba.
+  useEffect(() => {
+    const quitar = (ev: globalThis.PointerEvent) => {
+      if (!toques.current.delete(ev.pointerId) || !pellizco.current) return
+      pellizco.current = toques.current.size >= 2 ? { inicio: vistaActual.current, antes: dosToques(toques.current) } : null
+    }
+    window.addEventListener('pointerup', quitar, true)
+    window.addEventListener('pointercancel', quitar, true)
+    return () => {
+      window.removeEventListener('pointerup', quitar, true)
+      window.removeEventListener('pointercancel', quitar, true)
+    }
+  }, [])
+
+  const enSvg = (ev: PointerEvent<SVGSVGElement>): Punto => {
+    const caja = ev.currentTarget.getBoundingClientRect()
+    return { x: ev.clientX - caja.left, y: ev.clientY - caja.top }
+  }
+
+  // En captura: ven todos los dedos, también los que caen en una pieza.
+  const alBajarCualquiera = (ev: PointerEvent<SVGSVGElement>) => {
+    toques.current.set(ev.pointerId, enSvg(ev))
+    if (toques.current.size < 2) return
+    // Desde el segundo dedo no se pulsa nada: los dos primeros amplían y desplazan el plano.
+    ev.stopPropagation()
+    if (pellizco.current) return
+    for (const id of toques.current.keys()) if (id !== ev.pointerId) cortarArrastre(id)
+    arrastre.current = null
+    setArrastrando(false)
+    if (typeof ev.currentTarget.setPointerCapture === 'function') ev.currentTarget.setPointerCapture(ev.pointerId)
+    pellizco.current = { inicio: vistaActual.current, antes: dosToques(toques.current) }
+  }
+
+  const alMoverCualquiera = (ev: PointerEvent<SVGSVGElement>) => {
+    if (!toques.current.has(ev.pointerId)) return
+    toques.current.set(ev.pointerId, enSvg(ev))
+    const p = pellizco.current
+    if (!p) return
+    ev.stopPropagation()
+    movidaAMano.current = true
+    aplicar(() => pellizcar(p.inicio, p.antes, dosToques(toques.current)))
+  }
+
   // Solo llegan aquí los toques que ninguna capa ha atendido: el fondo.
   const alBajar = (ev: PointerEvent<SVGSVGElement>) => {
     if (ev.button !== 0 && ev.button !== 1) return
@@ -116,6 +183,7 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
     if (!a.movido && Math.hypot(dx, dy) < UMBRAL_ARRASTRE_PX) return
     if (!a.movido) setArrastrando(true)
     a.movido = true
+    movidaAMano.current = true
     aplicar(() => ({ ...a.vista, x: a.vista.x + dx, y: a.vista.y + dy }))
   }
 
@@ -151,6 +219,8 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
         className={`lienzo__svg${arrastrando ? ' lienzo__svg--arrastrando' : ''}`}
         role="img"
         aria-label={textos.lienzo.plano}
+        onPointerDownCapture={alBajarCualquiera}
+        onPointerMoveCapture={alMoverCualquiera}
         onPointerDown={alBajar}
         onPointerMove={alMover}
         onPointerUp={(ev) => alSoltar(ev, false)}
