@@ -55,7 +55,7 @@ Enseñar un diseño a alguien que no tiene cuenta (la pareja, un carpintero, un 
 ## API
 
 - **Dato:** columna nueva `enlace_compartido` (texto, opcional, índice único) en `disenos`. Guarda el token tal cual (no su hash), para poder copiar el enlace cuando se quiera. Un diseño tiene a lo sumo un enlace.
-- **Token:** 128 bits aleatorios en base64url (22 caracteres), con el generador de tokens que ya existe.
+- **Token:** el del generador de tokens que ya existe: 256 bits aleatorios en base64url (43 caracteres).
 - **Dominio:** `Diseno.Compartir(token)` (si ya tiene enlace, lo deja como está) y `Diseno.DejarDeCompartir()`. **No cambian la versión ni la fecha de modificación** del diseño: compartir no debe provocar conflictos de versión en un editor abierto, y «Actualizado …» habla del contenido. Duplicar un diseño no copia su enlace.
 - **Endpoints con sesión** (diseño ajeno o inexistente: 404, como el resto):
   - `PUT /disenos/{id}/enlace` → 200 `{ enlace: "<token>" }`. Idempotente: si ya estaba compartido, devuelve el mismo token.

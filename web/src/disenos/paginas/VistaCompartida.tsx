@@ -1,13 +1,12 @@
-import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useId, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ErrorDeApi } from '../../api/cliente'
-import { disenoAnonimo } from '../../cuenta/disenosLocales'
+import { empezarAnonimoCon, sustituiriaDisenoAnonimo } from '../../cuenta/disenosLocales'
 import { mensajeDeError } from '../../cuenta/errores'
 import { useSesion } from '../../cuenta/sesion'
 import Confirmar from '../../editor/comunes/Confirmar'
 import SinFallos from '../../editor/comunes/SinFallos'
 import { hayWebgl } from '../../editor/comunes/webgl'
-import { almacen } from '../../editor/estado/almacen'
 import PlanoDelDiseno from '../../editor/hoja/PlanoDelDiseno'
 import TablaDeMuebles from '../../editor/hoja/TablaDeMuebles'
 import { cajaPlanta } from '../../nucleo'
@@ -17,7 +16,7 @@ import './compartido.css'
 
 const t = textos.compartir
 
-// Con three: solo se carga si el dispositivo puede pintar la 3D.
+// Con three (~1 MB): solo se carga cuando se pide verla.
 const Vista3DSoloVer = lazy(() => import('../../editor/vista3d/Vista3DSoloVer'))
 
 const LONGITUD_MAXIMA_NOMBRE = 100
@@ -39,7 +38,7 @@ type Estado =
   | { tipo: 'cargando' }
   | { tipo: 'listo'; diseno: DisenoCompartido }
   | { tipo: 'noFunciona' }
-  | { tipo: 'error' }
+  | { tipo: 'error'; mensaje: string }
 
 /** Un diseño compartido, para verlo sin sesión: plano, 3D y lista de muebles, y hacer una copia. */
 export default function VistaCompartida() {
@@ -51,8 +50,10 @@ export default function VistaCompartida() {
   const [aviso, setAviso] = useState<string | null>(null)
   const [confirmando, setConfirmando] = useState(false)
   // Un id por visita: si la respuesta del alta se pierde y se reintenta, no se crea otra copia.
-  const idDeCopia = useRef(crypto.randomUUID())
+  const [idDeCopia] = useState(() => crypto.randomUUID())
   const [conWebgl] = useState(hayWebgl)
+  // La 3D no se monta hasta pedirla: en el móvil, sus controles se quedarían el gesto de desplazar la página.
+  const [ver3d, setVer3d] = useState(false)
   const idPlano = useId()
   const id3d = useId()
   const idMuebles = useId()
@@ -61,7 +62,9 @@ export default function VistaCompartida() {
     try {
       setEstado({ tipo: 'listo', diseno: await obtenerCompartido(enlace) })
     } catch (e) {
-      setEstado(e instanceof ErrorDeApi && e.estado === 404 ? { tipo: 'noFunciona' } : { tipo: 'error' })
+      if (e instanceof ErrorDeApi && e.estado === 404) setEstado({ tipo: 'noFunciona' })
+      // Sin conexión, el mensaje de comprobarla; otro rechazo de la API (429), el suyo.
+      else setEstado({ tipo: 'error', mensaje: e instanceof ErrorDeApi && e.estado !== 0 ? mensajeDeError(e) : t.noCarga })
     }
   }, [enlace])
 
@@ -83,7 +86,8 @@ export default function VistaCompartida() {
           </>
         ) : (
           <>
-            <p role="alert">{t.noCarga}</p>
+            <h1>{t.noSeVe}</h1>
+            <p role="alert">{estado.mensaje}</p>
             <button type="button" className="primario" onClick={() => { setEstado({ tipo: 'cargando' }); void cargar() }}>{t.reintentar}</button>
           </>
         )}
@@ -99,9 +103,7 @@ export default function VistaCompartida() {
   const fecha = fechaLarga(diseno.fechaDeModificacion)
 
   const copiarEnElNavegador = () => {
-    const e = almacen.getState()
-    if (e.origen.tipo !== 'anonimo') e.volverAAnonimo()
-    almacen.getState().cargar(doc)
+    empezarAnonimoCon(doc)
     navegar('/disenar')
   }
 
@@ -109,13 +111,13 @@ export default function VistaCompartida() {
     setAviso(null)
     if (!haySesion) {
       // Sin sesión, la copia es el diseño del navegador: si ya hay uno con algo, se pregunta antes de sustituirlo.
-      if (disenoAnonimo() !== null) setConfirmando(true)
+      if (sustituiriaDisenoAnonimo()) setConfirmando(true)
       else copiarEnElNavegador()
       return
     }
     setOcupado(true)
     try {
-      const copia = await crearDiseno(nombreDeCopia(diseno.nombre), doc, idDeCopia.current)
+      const copia = await crearDiseno(nombreDeCopia(diseno.nombre), doc, idDeCopia)
       navegar(`/disenos/${copia.id}`)
     } catch (e) {
       setAviso(mensajeDeError(e))
@@ -146,14 +148,19 @@ export default function VistaCompartida() {
 
       <section className="compartido__seccion" aria-labelledby={id3d}>
         <h2 id={id3d}>{textos.hoja.vista3d}</h2>
-        <div className="compartido__3d">
-          {conWebgl ? (
+        <div className={`compartido__3d${ver3d ? ' compartido__3d--abierta' : ''}`}>
+          {!conWebgl ? <p>{textos.hoja.sin3d}</p> : !ver3d ? (
+            <div className="compartido__ver3d">
+              <button type="button" className="primario" onClick={() => setVer3d(true)}>{t.ver3d}</button>
+              <p>{t.ver3dDetalle}</p>
+            </div>
+          ) : (
             <SinFallos alternativa={<p>{textos.hoja.sin3d}</p>}>
               <Suspense fallback={<p>{textos.hoja.preparando3d}</p>}>
                 <Vista3DSoloVer doc={doc} />
               </Suspense>
             </SinFallos>
-          ) : <p>{textos.hoja.sin3d}</p>}
+          )}
         </div>
       </section>
 

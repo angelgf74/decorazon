@@ -26,9 +26,13 @@
 
 .compartido__plano { display: block; width: 100%; height: auto; background: var(--superficie); border: 1px solid var(--borde-suave); border-radius: var(--radio); }
 
-/* Alto fijo: la 3D llena el ancho y deja ver la página por debajo. */
-.compartido__3d { height: min(70vh, 30rem); border: 1px solid var(--borde-suave); border-radius: var(--radio); overflow: hidden; background: var(--superficie); }
+/* Hasta pedirla, un recuadro bajo; abierta, la 3D llena el ancho y deja ver la página por debajo. */
+.compartido__3d { border: 1px solid var(--borde-suave); border-radius: var(--radio); overflow: hidden; background: var(--superficie); }
+.compartido__3d--abierta { height: min(55vh, 22rem); }
 .compartido__3d > p { margin: 0; padding: var(--esp-4); color: var(--gris); }
+.compartido__ver3d { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2) var(--esp-3); padding: var(--esp-4); }
+.compartido__ver3d p { margin: 0; color: var(--gris); font-size: var(--texto-s); }
+@media (min-width: 48rem) { .compartido__3d--abierta { height: min(70vh, 30rem); } }
 
 /* La tabla de muebles, que en pantalla estrecha se desplaza en vez de romper la página. */
 .compartido__seccion:has(.hoja-impresion__tabla) { overflow-x: auto; }

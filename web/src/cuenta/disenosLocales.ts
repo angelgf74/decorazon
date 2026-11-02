@@ -4,7 +4,7 @@ import { almacen } from '../editor/estado/almacen'
 import {
   almacenamientoSeguro, borrarCopiasLocales, CLAVE_DESCARTADO, CLAVE_DUENO_COPIAS, CLAVE_ID_DE_SUBIDA, CLAVE_REGISTRO_ENVIADO, disenoNoVacio,
   guardarCopiaLocal, listarCopiasLocales, type CopiaListada,
-  guardarDisenoLocal,
+  guardarDisenoLocal, leerDisenoLocal,
 } from '../editor/persistencia/local'
 import { anularSincronizacion, hayGuardadosEnMarcha } from '../editor/persistencia/sincronizacion'
 import { redondearNumeros, serializarDocumento, validarDocumento, type DocumentoDiseno } from '../nucleo'
@@ -195,6 +195,26 @@ export function fijarDuenoDeCopias(correo: string): void {
 }
 
 /** "Nuevo diseño": vacía el editor; el diseño anónimo siguiente no debe heredar el id de subida del anterior. */
+/**
+ * Si abrir otro diseño en el navegador sustituiría uno con algo dentro: el del editor o, si el editor tiene
+ * abierto uno de la cuenta, el que espera guardado en el navegador.
+ */
+export function sustituiriaDisenoAnonimo(): boolean {
+  const e = almacen.getState()
+  return e.origen.tipo === 'anonimo' ? disenoNoVacio(e.documento) : disenoNoVacio(leerDisenoLocal(almacenamientoSeguro()))
+}
+
+/**
+ * Abre `doc` como diseño del navegador en lugar del que hubiera. Olvida una subida a medias del anterior:
+ * si no, al entrar se reutilizaría su id y la copia pisaría en la cuenta el diseño que ya se subió.
+ */
+export function empezarAnonimoCon(doc: DocumentoDiseno): void {
+  olvidarIdDeSubida(almacenamientoSeguro())
+  const e = almacen.getState()
+  if (e.origen.tipo !== 'anonimo') e.volverAAnonimo()
+  almacen.getState().cargar(doc)
+}
+
 export function empezarDeNuevo(): void {
   olvidarIdDeSubida(almacenamientoSeguro())
   almacen.getState().descartar()

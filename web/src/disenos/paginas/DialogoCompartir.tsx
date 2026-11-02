@@ -1,10 +1,13 @@
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { mensajeDeError } from '../../cuenta/errores'
 import { useDialogoModal } from '../../editor/comunes/usarDialogoModal'
 import { textos } from '../../textos'
 import { compartirDiseno, dejarDeCompartir, direccionCompartida, type ResumenDiseno } from '../servidor'
 
 const t = textos.compartir
+
+/** A qué botón pasa el foco cuando el que se acaba de pulsar desaparece. */
+type Foco = 'copiar' | 'crear' | 'dejar' | 'cancelar'
 
 interface Props {
   diseno: ResumenDiseno
@@ -15,15 +18,28 @@ interface Props {
 
 /** Crear el enlace de un diseño, copiarlo o dejar de compartirlo. */
 export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props) {
-  const { ref, alCerrar: alCerrarlo } = useDialogoModal(true, alCerrar)
+  const [ocupado, setOcupado] = useState(false)
+  // Con una petición en marcha no se cierra (el navegador puede cerrarlo con dos Escape seguidos).
+  const { ref, alCerrar: alCerrarlo } = useDialogoModal(true, () => { if (!ocupado) alCerrar() })
   const idTitulo = useId()
   const idCampo = useId()
   const campo = useRef<HTMLInputElement>(null)
   const [confirmando, setConfirmando] = useState(false)
-  const [ocupado, setOcupado] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const [copiado, setCopiado] = useState(false)
   const enlace = diseno.enlace ?? null
+  const botones = useRef<Partial<Record<Foco, HTMLButtonElement | null>>>({})
+  const foco = useRef<Foco | null>(null)
+
+  // Tras pintar el estado nuevo: el foco no se pierde en el body cuando el botón pulsado desaparece.
+  // Si el destino sigue desactivado (la petición aún no ha terminado de pintarse), se espera al siguiente.
+  useEffect(() => {
+    const boton = foco.current === null ? null : botones.current[foco.current]
+    if (!boton || boton.disabled) return
+    boton.focus()
+    foco.current = null
+  })
+  const enfocar = (destino: Foco) => (boton: HTMLButtonElement | null) => { botones.current[destino] = boton }
 
   const intentar = async (accion: () => Promise<void>) => {
     setOcupado(true)
@@ -36,12 +52,17 @@ export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props)
     setOcupado(false)
   }
 
-  const crear = () => intentar(async () => alCambiar(await compartirDiseno(diseno.id)))
+  const crear = () => intentar(async () => {
+    const nuevo = await compartirDiseno(diseno.id)
+    foco.current = 'copiar'
+    alCambiar(nuevo)
+  })
 
   const dejar = () => intentar(async () => {
     await dejarDeCompartir(diseno.id)
     setConfirmando(false)
     setCopiado(false)
+    foco.current = 'crear'
     alCambiar(null)
   })
 
@@ -63,7 +84,7 @@ export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props)
       <p>{t.explicacion}</p>
       {enlace === null ? (
         <div className="dialogo-compartir__acciones">
-          <button type="button" className="primario" disabled={ocupado} onClick={() => void crear()}>{t.crear}</button>
+          <button ref={enfocar('crear')} type="button" className="primario" disabled={ocupado} onClick={() => void crear()}>{t.crear}</button>
           <button type="button" disabled={ocupado} onClick={alCerrar}>{t.cerrar}</button>
         </div>
       ) : (
@@ -76,13 +97,13 @@ export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props)
               <p>{t.confirmarDejar}</p>
               <div className="dialogo-compartir__acciones">
                 <button type="button" className="peligro" disabled={ocupado} onClick={() => void dejar()}>{t.siDejar}</button>
-                <button type="button" disabled={ocupado} onClick={() => setConfirmando(false)}>{textos.comun.cancelar}</button>
+                <button ref={enfocar('cancelar')} type="button" disabled={ocupado} onClick={() => { foco.current = 'dejar'; setConfirmando(false) }}>{textos.comun.cancelar}</button>
               </div>
             </div>
           ) : (
             <div className="dialogo-compartir__acciones">
-              <button type="button" className="primario" onClick={() => void copiar()}>{t.copiar}</button>
-              <button type="button" className="peligro" disabled={ocupado} onClick={() => setConfirmando(true)}>{t.dejar}</button>
+              <button ref={enfocar('copiar')} type="button" className="primario" onClick={() => void copiar()}>{t.copiar}</button>
+              <button ref={enfocar('dejar')} type="button" className="peligro" disabled={ocupado} onClick={() => { foco.current = 'cancelar'; setConfirmando(true) }}>{t.dejar}</button>
               <button type="button" disabled={ocupado} onClick={alCerrar}>{t.cerrar}</button>
             </div>
           )}

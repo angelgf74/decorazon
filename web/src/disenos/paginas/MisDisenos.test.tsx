@@ -82,6 +82,8 @@ describe('MisDisenos', () => {
     expect(peticion.method).toBe('PUT')
     expect(new URL(peticion.url).pathname).toBe('/disenos/b/enlace')
     expect(within(fila).getByText('Compartido')).toBeInTheDocument()
+    // El botón pulsado desaparece: el foco pasa a «Copiar enlace» en vez de perderse.
+    expect(document.activeElement).toBe(within(dialogo).getByRole('button', { name: 'Copiar enlace' }))
   })
 
   it('Dejar de compartir, tras confirmarlo, retira el enlace y quita la marca', async () => {
@@ -92,13 +94,17 @@ describe('MisDisenos', () => {
     await userEvent.click(within(fila).getByRole('button', { name: 'Compartir' }))
     const dialogo = screen.getByRole('dialog', { name: 'Compartir «Reciente»' })
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Dejar de compartir' }))
+    expect(document.activeElement).toBe(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    expect(document.activeElement).toBe(within(dialogo).getByRole('button', { name: 'Dejar de compartir' }))
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Dejar de compartir' }))
     fetchSimulado.mockResolvedValueOnce(respuesta(204))
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Sí, dejar de compartir' }))
     await vi.waitFor(() => expect(within(fila).queryByText('Compartido')).toBeNull())
     const peticion = fetchSimulado.mock.calls[1]![0]
     expect(peticion.method).toBe('DELETE')
     expect(new URL(peticion.url).pathname).toBe('/disenos/b/enlace')
-    expect(within(dialogo).getByRole('button', { name: 'Crear enlace' })).toBeInTheDocument()
+    expect(document.activeElement).toBe(within(dialogo).getByRole('button', { name: 'Crear enlace' }))
   })
 
   it('borrar con confirmación llama a DELETE, quita la fila y la copia local', async () => {

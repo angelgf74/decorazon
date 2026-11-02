@@ -4,10 +4,15 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CLAVE_SESION, conectarSesionConApi, reiniciarSesion } from '../../cuenta/sesion'
+import { CLAVE_ID_DE_SUBIDA, guardarDisenoLocal } from '../../editor/persistencia/local'
 import { almacen, reiniciarAlmacen } from '../../editor/estado/almacen'
 import { catalogoBase, documentoNuevo, elementoNuevo, type DocumentoDiseno } from '../../nucleo'
 import { respuesta } from '../../pruebas/respuesta'
 import VistaCompartida from './VistaCompartida'
+
+// La 3D de verdad necesita WebGL: aquí se simula que lo hay y se sustituye por un marcador.
+vi.mock('../../editor/comunes/webgl', () => ({ hayWebgl: () => true }))
+vi.mock('../../editor/vista3d/Vista3DSoloVer', () => ({ default: () => <p>vista 3d</p> }))
 
 const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
 
@@ -76,8 +81,10 @@ describe('VistaCompartida', () => {
     fetchSimulado.mockResolvedValueOnce(respuesta(200, compartido(doc)))
     montar()
     await screen.findByRole('heading', { level: 1, name: 'Baño de arriba' })
+    let enviado = ''
     fetchSimulado.mockImplementationOnce(async (peticion) => {
       const cuerpo = await peticion.json() as { id: string; nombre: string }
+      enviado = cuerpo.nombre
       return respuesta(201, { id: cuerpo.id, nombre: cuerpo.nombre, tipoEstancia: 'bano', fechaDeCreacion: 'x', fechaDeModificacion: 'x', version: 1, contenido: doc, enlace: null })
     })
     await userEvent.click(screen.getByRole('button', { name: 'Hacer una copia' }))
@@ -85,6 +92,22 @@ describe('VistaCompartida', () => {
     const alta = fetchSimulado.mock.calls[1]![0]
     expect(alta.method).toBe('POST')
     expect(new URL(alta.url).pathname).toBe('/disenos')
+    expect(enviado).toBe('Baño de arriba (copia)')
+  })
+
+  it('con sesión, reintentar la copia tras un fallo manda el mismo id: no crea dos', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, compartido()))
+    montar()
+    await screen.findByRole('heading', { level: 1, name: 'Baño de arriba' })
+    fetchSimulado.mockResolvedValueOnce(respuesta(500, { mensaje: 'Algo ha fallado.' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Hacer una copia' }))
+    await screen.findByRole('alert')
+    fetchSimulado.mockResolvedValueOnce(respuesta(500, { mensaje: 'Algo ha fallado.' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Hacer una copia' }))
+    await vi.waitFor(() => expect(fetchSimulado).toHaveBeenCalledTimes(3))
+    const ids = await Promise.all(fetchSimulado.mock.calls.slice(1).map(async ([p]) => (await p.clone().json() as { id: string }).id))
+    expect(ids[0]).toBe(ids[1])
   })
 
   it('con sesión y 100 diseños, «Hacer una copia» avisa del límite y se queda', async () => {
@@ -106,6 +129,37 @@ describe('VistaCompartida', () => {
     expect(await screen.findByText('editor anónimo')).toBeInTheDocument()
     expect(almacen.getState().documento?.elementos.map((e) => e.id)).toEqual(['i'])
     expect(almacen.getState().origen.tipo).toBe('anonimo')
+  })
+
+  it('sin sesión, la copia olvida una subida a medias del diseño anterior, para que no lo pise en la cuenta al entrar', async () => {
+    localStorage.setItem(CLAVE_ID_DE_SUBIDA, 'subida-vieja')
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, compartido()))
+    montar()
+    await screen.findByRole('heading', { level: 1, name: 'Baño de arriba' })
+    await userEvent.click(screen.getByRole('button', { name: 'Hacer una copia' }))
+    expect(await screen.findByText('editor anónimo')).toBeInTheDocument()
+    expect(localStorage.getItem(CLAVE_ID_DE_SUBIDA)).toBeNull()
+  })
+
+  it('sin sesión y con el editor en un diseño de la cuenta, pregunta si hay un diseño guardado en el navegador', async () => {
+    const mio = documentoNuevo('salon', 400, 300, 250)
+    mio.elementos = [elementoNuevo(catalogoBase.get('sofa')!, { x: 200, y: 100 }, 'sofa')]
+    guardarDisenoLocal(localStorage, mio)
+    almacen.getState().abrirDelServidor('d1', 1, 'De la cuenta', documentoNuevo('cocina', 300, 300, 250))
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, compartido()))
+    montar()
+    await screen.findByRole('heading', { level: 1, name: 'Baño de arriba' })
+    await userEvent.click(screen.getByRole('button', { name: 'Hacer una copia' }))
+    expect(screen.getByText(/sustituirá el diseño que tienes en este navegador/)).toBeInTheDocument()
+  })
+
+  it('la 3D no se carga hasta pedirla', async () => {
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, compartido()))
+    montar()
+    await screen.findByRole('heading', { level: 1, name: 'Baño de arriba' })
+    expect(screen.queryByText('vista 3d')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Ver en 3D' }))
+    expect(await screen.findByText('vista 3d')).toBeInTheDocument()
   })
 
   it('sin sesión y con otro diseño en el navegador, pregunta antes de sustituirlo', async () => {
