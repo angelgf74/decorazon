@@ -127,6 +127,26 @@ describe('sincronización con el servidor', () => {
     expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBe(270)
   })
 
+  it('cambios sin pausa: la copia se escribe como muy tarde a los 2 s del primero', async () => {
+    servidorConVersion(4)
+    const { a, st } = preparar(4)
+    for (let n = 1; n <= 20; n++) {
+      a.getState().cambiar(alto(250 + n))
+      await vi.advanceTimersByTimeAsync(100)
+    }
+    expect(leerCopiaLocal(st, ID)?.documento.estancia.alto).toBeGreaterThanOrEqual(268)
+  })
+
+  it('cambios sin pausa: el guardado sale como muy tarde a los 10 s del primero', async () => {
+    servidorConVersion(4)
+    const { a } = preparar(4)
+    for (let n = 1; n <= 100; n++) {
+      a.getState().cambiar(alto(250 + (n % 100)))
+      await vi.advanceTimersByTimeAsync(100)
+    }
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(1)
+  })
+
   it('pagehide escribe la copia pendiente al momento', () => {
     servidorConVersion(4)
     const { a, st } = preparar(4)

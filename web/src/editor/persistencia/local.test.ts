@@ -82,6 +82,19 @@ describe('local', () => {
     expect(a.getState().guardado).toBe('error')
   })
 
+  it('cambios sin pausa (un arrastre largo): escribe como muy tarde 2 s después del primero', () => {
+    const st = falso()
+    const a = crearAlmacen()
+    conectar(a, st)
+    a.getState().crear('salon', 400, 300, 250)
+    for (let n = 1; n <= 25; n++) {
+      a.getState().cambiar(alto(250 + n))
+      vi.advanceTimersByTime(100)
+    }
+    expect(st.escrituras).toBe(1)
+    expect(leerDisenoLocal(st)!.estancia.alto).toBeGreaterThanOrEqual(268)
+  })
+
   it('agrupa cambios: una escritura 500 ms después del último', () => {
     const st = falso()
     const a = crearAlmacen()

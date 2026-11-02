@@ -168,15 +168,26 @@ export function borrarCopiasLocales(st: Storage | null): void {
   }
 }
 
+/** Con cambios sin pausa (un arrastre largo) se escribe igualmente cada tanto: un cierre a mitad no se lo lleva todo. */
+export const ESPERA_MAXIMA_COPIA_MS = 2000
+
+/** Cuánto esperar a escribir: `esperaMs` tras el último cambio, pero nunca más allá de `maximoMs` desde el primero sin escribir. */
+export function esperaAgrupada(primero: number, ahora: number, esperaMs: number, maximoMs: number): number {
+  return Math.max(0, Math.min(esperaMs, primero + maximoMs - ahora))
+}
+
 export function conectarPersistencia(a: StoreApi<EstadoEditor>, st: Storage | null, esperaMs = 500): () => void {
   let temporizador: ReturnType<typeof setTimeout> | undefined
   let pendiente = false
+  // Cuándo empezó el cambio aún sin escribir.
+  let desde: number | null = null
   // El último documento anónimo cambiado: al abrir uno del servidor, el almacén ya tiene otro.
   let ultimo: DocumentoDiseno | null = null
 
   const guardarYa = () => {
     clearTimeout(temporizador)
     temporizador = undefined
+    desde = null
     if (!pendiente) return
     pendiente = false
     const ok = guardarDisenoLocal(st, ultimo)
@@ -196,7 +207,8 @@ export function conectarPersistencia(a: StoreApi<EstadoEditor>, st: Storage | nu
     ultimo = estado.documento
     a.getState().marcarGuardado('pendiente')
     clearTimeout(temporizador)
-    temporizador = setTimeout(guardarYa, esperaMs)
+    desde ??= Date.now()
+    temporizador = setTimeout(guardarYa, esperaAgrupada(desde, Date.now(), esperaMs, ESPERA_MAXIMA_COPIA_MS))
   })
 
   const alOcultar = () => {

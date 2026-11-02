@@ -6,11 +6,13 @@ import type { DocumentoDiseno } from '../../nucleo'
 import { textos } from '../../textos'
 import type { EstadoEditor, EstadoGuardado } from '../estado/almacen'
 import type { Origen } from '../estado/origen'
-import { almacenamientoSeguro, borrarCopiaLocal, claveCopia, guardarCopiaLocal, type CopiaLocal } from './local'
+import { almacenamientoSeguro, borrarCopiaLocal, claveCopia, ESPERA_MAXIMA_COPIA_MS, esperaAgrupada, guardarCopiaLocal, type CopiaLocal } from './local'
 
 export const REINTENTO_MS = 30_000
 /** Los cambios seguidos (p. ej. un arrastre) se agrupan en una sola escritura de la copia local. */
 export const ESPERA_COPIA_MS = 500
+/** Con cambios sin pausa, el guardado en el servidor sale igualmente cada tanto. */
+export const ESPERA_MAXIMA_ENVIO_MS = 10_000
 
 export type Eleccion = 'recargar' | 'sobrescribir'
 
@@ -125,6 +127,9 @@ export function conectarSincronizacion(
   // Copia local agrupada: el trabajo cuyo último cambio aún no se ha escrito y su temporizador.
   let copiaPendiente: Trabajo | null = null
   let temporizadorCopia: ReturnType<typeof setTimeout> | undefined
+  // Cuándo empezaron los cambios aún sin copiar y sin enviar: acotan la espera agrupada.
+  let copiaDesde: number | null = null
+  let envioDesde: number | null = null
 
   const fijar = (t: Trabajo, cambios: Partial<EstadoEditor>) => {
     if (t === actual) a.setState(cambios)
@@ -145,6 +150,7 @@ export function conectarSincronizacion(
   const copiarYa = () => {
     clearTimeout(temporizadorCopia)
     temporizadorCopia = undefined
+    copiaDesde = null
     const t = copiaPendiente
     copiaPendiente = null
     if (t !== null) copiar(t)
@@ -152,13 +158,15 @@ export function conectarSincronizacion(
   const programarCopia = (t: Trabajo) => {
     copiaPendiente = t
     clearTimeout(temporizadorCopia)
-    temporizadorCopia = setTimeout(copiarYa, esperaCopiaMs)
+    copiaDesde ??= Date.now()
+    temporizadorCopia = setTimeout(copiarYa, esperaAgrupada(copiaDesde, Date.now(), esperaCopiaMs, ESPERA_MAXIMA_COPIA_MS))
   }
 
   const programar = (ms: number) => {
     clearTimeout(temporizador)
     temporizador = setTimeout(() => {
       temporizador = undefined
+      envioDesde = null
       if (actual !== null) void guardar(actual)
     }, ms)
   }
@@ -279,6 +287,7 @@ export function conectarSincronizacion(
   const dejar = () => {
     clearTimeout(temporizador)
     temporizador = undefined
+    envioDesde = null
     pararReintentos()
     // Antes de soltar el trabajo: uno ya dejado no escribe si el mismo diseño se abre otra vez.
     copiarYa()
@@ -309,7 +318,8 @@ export function conectarSincronizacion(
       return
     }
     if (estado.guardado !== 'pendiente') a.getState().marcarGuardado('pendiente')
-    programar(esperaMs)
+    envioDesde ??= Date.now()
+    programar(esperaAgrupada(envioDesde, Date.now(), esperaMs, ESPERA_MAXIMA_ENVIO_MS))
   }
 
   const desuscribir = a.subscribe((estado, previo) => {
