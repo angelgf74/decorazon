@@ -26,6 +26,14 @@ let enCurso = false
 /** true mientras una pieza sigue al puntero: los atajos que editan esperan a que se suelte. */
 export const hayArrastre = (): boolean => enCurso
 
+/** Cierre de cada arrastre abierto, por puntero. */
+const abiertos = new Map<number, () => void>()
+
+/** Suelta el arrastre de ese puntero como si se hubiera levantado el dedo: un segundo dedo lo convierte en pellizco. */
+export function cortarArrastre(pointerId: number): void {
+  abiertos.get(pointerId)?.()
+}
+
 const redondear = (p: Punto): Punto => ({ x: Math.round(p.x), y: Math.round(p.y) })
 
 /**
@@ -50,9 +58,10 @@ export function arrastrar(ev: PointerEventReact<Element>, alMover: (e: PointerEv
   const finales = ['pointerup', 'pointercancel', 'lostpointercapture'] as const
   const enVentana = ['pointerup', 'pointercancel'] as const
   let cerrado = false
-  const soltar = (evento: Event) => {
-    if (cerrado || (evento as PointerEvent).pointerId !== pointerId) return
+  const soltar = (evento?: Event) => {
+    if (cerrado || (evento && (evento as PointerEvent).pointerId !== pointerId)) return
     cerrado = true
+    abiertos.delete(pointerId)
     el.removeEventListener('pointermove', mover)
     for (const tipo of finales) el.removeEventListener(tipo, soltar)
     for (const tipo of enVentana) window.removeEventListener(tipo, soltar)
@@ -61,6 +70,7 @@ export function arrastrar(ev: PointerEventReact<Element>, alMover: (e: PointerEv
     if (movido) almacen.getState().terminarGrupo()
     alSoltar?.()
   }
+  abiertos.set(pointerId, () => soltar())
   el.addEventListener('pointermove', mover)
   for (const tipo of finales) el.addEventListener(tipo, soltar)
   for (const tipo of enVentana) window.addEventListener(tipo, soltar)

@@ -52,8 +52,8 @@ export default function PistasDelPlano() {
       <h2 id={id} className="solo-lectores">{t.titulo}</h2>
       <ul>
         {(paso === 1 ? t.paso1 : esTactil() ? t.paso2Tactil : t.paso2).map((p) => <li key={p}>{p}</li>)}
-        {/* Con el dedo no hay rueda (lienzo.css la oculta en pantallas táctiles). */}
-        <li className="lienzo__pista-rueda">{t.rueda}</li>
+        {/* Con el dedo no hay rueda (lienzo.css la oculta también en pantallas táctiles). */}
+        {esTactil() ? <li>{t.pellizco}</li> : <li className="lienzo__pista-rueda">{t.rueda}</li>}
       </ul>
       <button type="button" className="boton-icono" title={t.ocultar} onClick={() => cambiar(true)}>
         <Icono nombre="cerrar" /><span className="solo-lectores">{t.ocultar}</span>

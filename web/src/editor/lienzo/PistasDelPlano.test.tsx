@@ -26,6 +26,17 @@ describe('PistasDelPlano', () => {
     expect(screen.getByText(t.paso2[0]!)).toBeInTheDocument()
   })
 
+  it('con el dedo explica el pellizco en vez de la rueda', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(pointer: coarse)' }))
+    try {
+      render(<PistasDelPlano />)
+      expect(screen.getByText(t.pellizco)).toBeInTheDocument()
+      expect(screen.queryByText(t.rueda)).toBeNull()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('ocultarlas se recuerda y se pueden volver a mostrar', async () => {
     const { unmount } = render(<PistasDelPlano />)
     await userEvent.click(screen.getByRole('button', { name: t.ocultar }))

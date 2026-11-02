@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { act, createEvent, fireEvent, render } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
-import { catalogoBase, elementoNuevo, longitudPared, type Abertura, type Punto } from '../../nucleo'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { catalogoBase, desplazarPoligono, elementoNuevo, longitudPared, type Abertura, type Punto } from '../../nucleo'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
+import { hayArrastre } from './arrastres'
 import Lienzo from './Lienzo'
+import { encuadrar } from './vista'
 import { usePuntoDelPlano } from './usarPuntoDelPlano'
 
 function colocar(tipo: string, id: string, posicion: Punto) {
@@ -443,5 +445,82 @@ describe('Lienzo: solo el botón principal toma las piezas', () => {
     expect(d.estructura[0]).toMatchObject({ centro: { x: 100, y: 100 } })
     expect(d.estancia.planta[2]).toEqual({ x: 400, y: 330 })
     expect(almacen.getState().seleccion).toBeNull()
+  })
+})
+
+describe('Lienzo con los dedos', () => {
+  const svgDe = (container: HTMLElement) => container.querySelector('svg')!
+  const vistaDe = (container: HTMLElement) => {
+    const [x, y, escala] = container.querySelector('svg > g')!.getAttribute('transform')!.match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/g)!.map(Number)
+    return { x: x!, y: y!, escala: escala! }
+  }
+
+  it('pellizcar el fondo amplía alrededor del punto medio; el dedo que queda no desplaza ni anula la selección', () => {
+    colocar('armario', 'a', { x: 80, y: 50 })
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a' })
+    const { container } = render(<Lienzo />)
+    const svg = svgDe(container)
+    fireEvent.pointerDown(svg, { pointerId: 1, clientX: 100, clientY: 100 })
+    fireEvent.pointerDown(svg, { pointerId: 2, clientX: 200, clientY: 100 })
+    fireEvent.pointerMove(svg, { pointerId: 2, clientX: 300, clientY: 100 })
+    expect(vistaDe(container)).toEqual({ x: -100, y: -100, escala: 2 })
+    fireEvent.pointerUp(svg, { pointerId: 2, clientX: 300, clientY: 100 })
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 150, clientY: 150 })
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 150, clientY: 150 })
+    expect(vistaDe(container)).toEqual({ x: -100, y: -100, escala: 2 })
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: 'a' })
+  })
+
+  it('el segundo dedo corta el arrastre del mueble que tocaba el primero y pasa a pellizco', () => {
+    colocar('armario', 'a', { x: 80, y: 50 })
+    const { container } = render(<Lienzo />)
+    const huella = container.querySelector('[data-elemento="a"] polygon')!
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 80, clientY: 50 })
+    expect(hayArrastre()).toBe(true)
+    fireEvent.pointerDown(svgDe(container), { pointerId: 2, clientX: 180, clientY: 50 })
+    expect(hayArrastre()).toBe(false)
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 60, clientY: 50 })
+    expect(almacen.getState().documento!.elementos[0]!.posicion).toEqual({ x: 80, y: 50 })
+    const v = vistaDe(container)
+    expect(v.escala).toBeCloseTo(1.2)
+    expect(v.x).toBeCloseTo(-36)
+    expect(v.y).toBeCloseTo(-10)
+  })
+
+  it('al cambiar de tamaño se vuelve a encuadrar; si se ha movido a mano, se conserva el centro', () => {
+    let avisar = () => {}
+    const original = globalThis.ResizeObserver
+    globalThis.ResizeObserver = class {
+      constructor(cb: ResizeObserverCallback) { avisar = () => cb([], this as unknown as ResizeObserver) }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    let tam = { width: 800, height: 600 }
+    const espia = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+      () => ({ x: 0, y: 0, left: 0, top: 0, right: tam.width, bottom: tam.height, width: tam.width, height: tam.height, toJSON: () => ({}) }) as DOMRect,
+    )
+    try {
+      const { estancia } = almacen.getState().documento!
+      const esperada = (w: number, h: number) => encuadrar(desplazarPoligono(estancia.planta, estancia.grosorPared), w, h)
+      const { container } = render(<Lienzo />)
+      expect(vistaDe(container)).toEqual(esperada(800, 600))
+
+      tam = { width: 390, height: 300 }
+      act(() => avisar())
+      expect(vistaDe(container)).toEqual(esperada(390, 300))
+
+      const svg = svgDe(container)
+      fireEvent.pointerDown(svg, { pointerId: 1, clientX: 5, clientY: 5 })
+      fireEvent.pointerMove(svg, { pointerId: 1, clientX: 25, clientY: 5 })
+      fireEvent.pointerUp(svg, { pointerId: 1, clientX: 25, clientY: 5 })
+      const movida = vistaDe(container)
+      tam = { width: 390, height: 600 }
+      act(() => avisar())
+      expect(vistaDe(container)).toEqual({ ...movida, y: movida.y + 150 })
+    } finally {
+      espia.mockRestore()
+      globalThis.ResizeObserver = original
+    }
   })
 })
