@@ -100,3 +100,27 @@ export function espacioDelante(e: Elemento, nombre: string, profundo: number, an
   const huella = [{ x: -ancho / 2, y: fondo / 2 }, { x: ancho / 2, y: fondo / 2 }, { x: ancho / 2, y: fondo / 2 + profundo }, { x: -ancho / 2, y: fondo / 2 + profundo }]
   return [{ nombre, huella: huella.map((p) => aMundo(e, p)), zMin: 0, zMax: ALTO_ESPACIO_LIBRE, espacioLibre: true }]
 }
+
+/** Paso libre alrededor de una isla, en cm. */
+export const PASO_ALREDEDOR_CM = 90
+
+/**
+ * Espacio libre de `distancia` cm en los cuatro lados, del suelo a 1 m, con un mismo nombre: el aviso sale una vez por
+ * lo que lo invade, con lo que más falte. Las esquinas quedan fuera: por ellas no se pasa de frente.
+ */
+export function espacioAlrededor(e: Elemento, nombre: string, distancia: number): ZonaApertura[] {
+  const { ancho, fondo } = e.medidas
+  const tiras: [number, number, number, number][] = [
+    [-ancho / 2, -fondo / 2 - distancia, ancho / 2, -fondo / 2],
+    [-ancho / 2, fondo / 2, ancho / 2, fondo / 2 + distancia],
+    [-ancho / 2 - distancia, -fondo / 2, -ancho / 2, fondo / 2],
+    [ancho / 2, -fondo / 2, ancho / 2 + distancia, fondo / 2],
+  ]
+  return tiras.map(([x0, y0, x1, y1]) => ({
+    nombre,
+    huella: [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }].map((p) => aMundo(e, p)),
+    zMin: 0,
+    zMax: ALTO_ESPACIO_LIBRE,
+    espacioLibre: true,
+  }))
+}
