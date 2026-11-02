@@ -25,9 +25,11 @@ export const materialesEnCache = (): number => cache.size
 function crear(material: MaterialPBR, color: string, estado: EstadoPieza): Material {
   const { rugosidad, metalicidad, opacidad } = PBR[material]
   const comunes = { color, roughness: rugosidad, metalness: metalicidad }
-  // El cristal de ventana deja ver y pasar luz cálida; el vidrio de placas y hornos es oscuro y se pinta opaco.
+  // El cristal de ventana deja ver y pasar luz cálida; la mampara deja ver, sin luz propia; el vidrio de placas y hornos es oscuro y se pinta opaco.
   const m = material === 'cristal'
     ? new MeshPhysicalMaterial({ ...comunes, transparent: true, opacity: opacidad, emissive: '#fff6e0', emissiveIntensity: 0.4 })
+    : material === 'mampara'
+    ? new MeshPhysicalMaterial({ ...comunes, transparent: true, opacity: opacidad })
     : material === 'vidrio'
       ? new MeshPhysicalMaterial(comunes)
       : new MeshStandardMaterial(comunes)

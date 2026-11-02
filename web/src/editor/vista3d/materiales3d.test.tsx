@@ -22,6 +22,15 @@ describe('materialDe', () => {
   })
 })
 
+describe('materialDe: mampara', () => {
+  it('el cristal de mampara es transparente pero no brilla como una ventana', () => {
+    const m = materialDe('mampara', '#dcebef') as MeshPhysicalMaterial
+    expect(m.transparent).toBe(true)
+    expect(m.opacity).toBe(0.3)
+    expect(m.emissive.getHexString()).toBe('000000')
+  })
+})
+
 describe('Pieza: sombras', () => {
   const caja = { forma: 'caja' as const, centro: [0, 0, 0] as Vec3, tamano: [1, 1, 1] as Vec3, giroY: 0 }
 

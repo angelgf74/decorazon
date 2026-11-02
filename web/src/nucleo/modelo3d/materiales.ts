@@ -7,6 +7,7 @@ export const PBR: Record<MaterialPBR, { rugosidad: number; metalicidad: number; 
   metal: { rugosidad: 0.35, metalicidad: 0.85, opacidad: 1 },
   vidrio: { rugosidad: 0.05, metalicidad: 0, opacidad: 0.95 },
   cristal: { rugosidad: 0.05, metalicidad: 0, opacidad: 0.25 },
+  mampara: { rugosidad: 0.05, metalicidad: 0, opacidad: 0.3 },
   ceramica: { rugosidad: 0.2, metalicidad: 0, opacidad: 1 },
   pared: { rugosidad: 0.9, metalicidad: 0, opacidad: 1 },
   suelo: { rugosidad: 0.7, metalicidad: 0, opacidad: 1 },

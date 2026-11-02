@@ -113,6 +113,23 @@ describe('PanelPropiedades con un elemento', () => {
     expect(screen.getByRole('button', { name: 'Duplicar' })).toBeTruthy()
   })
 
+  it('inodoro: al empotrar la cisterna desaparece el campo "Alto", que ya no cambia nada', async () => {
+    colocar('inodoro')
+    render(<PanelPropiedades />)
+    expect(screen.getByLabelText('Alto')).toBeTruthy()
+    await userEvent.selectOptions(screen.getByLabelText('Cisterna vista'), 'false')
+    expect(screen.queryByLabelText('Alto')).toBeNull()
+  })
+
+  it('lavabo de menos de 1 m: "Senos" solo ofrece uno; al ensancharlo, también dos', async () => {
+    colocar('lavabo')
+    render(<PanelPropiedades />)
+    const senos = () => [...(screen.getByLabelText('Senos') as HTMLSelectElement).options].map((o) => o.value)
+    expect(senos()).toEqual(['1'])
+    await escribir('Ancho', '120')
+    expect(senos()).toEqual(['1', '2'])
+  })
+
   it('solo los tipos con altura editable tienen el campo de altura desde el suelo', () => {
     colocar('armario')
     const { unmount } = render(<PanelPropiedades />)

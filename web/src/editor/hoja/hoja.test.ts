@@ -23,6 +23,16 @@ describe('marcoDeImpresion', () => {
 })
 
 describe('filasDeMuebles', () => {
+  it('inodoro con cisterna empotrada: el alto de la taza; lavabo estrecho con dos senos pedidos: uno', () => {
+    const doc = documentoNuevo('bano', 250, 200, 250)
+    const inodoro = { ...elementoNuevo(catalogoBase.get('inodoro')!, { x: 50, y: 33 }, 'i'), variantes: { cisterna: false } }
+    const lavabo = { ...elementoNuevo(catalogoBase.get('lavabo')!, { x: 150, y: 23 }, 'l'), variantes: { senos: 2 } }
+    doc.elementos = [inodoro, lavabo]
+    const [fi, fl] = filasDeMuebles(doc, catalogoBase)
+    expect(fi!.medidas).toBe('38 × 66 × 40 cm')
+    expect(fl!.variantes).toContain('Senos: 1')
+  })
+
   it('nombre, medidas, altura al suelo, variantes y colores de cada mueble, en el orden del diseño', () => {
     const doc = documentoNuevo('cocina', 400, 300, 250)
     const armario = { ...elementoNuevo(catalogoBase.get('armario')!, { x: 100, y: 50 }, 'a'), variantes: { puertas: 'correderas', modulos: 2 } }

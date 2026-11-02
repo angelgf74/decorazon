@@ -156,7 +156,7 @@ export function taza(e: Elemento, yAtras: number, z0: number, z1: number, zona: 
 export function mampara(e: Elemento, x0: number, x1: number, z0: number, z1: number, zonaPerfil: string): PiezaLocal[] {
   const y1 = e.medidas.fondo / 2
   return [
-    { ...caja(x0, y1 - 1, z0, x1, y1, z1 - 2, zonaPerfil), material: 'cristal', color: '#dcebef' },
+    { ...caja(x0, y1 - 1, z0, x1, y1, z1 - 2, zonaPerfil), material: 'mampara', color: '#dcebef' },
     caja(x0, y1 - 1, z1 - 2, x1, y1, z1, zonaPerfil),
   ]
 }

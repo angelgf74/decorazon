@@ -33,7 +33,7 @@ export default function Pieza({ pieza, estado = 'normal', eventos = {}, proyecta
 }) {
   const material = materialDe(pieza.material, pieza.color, estado)
   // El cristal de ventana deja pasar la luz: no proyecta sombra.
-  const sombra = proyecta && pieza.material !== 'cristal'
+  const sombra = proyecta && pieza.material !== 'cristal' && pieza.material !== 'mampara'
   switch (pieza.forma) {
     case 'caja':
       return (
