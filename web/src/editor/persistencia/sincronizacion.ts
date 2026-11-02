@@ -43,11 +43,13 @@ export function elegirApertura(
   }
   const nombreRemoto = remoto.diseno.nombre
   const mismaVersion = copia !== null && copia.version === remoto.version
-  // La marca de la copia manda; solo las copias antiguas, sin ella, lo deducen de un nombre distinto del remoto.
-  // Con la marca a false un nombre distinto es un renombrado hecho en otro sitio, que no se pisa.
+  // La marca de la copia manda. Con la misma versión un nombre distinto es siempre propio (cada guardado sube la versión;
+  // pasa si la pestaña se cerró con el renombrado en vuelo y la marca ya a false). Con otra versión solo lo deducen las
+  // copias antiguas, sin la marca: con ella a false, un nombre distinto es un renombrado hecho en otro sitio, que no se pisa.
   const marcado = copia?.nombrePendiente === true && copia.nombre !== undefined
-  const deducido = copia !== null && copia.nombrePendiente === undefined && copia.nombre !== undefined && copia.nombre !== nombreRemoto
-  const renombrado = marcado || (mismaVersion && deducido) ? copia.nombre : undefined
+  const distinto = copia !== null && copia.nombre !== undefined && copia.nombre !== nombreRemoto
+  const deducido = distinto && copia.nombrePendiente === undefined
+  const renombrado = marcado || (mismaVersion && distinto) ? copia.nombre : undefined
   if (copia?.pendiente && !mismaVersion) {
     // Nunca se pisa en silencio: con otra versión en el servidor, decide el usuario.
     // Un nombre local distinto queda como renombrado pendiente: "Sobrescribir" lo sube y "Recargar" lo descarta.
@@ -189,6 +191,7 @@ export function conectarSincronizacion(
     t.perdido = true
     clearTimeout(temporizador)
     temporizador = undefined
+    envioDesde = null
     pararReintentos()
     copiar(t)
     fijar(t, { guardado: 'error', aviso: textos.editorDeDiseno.noExiste })
@@ -239,6 +242,7 @@ export function conectarSincronizacion(
         t.conflicto = true
         clearTimeout(temporizador)
         temporizador = undefined
+        envioDesde = null
         pararReintentos()
         fijar(t, { guardado: 'conflicto', versionRemota: e.version ?? null })
       } else {

@@ -756,6 +756,11 @@ describe('elegirApertura', () => {
     if (eleccion === 'sobrescribir') expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Local' }))
   })
 
+  it('misma versión con otro nombre y la marca a false (la pestaña se cerró con el renombrado en vuelo): el renombrado no se pierde', () => {
+    // Con la misma versión nadie más ha podido renombrar: cada guardado sube la versión.
+    expect(elegirApertura(ID, { ...copia(4, true), nombrePendiente: false }, remoto(4))).toMatchObject({ nombre: 'Local', nombrePendiente: 'Local', guardado: 'pendiente' })
+  })
+
   it('en conflicto, una copia marcada sin renombrado no toma por propio el nombre viejo si se renombró en otro sitio', () => {
     const r = elegirApertura(ID, { ...copia(4, true), nombre: 'Cocina vieja', nombrePendiente: false }, remoto(6))
     expect(r).toMatchObject({ nombre: 'Cocina', guardado: 'conflicto' })

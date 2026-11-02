@@ -47,5 +47,6 @@ function Mueble3D({ elemento }: { elemento: Elemento }) {
   )
 }
 
-// Editar un mueble no vuelve a pintar los demás: el almacén conserva la referencia de los que no cambian.
+// El almacén conserva la referencia de los muebles que no cambian: sus piezas (useMemo) no se recalculan al editar otro.
+// Aún se vuelven a renderizar porque useConflictos depende del documento entero.
 export default memo(Mueble3D)
