@@ -64,6 +64,15 @@ public sealed class ConfiguracionDeDiseno : IEntityTypeConfiguration<Diseno>
             .IsConcurrencyToken()
             .IsRequired();
 
+        constructor.Property(diseno => diseno.EnlaceCompartido)
+            .HasColumnName("enlace_compartido")
+            .HasMaxLength(64);
+
+        // Único: un enlace lleva a un solo diseño. PostgreSQL admite varios null.
+        constructor.HasIndex(diseno => diseno.EnlaceCompartido)
+            .IsUnique()
+            .HasDatabaseName("ix_disenos_enlace_compartido");
+
         // El listado va por usuario y del más reciente al más antiguo.
         constructor.HasIndex(diseno => new { diseno.UsuarioId, diseno.FechaDeModificacion })
             .HasDatabaseName("ix_disenos_usuario_modificacion");

@@ -20,6 +20,12 @@ public interface IRepositorioDeDisenos
     Task<int> ContarAsync(Guid usuarioId, CancellationToken cancelacion = default);
 
     /// <summary>
+    /// El diseño que se comparte con ese enlace, de cualquier usuario, o null. Solo lectura:
+    /// no se rastrea. Es la única consulta que no va por usuario: el enlace hace de permiso.
+    /// </summary>
+    Task<Diseno?> ObtenerCompartidoAsync(string enlace, CancellationToken cancelacion = default);
+
+    /// <summary>
     /// Solo rastrea el diseño: no lo persiste. <see cref="GuardarCambiosAsync"/> lo guarda
     /// (o el guardado de otro repositorio que comparta la misma unidad de trabajo).
     /// </summary>

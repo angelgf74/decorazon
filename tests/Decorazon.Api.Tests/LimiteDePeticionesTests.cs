@@ -131,3 +131,30 @@ public class LimiteDeCambioDeContrasenaTests(ApiConLimiteEstrechoParaCambioDeCon
         Assert.Equal(HttpStatusCode.TooManyRequests, rechazada.StatusCode);
     }
 }
+
+/// <summary>Fixture propio, con la lectura de diseños compartidos bajada a dos por ventana.</summary>
+public sealed class ApiConLimiteEstrechoParaLecturaCompartidaFixture : ApiConPostgresFixture
+{
+    protected override int MaximoDeLecturasCompartidasPorVentana => 2;
+}
+
+[Trait("Categoria", "Integracion")]
+public class LimiteDeLecturaCompartidaTests(ApiConLimiteEstrechoParaLecturaCompartidaFixture api)
+    : IClassFixture<ApiConLimiteEstrechoParaLecturaCompartidaFixture>
+{
+    [Fact]
+    public async Task LeerEnlacesSinParar_Responde429ConMensaje()
+    {
+        var anonimo = api.CreateClient();
+
+        for (var intento = 0; intento < 2; intento++)
+        {
+            Assert.Equal(HttpStatusCode.NotFound, (await anonimo.GetAsync($"/compartidos/probando{intento}")).StatusCode);
+        }
+
+        var rechazada = await anonimo.GetAsync("/compartidos/probando2");
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, rechazada.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace((await rechazada.Content.ReadFromJsonAsync<RespuestaDeMensaje>())?.Mensaje));
+    }
+}

@@ -32,7 +32,7 @@ function falso(): Storage {
 function disenoServidor(version: number, contenido: DocumentoDiseno = doc, nombre = 'Cocina'): DisenoServidor {
   return {
     id: ID, nombre, tipoEstancia: 'cocina', fechaDeCreacion: '2026-01-01T00:00:00Z',
-    fechaDeModificacion: '2026-01-01T00:00:00Z', version, contenido,
+    fechaDeModificacion: '2026-01-01T00:00:00Z', version, contenido, enlace: null,
   }
 }
 

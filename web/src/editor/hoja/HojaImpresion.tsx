@@ -1,18 +1,13 @@
-import { lazy, Suspense, useEffect, useId, useRef, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { cajaPlanta, catalogoBase } from '../../nucleo'
+import { cajaPlanta } from '../../nucleo'
 import { textos } from '../../textos'
 import Icono from '../comunes/Icono'
 import SinFallos from '../comunes/SinFallos'
 import { hayWebgl } from '../comunes/webgl'
 import { useEditor } from '../estado/almacen'
-import CapaAberturas from '../lienzo/capas/CapaAberturas'
-import CapaCotas from '../lienzo/capas/CapaCotas'
-import CapaElementos from '../lienzo/capas/CapaElementos'
-import CapaEstructura, { PatronRayado } from '../lienzo/capas/CapaEstructura'
-import CapaPlanta from '../lienzo/capas/CapaPlanta'
-import '../lienzo/lienzo.css'
-import { filasDeMuebles, marcoDeImpresion } from './hoja'
+import PlanoDelDiseno from './PlanoDelDiseno'
+import TablaDeMuebles from './TablaDeMuebles'
 import './hoja.css'
 
 const t = textos.hoja
@@ -54,8 +49,6 @@ export default function HojaImpresion({ alCerrar }: { alCerrar(): void }) {
   if (doc === null) return null
   const { estancia } = doc
   const caja = cajaPlanta(estancia.planta)
-  const { ancho, alto, vista } = marcoDeImpresion(estancia.planta, estancia.grosorPared)
-  const filas = filasDeMuebles(doc, catalogoBase)
 
   return createPortal(
     <div ref={dialogo} className="hoja-impresion" role="dialog" aria-modal="true" aria-labelledby={idTitulo} tabIndex={-1}>
@@ -74,49 +67,11 @@ export default function HojaImpresion({ alCerrar }: { alCerrar(): void }) {
           <p>{`${textos.nuevaEstancia.tipos[estancia.tipo]} · ${t.dimensiones(Math.round(caja.maxX - caja.minX), Math.round(caja.maxY - caja.minY), estancia.alto)}`}</p>
         </header>
 
-        <svg className="hoja-impresion__plano" viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={t.plano}>
-          <defs><PatronRayado id="hoja-rayado" /></defs>
-          {/* --escala deja el texto del plano al mismo tamaño que en el editor (lienzo.css). */}
-          <g transform={`translate(${vista.x} ${vista.y}) scale(${vista.escala})`} style={{ '--escala': vista.escala } as CSSProperties}>
-            <CapaPlanta documento={doc} />
-            <CapaEstructura documento={doc} seleccion={null} vigas={false} rayado="hoja-rayado" />
-            <CapaAberturas documento={doc} seleccion={null} />
-            <CapaElementos documento={doc} conflictos={[]} seleccion={null} />
-            <CapaEstructura documento={doc} seleccion={null} vigas rayado="hoja-rayado" />
-            <CapaCotas documento={doc} seleccion={null} escala={vista.escala} />
-          </g>
-        </svg>
+        <PlanoDelDiseno doc={doc} rayado="hoja-rayado" className="hoja-impresion__plano" />
 
         <section className="hoja-impresion__muebles">
           <h2>{t.muebles}</h2>
-          {filas.length === 0 ? <p>{t.sinMuebles}</p> : (
-            <table className="hoja-impresion__tabla">
-              <thead>
-                <tr>
-                  <th scope="col">{t.columnas.mueble}</th>
-                  <th scope="col">{t.columnas.medidas}</th>
-                  <th scope="col">{t.columnas.detalles}</th>
-                  <th scope="col">{t.columnas.colores}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((f) => (
-                  <tr key={f.id}>
-                    <td>{f.nombre}</td>
-                    <td className="hoja-impresion__medidas">{f.medidas}</td>
-                    <td>{[f.alturaSuelo, ...f.variantes].filter((d) => d !== null).map((d) => <div key={d}>{d}</div>)}</td>
-                    <td>
-                      <ul className="hoja-impresion__colores">
-                        {f.colores.map((c) => (
-                          <li key={c.etiqueta}><span className="hoja-impresion__muestra" style={{ background: c.color }} />{c.etiqueta}</li>
-                        ))}
-                      </ul>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <TablaDeMuebles doc={doc} />
         </section>
         <p className="hoja-impresion__pie">{t.pie}</p>
       </article>

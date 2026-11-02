@@ -107,7 +107,8 @@ public static class DisenosEndpoints
             TiposDeEstancia.ATexto(diseno.Tipo),
             diseno.FechaDeCreacion,
             diseno.FechaDeModificacion,
-            diseno.Version)));
+            diseno.Version,
+            diseno.EnlaceCompartido)));
     }
 
     private static async Task<IResult> CrearAsync(
@@ -315,6 +316,7 @@ public static class DisenosEndpoints
             diseno.FechaDeCreacion,
             diseno.FechaDeModificacion,
             diseno.Version,
-            documento.RootElement.Clone());
+            documento.RootElement.Clone(),
+            diseno.EnlaceCompartido);
     }
 }

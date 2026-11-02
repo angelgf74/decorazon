@@ -38,6 +38,9 @@ public sealed class Diseno
     public DateTimeOffset FechaDeModificacion { get; private set; }
     public int Version { get; private set; }
 
+    /// <summary>Token del enlace con que se comparte, o null si no se comparte.</summary>
+    public string? EnlaceCompartido { get; private set; }
+
     public static Diseno Crear(Guid usuarioId, NombreDeDiseno nombre, TipoDeEstancia tipo, ContenidoDeDiseno contenido, DateTimeOffset ahora) =>
         new(Guid.NewGuid(), usuarioId, nombre, tipo, contenido, ahora);
 
@@ -53,6 +56,20 @@ public sealed class Diseno
         FechaDeModificacion = ahora;
         Version++;
     }
+
+    /// <summary>
+    /// Compartir no es editar: no cambia la versión (un editor abierto no debe ver
+    /// un conflicto) ni la fecha de modificación (que habla del contenido). Si ya
+    /// se comparte, el enlace sigue siendo el mismo.
+    /// </summary>
+    public void Compartir(string enlace)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(enlace);
+        EnlaceCompartido ??= enlace;
+    }
+
+    /// <summary>El enlace deja de funcionar; volver a compartir da otro.</summary>
+    public void DejarDeCompartir() => EnlaceCompartido = null;
 
     public Diseno Duplicar(DateTimeOffset ahora)
     {

@@ -29,6 +29,13 @@ public static class LimitesDePeticiones
     /// </summary>
     public const string CambioDeContrasena = "cambio-de-contrasena";
 
+    /// <summary>
+    /// Leer un diseño compartido no pide sesión: el límite frena a quien pruebe enlaces
+    /// a ciegas (no hay nada que adivinar, pero cada intento es una consulta) sin
+    /// molestar a quien abre y recarga el suyo. 120 por IP cada minuto.
+    /// </summary>
+    public const string LecturaCompartida = "lectura-compartida";
+
     public static void AnadirLimitesDePeticiones(this IServiceCollection servicios, IConfiguration configuracion)
     {
         // Configurables para que los tests puedan elevarlos y no chocar con el
@@ -36,6 +43,7 @@ public static class LimitesDePeticiones
         var maximoDeRegistros = configuracion.GetValue("Limites:RegistrosPorVentana", 10);
         var maximoDeInicios = configuracion.GetValue("Limites:IniciosDeSesionPorVentana", 10);
         var maximoDeCambiosDeContrasena = configuracion.GetValue("Limites:CambiosDeContrasenaPorVentana", 10);
+        var maximoDeLecturasCompartidas = configuracion.GetValue("Limites:LecturasCompartidasPorVentana", 120);
 
         servicios.AddRateLimiter(opciones =>
         {
@@ -73,6 +81,15 @@ public static class LimitesDePeticiones
                     {
                         PermitLimit = maximoDeCambiosDeContrasena,
                         Window = TimeSpan.FromMinutes(5)
+                    }));
+
+            opciones.AddPolicy(LecturaCompartida, contexto =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    ClaveDeParticion(contexto),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = maximoDeLecturasCompartidas,
+                        Window = TimeSpan.FromMinutes(1)
                     }));
         });
     }

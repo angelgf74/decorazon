@@ -57,6 +57,56 @@ describe('MisDisenos', () => {
     expect(within(filas[1]!).getByText('Dormitorio')).toBeInTheDocument()
   })
 
+  it('un diseño compartido lleva la marca «Compartido»', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [{ ...RECIENTE, enlace: 'tok' }, ANTIGUO]))
+    montar()
+    const filas = await screen.findAllByRole('listitem')
+    expect(within(filas[0]!).getByText('Compartido')).toBeInTheDocument()
+    expect(within(filas[1]!).queryByText('Compartido')).toBeNull()
+  })
+
+  it('Compartir: «Crear enlace» pide el enlace y lo enseña para copiarlo, y la fila pasa a compartida', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [RECIENTE]))
+    montar()
+    const fila = (await screen.findByText('Reciente')).closest('li')!
+    await userEvent.click(within(fila).getByRole('button', { name: 'Compartir' }))
+    const dialogo = screen.getByRole('dialog', { name: 'Compartir «Reciente»' })
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, { enlace: 'tok_1' }))
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Crear enlace' }))
+    const campo = await within(dialogo).findByLabelText('Enlace')
+    expect((campo as HTMLInputElement).value).toBe(`${location.origin}/compartido/tok_1`)
+    expect(within(dialogo).getByRole('button', { name: 'Copiar enlace' })).toBeInTheDocument()
+    const peticion = fetchSimulado.mock.calls[1]![0]
+    expect(peticion.method).toBe('PUT')
+    expect(new URL(peticion.url).pathname).toBe('/disenos/b/enlace')
+    expect(within(fila).getByText('Compartido')).toBeInTheDocument()
+    // El botón pulsado desaparece: el foco pasa a «Copiar enlace» en vez de perderse.
+    expect(document.activeElement).toBe(within(dialogo).getByRole('button', { name: 'Copiar enlace' }))
+  })
+
+  it('Dejar de compartir, tras confirmarlo, retira el enlace y quita la marca', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [{ ...RECIENTE, enlace: 'tok_1' }]))
+    montar()
+    const fila = (await screen.findByText('Reciente')).closest('li')!
+    await userEvent.click(within(fila).getByRole('button', { name: 'Compartir' }))
+    const dialogo = screen.getByRole('dialog', { name: 'Compartir «Reciente»' })
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Dejar de compartir' }))
+    expect(document.activeElement).toBe(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    expect(document.activeElement).toBe(within(dialogo).getByRole('button', { name: 'Dejar de compartir' }))
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Dejar de compartir' }))
+    fetchSimulado.mockResolvedValueOnce(respuesta(204))
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Sí, dejar de compartir' }))
+    await vi.waitFor(() => expect(within(fila).queryByText('Compartido')).toBeNull())
+    const peticion = fetchSimulado.mock.calls[1]![0]
+    expect(peticion.method).toBe('DELETE')
+    expect(new URL(peticion.url).pathname).toBe('/disenos/b/enlace')
+    expect(document.activeElement).toBe(within(dialogo).getByRole('button', { name: 'Crear enlace' }))
+  })
+
   it('borrar con confirmación llama a DELETE, quita la fila y la copia local', async () => {
     conSesion()
     guardarCopiaLocal(localStorage, 'a', { version: 1, documento: documentoNuevo('salon', 400, 300, 250), pendiente: false })
