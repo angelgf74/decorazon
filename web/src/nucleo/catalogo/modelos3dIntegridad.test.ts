@@ -120,14 +120,29 @@ describe('generadores 3D de cocina y decoración', () => {
 
   it('fregadero: marco de 4 piezas que baja 18 cm bajo la encimera, fondo oscuro dentro del reborde y grifo', () => {
     const ps = piezas('fregadero')
-    const marco = cajas(ps).filter((p) => p.material === undefined)
+    // El reborde llega a la encimera (z 1); el caño del grifo, no.
+    const marco = cajas(ps).filter((p) => p.material === undefined && p.z1 === 1)
     expect(marco).toHaveLength(4)
     expect(Math.min(...marco.map((p) => p.z0))).toBe(-18)
     // Sin fondo, el interior del marco es el módulo macizo de debajo: la cubeta no se lee.
-    const fondo = cajas(ps).filter((p) => p.material === 'metal' && p.color === '#8a8c8e')
+    const fondo = cajas(ps).filter((p) => p.material === 'metal' && p.color !== undefined)
     expect(fondo).toHaveLength(1)
+    expect(fondo[0]!.color).toBe('#8a8c8d')
     expect(fondo[0]).toMatchObject({ x0: -38, x1: 38, y0: -23, y1: 23, z0: 0, z1: 0.5 })
     expect(ps.filter((p) => p.forma === 'cilindro').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('fregadero: el fondo de la cubeta es el color elegido, más oscuro', () => {
+    const rojo = catalogoBase.get('fregadero')!.modelo3d!({ ...elemento('fregadero', 0, 0, 0), colores: { cubeta: '#ff0000' } })
+    expect(cajas(rojo).find((p) => p.material === 'metal')?.color).toBe('#b80000')
+  })
+
+  it('fregadero: el caño une la base del grifo con la salida, sin piezas flotando', () => {
+    const ps = piezas('fregadero')
+    const [base, salida] = ps.filter((p): p is Extract<PiezaLocal, { forma: 'cilindro' }> => p.forma === 'cilindro')
+    const cano = cajas(ps).find((p) => p.z1 === base!.z1 && p.y0 <= base!.cy + base!.r && p.y1 >= salida!.cy - salida!.r)
+    expect(cano).toBeDefined()
+    expect(cano!.z0).toBeLessThanOrEqual(salida!.z0 + 0.01)
   })
 
   it('fregadero: la cubeta baja min(18, alturaSuelo); pegado al suelo no se hunde', () => {
