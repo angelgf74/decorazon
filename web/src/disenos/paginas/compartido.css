@@ -24,6 +24,8 @@
 .compartido__seccion { display: flex; flex-direction: column; gap: var(--esp-3); }
 .compartido__seccion h2 { margin: 0; padding-bottom: var(--esp-1); border-bottom: 1px solid var(--borde-suave); font-size: 1.1rem; }
 
+.compartido__titulo-plano { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--esp-2); padding-bottom: var(--esp-1); border-bottom: 1px solid var(--borde-suave); }
+.compartido__titulo-plano h2 { padding-bottom: 0; border-bottom: 0; }
 .compartido__plano { display: block; width: 100%; height: auto; background: var(--superficie); border: 1px solid var(--borde-suave); border-radius: var(--radio); }
 
 /* Hasta pedirla, un recuadro bajo; abierta, la 3D llena el ancho y deja ver la página por debajo. */

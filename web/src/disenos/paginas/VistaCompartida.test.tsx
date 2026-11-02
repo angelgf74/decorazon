@@ -68,6 +68,26 @@ describe('VistaCompartida', () => {
     expect(screen.queryByRole('button', { name: 'Borrar' })).toBeNull()
   })
 
+  it('el plano se dibuja al ancho de la pantalla, para que sus textos no encojan', async () => {
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 358, bottom: 300, width: 358, height: 300, toJSON: () => ({}) })
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, compartido()))
+    montar()
+    const plano = await screen.findByRole('img', { name: 'Plano' })
+    expect(plano.getAttribute('viewBox')).toMatch(/^0 0 358 /)
+    vi.restoreAllMocks()
+  })
+
+  it('«Ampliar plano» lo abre a pantalla completa y, al cerrarlo, el foco vuelve al botón', async () => {
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, compartido()))
+    montar()
+    const ampliar = await screen.findByRole('button', { name: 'Ampliar plano' })
+    await userEvent.click(ampliar)
+    const dialogo = screen.getByRole('dialog', { name: 'Plano' })
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cerrar' }))
+    expect(screen.queryByRole('dialog', { name: 'Plano' })).toBeNull()
+    expect(document.activeElement).toBe(ampliar)
+  })
+
   it('un enlace que ya no funciona lo dice y ofrece volver al inicio', async () => {
     fetchSimulado.mockResolvedValueOnce(respuesta(404, { mensaje: 'Este enlace ya no funciona.' }))
     montar('retirado')
