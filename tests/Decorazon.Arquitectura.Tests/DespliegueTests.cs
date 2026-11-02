@@ -25,6 +25,22 @@ public partial class DespliegueTests
         Assert.All(puertos, p => Assert.Equal(puerto, p));
     }
 
+    /// <summary>
+    /// El nginx propio ya no recibe los cambios de la plantilla de srv: al menos, los dominios y el tamaño máximo de
+    /// la API tienen que seguir siendo los de srv.json.
+    /// </summary>
+    [Fact]
+    public void ElNginxPropio_LlevaLosDominiosYElTamanoDeSrvJson()
+    {
+        var raiz = RaizDelRepositorio();
+        using var srv = JsonDocument.Parse(File.ReadAllText(Path.Combine(raiz, "srv.json")));
+        var nginx = File.ReadAllText(Path.Combine(raiz, "deploy", "nginx.conf"));
+
+        Assert.Contains($"server_name {srv.RootElement.GetProperty("web").GetProperty("dominio").GetString()};", nginx);
+        Assert.Contains($"server_name {srv.RootElement.GetProperty("api").GetProperty("dominio").GetString()};", nginx);
+        Assert.Contains($"client_max_body_size {srv.RootElement.GetProperty("api").GetProperty("tamanoMaximo").GetString()};", nginx);
+    }
+
     [GeneratedRegex(@"proxy_pass http://127\.0\.0\.1:(\d+)")]
     private static partial Regex ProxyALocal();
 

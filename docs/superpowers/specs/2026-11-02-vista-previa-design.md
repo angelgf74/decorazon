@@ -15,7 +15,7 @@ Al pegar el enlace de un diseño en WhatsApp, Telegram, Facebook, X o Slack, que
 Los servicios de mensajería no ejecutan JavaScript: leen las etiquetas Open Graph (`og:title`, `og:image`…) del HTML que devuelve la dirección. La web es una SPA estática, así que esa dirección devuelve siempre el mismo `index.html` sin datos del diseño.
 
 - **nginx** distingue por el `User-Agent` a los lectores de tarjetas (WhatsApp, facebookexternalhit, Twitterbot, TelegramBot, Slackbot, Discordbot, LinkedInBot, Pinterest, Applebot…) y solo a ellos les sirve, en `/compartido/<enlace>`, la tarjeta que genera la API. A las personas les sigue llegando la web de siempre.
-- **La API** genera la tarjeta: un HTML mínimo con las etiquetas Open Graph y Twitter (`summary_large_image`), y un salto a la página de la web por si alguien llega ahí.
+- **La API** genera la tarjeta: un HTML mínimo con las etiquetas Open Graph y Twitter (`summary_large_image`), y un enlace a la página de la web por si alguien llega ahí (sin redirección automática: un navegador que nginx tomara por lector entraría en bucle).
   - Título: el nombre del diseño.
   - Descripción: «Baño compartido con Decorazon: plano, vista 3D y lista de muebles» (con el tipo de estancia).
   - Imagen: la vista previa guardada; si no la hay, el icono de la web (512×512).
@@ -28,7 +28,7 @@ Los servicios de mensajería no ejecutan JavaScript: leen las etiquetas Open Gra
 ## API
 
 - **Dato:** tabla nueva `vistas_previas` (`diseno_id` clave y clave foránea a `disenos` en cascada, `imagen` bytea, `fecha`). Una por diseño; se sustituye. Al borrar el diseño o la cuenta, desaparece con él.
-- **`PUT /disenos/{id}/vista-previa`** (con sesión; diseño ajeno o inexistente: 404). Cuerpo: la imagen en `image/jpeg`, como mucho 300 KB, que empiece como un JPEG (`FF D8 FF`); si no, 400. Responde 204.
+- **`PUT /disenos/{id}/vista-previa`** (con sesión; diseño ajeno o inexistente: 404). Cuerpo: la imagen en `image/jpeg`, como mucho 300 KB, que empiece como un JPEG (`FF D8 FF`); si no, 400. Otro tipo de contenido: 415 (lo responde el enrutado). Responde 204.
 - **`GET /compartidos/{enlace}/imagen`** (sin sesión, mismo límite por IP que la lectura): la imagen con `Cache-Control: public, max-age=300`. Sin enlace válido o sin imagen: 404.
 - **`GET /compartidos/{enlace}/tarjeta`** (sin sesión, mismo límite): `text/html; charset=utf-8`, `Cache-Control: no-store`. El nombre va escapado. Con un enlace que no existe o ya no se comparte: 404 con una tarjeta genérica de Decorazon (sin datos de nadie).
 - Las direcciones de la tarjeta salen de la configuración: la de la web, de `Correo:BaseDeLaWeb` (ya obligatoria y https en producción); la de la imagen, del propio host de la petición, por eso nginx la reenvía con `Host: decorazon-api.angelgf.com.es`.

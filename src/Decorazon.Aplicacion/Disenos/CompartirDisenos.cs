@@ -3,7 +3,17 @@ using Decorazon.Dominio.Puertos;
 
 namespace Decorazon.Aplicacion.Disenos;
 
-public enum ResultadoDeVistaPrevia { Guardada, NoEncontrado, NoValida }
+/// <summary>Cómo acaba subir la vista previa de un diseño.</summary>
+public enum ResultadoDeVistaPrevia
+{
+    Guardada,
+
+    /// <summary>El diseño no existe o es de otro usuario.</summary>
+    NoEncontrado,
+
+    /// <summary>No es un JPEG o pasa del tamaño máximo.</summary>
+    NoValida
+}
 
 /// <summary>
 /// Compartir un diseño con un enlace de solo lectura, retirarlo, y leer lo que
@@ -28,7 +38,11 @@ public sealed class CompartirDisenos(IRepositorioDeDisenos disenos, IGeneradorDe
     /// <summary>La imagen de la tarjeta del enlace; vale aunque el diseño aún no se comparta (se usará al compartirlo).</summary>
     public async Task<ResultadoDeVistaPrevia> GuardarVistaPreviaAsync(Guid usuarioId, Guid id, byte[] imagen, CancellationToken cancelacion = default)
     {
-        if (!VistaPrevia.EsValida(imagen)) return ResultadoDeVistaPrevia.NoValida;
+        if (!VistaPrevia.EsValida(imagen))
+        {
+            return ResultadoDeVistaPrevia.NoValida;
+        }
+
         return await disenos.GuardarVistaPreviaAsync(usuarioId, id, imagen, reloj.Ahora, cancelacion)
             ? ResultadoDeVistaPrevia.Guardada
             : ResultadoDeVistaPrevia.NoEncontrado;

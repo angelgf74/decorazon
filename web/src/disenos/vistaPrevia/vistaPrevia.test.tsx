@@ -4,34 +4,42 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { almacen, reiniciarAlmacen } from '../../editor/estado/almacen'
 import { documentoNuevo } from '../../nucleo'
 import { respuesta } from '../../pruebas/respuesta'
-import { apuntarVistaPrevia, ESPERA_ENTRE_VISTAS_MS, tocaRehacer } from './frecuencia'
+import { apuntarVistaPrevia, ESPERA_ENTRE_VISTAS_MS, olvidarVistasPreviasEnMemoria, tocaRehacer } from './frecuencia'
 import RefrescoDeVistaPrevia from './RefrescoDeVistaPrevia'
 
-// Sin WebGL en jsdom: el generador se sustituye por uno que entrega una imagen al momento.
+// Sin WebGL en jsdom: el generador se sustituye por uno que entrega, al momento, una imagen con el alto del documento.
 vi.mock('./GeneradorDeVistaPrevia', () => ({
-  default: ({ alTerminar }: { alTerminar(b: Blob | null): void }) => {
-    queueMicrotask(() => alTerminar(new Blob(['jpeg'], { type: 'image/jpeg' })))
+  default: ({ doc, alTerminar }: { doc: { estancia: { alto: number } }; alTerminar(b: Blob | null): void }) => {
+    queueMicrotask(() => alTerminar(new Blob([`alto=${doc.estancia.alto}`], { type: 'image/jpeg' })))
     return null
   },
 }))
 
 const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
 const subidas = () => fetchSimulado.mock.calls.filter(([p]) => p.method === 'PUT' && new URL(p.url).pathname === '/disenos/d1/vista-previa')
+const tick = (ms = 20) => act(() => new Promise((r) => setTimeout(r, ms)))
 
-/** Simula un guardado: la versión del diseño abierto sube. */
-function guardado(version: number) {
-  act(() => almacen.setState((e) => ({ origen: { ...e.origen, version } as typeof e.origen })))
+/** Simula un guardado: la versión del diseño abierto sube, con el documento que se guardó. */
+function guardado(version: number, alto = 250) {
+  act(() => almacen.setState((e) => ({
+    origen: { ...e.origen, version } as typeof e.origen,
+    documento: { ...e.documento!, estancia: { ...e.documento!.estancia, alto } },
+  })))
 }
 
 beforeEach(() => {
   localStorage.clear()
+  olvidarVistasPreviasEnMemoria()
   fetchSimulado.mockReset()
   fetchSimulado.mockResolvedValue(respuesta(204))
   vi.stubGlobal('fetch', fetchSimulado)
   reiniciarAlmacen()
   almacen.getState().abrirDelServidor('d1', 1, 'Cocina', documentoNuevo('cocina', 400, 300, 250))
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
 
 describe('frecuencia de la vista previa', () => {
   it('toca rehacerla si nunca se hizo o hace más de 5 minutos', () => {
@@ -41,25 +49,62 @@ describe('frecuencia de la vista previa', () => {
     expect(tocaRehacer('d1', 1_000_000 + ESPERA_ENTRE_VISTAS_MS)).toBe(true)
     expect(tocaRehacer('otro', 1_000_000)).toBe(true)
   })
+
+  it('sin almacenamiento, recuerda en memoria: no rehace en 5 minutos', () => {
+    vi.stubGlobal('localStorage', undefined)
+    apuntarVistaPrevia('sin', 2_000_000)
+    expect(tocaRehacer('sin', 2_000_000 + 1000)).toBe(false)
+  })
 })
 
 describe('RefrescoDeVistaPrevia', () => {
-  it('al guardar un diseño compartido rehace y sube la imagen, pero no otra vez en 5 minutos', async () => {
+  it('abrirlo no cuenta como guardar; el primer guardado de un diseño compartido rehace y sube la imagen', async () => {
     render(<RefrescoDeVistaPrevia id="d1" compartido />)
-    // Abrirlo no cuenta como guardar.
+    await tick()
     expect(subidas()).toHaveLength(0)
     guardado(2)
     await vi.waitFor(() => expect(subidas()).toHaveLength(1))
     expect(subidas()[0]![0].headers.get('Content-Type')).toBe('image/jpeg')
-    guardado(3)
-    await new Promise((r) => setTimeout(r, 20))
+  })
+
+  it('los guardados dentro de los 5 minutos se juntan en una imagen con lo último, al vencer la espera', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    render(<RefrescoDeVistaPrevia id="d1" compartido />)
+    guardado(2, 250)
+    await vi.waitFor(() => expect(subidas()).toHaveLength(1))
+    guardado(3, 260)
+    guardado(4, 270)
+    await tick()
+    expect(subidas()).toHaveLength(1)
+    await act(async () => { await vi.advanceTimersByTimeAsync(ESPERA_ENTRE_VISTAS_MS) })
+    await vi.waitFor(() => expect(subidas()).toHaveLength(2))
+    expect(await subidas()[1]![0].text()).toBe('alto=270')
+  })
+
+  it('sin almacenamiento no entra en bucle: una imagen por guardado y espera', async () => {
+    vi.stubGlobal('localStorage', undefined)
+    render(<RefrescoDeVistaPrevia id="d1" compartido />)
+    guardado(2)
+    await vi.waitFor(() => expect(subidas()).toHaveLength(1))
+    await tick(50)
     expect(subidas()).toHaveLength(1)
   })
 
   it('un diseño que no se comparte no rehace nada al guardar', async () => {
     render(<RefrescoDeVistaPrevia id="d1" compartido={false} />)
     guardado(2)
-    await new Promise((r) => setTimeout(r, 20))
+    await tick()
     expect(subidas()).toHaveLength(0)
+  })
+
+  it('abierto sin conexión (no se sabe si se comparte), el primer guardado lo pregunta y, si se comparte, sube', async () => {
+    const doc = documentoNuevo('cocina', 400, 300, 250)
+    fetchSimulado.mockImplementation(async (p) => (p.method === 'GET'
+      ? respuesta(200, { id: 'd1', nombre: 'Cocina', tipoEstancia: 'cocina', fechaDeCreacion: 'x', fechaDeModificacion: 'x', version: 2, contenido: doc, enlace: 'tok' })
+      : respuesta(204)))
+    render(<RefrescoDeVistaPrevia id="d1" compartido={null} />)
+    guardado(2)
+    await vi.waitFor(() => expect(subidas()).toHaveLength(1))
+    expect(fetchSimulado.mock.calls.filter(([p]) => p.method === 'GET')).toHaveLength(1)
   })
 })

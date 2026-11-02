@@ -1065,6 +1065,9 @@
                 }
               }
             }
+          },
+          "415": {
+            "description": "Unsupported Media Type"
           }
         },
         "security": [

@@ -1193,6 +1193,13 @@ export interface operations {
                     "application/json": components["schemas"]["RespuestaDeMensaje"];
                 };
             };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
 }

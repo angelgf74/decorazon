@@ -48,6 +48,7 @@ public class VistaPreviaTests(ApiConPostgresFixture api) : IClassFixture<ApiConP
         Assert.Equal("image/jpeg", respuesta.Content.Headers.ContentType?.MediaType);
         Assert.Equal(imagen, await respuesta.Content.ReadAsByteArrayAsync());
         Assert.True(respuesta.Headers.CacheControl?.Public);
+        Assert.Equal("nosniff", respuesta.Headers.GetValues("X-Content-Type-Options").Single());
 
         Assert.Equal(HttpStatusCode.NoContent, (await dueno.DeleteAsync($"/disenos/{id}/enlace")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await api.CreateClient().GetAsync($"/compartidos/{enlace}/imagen")).StatusCode);
@@ -119,6 +120,9 @@ public class VistaPreviaTests(ApiConPostgresFixture api) : IClassFixture<ApiConP
         Assert.Matches($"og:image\" content=\"http://localhost/compartidos/{enlace}/imagen\\?v=\\d+\"", html);
         Assert.Contains($"og:url\" content=\"https://decorazon.test/compartido/{enlace}\"", html);
         Assert.Contains("summary_large_image", html);
+        // Sin redirección: un navegador que nginx tome por lector de tarjetas (el de la app de Pinterest) no entra en bucle.
+        Assert.DoesNotContain("http-equiv=\"refresh\"", html);
+        Assert.Equal("nosniff", respuesta.Headers.GetValues("X-Content-Type-Options").Single());
         Assert.Contains("Diseño de dormitorio compartido con Decorazon", html);
     }
 
@@ -131,6 +135,33 @@ public class VistaPreviaTests(ApiConPostgresFixture api) : IClassFixture<ApiConP
         var html = await api.CreateClient().GetStringAsync($"/compartidos/{enlace}/tarjeta");
 
         Assert.Contains("og:image\" content=\"https://decorazon.test/iconos/icono-512.png\"", html);
+    }
+
+    [Fact]
+    public async Task LaTarjetaDeUnEnlaceRetirado_EsGenerica_SinElNombre()
+    {
+        var dueno = await CuentasDePrueba.ConSesionAsync(api);
+        var id = await DisenosDePrueba.CrearAsync(dueno, "Mi baño secreto");
+        var enlace = await CompartirAsync(dueno, id);
+        await dueno.DeleteAsync($"/disenos/{id}/enlace");
+
+        var respuesta = await api.CreateClient().GetAsync($"/compartidos/{enlace}/tarjeta");
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+        Assert.DoesNotContain("secreto", await respuesta.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task LaTarjetaYLaImagen_RespondenAHead()
+    {
+        var dueno = await CuentasDePrueba.ConSesionAsync(api);
+        var id = await DisenosDePrueba.CrearAsync(dueno);
+        var enlace = await CompartirAsync(dueno, id);
+        await SubirAsync(dueno, id, Jpeg());
+        var anonimo = api.CreateClient();
+
+        Assert.Equal(HttpStatusCode.OK, (await anonimo.SendAsync(new HttpRequestMessage(HttpMethod.Head, $"/compartidos/{enlace}/tarjeta"))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await anonimo.SendAsync(new HttpRequestMessage(HttpMethod.Head, $"/compartidos/{enlace}/imagen"))).StatusCode);
     }
 
     [Fact]

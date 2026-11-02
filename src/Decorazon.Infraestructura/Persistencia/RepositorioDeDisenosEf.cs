@@ -67,8 +67,14 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
         }
 
         var existente = await contexto.VistasPrevias.FindAsync([id], cancelacion);
-        if (existente is null) contexto.VistasPrevias.Add(VistaPrevia.Crear(id, imagen, fecha));
-        else existente.Sustituir(imagen, fecha);
+        if (existente is null)
+        {
+            contexto.VistasPrevias.Add(VistaPrevia.Crear(id, imagen, fecha));
+        }
+        else
+        {
+            existente.Sustituir(imagen, fecha);
+        }
 
         try
         {
@@ -81,9 +87,12 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
             contexto.ChangeTracker.Clear();
             return true;
         }
-        catch (DbUpdateException excepcion) when (ErroresDePostgres.EsClaveForaneaViolada(excepcion))
+        catch (Exception excepcion) when (
+            excepcion is DbUpdateConcurrencyException
+            || (excepcion is DbUpdateException actualizacion && ErroresDePostgres.EsClaveForaneaViolada(actualizacion)))
         {
-            // El diseño se borró entre comprobarlo y guardar.
+            // El diseño (y con él su imagen) se borró entre comprobarlo y guardar: el alta falla por la clave foránea
+            // y la sustitución no encuentra la fila.
             contexto.ChangeTracker.Clear();
             return false;
         }

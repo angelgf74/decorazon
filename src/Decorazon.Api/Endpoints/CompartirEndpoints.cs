@@ -44,7 +44,8 @@ public static class CompartirEndpoints
             .Accepts<byte[]>("image/jpeg")
             .Produces(StatusCodes.Status204NoContent)
             .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
-            .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound);
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status415UnsupportedMediaType);
 
         rutas.MapGet("/compartidos/{enlace}/imagen", LeerVistaPreviaAsync)
             .WithTags("Compartidos")
@@ -61,6 +62,14 @@ public static class CompartirEndpoints
             .Produces(StatusCodes.Status200OK, contentType: "text/html")
             .Produces(StatusCodes.Status404NotFound, contentType: "text/html")
             .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests);
+
+        // Algunos lectores de tarjetas preguntan antes con HEAD. Fuera del documento: es la misma operación.
+        rutas.MapMethods("/compartidos/{enlace}/imagen", [HttpMethods.Head], LeerVistaPreviaAsync)
+            .RequireRateLimiting(LimitesDePeticiones.Tarjetas)
+            .ExcludeFromDescription();
+        rutas.MapMethods("/compartidos/{enlace}/tarjeta", [HttpMethods.Head], LeerTarjetaAsync)
+            .RequireRateLimiting(LimitesDePeticiones.Tarjetas)
+            .ExcludeFromDescription();
 
         rutas.MapGet("/compartidos/{enlace}", LeerAsync)
             .WithTags("Compartidos")
@@ -148,7 +157,8 @@ public static class CompartirEndpoints
         }
 
         var noValida = Results.BadRequest(new RespuestaDeMensaje(MensajeDeVistaPreviaNoValida));
-        if (peticion.ContentType?.Split(';')[0].Trim() != "image/jpeg" || peticion.ContentLength > VistaPrevia.TamanoMaximoEnBytes)
+        var tipo = peticion.ContentType?.Split(';')[0].Trim();
+        if (!string.Equals(tipo, "image/jpeg", StringComparison.OrdinalIgnoreCase) || peticion.ContentLength > VistaPrevia.TamanoMaximoEnBytes)
         {
             return noValida;
         }
@@ -159,7 +169,10 @@ public static class CompartirEndpoints
         while ((leidos = await peticion.Body.ReadAsync(trozo, cancelacion)) > 0)
         {
             imagen.Write(trozo, 0, leidos);
-            if (imagen.Length > VistaPrevia.TamanoMaximoEnBytes) return noValida;
+            if (imagen.Length > VistaPrevia.TamanoMaximoEnBytes)
+            {
+                return noValida;
+            }
         }
 
         return await casoDeUso.GuardarVistaPreviaAsync(usuarioId, id, imagen.ToArray(), cancelacion) switch
@@ -180,6 +193,8 @@ public static class CompartirEndpoints
         CompartirDisenos casoDeUso,
         CancellationToken cancelacion)
     {
+        // Lo que suba cada cuenta se sirve como imagen: que el navegador no lo interprete como otra cosa.
+        respuesta.Headers.XContentTypeOptions = "nosniff";
         var vista = await casoDeUso.ObtenerVistaPreviaAsync(enlace, cancelacion);
         if (vista is null)
         {
@@ -204,6 +219,7 @@ public static class CompartirEndpoints
         CancellationToken cancelacion)
     {
         respuesta.Headers.CacheControl = "no-store";
+        respuesta.Headers.XContentTypeOptions = "nosniff";
         var web = opcionesDeCorreo.Value.BaseDeLaWeb.TrimEnd('/');
         var icono = web + RutaDelIcono;
 

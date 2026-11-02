@@ -5,7 +5,8 @@ namespace Decorazon.Api.Endpoints;
 /// <summary>
 /// La tarjeta de un enlace compartido: un HTML mínimo con las etiquetas Open Graph y de Twitter que leen WhatsApp,
 /// Telegram, Facebook, X o Slack para enseñar la vista previa. Las personas no llegan aquí (nginx solo manda a los
-/// lectores de tarjetas), pero si alguien lo hace, salta a la página de la web.
+/// lectores de tarjetas); si alguien lo hace, tiene un enlace a la página. Sin redirección automática: un navegador
+/// que nginx tomara por lector (el de una app que se identifique como tal) volvería aquí una y otra vez.
 /// </summary>
 public static class TarjetaDeDiseno
 {
@@ -61,7 +62,6 @@ public static class TarjetaDeDiseno
         }
         return html
             .Append($"<meta name=\"twitter:card\" content=\"{(imagenGrande ? "summary_large_image" : "summary")}\">\n")
-            .Append($"<meta http-equiv=\"refresh\" content=\"0; url={u}\">\n")
             .Append($"</head>\n<body>\n<p><a href=\"{u}\">{t}</a></p>\n</body>\n</html>\n")
             .ToString();
     }

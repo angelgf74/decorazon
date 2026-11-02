@@ -2,7 +2,10 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { mensajeDeError } from '../../cuenta/errores'
 import { useDialogoModal } from '../../editor/comunes/usarDialogoModal'
 import { textos } from '../../textos'
-import { compartirDiseno, dejarDeCompartir, direccionCompartida, type ResumenDiseno } from '../servidor'
+import type { DocumentoDiseno } from '../../nucleo'
+import { compartirDiseno, dejarDeCompartir, direccionCompartida, obtenerDiseno, subirVistaPrevia, type ResumenDiseno } from '../servidor'
+import { apuntarVistaPrevia } from '../vistaPrevia/frecuencia'
+import GeneradorDeVistaPrevia from '../vistaPrevia/GeneradorDeVistaPrevia'
 
 const t = textos.compartir
 
@@ -27,6 +30,9 @@ export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props)
   const [confirmando, setConfirmando] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const [copiado, setCopiado] = useState(false)
+  // La vista previa que se está haciendo, y a quién entregarla.
+  const [generando, setGenerando] = useState<DocumentoDiseno | null>(null)
+  const entregar = useRef<((imagen: Blob | null) => void) | null>(null)
   const enlace = diseno.enlace ?? null
   const botones = useRef<Partial<Record<Foco, HTMLButtonElement | null>>>({})
   const foco = useRef<Foco | null>(null)
@@ -52,7 +58,30 @@ export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props)
     setOcupado(false)
   }
 
+  const hacerVistaPrevia = (doc: DocumentoDiseno) => new Promise<Blob | null>((ok) => {
+    entregar.current = ok
+    setGenerando(doc)
+  })
+
+  /**
+   * Primero la imagen de la tarjeta y después el enlace: lo normal es pegarlo enseguida en un chat, que lee la tarjeta
+   * en ese momento y la guarda días. Si la imagen falla, el enlace se crea igual y la tarjeta lleva el icono.
+   */
+  const subirLaVistaPrevia = async () => {
+    try {
+      const { diseno: actual } = await obtenerDiseno(diseno.id)
+      const imagen = await hacerVistaPrevia(actual.contenido)
+      if (imagen) {
+        await subirVistaPrevia(diseno.id, imagen)
+        apuntarVistaPrevia(diseno.id)
+      }
+    } catch {
+      // sin vista previa: la tarjeta saldrá con el icono
+    }
+  }
+
   const crear = () => intentar(async () => {
+    await subirLaVistaPrevia()
     const nuevo = await compartirDiseno(diseno.id)
     foco.current = 'copiar'
     alCambiar(nuevo)
@@ -84,7 +113,7 @@ export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props)
       <p>{t.explicacion}</p>
       {enlace === null ? (
         <div className="dialogo-compartir__acciones">
-          <button ref={enfocar('crear')} type="button" className="primario" disabled={ocupado} onClick={() => void crear()}>{t.crear}</button>
+          <button ref={enfocar('crear')} type="button" className="primario" disabled={ocupado} aria-busy={ocupado} onClick={() => void crear()}>{t.crear}</button>
           <button type="button" disabled={ocupado} onClick={alCerrar}>{t.cerrar}</button>
         </div>
       ) : (
@@ -111,7 +140,17 @@ export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props)
           )}
         </>
       )}
+      {enlace === null && <p className="dialogo-compartir__nota" role="status">{generando ? t.preparando : ''}</p>}
       {aviso && <p className="disenos__aviso" role="alert">{aviso}</p>}
+      {generando && (
+        <GeneradorDeVistaPrevia
+          doc={generando}
+          alTerminar={(imagen) => {
+            setGenerando(null)
+            entregar.current?.(imagen)
+          }}
+        />
+      )}
     </dialog>
   )
 }

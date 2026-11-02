@@ -37,6 +37,20 @@ function montar() {
   )
 }
 
+/** La API de compartir el diseño «b»: leerlo, subir su vista previa y crear el enlace. */
+function servirCompartir({ vistaPrevia = 204 }: { vistaPrevia?: number } = {}) {
+  const doc = documentoNuevo('salon', 400, 300, 250)
+  fetchSimulado.mockImplementation(async (p) => {
+    const ruta = `${p.method} ${new URL(p.url).pathname}`
+    if (ruta === 'GET /disenos/b') return respuesta(200, { ...RECIENTE, contenido: doc, enlace: null })
+    if (ruta === 'PUT /disenos/b/vista-previa') return respuesta(vistaPrevia, vistaPrevia >= 400 ? { mensaje: 'falla' } : undefined)
+    if (ruta === 'PUT /disenos/b/enlace') return respuesta(200, { enlace: 'tok_1' })
+    return respuesta(404, { mensaje: 'no' })
+  })
+}
+
+const rutas = () => fetchSimulado.mock.calls.map(([p]) => `${p.method} ${new URL(p.url).pathname}`)
+
 function conSesion() {
   localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: new Date(Date.now() + 86_400_000).toISOString() }))
   reiniciarSesion()
@@ -81,14 +95,12 @@ describe('MisDisenos', () => {
     const fila = (await screen.findByText('Reciente')).closest('li')!
     await userEvent.click(within(fila).getByRole('button', { name: 'Compartir' }))
     const dialogo = screen.getByRole('dialog', { name: 'Compartir «Reciente»' })
-    fetchSimulado.mockResolvedValueOnce(respuesta(200, { enlace: 'tok_1' }))
+    servirCompartir()
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Crear enlace' }))
     const campo = await within(dialogo).findByLabelText('Enlace')
     expect((campo as HTMLInputElement).value).toBe(`${location.origin}/compartido/tok_1`)
     expect(within(dialogo).getByRole('button', { name: 'Copiar enlace' })).toBeInTheDocument()
-    const peticion = fetchSimulado.mock.calls[1]![0]
-    expect(peticion.method).toBe('PUT')
-    expect(new URL(peticion.url).pathname).toBe('/disenos/b/enlace')
+    expect(rutas()).toContain('PUT /disenos/b/enlace')
     expect(within(fila).getByText('Compartido')).toBeInTheDocument()
     // El botón pulsado desaparece: el foco pasa a «Copiar enlace» en vez de perderse.
     expect(document.activeElement).toBe(within(dialogo).getByRole('button', { name: 'Copiar enlace' }))
@@ -111,20 +123,30 @@ describe('MisDisenos', () => {
     expect(estado).toHaveTextContent('Enlace copiado')
   })
 
-  it('al crear el enlace, en segundo plano, lee el diseño, hace la vista previa y la sube', async () => {
+  it('antes de crear el enlace hace la vista previa y la sube: quien pegue el enlace enseguida ya ve la imagen', async () => {
     conSesion()
     fetchSimulado.mockResolvedValueOnce(respuesta(200, [RECIENTE]))
     montar()
     const fila = (await screen.findByText('Reciente')).closest('li')!
     await userEvent.click(within(fila).getByRole('button', { name: 'Compartir' }))
     const dialogo = screen.getByRole('dialog', { name: 'Compartir «Reciente»' })
-    const doc = documentoNuevo('salon', 400, 300, 250)
-    fetchSimulado
-      .mockResolvedValueOnce(respuesta(200, { enlace: 'tok_1' }))
-      .mockResolvedValueOnce(respuesta(200, { ...RECIENTE, contenido: doc, enlace: 'tok_1' }))
-      .mockResolvedValueOnce(respuesta(204))
+    servirCompartir()
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Crear enlace' }))
-    await vi.waitFor(() => expect(fetchSimulado.mock.calls.some(([p]) => p.method === 'PUT' && new URL(p.url).pathname === '/disenos/b/vista-previa')).toBe(true))
+    await within(dialogo).findByLabelText('Enlace')
+    expect(rutas().slice(1)).toEqual(['GET /disenos/b', 'PUT /disenos/b/vista-previa', 'PUT /disenos/b/enlace'])
+  })
+
+  it('si la vista previa falla, el enlace se crea igual (la tarjeta saldrá con el icono)', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [RECIENTE]))
+    montar()
+    const fila = (await screen.findByText('Reciente')).closest('li')!
+    await userEvent.click(within(fila).getByRole('button', { name: 'Compartir' }))
+    const dialogo = screen.getByRole('dialog', { name: 'Compartir «Reciente»' })
+    servirCompartir({ vistaPrevia: 500 })
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Crear enlace' }))
+    expect(await within(dialogo).findByLabelText('Enlace')).toBeInTheDocument()
+    expect(within(dialogo).queryByRole('alert')).toBeNull()
   })
 
   it('Dejar de compartir, tras confirmarlo, retira el enlace y quita la marca', async () => {
