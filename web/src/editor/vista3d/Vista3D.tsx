@@ -3,22 +3,12 @@ import { Canvas } from '@react-three/fiber'
 import { textos } from '../../textos'
 import AvisoVista3D from '../comunes/AvisoVista3D'
 import SinFallos from '../comunes/SinFallos'
+import { hayWebgl } from '../comunes/webgl'
 import { almacen, useEditor } from '../estado/almacen'
 import Escena from './Escena3D'
 import './vista3d.css'
 
 const t = textos.vista3d
-
-function hayWebgl(): boolean {
-  try {
-    const lienzo = document.createElement('canvas')
-    const contexto = lienzo.getContext('webgl2') ?? lienzo.getContext('webgl')
-    contexto?.getExtension('WEBGL_lose_context')?.loseContext()
-    return contexto !== null
-  } catch {
-    return false
-  }
-}
 
 export default function Vista3D() {
   const doc = useEditor((e) => e.documento)

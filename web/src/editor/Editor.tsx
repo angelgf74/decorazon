@@ -1,7 +1,8 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { versionCargada } from '../recargaPorVersion'
 import { textos } from '../textos'
 import { almacen, useEditor } from './estado/almacen'
+import HojaImpresion from './hoja/HojaImpresion'
 import BarraSuperior from './paneles/BarraSuperior'
 import NuevaEstancia from './paneles/NuevaEstancia'
 import ListaAvisos from './paneles/ListaAvisos'
@@ -35,6 +36,9 @@ export default function Editor() {
   const aviso = useEditor((e) => e.aviso)
   const vista = useEditor((e) => e.vista)
   const [hoja, setHoja] = useState<Hoja | null>(null)
+  const [imprimiendo, setImprimiendo] = useState(false)
+  // Al cerrar la hoja para imprimir, el foco vuelve a donde estaba (el botón Imprimir).
+  const focoAntes = useRef<HTMLElement | null>(null)
   // lazy guarda el import rechazado: tras un fallo se crea otro para que volver a pulsar 3D reintente la carga.
   const [Vista3D, setVista3D] = useState(vista3dPerezosa)
 
@@ -47,10 +51,18 @@ export default function Editor() {
   if (!hayDocumento) return <NuevaEstancia />
 
   const alternar = (h: Hoja) => setHoja((actual) => (actual === h ? null : h))
+  const abrirImpresion = () => {
+    focoAntes.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setImprimiendo(true)
+  }
+  const cerrarImpresion = () => {
+    setImprimiendo(false)
+    focoAntes.current?.focus()
+  }
 
   return (
     <div className="editor">
-      <BarraSuperior />
+      <BarraSuperior alImprimir={abrirImpresion} />
       <div className="editor__cuerpo">
         <aside className={`editor__izquierda hoja${hoja === 'izquierda' ? ' hoja--abierta' : ''}`}>
           {paso === 1 ? <PanelEstancia /> : <PanelCatalogo alEmpezarArrastre={() => setHoja(null)} />}
@@ -69,6 +81,7 @@ export default function Editor() {
       </div>
       <PestanasDeHojas paso={paso} hoja={hoja} alAlternar={alternar} />
       {aviso !== null && <p className="editor__aviso" role="status">{aviso}</p>}
+      {imprimiendo && <HojaImpresion alCerrar={cerrarImpresion} />}
     </div>
   )
 }

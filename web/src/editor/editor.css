@@ -76,7 +76,7 @@
 .barra__guardado--error, .barra__guardado--conflicto, .barra__guardado--sinConexion { color: var(--conflicto); font-weight: 600; }
 .barra__guardado--error::before, .barra__guardado--conflicto::before, .barra__guardado--sinConexion::before { background: var(--conflicto); }
 .barra__nombre { min-width: 6rem; max-width: 14rem; font-weight: 600; }
-.barra__nuevo { padding-inline: var(--esp-2); }
+.barra__nuevo, .barra__imprimir { padding-inline: var(--esp-2); }
 .barra__cuenta { gap: var(--esp-2); }
 
 /* Texto que se queda solo para lectores de pantalla cuando falta sitio: el botón conserva su nombre y su title. */
@@ -84,7 +84,7 @@
   .barra__texto--estrecha { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 @media (max-width: 1279px) {
-  :is(.barra__nuevo, .barra__cuenta) .barra__texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  :is(.barra__nuevo, .barra__imprimir, .barra__cuenta) .barra__texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .barra__cuenta :is(button, .boton) { width: var(--objetivo); padding: 0; }
 }
 
@@ -287,10 +287,10 @@
 @media (max-width: 767px) {
   .barra {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
     grid-template-areas:
-      'pasos pasos vista vista'
-      'deshacer guardado nuevo cuenta';
+      'pasos pasos pasos vista vista'
+      'deshacer guardado nuevo imprimir cuenta';
     gap: var(--esp-2);
     padding: var(--esp-2) var(--esp-3);
   }
@@ -300,9 +300,10 @@
   /* Dos líneas en vez de cortar "Guardado en este navegador". */
   .barra__guardado { grid-area: guardado; margin: 0; font-size: 0.75rem; line-height: 1.2; white-space: normal; }
   .barra__nuevo { grid-area: nuevo; }
+  .barra__imprimir { grid-area: imprimir; }
   .barra__cuenta { grid-area: cuenta; gap: var(--esp-1); }
   .barra__nombre { grid-column: 1 / -1; max-width: none; }
-  .barra__historial, .barra__nuevo { width: var(--objetivo); padding: 0; }
+  .barra__historial, .barra__nuevo, .barra__imprimir { width: var(--objetivo); padding: 0; }
 
   /* La hoja abierta ocupa su sitio debajo del plano en vez de taparlo: el plano se encoge y se vuelve a encuadrar. */
   .editor__cuerpo { display: flex; flex-direction: column; padding-bottom: calc(3.75rem + env(safe-area-inset-bottom)); }

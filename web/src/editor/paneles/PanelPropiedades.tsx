@@ -2,12 +2,13 @@ import { useId } from 'react'
 import {
   cambiarLongitudPared, capitalizar, catalogoBase, editarAbertura, editarElemento, editarEstructura, longitudPared, moverVertice, partirPared,
   quitarDeEstancia, quitarVertice, valorVariante,
-  type Abertura, type Columna, type DefinicionVariante, type DocumentoDiseno, type Elemento, type Estructura, type Medidas, type Puerta,
+  type Abertura, type Columna, type DocumentoDiseno, type Elemento, type Estructura, type Medidas, type Puerta,
   type Radiador, type ResultadoEdicion, type Ventana, type Viga, type ZonaColor,
 } from '../../nucleo'
 import { textos } from '../../textos'
 import CampoNumero from '../comunes/CampoNumero'
 import EntradaColor from '../comunes/EntradaColor'
+import { etiquetaValor } from '../comunes/variantes'
 import Icono from '../comunes/Icono'
 import { almacen, useEditor } from '../estado/almacen'
 import { borrar, duplicar } from '../estado/elementos'
@@ -164,10 +165,7 @@ function BotonQuitar({ id }: { id: string }) {
 }
 
 type CambiosElemento = Parameters<typeof editarElemento>[3]
-type ValorVariante = DefinicionVariante['valores'][number]
 
-const etiquetaValor = (v: ValorVariante): string =>
-  typeof v === 'boolean' ? (v ? t.si : t.no) : typeof v === 'number' ? String(v) : capitalizar(v)
 
 function CampoColor({ zona, valor, alCambiar }: { zona: ZonaColor; valor: string; alCambiar(color: string): void }) {
   const id = useId()

@@ -1,0 +1,101 @@
+/* Vista previa: las páginas sobre fondo gris, como en el diálogo de imprimir. */
+.hoja-impresion {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: auto;
+  padding: 0 var(--esp-4) var(--esp-6);
+  background: #5f5a55;
+  overscroll-behavior: contain;
+}
+.hoja-impresion:focus { outline: none; }
+
+.hoja-impresion__barra {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  margin: 0 calc(-1 * var(--esp-4)) var(--esp-4);
+  padding: var(--esp-2) var(--esp-4);
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borde-suave);
+}
+.hoja-impresion__titulo { margin: 0 auto 0 0; font-weight: 600; }
+
+.hoja-impresion__pagina {
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  margin: 0 auto var(--esp-6);
+  padding: 12mm;
+  background: #fff;
+  color: var(--tinta);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.3);
+}
+
+.hoja-impresion__cabecera {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--esp-1) var(--esp-4);
+  padding-bottom: var(--esp-3);
+  border-bottom: 2px solid var(--terracota);
+}
+.hoja-impresion__cabecera h1 { margin: 0; font-size: 1.5rem; line-height: 1.2; color: var(--terracota); }
+.hoja-impresion__cabecera p { grid-column: 1 / -1; margin: 0; }
+.hoja-impresion .hoja-impresion__fecha { grid-column: 2; grid-row: 1; color: var(--gris); font-size: var(--texto-s); }
+
+.hoja-impresion__plano { display: block; width: 100%; height: auto; margin: var(--esp-4) 0; }
+
+.hoja-impresion h2 { margin: var(--esp-4) 0 var(--esp-2); font-size: 1rem; }
+
+.hoja-impresion__tabla { width: 100%; border-collapse: collapse; font-size: var(--texto-s); line-height: 1.35; }
+.hoja-impresion__tabla th,
+.hoja-impresion__tabla td { padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--borde-suave); }
+.hoja-impresion__tabla thead th { border-bottom: 1.5px solid var(--tinta); }
+/* Si la lista sigue en otra página, repite la cabecera y no parte un mueble entre dos. */
+.hoja-impresion__tabla thead { display: table-header-group; }
+.hoja-impresion__tabla tr { break-inside: avoid; }
+.hoja-impresion__medidas { white-space: nowrap; }
+
+.hoja-impresion__colores { display: flex; flex-wrap: wrap; gap: 2px var(--esp-3); margin: 0; padding: 0; list-style: none; }
+.hoja-impresion__muestra {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-right: 0.3rem;
+  border: 1px solid rgb(0 0 0 / 0.25);
+  border-radius: 2px;
+  vertical-align: -0.1rem;
+  /* Sin esto el navegador no imprime los fondos y las muestras salen en blanco. */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.hoja-impresion__pie { margin: var(--esp-6) 0 0; color: var(--gris); font-size: 0.75rem; }
+
+.hoja-impresion__imagen3d { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* El lienzo de la captura se pinta fuera de la pantalla, a tamaño fijo. */
+.hoja-impresion__lienzo3d { position: fixed; top: 0; left: -10000px; width: 1200px; height: 800px; pointer-events: none; }
+
+@media (max-width: 767px) {
+  .hoja-impresion { padding: 0 var(--esp-2) var(--esp-4); }
+  .hoja-impresion__barra { margin: 0 calc(-1 * var(--esp-2)) var(--esp-3); padding: var(--esp-2); }
+  .hoja-impresion__pagina { min-height: 0; padding: var(--esp-4); }
+}
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body:has(.hoja-impresion) { background: #fff; }
+  body:has(.hoja-impresion) > :not(.hoja-impresion) { display: none !important; }
+  .hoja-impresion { position: static; overflow: visible; padding: 0; background: none; }
+  .hoja-impresion__barra,
+  .hoja-impresion__lienzo3d { display: none; }
+  .hoja-impresion__pagina { width: auto; max-width: none; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
+  .hoja-impresion__pagina--3d { break-before: page; }
+  .hoja-impresion__plano { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

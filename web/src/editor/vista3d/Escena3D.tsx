@@ -25,7 +25,7 @@ function CamaraInicial({ posicion }: { posicion: Vec3 }) {
   return null
 }
 
-export default function Escena3D({ doc, ocultar, encuadres }: { doc: DocumentoDiseno; ocultar: boolean; encuadres: number }) {
+export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false }: { doc: DocumentoDiseno; ocultar: boolean; encuadres: number; sinResaltes?: boolean }) {
   const [inicial] = useState(() => camaraInicial(doc))
   const camara = useThree((e) => e.camera)
   const invalidate = useThree((e) => e.invalidate)
@@ -127,7 +127,7 @@ export default function Escena3D({ doc, ocultar, encuadres }: { doc: DocumentoDi
         maxPolarAngle={Math.PI / 2 - 0.05}
       />
       <Estancia3D doc={doc} ocultas={ocultas} />
-      {doc.elementos.map((e) => <Mueble3D key={e.id} elemento={e} />)}
+      {doc.elementos.map((e) => <Mueble3D key={e.id} elemento={e} sinResaltes={sinResaltes} />)}
     </>
   )
 }

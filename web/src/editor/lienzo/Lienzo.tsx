@@ -9,7 +9,7 @@ import CapaAberturas from './capas/CapaAberturas'
 import CapaCotas, { CotasElemento, CotasEnPared } from './capas/CapaCotas'
 import CapaConflictos from './capas/CapaConflictos'
 import CapaElementos from './capas/CapaElementos'
-import CapaEstructura from './capas/CapaEstructura'
+import CapaEstructura, { PatronRayado } from './capas/CapaEstructura'
 import CapaPlanta from './capas/CapaPlanta'
 import CapaTiradores, { TiradorGiro } from './capas/CapaTiradores'
 import type { AlPulsar } from './capas/comun'
@@ -228,12 +228,7 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
         onDragOver={alPasarPorEncima}
         onDrop={alSoltarTipo}
       >
-        <defs>
-          <pattern id="lienzo-rayado" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-            <rect width="6" height="6" fill="#d8d2ca" />
-            <line x1="0" y1="0" x2="0" y2="6" stroke="#6f6862" strokeWidth="2" />
-          </pattern>
-        </defs>
+        <defs><PatronRayado id="lienzo-rayado" /></defs>
         {/* --escala deja el texto del plano a tamaño constante en pantalla (lienzo.css). */}
         <g ref={plano} transform={`translate(${vista.x} ${vista.y}) scale(${vista.escala})`} style={{ '--escala': vista.escala } as CSSProperties}>
           <ContextoLienzo.Provider value={contexto}>
