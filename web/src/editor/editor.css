@@ -141,6 +141,10 @@
 .producto-tienda .panel__rejilla > * { min-width: 0; }
 .producto-tienda input { width: 100%; min-width: 0; box-sizing: border-box; }
 .producto-tienda a { color: var(--terracota); font-weight: 600; }
+.producto-tienda textarea { width: 100%; min-width: 0; box-sizing: border-box; font: inherit; resize: vertical; }
+.producto-tienda__aviso { margin: var(--esp-2) 0; padding: var(--esp-2) var(--esp-3); border: 1px solid var(--borde); border-radius: var(--radio); background: var(--crema-oscura); font-size: var(--texto-s); }
+.producto-tienda__aviso p { margin: 0 0 var(--esp-2); }
+.producto-tienda__estado:empty { margin: 0; }
 .panel__nota { margin: var(--esp-2) 0; color: var(--gris); font-size: var(--texto-s); line-height: 1.45; }
 .panel__botones { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin: var(--esp-3) 0; }
 .panel__acciones {

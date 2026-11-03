@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { esFechaPrecio, esPrecio, esUrlDeProducto, LIMITES_TIENDA, limpiarUrl } from './tienda'
+import { esFechaPrecio, esPrecio, esUrlDeProducto, leerMedidas, LIMITES_TIENDA, limpiarUrl } from './tienda'
 
 describe('limpiarUrl', () => {
   it('sin esquema le pone https://', () => {
@@ -56,5 +56,51 @@ describe('esFechaPrecio', () => {
     expect(esFechaPrecio('2026-11-03')).toBe(true)
     expect(esFechaPrecio('2024-02-29')).toBe(true)
     for (const f of ['2026-02-30', '2026-13-01', '03/11/2026', '2026-11-3', '', 20261103]) expect(esFechaPrecio(f)).toBe(false)
+  })
+})
+
+describe('leerMedidas: el texto que pega el usuario', () => {
+  it('etiquetas en cualquier orden, con o sin dos puntos, con tildes o sin ellas', () => {
+    expect(leerMedidas('Ancho: 110 cm\nProfundidad: 58 cm\nAltura: 201 cm')).toEqual({ ancho: 110, fondo: 58, alto: 201 })
+    expect(leerMedidas('Altura 236 cm · Anchura 50 cm · Fondo 60 cm')).toEqual({ ancho: 50, fondo: 60, alto: 236 })
+  })
+
+  it('ancho × fondo × alto en una línea, con x o ×', () => {
+    expect(leerMedidas('Medidas: 110x58x201 cm')).toEqual({ ancho: 110, fondo: 58, alto: 201 })
+    expect(leerMedidas('80 × 40 × 75 cm')).toEqual({ ancho: 80, fondo: 40, alto: 75 })
+  })
+
+  it('el formato de un esquinero: los dos lados y el alto', () => {
+    expect(leerMedidas('110/110x201 cm')).toEqual({ ancho: 110, fondo: 110, alto: 201 })
+    expect(leerMedidas('PAX / GRIMO 160/88 x 236 cm')).toEqual({ ancho: 160, fondo: 88, alto: 236 })
+  })
+
+  it('decimales con coma o punto, redondeados al centímetro', () => {
+    expect(leerMedidas('Ancho: 99,6 cm Fondo: 58.4 cm Alto: 200,5 cm')).toEqual({ ancho: 100, fondo: 58, alto: 201 })
+  })
+
+  it('solo lo que encuentra; un texto sin medidas, nada', () => {
+    expect(leerMedidas('Ancho: 120 cm')).toEqual({ ancho: 120 })
+    expect(leerMedidas('Un armario precioso')).toEqual({})
+    expect(leerMedidas('')).toEqual({})
+  })
+})
+
+describe('leerMedidas: etiquetas que no son las del mueble', () => {
+  it('las etiquetas con complemento no cuentan: del asiento, del colchón, máx., del cajón', () => {
+    expect(leerMedidas('200x88x83 cm\nAltura del asiento: 45 cm')).toEqual({ ancho: 200, fondo: 88, alto: 83 })
+    expect(leerMedidas('Ancho del colchón: 90 cm\nAncho: 100 cm')).toEqual({ ancho: 100 })
+    expect(leerMedidas('Altura máx.: 250 cm')).toEqual({})
+    expect(leerMedidas('Profundidad del cajón 40 cm\nFondo: 58 cm')).toEqual({ fondo: 58 })
+  })
+
+  it('el número en la línea de abajo, como al copiar una tabla', () => {
+    expect(leerMedidas('Ancho\n110 cm\nFondo\n58 cm\nAltura\n201 cm')).toEqual({ ancho: 110, fondo: 58, alto: 201 })
+  })
+
+  it('un texto enorme no se queda pensando: se lee solo el principio', () => {
+    const inicio = performance.now()
+    expect(leerMedidas('1'.repeat(20_000))).toEqual({})
+    expect(performance.now() - inicio).toBeLessThan(200)
   })
 })
