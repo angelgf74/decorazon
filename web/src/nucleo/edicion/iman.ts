@@ -1,4 +1,5 @@
-import type { Catalogo } from '../catalogo/tipos'
+import type { Catalogo, DefinicionTipo } from '../catalogo/tipos'
+import { obstaculosDeEstructura, penetracionEnParedes } from '../conflictos/estancia'
 import { rectangulo } from '../geometria/formas'
 import { penetracion3D, type Prisma } from '../geometria/prisma'
 import { TOLERANCIA_CM } from '../geometria/tolerancia'
@@ -85,13 +86,17 @@ export function imantar(
     }
     return mejor?.t
   }
+  // El eje de cada pared pegada: si la estructura lo aparta por ese eje, deja de estar pegado a ella.
+  const ejeDePared = new Map<string, number>()
   const pegar = (t: Tramo) => {
     const h = hueco(t, rect(), posicion)
     if (h === null) return
     posicion = sumar(posicion, escalar(t.normal, -h))
     pegadoA.push(`pared:${t.i}`)
     const [ux, uy] = ejesLocales(rotacion)
-    bloqueados.add(Math.abs(punto(t.normal, ux)) >= Math.abs(punto(t.normal, uy)) ? 0 : 1)
+    const eje = Math.abs(punto(t.normal, ux)) >= Math.abs(punto(t.normal, uy)) ? 0 : 1
+    bloqueados.add(eje)
+    ejeDePared.set(`pared:${t.i}`, eje)
   }
 
   const lista = tramos(doc.estancia.planta)
@@ -144,5 +149,118 @@ export function imantar(
     }
   })
 
+  if (defE) {
+    const r = conEstructura(doc, defE, { ...e, rotacion }, posicion, ejes, {
+      bloqueados,
+      // Con las paredes de antes (al editar medidas o giro) solo se pega a ellas: lo que tenía cerca no lo atrae.
+      atraer: !opciones.paredes && !pisable(e),
+      // Lo que va colgado (un cuadro, un módulo alto) no se separa de su pared: se queda con su aviso.
+      apartarDePared: e.alturaSuelo <= 0,
+      vecinos: objetivos.flatMap(volumenes),
+    })
+    posicion = r.posicion
+    pegadoA.push(...r.pegadoA)
+    if (r.ejeApartado !== undefined) {
+      for (const [pared, eje] of ejeDePared) {
+        if (eje === r.ejeApartado) pegadoA.splice(pegadoA.indexOf(pared), 1)
+      }
+    }
+  }
+
   return { posicion: redondearNumeros(posicion), rotacion, pegadoA }
+}
+
+/** Solape de dos intervalos (negativo si no se tocan). */
+const solape = ([a0, a1]: [number, number], [b0, b1]: [number, number]) => Math.min(a1, b1) - Math.max(a0, b0)
+
+interface OpcionesEstructura {
+  /** Ejes ya pegados a una pared: no se atrae por ellos. */
+  bloqueados: Set<number>
+  /** Si se atrae a la estructura cercana (no con las paredes de antes, ni lo pisable). */
+  atraer: boolean
+  /** Si se puede apartar por un eje pegado a una pared (no lo que va colgado). */
+  apartarDePared: boolean
+  /** Los volúmenes de los muebles con los que chocaría: apartarlo no puede meterlo en uno. */
+  vecinos: Prisma[]
+}
+
+/**
+ * Columnas y vigas, con su volumen real (la viga, desde el techo hacia abajo) frente al del mueble (la L de un
+ * esquinero, con su hueco): por los ejes libres, lo acerca hasta tocar una que tenga a IMAN_CM o menos; y si choca
+ * con alguna, lo aparta lo mínimo por cualquiera de sus dos ejes, aunque eso lo separe de una pared, siempre que no
+ * pase de IMAN_CM, no choque con otra ni con un mueble ni se salga de la estancia. Si no hay manera, se queda (y sale
+ * el aviso). Con piezas giradas respecto al mueble (una viga en diagonal) el solape por proyecciones es una cota por
+ * arriba: en la práctica, solo se ajusta a lo que va alineado con él.
+ */
+function conEstructura(
+  doc: DocumentoDiseno, def: DefinicionTipo, e: Elemento, inicio: Punto, ejes: [Punto, Punto], opciones: OpcionesEstructura,
+): { posicion: Punto; pegadoA: string[]; ejeApartado?: number } {
+  const estructura = obstaculosDeEstructura(doc).filter(o => o.nombre === 'columna' || o.nombre === 'viga')
+  const pegadoA: string[] = []
+  if (estructura.length === 0) return { posicion: inicio, pegadoA }
+  const { bloqueados } = opciones
+  const volumenes = (p: Punto) => def.volumenes({ ...e, posicion: p })
+  const solapanEnAltura = (v: Prisma, o: Prisma) => Math.min(v.zMax, o.zMax) - Math.max(v.zMin, o.zMin) > TOLERANCIA_CM
+  const choques = (vs: Prisma[]) => estructura.filter(o => vs.some(v => penetracion3D(v, o.prisma) > TOLERANCIA_CM))
+  const planta = doc.estancia.planta
+  // La misma regla que el aviso de salirse de la estancia.
+  const valida = (p: Punto) => {
+    const vs = volumenes(p)
+    return choques(vs).length === 0
+      && vs.every(v => penetracionEnParedes(planta, v.huella) <= TOLERANCIA_CM)
+      && !vs.some(v => opciones.vecinos.some(w => penetracion3D(v, w) > TOLERANCIA_CM))
+  }
+  let posicion = inicio
+
+  // 1. Atraer por los ejes libres: lo que chocaría si siguiera moviéndose por ese eje, a IMAN_CM o menos.
+  if (opciones.atraer && choques(volumenes(posicion)).length === 0) {
+    ejes.forEach((u, k) => {
+      if (bloqueados.has(k)) return
+      const w = ejes[1 - k]
+      let mejor: { id: string; d: number } | undefined
+      for (const v of volumenes(posicion)) {
+        for (const o of estructura) {
+          if (!solapanEnAltura(v, o.prisma) || solape(proyeccion(v.huella, w), proyeccion(o.prisma.huella, w)) <= EPS) continue
+          const [a0, a1] = proyeccion(v.huella, u)
+          const [b0, b1] = proyeccion(o.prisma.huella, u)
+          const d = b0 >= a1 - EPS ? b0 - a1 : a0 >= b1 - EPS ? b1 - a0 : null
+          if (d !== null && Math.abs(d) <= IMAN_CM && (!mejor || Math.abs(d) < Math.abs(mejor.d))) mejor = { id: o.id, d }
+        }
+      }
+      const destino = mejor && sumar(posicion, escalar(u, mejor.d))
+      if (mejor && destino && valida(destino)) {
+        posicion = destino
+        pegadoA.push(`estructura:${mejor.id}`)
+      }
+    })
+  }
+
+  // 2. Apartar: el desplazamiento más pequeño, por cualquiera de los dos ejes, que lo deje tocando sin chocar.
+  const actuales = volumenes(posicion)
+  const chocan = choques(actuales)
+  let ejeApartado: number | undefined
+  if (chocan.length > 0) {
+    const candidatos: { d: Punto; largo: number; eje: number }[] = []
+    for (const [eje, u] of ejes.entries()) {
+      if (!opciones.apartarDePared && bloqueados.has(eje)) continue
+      for (const v of actuales) {
+        for (const o of chocan) {
+          if (penetracion3D(v, o.prisma) <= TOLERANCIA_CM) continue
+          const [a0, a1] = proyeccion(v.huella, u)
+          const [b0, b1] = proyeccion(o.prisma.huella, u)
+          for (const d of [b1 - a0, b0 - a1]) candidatos.push({ d: escalar(u, d), largo: Math.abs(d), eje })
+        }
+      }
+    }
+    const elegido = candidatos
+      .filter(c => c.largo <= IMAN_CM + EPS)
+      .sort((a, b) => a.largo - b.largo)
+      .find(c => valida(sumar(posicion, c.d)))
+    if (elegido) {
+      posicion = sumar(posicion, elegido.d)
+      for (const o of chocan) pegadoA.push(`estructura:${o.id}`)
+      if (elegido.largo > EPS) ejeApartado = elegido.eje
+    }
+  }
+  return { posicion, pegadoA, ...(ejeApartado !== undefined && { ejeApartado }) }
 }

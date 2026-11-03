@@ -34,25 +34,34 @@ function franja(h: Hueco, ancho: number, desde: number, hasta: number): Punto[] 
   return rectangulo(centro, ancho, hasta - desde, angulo(h.d))
 }
 
-export function obstaculosDeEstancia(doc: DocumentoDiseno): ObstaculosEstancia {
+/** Lo que ocupa la estructura de la estancia (columnas del suelo al techo, vigas desde el techo, radiadores). */
+export function obstaculosDeEstructura(doc: DocumentoDiseno): Obstaculo[] {
   const { planta, alto } = doc.estancia
-  const fisicos: Obstaculo[] = []
+  return doc.estructura.map((e): Obstaculo => {
+    if (e.tipo === 'columna') {
+      return { id: e.id, nombre: 'columna', genero: 'f', prisma: { huella: rectangulo(e.centro, e.ancho, e.fondo, e.rotacion), zMin: 0, zMax: alto } }
+    }
+    if (e.tipo === 'viga') {
+      const v = restar(e.hasta, e.desde)
+      const medio = escalar(sumar(e.desde, e.hasta), 0.5)
+      return { id: e.id, nombre: 'viga', genero: 'f', prisma: { huella: rectangulo(medio, Math.hypot(v.x, v.y), e.ancho, angulo(v)), zMin: alto - e.canto, zMax: alto } }
+    }
+    const h = hueco(planta, e.pared, e.posicion)
+    return { id: e.id, nombre: 'radiador', genero: 'm', prisma: { huella: franja(h, e.ancho, 0, e.fondo), zMin: e.alturaSuelo, zMax: e.alturaSuelo + e.alto } }
+  })
+}
+
+export function obstaculosDeEstancia(doc: DocumentoDiseno): ObstaculosEstancia {
+  const { planta } = doc.estancia
+  const fisicos: Obstaculo[] = obstaculosDeEstructura(doc)
   const protegidos: Obstaculo[] = []
   const aperturas: (ZonaApertura & { id: string })[] = []
 
+  // Delante de cada radiador, una franja que no se debe tapar.
   for (const e of doc.estructura) {
-    if (e.tipo === 'columna') {
-      fisicos.push({ id: e.id, nombre: 'columna', genero: 'f', prisma: { huella: rectangulo(e.centro, e.ancho, e.fondo, e.rotacion), zMin: 0, zMax: alto } })
-    } else if (e.tipo === 'viga') {
-      const v = restar(e.hasta, e.desde)
-      const medio = escalar(sumar(e.desde, e.hasta), 0.5)
-      fisicos.push({ id: e.id, nombre: 'viga', genero: 'f', prisma: { huella: rectangulo(medio, Math.hypot(v.x, v.y), e.ancho, angulo(v)), zMin: alto - e.canto, zMax: alto } })
-    } else {
-      const h = hueco(planta, e.pared, e.posicion)
-      const z = { zMin: e.alturaSuelo, zMax: e.alturaSuelo + e.alto }
-      fisicos.push({ id: e.id, nombre: 'radiador', genero: 'm', prisma: { huella: franja(h, e.ancho, 0, e.fondo), ...z } })
-      protegidos.push({ id: e.id, nombre: 'radiador', genero: 'm', prisma: { huella: franja(h, e.ancho, e.fondo, e.fondo + FRANJA_CM), ...z } })
-    }
+    if (e.tipo !== 'radiador') continue
+    const h = hueco(planta, e.pared, e.posicion)
+    protegidos.push({ id: e.id, nombre: 'radiador', genero: 'm', prisma: { huella: franja(h, e.ancho, e.fondo, e.fondo + FRANJA_CM), zMin: e.alturaSuelo, zMax: e.alturaSuelo + e.alto } })
   }
 
   for (const a of doc.aberturas) {

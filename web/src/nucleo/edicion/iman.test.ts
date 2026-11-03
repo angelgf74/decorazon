@@ -191,3 +191,119 @@ describe('imantar entre muebles: solo los que chocan', () => {
     })
   })
 })
+
+describe('imantar con columnas y vigas', () => {
+  // El caso de Angel: columna de 20 × 20 en el rincón de arriba a la izquierda y un PAX / GRIMO de 111 × 111 con hueco
+  // de 12 × 58: la columna no cabe en el hueco, así que el armario va a 8 cm de la pared izquierda, tocando la columna.
+  const conColumna = (columnas: { x: number; y: number; ancho: number; fondo: number }[]): DocumentoDiseno => ({
+    ...sala(),
+    estructura: columnas.map((c, i) => ({ id: 'col' + i, tipo: 'columna' as const, centro: { x: c.x, y: c.y }, ancho: c.ancho, fondo: c.fondo, rotacion: 0 })),
+  })
+  const pax = (posicion: Punto, huecoAncho = 12): Elemento => ({
+    ...elementoNuevo(catalogoBase.get('armario-esquinero')!, { ...posicion }, 'pax'),
+    medidas: { ancho: 111, fondo: 111, alto: 201 },
+    medidasExtra: { profundidadFondo: 58, anchoAla: 58, huecoAncho, huecoFondo: 58 },
+  })
+  const conflictos = (doc: DocumentoDiseno, e: Elemento, r: { posicion: Punto; rotacion: number }) =>
+    detectarConflictos({ ...doc, elementos: [{ ...e, posicion: r.posicion, rotacion: r.rotacion }] }, catalogoBase)
+
+  it('soltado cerca del rincón: pegado a la pared de atrás y apoyado en la columna, a 8 cm de la izquierda', () => {
+    const doc = conColumna([{ x: 10, y: 10, ancho: 20, fondo: 20 }])
+    const e = pax({ x: 58, y: 58 })
+    const r = imantar(doc, catalogoBase, e, { libre: false })
+    expect(r.posicion).toEqual({ x: 63.5, y: 55.5 })
+    expect(r.pegadoA).toContain('estructura:col0')
+    // Se apartó de la pared izquierda: ya no está pegado a ella.
+    expect(r.pegadoA.filter((p) => p.startsWith('pared:'))).toEqual(['pared:0'])
+    expect(conflictos(doc, e, r)).toEqual([])
+  })
+
+  it('soltado a 20 cm de la pared: se acerca hasta tocar la columna', () => {
+    const doc = conColumna([{ x: 10, y: 10, ancho: 20, fondo: 20 }])
+    const r = imantar(doc, catalogoBase, pax({ x: 75.5, y: 58 }), { libre: false })
+    expect(r.posicion).toEqual({ x: 63.5, y: 55.5 })
+  })
+
+  it('la atracción llega a 15 cm justos: a 15 se acerca, a 16 no', () => {
+    const doc = conColumna([{ x: 10, y: 10, ancho: 20, fondo: 20 }])
+    // A 23 cm de la pared, el cuerpo del fondo empieza en 35: 15 cm hasta la columna; a 24, 16.
+    expect(imantar(doc, catalogoBase, pax({ x: 78.5, y: 58 }), { libre: false }).posicion).toEqual({ x: 63.5, y: 55.5 })
+    expect(imantar(doc, catalogoBase, pax({ x: 79.5, y: 58 }), { libre: false }).posicion).toEqual({ x: 79.5, y: 55.5 })
+  })
+
+  it('si la columna cabe en el hueco, se queda pegado a las dos paredes', () => {
+    const doc = conColumna([{ x: 10, y: 10, ancho: 20, fondo: 20 }])
+    const r = imantar(doc, catalogoBase, pax({ x: 58, y: 58 }, 20), { libre: false })
+    expect(r.posicion).toEqual({ x: 55.5, y: 55.5 })
+    expect(r.pegadoA).not.toContain('estructura:col0')
+  })
+
+  it('un armario contra una columna en medio de la pared se aparta lo justo para tocarla', () => {
+    const doc = conColumna([{ x: 200, y: 15, ancho: 30, fondo: 30 }])
+    const r = imantar(doc, catalogoBase, armario({ x: 145, y: 35 }), { libre: false })
+    expect(r.posicion).toEqual({ x: 135, y: 30 })
+  })
+
+  it('con un solape de más de 15 cm no se mueve: queda el aviso de siempre', () => {
+    const doc = conColumna([{ x: 200, y: 15, ancho: 30, fondo: 30 }])
+    const r = imantar(doc, catalogoBase, armario({ x: 170, y: 35 }), { libre: false })
+    expect(r.posicion).toEqual({ x: 170, y: 30 })
+  })
+
+  it('no se aparta hacia fuera de la estancia', () => {
+    // Armario en el rincón (x de 0 a 100) y una columna que lo pisa 5 cm por la derecha: a la izquierda está la pared.
+    const doc = conColumna([{ x: 105, y: 15, ancho: 20, fondo: 20 }])
+    const r = imantar(doc, catalogoBase, armario({ x: 56, y: 36 }), { libre: false })
+    expect(r.posicion).toEqual({ x: 50, y: 30 })
+  })
+
+  it('no se aparta contra otra columna', () => {
+    // Dos columnas con 95 cm libres entre sus caras (de 115 a 210): el armario de 100 no cabe entre ellas.
+    const doc = conColumna([{ x: 100, y: 15, ancho: 30, fondo: 30 }, { x: 225, y: 15, ancho: 30, fondo: 30 }])
+    const r = imantar(doc, catalogoBase, armario({ x: 170, y: 35 }), { libre: false })
+    expect(r.posicion).toEqual({ x: 170, y: 30 })
+  })
+
+  it('una viga baja aparta un armario alto de la pared; uno que cabe debajo, no', () => {
+    // Viga de 12 de ancho contra la pared de atrás, con su cara de abajo a 220 cm (canto 30 en un techo de 250).
+    const doc: DocumentoDiseno = { ...sala(), estructura: [{ id: 'v', tipo: 'viga', desde: { x: 0, y: 6 }, hasta: { x: 400, y: 6 }, ancho: 12, canto: 30 }] }
+    const alto = { ...armario({ x: 200, y: 35 }), medidas: { ancho: 100, fondo: 60, alto: 230 } }
+    const r = imantar(doc, catalogoBase, alto, { libre: false })
+    expect(r.posicion).toEqual({ x: 200, y: 42 })
+    expect(r.pegadoA).toContain('estructura:v')
+    expect(imantar(doc, catalogoBase, armario({ x: 200, y: 35 }), { libre: false }).posicion).toEqual({ x: 200, y: 30 })
+  })
+})
+
+describe('imantar con estructura: lo que no debe hacer', () => {
+  it('no aparta un mueble de la columna metiéndolo en su vecino', () => {
+    // B en el rincón (x de 0 a 100); A pegado a su derecha (100 a 200) y una columna que pisa A 5 cm por la derecha.
+    const doc: DocumentoDiseno = { ...sala(), estructura: [{ id: 'c', tipo: 'columna', centro: { x: 205, y: 10 }, ancho: 20, fondo: 20, rotacion: 0 }] }
+    doc.elementos = [armario({ x: 50, y: 30 }, 0, 'B')]
+    const r = imantar(doc, catalogoBase, armario({ x: 152, y: 35 }, 0, 'A'), { libre: false })
+    expect(r.posicion).toEqual({ x: 150, y: 30 })
+    expect(r.pegadoA).not.toContain('estructura:c')
+  })
+
+  it('al editar con las paredes de antes (cambiar el alto), no lo atrae una columna que solo tenía cerca', () => {
+    const doc: DocumentoDiseno = { ...sala(), estructura: [{ id: 'c', tipo: 'columna', centro: { x: 265, y: 10 }, ancho: 20, fondo: 20, rotacion: 0 }] }
+    const e = { ...armario({ x: 200, y: 30 }), medidas: { ancho: 100, fondo: 60, alto: 230 } }
+    expect(imantar(doc, catalogoBase, e, { libre: false, paredes: [0] }).posicion).toEqual({ x: 200, y: 30 })
+  })
+
+  it('una alfombra no se atrae a una columna', () => {
+    const doc: DocumentoDiseno = { ...sala(), estructura: [{ id: 'c', tipo: 'columna', centro: { x: 200, y: 165 }, ancho: 20, fondo: 20, rotacion: 0 }] }
+    const alfombra = elementoNuevo(catalogoBase.get('alfombra')!, { x: 0, y: 0 }, 'alf')
+    // Su borde derecho a 10 cm de la columna (que empieza en x = 190).
+    const e = { ...alfombra, posicion: { x: 180 - alfombra.medidas.ancho / 2, y: 165 } }
+    expect(imantar(doc, catalogoBase, e, { libre: false }).posicion).toEqual(e.posicion)
+  })
+
+  it('un cuadro colgado bajo una viga no se separa de la pared: se queda con su aviso', () => {
+    // Viga contra la pared de atrás con su cara de abajo a 190; el cuadro llega de 160 a 220.
+    const doc: DocumentoDiseno = { ...sala(), estructura: [{ id: 'v', tipo: 'viga', desde: { x: 0, y: 6 }, hasta: { x: 400, y: 6 }, ancho: 12, canto: 60 }] }
+    const cuadro = { ...elementoNuevo(catalogoBase.get('cuadro')!, { x: 200, y: 4 }, 'cu'), alturaSuelo: 160, medidas: { ancho: 60, fondo: 3, alto: 60 } }
+    expect(imantar(doc, catalogoBase, cuadro, { libre: false }).posicion).toEqual({ x: 200, y: 1.5 })
+  })
+})
+
