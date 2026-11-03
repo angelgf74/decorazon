@@ -6,7 +6,8 @@ import { CLAVE_ID_DE_SUBIDA, CLAVE_REGISTRO_ENVIADO, claveCopia, guardarCopiaLoc
 import { abrirDiseno, conectarSincronizacion, elegirApertura } from '../editor/persistencia/sincronizacion'
 import { catalogoBase, documentoNuevo, elementoNuevo, serializarDocumento, type DocumentoDiseno } from '../nucleo'
 import { respuesta } from '../pruebas/respuesta'
-import { empezarDeNuevo, hayCambiosSinSubir, subirDisenoAnonimo, yaEstaEnLaCuenta } from './disenosLocales'
+import { textos } from '../textos'
+import { empezarDeNuevo, hayCambiosSinSubir, olvidarDisenosLocales, subirDisenoAnonimo, yaEstaEnLaCuenta } from './disenosLocales'
 
 const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
 const doc: DocumentoDiseno = {
@@ -160,12 +161,70 @@ describe('subirDisenoAnonimo', () => {
     expect(localStorage.getItem(CLAVE_ID_DE_SUBIDA)).toBeNull()
   })
 
-  it('con un 409 el id de subida se olvida y el siguiente intento usa otro', async () => {
+  it('con un 409 (id en uso, p. ej. de otra cuenta) reintenta una vez con otro id, sin enseñar el límite', async () => {
     almacen.getState().cargar(doc)
-    fetchSimulado.mockResolvedValueOnce(respuesta(409, { mensaje: 'Id ocupado' }))
-    expect(await subirDisenoAnonimo(doc)).toMatchObject({ error: expect.any(String) })
-    expect(localStorage.getItem(CLAVE_ID_DE_SUBIDA)).toBeNull()
+    fetchSimulado.mockResolvedValueOnce(respuesta(409, { mensaje: 'Ese identificador de diseño ya está en uso.' }))
+    fetchSimulado.mockResolvedValueOnce(respuesta(201, disenoServidor(1, doc)))
+    expect(await subirDisenoAnonimo(doc)).toEqual({ id: 'd9' })
+    expect(fetchSimulado).toHaveBeenCalledTimes(2)
+    expect(await idDelCuerpo(1)).not.toBe(await idDelCuerpo(0))
+  })
 
+  it('con 409 también en el reintento es el límite de diseños: lo dice y olvida el id', async () => {
+    almacen.getState().cargar(doc)
+    fetchSimulado.mockImplementation(() => Promise.resolve(respuesta(409, { mensaje: 'Has llegado al límite de 100 diseños.' })))
+    expect(await subirDisenoAnonimo(doc)).toEqual({ error: textos.disenos.limiteConDisenoLocal })
+    expect(fetchSimulado).toHaveBeenCalledTimes(2)
+    expect(localStorage.getItem(CLAVE_ID_DE_SUBIDA)).toBeNull()
+    expect(almacen.getState().documento).not.toBeNull()
+  })
+
+  it('sin poder guardar el id en el navegador, el reintento tras un corte manda el mismo id (lo recuerda en memoria)', async () => {
+    almacen.getState().cargar(doc)
+    const setItem = Storage.prototype.setItem
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, clave: string, valor: string) {
+      if (clave === CLAVE_ID_DE_SUBIDA) throw new DOMException('cuota', 'QuotaExceededError')
+      setItem.call(this, clave, valor)
+    })
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await subirDisenoAnonimo(doc)
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, disenoServidor(1, doc)))
+    expect(await subirDisenoAnonimo(doc)).toEqual({ id: 'd9' })
+    expect(await idDelCuerpo(1)).toBe(await idDelCuerpo(0))
+  })
+
+  it('lo recordado en memoria se olvida al cerrar la sesión', async () => {
+    almacen.getState().cargar(doc)
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('cuota', 'QuotaExceededError') })
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await subirDisenoAnonimo(doc)
+    olvidarDisenosLocales()
+    almacen.getState().cargar(doc)
+    fetchSimulado.mockResolvedValueOnce(respuesta(201, disenoServidor(1, doc)))
+    await subirDisenoAnonimo(doc)
+    expect(await idDelCuerpo(1)).not.toBe(await idDelCuerpo(0))
+  })
+
+  it('el reintento tras un 409 estrena id aunque el navegador no deje borrar el guardado', async () => {
+    almacen.getState().cargar(doc)
+    const removeItem = Storage.prototype.removeItem
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(function (this: Storage, clave: string) {
+      if (clave === CLAVE_ID_DE_SUBIDA) throw new DOMException('no', 'SecurityError')
+      removeItem.call(this, clave)
+    })
+    fetchSimulado.mockResolvedValueOnce(respuesta(409, { mensaje: 'Ese identificador de diseño ya está en uso.' }))
+    fetchSimulado.mockResolvedValueOnce(respuesta(201, disenoServidor(1, doc)))
+    expect(await subirDisenoAnonimo(doc)).toEqual({ id: 'd9' })
+    expect(await idDelCuerpo(1)).not.toBe(await idDelCuerpo(0))
+  })
+
+  it('lo recordado en memoria se olvida al empezar otro diseño', async () => {
+    almacen.getState().cargar(doc)
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('cuota', 'QuotaExceededError') })
+    fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await subirDisenoAnonimo(doc)
+    empezarDeNuevo()
+    almacen.getState().cargar(doc)
     fetchSimulado.mockResolvedValueOnce(respuesta(201, disenoServidor(1, doc)))
     await subirDisenoAnonimo(doc)
     expect(await idDelCuerpo(1)).not.toBe(await idDelCuerpo(0))

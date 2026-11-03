@@ -178,6 +178,8 @@ describe('BarraSuperior con sesión y un diseño anónimo', () => {
   })
 
   it('con 409 avisa del límite y el diseño sigue en el navegador', async () => {
+    // Dos 409: el primero puede ser un id en uso y se reintenta con otro; el segundo es el límite.
+    fetchSimulado.mockResolvedValueOnce(respuesta(409, { mensaje: 'Has llegado al límite de 100 diseños' }))
     fetchSimulado.mockResolvedValueOnce(respuesta(409, { mensaje: 'Has llegado al límite de 100 diseños' }))
     montar()
     await userEvent.click(screen.getByRole('button', { name: 'Guardar en mi cuenta' }))
