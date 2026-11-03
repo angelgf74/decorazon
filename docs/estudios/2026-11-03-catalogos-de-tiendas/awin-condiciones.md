@@ -63,6 +63,10 @@ No es asesoramiento jurídico. Rige la ley alemana, con tribunales en Berlín (1
    - **Cuenta en riesgo sin ventas:** sin comisiones en seis meses, Awin puede cerrar la cuenta (14.4.1), y entonces hay que retirar todo.
 4. **Zona gris: dibujar en 3D con las medidas del feed.** Las medidas son hechos y se usan para enseñar el producto, pero la licencia dice «sin modificación» y «solo para promocionar». Antes de construirlo, conviene preguntárselo por escrito a Awin o a la tienda.
 
+## Decisión
+
+El 3 de noviembre de 2026, Angel descarta Awin de momento: se queda la carga manual (fase 1). Si se retoma, faltan por leer las condiciones de cada programa.
+
 ## Conclusión
 
 Darse de alta y medir los feeds (fase 2) es compatible con las condiciones y cuesta poco: el posible depósito y el alta en cada programa. El importador (fase 3) solo compensa si Decorazon va a **promocionar de verdad**, con enlaces de afiliado, aviso de cookies, datos al día y retirada inmediata. Un catálogo con medidas sin afiliación no lo permiten estas condiciones (10.1 y 10.7).
