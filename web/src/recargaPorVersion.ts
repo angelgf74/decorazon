@@ -6,6 +6,9 @@
 export const CLAVE_RECARGA = 'decorazon.recargaPorVersion'
 const VIGENCIA_DE_LA_MARCA_MS = 60_000
 
+// Cargas en segundo plano en curso: sus fallos no recargan (nadie ha pedido nada); se recarga al pulsar 3D.
+let enSegundoPlano = 0
+
 function leer(): string | null {
   try {
     return sessionStorage.getItem(CLAVE_RECARGA)
@@ -25,6 +28,7 @@ function escribir(valor: string | null): void {
 
 export function conectarRecargaPorVersion(recargar: () => void = () => location.reload()): () => void {
   const alFallar = (evento: Event) => {
+    if (enSegundoPlano > 0) return
     const marca = Number(leer())
     if (marca > 0 && Date.now() - marca < VIGENCIA_DE_LA_MARCA_MS) return
     escribir(String(Date.now()))
@@ -37,4 +41,14 @@ export function conectarRecargaPorVersion(recargar: () => void = () => location.
 
 export function versionCargada(): void {
   escribir(null)
+}
+
+/** Carga algo que nadie ha pedido todavía: si falla por un despliegue nuevo, no recarga la página (el error sigue su curso). */
+export async function sinRecargar<T>(cargar: () => Promise<T>): Promise<T> {
+  enSegundoPlano++
+  try {
+    return await cargar()
+  } finally {
+    enSegundoPlano--
+  }
 }

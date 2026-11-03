@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from 'react'
 import { versionCargada } from '../recargaPorVersion'
 import { textos } from '../textos'
 import { almacen, useEditor } from './estado/almacen'
@@ -15,6 +15,7 @@ import Icono from './comunes/Icono'
 import SinFallos from './comunes/SinFallos'
 import { useConflictos } from './estado/conflictos'
 import { useAtajos } from './usarAtajos'
+import { precargarVista3D } from './vista3d/precargar'
 import './editor.css'
 
 const MS_AVISO = 4000
@@ -40,13 +41,22 @@ export default function Editor() {
   // Al cerrar la hoja para imprimir, el foco vuelve a donde estaba (el botón Imprimir).
   const focoAntes = useRef<HTMLElement | null>(null)
   // lazy guarda el import rechazado: tras un fallo se crea otro para que volver a pulsar 3D reintente la carga.
-  const [Vista3D, setVista3D] = useState(vista3dPerezosa)
+  const [Vista3D, setVista3D] = useState<ComponentType>(vista3dPerezosa)
 
   useEffect(() => {
     if (aviso === null) return
     const id = setTimeout(() => almacen.setState({ aviso: null }), MS_AVISO)
     return () => clearTimeout(id)
   }, [aviso])
+
+  // Con el editor ya en pantalla, el 3D se carga en segundo plano y se usa tal cual: pulsar 3D no pasa por Suspense.
+  // Si el 3D ya está abierto (se pulsó antes de que llegara), se deja el lazy: cambiar de componente lo remontaría entero.
+  useEffect(() => precargarVista3D({
+    alCargar: (modulo) => {
+      versionCargada()
+      if (almacen.getState().vista !== '3d') setVista3D(() => modulo.default)
+    },
+  }), [])
 
   if (!hayDocumento) return <NuevaEstancia />
 

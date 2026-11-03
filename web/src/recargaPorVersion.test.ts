@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { CLAVE_RECARGA, conectarRecargaPorVersion, versionCargada } from './recargaPorVersion'
+import { CLAVE_RECARGA, conectarRecargaPorVersion, sinRecargar, versionCargada } from './recargaPorVersion'
 
 function fallo(): Event {
   return new Event('vite:preloadError', { cancelable: true })
@@ -46,5 +46,22 @@ describe('recarga ante un fragmento de una versión anterior', () => {
     sessionStorage.setItem(CLAVE_RECARGA, '1')
     versionCargada()
     expect(sessionStorage.getItem(CLAVE_RECARGA)).toBeNull()
+  })
+
+  it('un fallo durante una carga en segundo plano no recarga ni marca, y deja pasar el error', async () => {
+    const recargar = vi.fn()
+    const desconectar = conectarRecargaPorVersion(recargar)
+    const evento = fallo()
+    await expect(sinRecargar(async () => {
+      window.dispatchEvent(evento)
+      throw new Error('Failed to fetch dynamically imported module')
+    })).rejects.toThrow()
+    expect(recargar).not.toHaveBeenCalled()
+    expect(evento.defaultPrevented).toBe(false)
+    expect(sessionStorage.getItem(CLAVE_RECARGA)).toBeNull()
+    // Acabada la carga en segundo plano, un fallo vuelve a recargar.
+    window.dispatchEvent(fallo())
+    expect(recargar).toHaveBeenCalledTimes(1)
+    desconectar()
   })
 })
