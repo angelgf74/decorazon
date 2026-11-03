@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type DragEvent, type PointerEvent as PointerEventReact } from 'react'
+import { useEffect, useId, useRef, useState, type DragEvent, type PointerEvent as PointerEventReact } from 'react'
 import { createPortal } from 'react-dom'
 import { capitalizar, catalogoBase, catalogoDeEstancia, puntoInterior, type DefinicionTipo, type Punto } from '../../nucleo'
 import { textos } from '../../textos'
@@ -15,12 +15,19 @@ interface Fantasma { nombre: string; x: number; y: number }
 
 /**
  * Arrastre con el dedo desde el asa de un tipo (el de HTML5 no funciona con el dedo): un fantasma con el nombre sigue al
- * puntero y, si se suelta sobre el plano, se le despacha `EVENTO_SOLTAR_TIPO`. Si se suelta fuera o se cancela, nada.
+ * puntero y, si se suelta sobre el plano, se le despacha `EVENTO_SOLTAR_TIPO`. Si se suelta fuera, se cancela, el catálogo
+ * se desmonta o empieza otra pulsación con el mismo puntero sin haber soltado (un arrastre abandonado), nada.
  */
 function useArrastreConDedo(alEmpezar?: () => void) {
   const [fantasma, setFantasma] = useState<Fantasma | null>(null)
   const nodo = useRef<HTMLDivElement>(null)
   const enCurso = useRef(false)
+  // Cómo dejar cada arrastre en curso (uno por dedo) sin soltar nada: al desmontarse el catálogo.
+  const abandonos = useRef(new Set<() => void>())
+  useEffect(() => {
+    const pendientes = abandonos.current
+    return () => pendientes.forEach((abandonar) => abandonar())
+  }, [])
 
   const alPulsarAsa: AlPulsarAsa = (def) => (ev) => {
     if (ev.button !== 0) return
@@ -44,12 +51,17 @@ function useArrastreConDedo(alEmpezar?: () => void) {
       // El fantasma se mueve sin pasar por React, para no repintar el catálogo en cada movimiento.
       nodo.current?.style.setProperty('translate', `${e.clientX}px ${e.clientY}px`)
     }
-    const acabar = (e: PointerEvent) => {
-      if (e.pointerId !== pointerId) return
+    const quitarOyentes = () => {
       window.removeEventListener('pointermove', mover)
       window.removeEventListener('pointerup', acabar)
       window.removeEventListener('pointercancel', acabar)
+      window.removeEventListener('pointerdown', otraPulsacion, true)
       enCurso.current = false
+      abandonos.current.delete(quitarOyentes)
+    }
+    const acabar = (e: PointerEvent) => {
+      if (e.pointerId !== pointerId) return
+      quitarOyentes()
       if (!movido) return
       setFantasma(null)
       if (e.type !== 'pointerup') return
@@ -57,10 +69,21 @@ function useArrastreConDedo(alEmpezar?: () => void) {
       const detail: DetalleSoltarTipo = { tipo: def.id, clientX: e.clientX, clientY: e.clientY }
       lienzo?.dispatchEvent(new CustomEvent(EVENTO_SOLTAR_TIPO, { detail }))
     }
+    // Si el pointerup nunca llegó (soltado fuera de la ventana sin captura), la siguiente pulsación con el mismo id (el ratón
+    // siempre lleva el 1) no debe acabar soltando un mueble que nadie arrastra. Se escucha en la fase de captura: en la de
+    // burbuja no llegarían las pulsaciones en un asa o un mueble, que paran la propagación. La que empieza este arrastre
+    // ya pasó por esa fase cuando se añade el oyente.
+    const otraPulsacion = (e: PointerEvent) => {
+      if (e.pointerId !== pointerId) return
+      quitarOyentes()
+      setFantasma(null)
+    }
     // Con el puntero capturado, sus eventos suben desde el asa hasta la ventana.
     window.addEventListener('pointermove', mover)
     window.addEventListener('pointerup', acabar)
     window.addEventListener('pointercancel', acabar)
+    window.addEventListener('pointerdown', otraPulsacion, true)
+    abandonos.current.add(quitarOyentes)
   }
 
   // position: fixed dentro de la hoja (que lleva transform) no iría respecto a la pantalla: va en el body.

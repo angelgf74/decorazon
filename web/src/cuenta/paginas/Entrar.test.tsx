@@ -149,6 +149,8 @@ describe('Entrar con un diseño anónimo', () => {
     conAnonimo(conElemento)
     montar('')
     await entrarConExito()
+    // Dos 409: el primero puede ser un id en uso y se reintenta con otro; el segundo es el límite.
+    fetchSimulado.mockResolvedValueOnce(respuesta(409, { mensaje: 'Has llegado al límite de 100 diseños' }))
     fetchSimulado.mockResolvedValueOnce(respuesta(409, { mensaje: 'Has llegado al límite de 100 diseños' }))
     await userEvent.click(await screen.findByRole('button', { name: 'Sí, guardarlo' }))
     expect(await screen.findByText('Has llegado al límite de 100 diseños. Tu diseño sigue en este navegador.')).toBeInTheDocument()

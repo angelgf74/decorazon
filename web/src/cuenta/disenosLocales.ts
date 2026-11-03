@@ -24,7 +24,11 @@ export function descartarDisenoAnonimo(): void {
   if (almacen.getState().origen.tipo === 'anonimo') almacen.getState().descartar()
 }
 
+// El id de subida cuando el navegador no deja guardarlo: vale mientras siga abierta la pestaña.
+let idDeSubidaEnMemoria: string | null = null
+
 function olvidarIdDeSubida(st: Storage | null): void {
+  idDeSubidaEnMemoria = null
   try {
     st?.removeItem(CLAVE_ID_DE_SUBIDA)
   } catch {
@@ -32,20 +36,30 @@ function olvidarIdDeSubida(st: Storage | null): void {
   }
 }
 
-/** El id de una subida a medias o uno nuevo, guardado antes del POST para que un reintento lo reutilice. */
-function idDeSubida(st: Storage | null): string {
-  try {
-    const guardado = st?.getItem(CLAVE_ID_DE_SUBIDA)
-    if (guardado) return guardado
-  } catch {
-    // sin acceso: este intento usa un id que no se recordará
+/**
+ * El id de una subida a medias o uno nuevo, guardado antes del POST para que un reintento lo reutilice. Con `nuevo`,
+ * siempre uno nuevo: tras un 409 el guardado no vale, aunque no se haya podido borrar.
+ */
+function idDeSubida(st: Storage | null, nuevo = false): string {
+  if (!nuevo) {
+    try {
+      const guardado = st?.getItem(CLAVE_ID_DE_SUBIDA)
+      if (guardado) return guardado
+    } catch {
+      // sin acceso: este intento usa un id que no se recordará
+    }
   }
-  const id = crypto.randomUUID()
+  const id = (nuevo ? null : idDeSubidaEnMemoria) ?? crypto.randomUUID()
+  let guardado = false
   try {
-    st?.setItem(CLAVE_ID_DE_SUBIDA, id)
+    if (st) {
+      st.setItem(CLAVE_ID_DE_SUBIDA, id)
+      guardado = true
+    }
   } catch {
-    // sin espacio: igual
+    // sin espacio: queda en memoria
   }
+  idDeSubidaEnMemoria = guardado ? null : id
   return id
 }
 
@@ -114,7 +128,13 @@ export type ResultadoDeSubir = { id: string } | { error: string }
 export async function subirDisenoAnonimo(doc: DocumentoDiseno): Promise<ResultadoDeSubir> {
   const st = almacenamientoSeguro()
   try {
-    const d = await crearDiseno(textos.disenos.nombrePorDefecto, doc, idDeSubida(st))
+    const crear = (idNuevo = false) => crearDiseno(textos.disenos.nombrePorDefecto, doc, idDeSubida(st, idNuevo))
+    const d = await crear().catch((e: unknown) => {
+      if (!(e instanceof ErrorDeApi && e.estado === 409)) throw e
+      // 409: o el id es de otra cuenta (un alta a medias antes de cambiar de cuenta) o se llegó al límite de diseños.
+      // Con un id nuevo se sale de dudas: si vuelve el 409, es el límite.
+      return crear(true)
+    })
     // Si lo devuelto difiere del diseño anónimo de ahora (se editó durante la subida, o es un alta anterior con
     // contenido antiguo), va como copia pendiente: al abrir el diseño, la sincronización sube el actual.
     // Lleva la versión del alta, no la devuelta: si otro sitio lo editó, al abrir sale el conflicto en vez de pisarlo.
@@ -125,7 +145,7 @@ export async function subirDisenoAnonimo(doc: DocumentoDiseno): Promise<Resultad
     if (!editado || copiado) descartarDisenoAnonimo()
     return { id: d.id }
   } catch (e) {
-    // Con 409 el id es de otra cuenta o no se creó nada (límite de diseños): el siguiente intento estrena id.
+    // 409 también con un id nuevo: el límite de diseños. No se creó nada, el siguiente intento estrena id.
     if (e instanceof ErrorDeApi && e.estado === 409) olvidarIdDeSubida(st)
     return { error: e instanceof ErrorDeApi && e.estado === 409 ? textos.disenos.limiteConDisenoLocal : mensajeDeError(e) }
   }
@@ -163,10 +183,10 @@ export function olvidarDisenosLocales(): void {
     st?.removeItem(CLAVE_DUENO_COPIAS)
     st?.removeItem(CLAVE_DESCARTADO)
     st?.removeItem(CLAVE_REGISTRO_ENVIADO)
-    st?.removeItem(CLAVE_ID_DE_SUBIDA)
   } catch {
     // sin acceso: no hay nada que borrar
   }
+  olvidarIdDeSubida(st)
   guardarDisenoLocal(st, null)
   almacen.getState().volverAAnonimo(st)
   almacen.getState().descartar()
