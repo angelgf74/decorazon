@@ -130,3 +130,18 @@ describe('validarDocumento: origen de tienda', () => {
     expect(errores(conOrigen(sinPrecio))).toContain('elementos[0].origen.fechaPrecio: solo puede ir junto a un precio')
   })
 })
+
+describe('validarDocumento: medidas extra', () => {
+  const con = (medidasExtra: unknown) => ({ ...base(), elementos: [elemento('e1', { medidasExtra } as Partial<Elemento>)] })
+
+  it('opcionales: sin ellas o con enteros ≥ 0, válido', () => {
+    expect(validarDocumento({ ...base(), elementos: [elemento('e1')] })).toMatchObject({ valido: true })
+    expect(validarDocumento(con({ huecoAncho: 0, huecoFondo: 58 }))).toMatchObject({ valido: true })
+  })
+
+  it('no objeto, decimales o negativos, no', () => {
+    expect(errores(con([1]))).toContain('elementos[0].medidasExtra: debe ser un objeto')
+    expect(errores(con({ huecoAncho: 10.5 }))).toContain('elementos[0].medidasExtra.huecoAncho: debe ser un entero mayor o igual que 0')
+    expect(errores(con({ huecoAncho: -1 }))).toContain('elementos[0].medidasExtra.huecoAncho: debe ser un entero mayor o igual que 0')
+  })
+})

@@ -1,5 +1,5 @@
 import {
-  capitalizar, desplazarPoligono, esUrlDeProducto, nombreDeElemento, valorVariante, type Catalogo, type DocumentoDiseno, type OrigenTienda, type Punto,
+  capitalizar, desplazarPoligono, esUrlDeProducto, lineasMedidasExtra, nombreDeElemento, valorVariante, type Catalogo, type DocumentoDiseno, type OrigenTienda, type Punto,
 } from '../../nucleo'
 import { textos } from '../../textos'
 import { formatoFecha, formatoPrecio } from '../comunes/formatos'
@@ -46,7 +46,13 @@ export function filasDeMuebles(doc: DocumentoDiseno, catalogo: Catalogo): FilaMu
       nombre: nombreDeElemento(def, e),
       medidas: `${ancho} × ${fondo} × ${alto} cm`,
       alturaSuelo: e.alturaSuelo > 0 ? t.alturaSuelo(e.alturaSuelo) : null,
-      variantes: def ? def.variantes.map((v) => `${v.etiqueta}: ${etiquetaValor(valorVariante(def, e, v.clave))}`) : [],
+      variantes: def
+        ? [
+            // Las medidas extra (el hueco de un esquinero) antes que las variantes; las da el tipo, o «Etiqueta: N cm».
+            ...lineasMedidasExtra(def, e),
+            ...def.variantes.map((v) => `${v.etiqueta}: ${etiquetaValor(valorVariante(def, e, v.clave))}`),
+          ]
+        : [],
       colores: def ? def.zonasColor.map((z) => ({ etiqueta: z.etiqueta, color: e.colores[z.clave] ?? z.defecto })) : [],
       tienda: e.origen.tipo === 'tienda' ? filaTienda(e.origen, def ? capitalizar(def.nombre) : e.tipo) : null,
     }

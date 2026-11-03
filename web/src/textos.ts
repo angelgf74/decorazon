@@ -54,6 +54,8 @@ export const textos = {
     },
     ficha: { proveedor: 'Tienda', referencia: 'Referencia', precio: 'Precio', medidas: 'Medidas' },
     medidasPegadas: 'Pega aquí las medidas de la ficha',
+    campoExtra: (etiqueta: string) => etiqueta + ' del producto',
+    rangoCm: (min: number, max: number) => min + '–' + max + ' cm',
     ayudaMedidas: 'Por ejemplo «Ancho: 110 cm», «110x58x201 cm» o «110/110x201 cm»',
     rellenado: 'Rellenado a partir del enlace: revisa los datos',
     pareceOtroTipo: (conArticulo: string) => `Este enlace parece ${conArticulo}`,

@@ -214,3 +214,92 @@ En el formulario, si `leerEnlace` da un tipo distinto del mueble, sale el aviso 
   - el botón cambia el tipo (un deshacer);
   - pegar «110/110x201 cm» rellena las medidas;
   - el color se aplica al guardar.
+
+## Medidas adicionales y hueco del esquinero
+
+### Para qué
+
+El PAX / GRIMO esquinero no rellena el rincón. Visto desde arriba, el cuerpo del fondo (99,8 × 58) empieza a 10,7 cm de la pared izquierda, y el ala (58 × 52,5) va delante de él contra esa pared. Queda un hueco de 10,7 × 58 contra las dos paredes, donde cabe un pilar o una columna. Hoy el armario esquinero rellena ese rincón, y con una columna da conflicto. Además, solo tiene tres medidas libres, y su profundidad es una variante de valores fijos (35/58).
+
+### Decisiones de Angel
+
+- **Se amplía el armario esquinero que existe, sin tipo nuevo.** Con el hueco a 0 queda exactamente como hoy.
+- **Se ajustan todas las medidas del plano:** los dos lados y el alto, como ahora, más la profundidad del cuerpo del fondo, el ancho del ala, y el ancho y el fondo del hueco.
+- **El hueco se pone a mano.** No se ajusta solo a una columna.
+
+### Medidas adicionales por tipo
+
+Mecanismo general, para cualquier tipo:
+
+- `DefinicionTipo.medidasExtra?`: lista de `{ clave, etiqueta, rango: { min, max, defecto } }`, en cm enteros.
+- `Elemento.medidasExtra?`: `Record<string, number>`. Es un campo nuevo y **opcional**: los documentos guardados siguen valiendo y el formato sigue siendo 1.
+- `valorMedidaExtra(def, e, clave)`: el valor guardado, recortado a su rango, o el de por defecto si no hay. Funciona como `valorVariante`.
+- **Validador:** el campo, si viene, es un objeto de enteros ≥ 0.
+- **Edición:**
+  - `elementoNuevo` pone las de por defecto;
+  - `duplicarElemento` las copia;
+  - `editarElemento` las acepta, recortadas a su rango;
+  - `cambiarTipo` pone las de por defecto del tipo nuevo.
+- **Muebles de tienda:** son medidas fijas del producto. `editarElemento` no las cambia; solo `vincularTienda`.
+
+### Armario esquinero
+
+Las medidas son estas, con el rincón a la izquierda y el origen en la esquina de las dos paredes:
+
+| Medida | Rango | Por defecto | Qué es |
+|---|---|---|---|
+| Ancho | 80–200 | 110 | El lado contra la pared del fondo, por fuera |
+| Fondo | 80–200 | 110 | El lado contra la pared izquierda, por fuera |
+| Alto | 150–260 | 201 | |
+| Profundidad del fondo | 30–70 | 58 | Lo que mide el cuerpo del fondo desde la pared |
+| Ancho del ala | 30–70 | 58 | Lo que mide el ala desde la pared izquierda |
+| Hueco: ancho | 0–40 | 0 | El hueco del rincón, a lo largo de la pared del fondo |
+| Hueco: fondo | 0–70 | 0 | El hueco del rincón, a lo largo de la pared izquierda |
+
+- **Cuerpos:** el del fondo va de x = huecoAncho a x = ancho, y de 0 a profundidadFondo. El ala va de x = 0 a anchoAla, y de huecoFondo a fondo. El hueco es huecoAncho × huecoFondo. Con uno de los dos a 0, el rincón está lleno, como hoy.
+- **Límites:** el rango de cada medida depende de las demás (`rangoPara`, como `valoresPara` en las variantes). El valor se recorta a ese rango y los campos lo enseñan, así que lo que dice cada campo es lo que se dibuja:
+  - la profundidad del fondo, como mucho fondo − 10, y el ancho del ala, como mucho ancho − 10, para que siempre quede frente;
+  - el hueco: ancho, como mucho anchoAla − 10, para que los dos cuerpos sigan unidos al menos 10 cm;
+  - el hueco: fondo, como mucho profundidadFondo.
+- **Huella:** el contorno de la unión de los dos rectángulos, de hasta 8 vértices, sin repetidos ni alineados. Con hueco 0 × 0, la L de 6 de hoy.
+- **Volúmenes:** los dos cuerpos.
+- **Frentes:** el del fondo va de x = anchoAla a ancho, en y = profundidadFondo. El del ala va de y = profundidadFondo a fondo, en x = anchoAla. Las hojas, el rincón interior en 3D, el nombre y el reflejo a la derecha funcionan como hoy, con estas medidas.
+- **Sustituye a la variante «Profundidad» 35/58.** Compatibilidad: un esquinero guardado con esa variante y sin `medidasExtra` toma ese valor para la profundidad del fondo y para el ancho del ala, con hueco 0. Se ve igual que antes.
+- **Al editarlo con esta versión,** el esquinero guarda sus medidas extra, y la variante vieja se queda en el JSON sin uso. Una pestaña con la versión anterior lo abre, porque su validador no rechaza campos desconocidos, pero lo enseña con 58/58 y sin hueco. Se acepta: la PWA se actualiza sola.
+- **Imán:** la forma se compara por los valores que se dibujan, no por el texto del JSON. Un esquinero de antes no trae el campo, y jsonb reordena las claves. Así cambiar el color no lo mueve.
+
+### Interfaz
+
+- **Propiedades:** un campo numérico por cada medida extra del tipo, con su rango, para cualquier tipo que las tenga. En un mueble de tienda no salen: se cambian en «Editar producto».
+- **Formulario del producto:** las medidas extra del tipo, como medidas fijas del producto, con su etiqueta terminada en «del producto» y el rango que admiten debajo. Se validan con el rango que sale de lo que se está escribiendo y no se recortan en silencio.
+- **Hoja de impresión:** en la columna de detalles, «Profundidad del fondo: 58 cm», «Ancho del ala: 58 cm» y, si hay hueco, «Hueco del rincón: 11 × 58 cm». Lo da la definición del tipo, y para otros tipos se usa por defecto «Etiqueta: N cm».
+
+### Ejemplo
+
+El PAX / GRIMO se representa así: 111 × 111 × 201, profundidad del fondo 58, ancho del ala 58 y hueco 11 × 58. Los decimales se redondean, porque el modelo guarda cm enteros. Su huella, desde el rincón, es (11,0) (111,0) (111,58) (58,58) (58,111) (0,111) (0,58) (11,58). Una columna de 10 × 40 pegada al rincón no da conflicto; con el hueco a 0, sí.
+
+### Fuera de alcance
+
+- Ajustar el hueco solo a una columna.
+- Medidas extra en otros tipos.
+
+### Pruebas
+
+- **Núcleo:**
+  - `valorMedidaExtra`;
+  - el validador con y sin el campo y con valores no válidos;
+  - `elementoNuevo`, `duplicarElemento`, `editarElemento` (recorte) y `cambiarTipo`;
+  - las medidas fijas de un mueble de tienda.
+- **Esquinero:**
+  - la huella de 8 vértices del ejemplo y la de 6 con hueco 0;
+  - los volúmenes;
+  - los límites;
+  - el reflejo;
+  - la columna del ejemplo con y sin hueco;
+  - la compatibilidad con un JSON de la versión actual (variante 35);
+  - la integridad del catálogo.
+- **Interfaz:**
+  - los campos de Propiedades;
+  - el formulario del producto con las medidas extra;
+  - los detalles de la hoja.
+

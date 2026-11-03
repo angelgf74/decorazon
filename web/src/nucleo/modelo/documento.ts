@@ -25,5 +25,10 @@ export interface OrigenTienda {
   fechaPrecio?: string
 }
 export type Origen = { tipo: 'generico' } | OrigenTienda
-export interface Elemento { id: string; tipo: string; posicion: Punto; rotacion: number; medidas: Medidas; alturaSuelo: number; variantes: Record<string, string | number | boolean>; colores: Record<string, string>; origen: Origen }
+export interface Elemento {
+  id: string; tipo: string; posicion: Punto; rotacion: number; medidas: Medidas; alturaSuelo: number
+  variantes: Record<string, string | number | boolean>; colores: Record<string, string>; origen: Origen
+  /** Medidas propias del tipo además de ancho, fondo y alto (el hueco del rincón de un esquinero), en cm enteros. Opcional: los diseños de antes no lo llevan. */
+  medidasExtra?: Record<string, number>
+}
 export interface DocumentoDiseno { formato: 1; estancia: Estancia; aberturas: Abertura[]; estructura: Estructura[]; elementos: Elemento[] }

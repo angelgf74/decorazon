@@ -91,3 +91,14 @@ describe('muebles de tienda en la hoja', () => {
     expect(totalAnotado(documentoNuevo('salon', 400, 300, 250))).toBeNull()
   })
 })
+
+describe('medidas extra en la hoja', () => {
+  it('el esquinero con hueco: sus medidas extra en los detalles, antes de las variantes', () => {
+    const d = documentoNuevo('dormitorio', 400, 300, 250)
+    const e = elementoNuevo(catalogoBase.get('armario-esquinero')!, { x: 55, y: 55 }, 'e')
+    d.elementos = [{ ...e, medidasExtra: { profundidadFondo: 58, anchoAla: 58, huecoAncho: 11, huecoFondo: 58 } }]
+    expect(filasDeMuebles(d, catalogoBase)[0]!.variantes).toEqual([
+      'Profundidad del fondo: 58 cm', 'Ancho del ala: 58 cm', 'Hueco del rincón: 11 × 58 cm', 'Rincón: Izquierda',
+    ])
+  })
+})

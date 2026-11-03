@@ -1,5 +1,5 @@
 import { ajustarMedidas, elementoNuevo } from '../catalogo/elemento'
-import type { Catalogo } from '../catalogo/tipos'
+import { medidasExtraDe, valorMedidaExtra, type Catalogo } from '../catalogo/tipos'
 import type { Punto } from '../geometria/vector'
 import type { DocumentoDiseno, Elemento, Medidas, OrigenTienda } from '../modelo/documento'
 import { imantar, normalizarGiro, paredesTocadas } from './iman'
@@ -27,20 +27,25 @@ export function moverElemento(doc: DocumentoDiseno, catalogo: Catalogo, id: stri
   return reemplazar(doc, conIman(doc, catalogo, { ...e, posicion: { ...posicion }, rotacion }, libre))
 }
 
-type CambiosElemento = { medidas?: Partial<Medidas>; rotacion?: number; alturaSuelo?: number; variantes?: Record<string, string | number | boolean>; colores?: Record<string, string> }
+type CambiosElemento = {
+  medidas?: Partial<Medidas>; medidasExtra?: Record<string, number>; rotacion?: number; alturaSuelo?: number
+  variantes?: Record<string, string | number | boolean>; colores?: Record<string, string>
+}
 
 /** Las medidas de un mueble de tienda son las del producto: no se cambian aquí, solo al guardar el producto (vincularTienda). */
 export function editarElemento(doc: DocumentoDiseno, catalogo: Catalogo, id: string, cambios: CambiosElemento): DocumentoDiseno {
   const e = buscar(doc, id)
-  if (e?.origen.tipo === 'tienda') return editar(doc, catalogo, id, { ...cambios, medidas: undefined })
+  if (e?.origen.tipo === 'tienda') return editar(doc, catalogo, id, { ...cambios, medidas: undefined, medidasExtra: undefined })
   return editar(doc, catalogo, id, cambios)
 }
 
 /** Hace del elemento ese producto de tienda, con sus medidas (recortadas al rango del tipo). */
-export function vincularTienda(doc: DocumentoDiseno, catalogo: Catalogo, id: string, origen: OrigenTienda, medidas: Medidas): DocumentoDiseno {
+export function vincularTienda(
+  doc: DocumentoDiseno, catalogo: Catalogo, id: string, origen: OrigenTienda, medidas: Medidas, medidasExtra?: Record<string, number>,
+): DocumentoDiseno {
   const e = buscar(doc, id)
   if (!e || !catalogo.get(e.tipo)) return doc
-  return editar(reemplazar(doc, { ...e, origen: { ...origen } }), catalogo, id, { medidas })
+  return editar(reemplazar(doc, { ...e, origen: { ...origen } }), catalogo, id, { medidas, medidasExtra })
 }
 
 /** Vuelve a ser un mueble genérico, con las medidas que tenía el producto. */
@@ -62,8 +67,13 @@ function editar(doc: DocumentoDiseno, catalogo: Catalogo, id: string, cambios: C
     const pedida = Number.isFinite(cambios.alturaSuelo) ? Math.round(cambios.alturaSuelo!) : e.alturaSuelo
     alturaSuelo = Math.max(0, Math.min(doc.estancia.alto - medidas.alto, pedida))
   }
+  // Las medidas extra del tipo, con los cambios recortados a su rango (las que no son del tipo no se guardan).
+  const nuevasExtra = Object.fromEntries(Object.entries(cambios.medidasExtra ?? {}).filter(([, v]) => Number.isFinite(v)))
+  const extra = def.medidasExtra?.length
+    ? { medidasExtra: medidasExtraDe(def, { ...e, medidas, medidasExtra: { ...medidasExtraDe(def, e), ...nuevasExtra } }) }
+    : {}
   const editado: Elemento = {
-    ...e, medidas, rotacion, alturaSuelo,
+    ...e, medidas, rotacion, alturaSuelo, ...extra,
     variantes: { ...e.variantes, ...cambios.variantes },
     colores: { ...e.colores, ...cambios.colores },
   }
@@ -71,6 +81,8 @@ function editar(doc: DocumentoDiseno, catalogo: Catalogo, id: string, cambios: C
   // que tocaba; las que solo tenía cerca no lo atraen.
   const mismaForma = rotacion === e.rotacion
     && (Object.keys(medidas) as (keyof Medidas)[]).every(k => medidas[k] === e.medidas[k])
+    // Por los valores que se dibujan, no por el texto: un esquinero de antes no trae el campo y jsonb reordena las claves.
+    && (def.medidasExtra ?? []).every((m) => valorMedidaExtra(def, editado, m.clave) === valorMedidaExtra(def, e, m.clave))
   const paredes = mismaForma ? [] : paredesTocadas(doc, e)
   if (paredes.length === 0) return reemplazar(doc, editado)
   const r = imantar(doc, catalogo, editado, { libre: rotacion % 90 !== 0, paredes })
@@ -110,6 +122,7 @@ export function duplicarElemento(doc: DocumentoDiseno, catalogo: Catalogo, id: s
     variantes: { ...e.variantes },
     colores: { ...e.colores },
     origen: { ...e.origen },
+    ...(e.medidasExtra && { medidasExtra: { ...e.medidasExtra } }),
   }
   const imantada = conIman(doc, catalogo, copia, true)
   return { documento: { ...doc, elementos: [...doc.elementos, imantada] }, id: imantada.id }

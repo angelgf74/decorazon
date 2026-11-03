@@ -12,6 +12,15 @@ export interface DefinicionVariante {
   /** Valores que admite este elemento cuando dependen de él (dos senos solo con 1 m de ancho); sin ella, todos. */
   valoresPara?: (e: Elemento) => (string | number | boolean)[]
 }
+export interface DefinicionMedidaExtra {
+  clave: string
+  etiqueta: string
+  rango: Rango
+  /** El rango que admite este elemento cuando depende de sus otras medidas (el hueco, del ancho del ala); sin ella, `rango`. */
+  rangoPara?: (e: Elemento) => Rango
+  /** El valor de un elemento guardado antes de que existiera la medida (sacado de lo que tenía entonces), si lo hay. */
+  legado?: (e: Elemento) => number | undefined
+}
 export interface ZonaColor { clave: string; etiqueta: string; material: 'tela' | 'madera' | 'lacado' | 'metal' | 'vidrio' | 'ceramica'; defecto: string }
 export interface ZonaApertura extends Prisma {
   nombre: string
@@ -35,6 +44,10 @@ export interface DefinicionTipo {
   /** El panel deja cambiar la altura desde el suelo, entre 0 y `estancia.alto − alto`. */
   alturaSueloEditable: boolean
   variantes: DefinicionVariante[]
+  /** Medidas propias del tipo además de ancho, fondo y alto, con su rango: se editan como ellas. */
+  medidasExtra?: DefinicionMedidaExtra[]
+  /** Las líneas de la hoja para las medidas extra; sin ella, «Etiqueta: N cm» por cada una. */
+  detallesExtra?: (e: Elemento) => string[]
   zonasColor: ZonaColor[]
   /** No choca con muebles ni con aperturas (alfombra, cortina). */
   pisable: boolean
@@ -72,6 +85,39 @@ function variante(def: DefinicionTipo, clave: string): DefinicionVariante {
   const d = def.variantes.find((x) => x.clave === clave)
   if (!d) throw new Error(`variante desconocida: ${clave}`)
   return d
+}
+
+function medidaExtra(def: DefinicionTipo, clave: string): DefinicionMedidaExtra {
+  const d = def.medidasExtra?.find((m) => m.clave === clave)
+  if (!d) throw new Error(`medida extra desconocida: ${clave}`)
+  return d
+}
+
+/** El rango que admite el elemento para una medida extra: puede depender de sus otras medidas. */
+export function rangoMedidaExtra(def: DefinicionTipo, e: Elemento, clave: string): Rango {
+  const d = medidaExtra(def, clave)
+  return d.rangoPara?.(e) ?? d.rango
+}
+
+/**
+ * Valor de una medida extra del elemento, recortado al rango que admite; si no la tiene, la de antes (legado) o su
+ * defecto. Lo que dice el campo es lo que se dibuja: el recorte por las otras medidas ya va aquí.
+ */
+export function valorMedidaExtra(def: DefinicionTipo, e: Elemento, clave: string): number {
+  const d = medidaExtra(def, clave)
+  const { min, max } = rangoMedidaExtra(def, e, clave)
+  const v = e.medidasExtra?.[clave] ?? d.legado?.(e) ?? d.rango.defecto
+  return Math.min(max, Math.max(min, Math.round(v)))
+}
+
+/** Las líneas de la hoja y de la ficha para las medidas extra: las del tipo si las da; si no, «Etiqueta: N cm». */
+export function lineasMedidasExtra(def: DefinicionTipo, e: Elemento): string[] {
+  return def.detallesExtra?.(e) ?? (def.medidasExtra ?? []).map((m) => `${m.etiqueta}: ${valorMedidaExtra(def, e, m.clave)} cm`)
+}
+
+/** Todas las medidas extra del tipo con su valor (vacío si el tipo no tiene). */
+export function medidasExtraDe(def: DefinicionTipo, e: Elemento): Record<string, number> {
+  return Object.fromEntries((def.medidasExtra ?? []).map((m) => [m.clave, valorMedidaExtra(def, e, m.clave)]))
 }
 
 /** Valores de una variante que admite el elemento. */

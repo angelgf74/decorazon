@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { capitalizar, conArticulo, deArticulo, valorVariante } from './tipos'
+import { capitalizar, conArticulo, deArticulo, lineasMedidasExtra, rangoMedidaExtra, valorMedidaExtra, valorVariante, type DefinicionTipo } from './tipos'
 import { armario } from './definiciones/armario'
 import { catalogoBase } from './catalogoBase'
 import { aMundo } from './transformar'
@@ -37,5 +37,47 @@ describe('valorVariante', () => {
   })
   it('variante desconocida lanza', () => {
     expect(() => valorVariante(armario, con({}), 'nada')).toThrow()
+  })
+})
+
+describe('valorMedidaExtra', () => {
+  const esquinero = catalogoBase.get('armario-esquinero')!
+  const con = (medidasExtra?: Record<string, number>, variantes: Record<string, string | number | boolean> = {}) =>
+    ({ ...elementoDe('armario-esquinero', 0, 0, 0, 110, 110, 201, variantes), ...(medidasExtra && { medidasExtra }) })
+
+  it('el valor guardado, recortado a su rango; sin él, el de por defecto', () => {
+    expect(valorMedidaExtra(esquinero, con({ huecoAncho: 11 }), 'huecoAncho')).toBe(11)
+    expect(valorMedidaExtra(esquinero, con({ huecoAncho: 99 }), 'huecoAncho')).toBe(40)
+    expect(valorMedidaExtra(esquinero, con({ profundidadFondo: 5 }), 'profundidadFondo')).toBe(30)
+    expect(valorMedidaExtra(esquinero, con(), 'profundidadFondo')).toBe(58)
+  })
+
+  it('un esquinero guardado con la variante de profundidad de antes toma ese valor', () => {
+    expect(valorMedidaExtra(esquinero, con(undefined, { profundidad: 35 }), 'profundidadFondo')).toBe(35)
+    expect(valorMedidaExtra(esquinero, con(undefined, { profundidad: 35 }), 'anchoAla')).toBe(35)
+    expect(valorMedidaExtra(esquinero, con({ profundidadFondo: 50 }, { profundidad: 35 }), 'profundidadFondo')).toBe(50)
+  })
+
+  it('una clave que el tipo no tiene es un error de programación', () => {
+    expect(() => valorMedidaExtra(armario, elementoDe('armario', 0, 0, 0, 100, 60, 220), 'hueco')).toThrow()
+  })
+})
+
+describe('rango efectivo y líneas de las medidas extra', () => {
+  const esquinero = catalogoBase.get('armario-esquinero')!
+  const con = (medidasExtra: Record<string, number>, ancho = 110) => ({ ...elementoDe('armario-esquinero', 0, 0, 0, ancho, 110, 201), medidasExtra })
+
+  it('el rango depende de las demás medidas: con un ala de 30, el hueco no pasa de 20, y el valor tampoco', () => {
+    expect(rangoMedidaExtra(esquinero, con({ anchoAla: 30 }), 'huecoAncho')).toEqual({ min: 0, max: 20, defecto: 0 })
+    expect(valorMedidaExtra(esquinero, con({ anchoAla: 30, huecoAncho: 40 }), 'huecoAncho')).toBe(20)
+    // Con 80 de ancho, el ala llega como mucho a 70.
+    expect(rangoMedidaExtra(esquinero, con({}, 80), 'anchoAla').max).toBe(70)
+  })
+
+  it('las líneas de la hoja: las del tipo si las da; si no, «Etiqueta: N cm»', () => {
+    expect(lineasMedidasExtra(esquinero, con({ huecoAncho: 11, huecoFondo: 58 }))).toEqual(['Profundidad del fondo: 58 cm', 'Ancho del ala: 58 cm', 'Hueco del rincón: 11 × 58 cm'])
+    const sinLineas: DefinicionTipo = { ...esquinero, detallesExtra: undefined }
+    expect(lineasMedidasExtra(sinLineas, con({ huecoAncho: 11 }))).toEqual(['Profundidad del fondo: 58 cm', 'Ancho del ala: 58 cm', 'Hueco: ancho: 11 cm', 'Hueco: fondo: 0 cm'])
+    expect(lineasMedidasExtra(armario, elementoDe('armario', 0, 0, 0, 100, 60, 220))).toEqual([])
   })
 })
