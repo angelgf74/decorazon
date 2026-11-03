@@ -1,5 +1,8 @@
-import { capitalizar, desplazarPoligono, valorVariante, type Catalogo, type DocumentoDiseno, type Punto } from '../../nucleo'
+import {
+  capitalizar, desplazarPoligono, esUrlDeProducto, nombreDeElemento, valorVariante, type Catalogo, type DocumentoDiseno, type OrigenTienda, type Punto,
+} from '../../nucleo'
 import { textos } from '../../textos'
+import { formatoFecha, formatoPrecio } from '../comunes/formatos'
 import { etiquetaValor } from '../comunes/variantes'
 import { encuadrar, MARGEN_ENCUADRE_PX, type Vista2D } from '../lienzo/vista'
 
@@ -26,6 +29,8 @@ export interface FilaMueble {
   alturaSuelo: string | null
   variantes: string[]
   colores: { etiqueta: string; color: string }[]
+  /** Los datos del producto, si es de una tienda: «Armario · IKEA · ref. …», la URL y el precio con su fecha. */
+  tienda: { linea: string; url?: string; precio?: string } | null
 }
 
 const t = textos.hoja
@@ -38,11 +43,31 @@ export function filasDeMuebles(doc: DocumentoDiseno, catalogo: Catalogo): FilaMu
     const alto = def?.altoReal?.(e) ?? e.medidas.alto
     return {
       id: e.id,
-      nombre: def ? capitalizar(def.nombre) : e.tipo,
+      nombre: nombreDeElemento(def, e),
       medidas: `${ancho} × ${fondo} × ${alto} cm`,
       alturaSuelo: e.alturaSuelo > 0 ? t.alturaSuelo(e.alturaSuelo) : null,
       variantes: def ? def.variantes.map((v) => `${v.etiqueta}: ${etiquetaValor(valorVariante(def, e, v.clave))}`) : [],
       colores: def ? def.zonasColor.map((z) => ({ etiqueta: z.etiqueta, color: e.colores[z.clave] ?? z.defecto })) : [],
+      tienda: e.origen.tipo === 'tienda' ? filaTienda(e.origen, def ? capitalizar(def.nombre) : e.tipo) : null,
     }
   })
+}
+
+function filaTienda(o: OrigenTienda, tipo: string): NonNullable<FilaMueble['tienda']> {
+  return {
+    linea: textos.tienda.lineaHoja(tipo, o.proveedor, o.referencia),
+    // El validador ya rechaza otras: se vuelve a mirar porque se enseña (y en la página compartida, se enlaza).
+    ...(o.url && esUrlDeProducto(o.url) && { url: o.url }),
+    ...(o.precio !== undefined && {
+      precio: textos.tienda.precioAnotado(formatoPrecio(o.precio), o.fechaPrecio && formatoFecha(o.fechaPrecio)),
+    }),
+  }
+}
+
+/** La suma de los precios anotados (en céntimos, para no arrastrar decimales) y cuántos productos la forman; null sin ninguno. */
+export function totalAnotado(doc: DocumentoDiseno): { importe: number; productos: number } | null {
+  const precios = doc.elementos.flatMap((e) => (e.origen.tipo === 'tienda' && e.origen.precio !== undefined ? [e.origen.precio] : []))
+  if (precios.length === 0) return null
+  const centimos = precios.reduce((suma, p) => suma + Math.round(p * 100), 0)
+  return { importe: centimos / 100, productos: precios.length }
 }

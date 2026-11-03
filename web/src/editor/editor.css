@@ -131,6 +131,16 @@
 .panel__rejilla .campo-numero { margin: var(--esp-2) 0; }
 .panel__rejilla .campo-numero input { max-width: none; }
 .panel__casilla { display: flex; gap: var(--esp-2); align-items: center; margin: var(--esp-3) 0; font-size: var(--texto-s); }
+.panel__error { color: var(--conflicto); font-size: var(--texto-s); }
+.panel__subtitulo { margin: calc(-1 * var(--esp-2)) 0 var(--esp-3); color: var(--gris); font-size: var(--texto-s); }
+.producto-tienda { margin: var(--esp-4) 0; padding-top: var(--esp-3); border-top: 1px solid var(--borde-suave); }
+.producto-tienda__ficha { display: grid; grid-template-columns: auto 1fr; gap: var(--esp-1) var(--esp-3); margin: var(--esp-2) 0; font-size: var(--texto-m); }
+.producto-tienda__ficha dt { color: var(--gris); }
+.producto-tienda__ficha dd { margin: 0; overflow-wrap: anywhere; }
+/* En la rejilla de dos columnas, los campos encogen con ella (un input de fecha tiene ancho propio y se salía del panel). */
+.producto-tienda .panel__rejilla > * { min-width: 0; }
+.producto-tienda input { width: 100%; min-width: 0; box-sizing: border-box; }
+.producto-tienda a { color: var(--terracota); font-weight: 600; }
 .panel__nota { margin: var(--esp-2) 0; color: var(--gris); font-size: var(--texto-s); line-height: 1.45; }
 .panel__botones { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin: var(--esp-3) 0; }
 .panel__acciones {

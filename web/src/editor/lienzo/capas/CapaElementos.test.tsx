@@ -36,3 +36,21 @@ describe('CapaElementos', () => {
     expect(y('Lavabo') - y('Espejo')).toBeCloseTo(14)
   })
 })
+
+describe('CapaElementos: muebles de tienda', () => {
+  it('el nombre del plano es el del producto', () => {
+    const doc = documentoNuevo('dormitorio', 400, 400, 250)
+    const armario = elementoNuevo(catalogoBase.get('armario')!, { x: 200, y: 200 }, 'a')
+    doc.elementos = [{ ...armario, origen: { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX' } }]
+    const { container } = render(<svg><CapaElementos documento={doc} conflictos={[]} seleccion={null} /></svg>)
+    expect([...container.querySelectorAll('.capa-elementos text')].map((t) => t.textContent)).toEqual(['PAX'])
+  })
+
+  it('un nombre largo se recorta en el plano con «…»', () => {
+    const doc = documentoNuevo('dormitorio', 400, 400, 250)
+    const armario = elementoNuevo(catalogoBase.get('armario')!, { x: 200, y: 200 }, 'a')
+    doc.elementos = [{ ...armario, origen: { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX armario blanco con puertas correderas' } }]
+    const { container } = render(<svg><CapaElementos documento={doc} conflictos={[]} seleccion={null} /></svg>)
+    expect(container.querySelector('.capa-elementos text')!.textContent).toBe('PAX armario blanco…')
+  })
+})

@@ -251,3 +251,40 @@ describe('local', () => {
     expect(leerCopiaLocal(st, 'd2')).toBeNull()
   })
 })
+
+describe('diseño anónimo apartado por una versión anterior', () => {
+  const crudo = () => JSON.stringify({ version: 1, guardadoEn: '2026-11-03T10:00:00Z', documento: doc })
+
+  it('si no hay diseño anónimo y el apartado ahora es válido, vuelve (p. ej. tras volver a una release sin muebles de tienda)', () => {
+    const st = falso()
+    st.setItem(CLAVE_DESCARTADO, crudo())
+    expect(leerDisenoLocal(st)).toEqual(doc)
+    expect(st.getItem(CLAVE_DISENO)).toBe(crudo())
+    expect(st.getItem(CLAVE_DESCARTADO)).toBeNull()
+  })
+
+  it('un apartado que tampoco vale ahora se queda donde está', () => {
+    const st = falso()
+    st.setItem(CLAVE_DESCARTADO, '{roto')
+    expect(leerDisenoLocal(st)).toBeNull()
+    expect(st.getItem(CLAVE_DESCARTADO)).toBe('{roto')
+    expect(st.getItem(CLAVE_DISENO)).toBeNull()
+  })
+
+  it('con un diseño anónimo, el apartado no se toca', () => {
+    const st = falso()
+    guardarDisenoLocal(st, doc)
+    st.setItem(CLAVE_DESCARTADO, '{"otro":1}')
+    expect(leerDisenoLocal(st)).toEqual(doc)
+    expect(st.getItem(CLAVE_DESCARTADO)).toBe('{"otro":1}')
+  })
+
+  it('descartar el diseño anónimo a propósito (guardar null) borra también el apartado: no reaparece después', () => {
+    const st = falso()
+    guardarDisenoLocal(st, doc)
+    st.setItem(CLAVE_DESCARTADO, crudo())
+    guardarDisenoLocal(st, null)
+    expect(st.getItem(CLAVE_DESCARTADO)).toBeNull()
+    expect(leerDisenoLocal(st)).toBeNull()
+  })
+})

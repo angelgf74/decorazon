@@ -8,6 +8,7 @@ import { CLAVE_ID_DE_SUBIDA, guardarDisenoLocal } from '../../editor/persistenci
 import { almacen, reiniciarAlmacen } from '../../editor/estado/almacen'
 import { catalogoBase, documentoNuevo, elementoNuevo, type DocumentoDiseno } from '../../nucleo'
 import { respuesta } from '../../pruebas/respuesta'
+import { textos } from '../../textos'
 import VistaCompartida from './VistaCompartida'
 
 // La 3D de verdad necesita WebGL: aquí se simula que lo hay y se sustituye por un marcador.
@@ -198,3 +199,32 @@ describe('VistaCompartida', () => {
     expect(almacen.getState().documento?.elementos.map((e) => e.id)).toEqual(['i'])
   })
 })
+
+describe('VistaCompartida: muebles de tienda', () => {
+  const conProducto = (url: string): DocumentoDiseno => {
+    const doc = banoAmueblado()
+    doc.elementos = doc.elementos.map((e) => ({ ...e, origen: { tipo: 'tienda', proveedor: 'Roca', nombre: 'Meridian', url } }))
+    return doc
+  }
+
+  it('la lista enlaza la página del producto, en pestaña nueva', async () => {
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, compartido(conProducto('https://www.roca.es/meridian'))))
+    montar()
+    const lista = await screen.findByRole('table')
+    expect(within(lista).getByText('Meridian')).toBeInTheDocument()
+    const enlace = within(lista).getByRole('link', { name: 'Ver en la tienda' })
+    expect(enlace).toHaveAttribute('href', 'https://www.roca.es/meridian')
+    expect(enlace).toHaveAttribute('rel', 'noopener noreferrer nofollow')
+  })
+
+  it('un diseño con un enlace javascript: no se pinta: el validador lo rechaza entero', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, compartido(conProducto('javascript:alert(document.cookie)'))))
+    montar()
+    expect(await screen.findByText(textos.compartir.noCarga)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 1, name: 'Baño de arriba' })).toBeNull()
+    expect(document.querySelector('a[href^="javascript:"]')).toBeNull()
+    expect(screen.queryByRole('table')).toBeNull()
+  })
+})
+

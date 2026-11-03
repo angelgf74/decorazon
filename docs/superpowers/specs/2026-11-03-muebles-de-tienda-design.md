@@ -71,6 +71,15 @@ interface OrigenTienda {
 - Si hay algún producto con precio, al final de la tabla: «Total anotado: 1.234,50 € (N productos)» y debajo «Precios anotados a mano en la fecha indicada; pueden haber cambiado».
 - Si hay algún producto de tienda, la nota de marcas al pie.
 
+## Decisiones tras la revisión
+
+- **Volver a una versión anterior:** esa versión no entiende un mueble de tienda. Al abrir el diseño anónimo, lo aparta a . Al volver a esta versión, si no hay diseño anónimo y el apartado sí se entiende, se recupera. Descartar el diseño a propósito (nuevo diseño, subirlo a la cuenta o cerrar sesión) borra también el apartado, para que no reaparezca. Un diseño de la cuenta con muebles de tienda no se abre en la versión vieja, pero sigue intacto en el servidor.
+- **Alto real:** en un tipo con alto real distinto del de las medidas (el inodoro con la cisterna empotrada) no se pide el alto del producto. La ficha y la hoja enseñan el de la taza.
+- **En el plano**, el nombre se recorta a 20 caracteres con «…». En la lista va entero.
+- **Precios con separador de miles** también con cuatro cifras: «1.234,50 €».
+- **Foco:** al abrir el formulario va a «Tienda». Al guardar, cancelar o desvincular vuelve al botón que queda. Sin esto quedaba en la página, donde Supr o Retroceso borran el mueble.
+- **Medidas con decimales:** tienen su propio mensaje. El error de un campo se quita al corregirlo.
+
 ## Fuera de alcance
 
 - Importar desde una URL o un feed: es la fase 2 o 3 del estudio.

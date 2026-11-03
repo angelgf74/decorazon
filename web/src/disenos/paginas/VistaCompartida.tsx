@@ -204,7 +204,7 @@ export default function VistaCompartida() {
 
       <section className="compartido__seccion" aria-labelledby={idMuebles}>
         <h2 id={idMuebles}>{textos.hoja.muebles}</h2>
-        <TablaDeMuebles doc={doc} />
+        <TablaDeMuebles doc={doc} enlaces />
       </section>
 
       <footer className="compartido__pie">

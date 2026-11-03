@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import {
   cambiarLongitudPared, capitalizar, catalogoBase, editarAbertura, editarElemento, editarEstructura, longitudPared, moverVertice, partirPared,
-  quitarDeEstancia, quitarVertice, valoresVariante, valorVariante,
+  nombreDeElemento, quitarDeEstancia, quitarVertice, valoresVariante, valorVariante,
   type Abertura, type Columna, type DocumentoDiseno, type Elemento, type Estructura, type Medidas, type Puerta,
   type Radiador, type ResultadoEdicion, type Ventana, type Viga, type ZonaColor,
 } from '../../nucleo'
@@ -12,6 +12,7 @@ import { etiquetaValor } from '../comunes/variantes'
 import Icono from '../comunes/Icono'
 import { almacen, useEditor } from '../estado/almacen'
 import { borrar, duplicar } from '../estado/elementos'
+import ProductoDeTienda from './ProductoDeTienda'
 
 const t = textos.propiedades
 const COORDENADA = 5000
@@ -183,17 +184,20 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
   if (!def) return null
   const editar = (cambios: CambiosElemento, grupo?: string) =>
     almacen.getState().cambiar((d) => editarElemento(d, catalogoBase, e.id, cambios), grupo)
+  const deTienda = e.origen.tipo === 'tienda'
   const medida = (clave: keyof Medidas, etiqueta: string) => (
     <CampoNumero etiqueta={etiqueta} valor={e.medidas[clave]} min={def.medidas[clave].min} max={def.medidas[clave].max} unidad="cm"
       alCambiar={(n) => editar({ medidas: { [clave]: n } })} />
   )
   return (
     <>
-      <h2>{capitalizar(def.nombre)}</h2>
+      <h2>{nombreDeElemento(def, e)}</h2>
+      {e.origen.tipo === 'tienda' && <p className="panel__subtitulo">{textos.tienda.deTienda(capitalizar(def.nombre), e.origen.proveedor)}</p>}
       <div className="panel__rejilla">
-        {medida('ancho', t.ancho)}
-      {medida('fondo', t.fondo)}
-      {def.altoReal?.(e) === undefined && medida('alto', t.alto)}
+        {/* Las de un mueble de tienda son las del producto: se cambian en «Editar producto». */}
+        {!deTienda && medida('ancho', t.ancho)}
+        {!deTienda && medida('fondo', t.fondo)}
+        {!deTienda && def.altoReal?.(e) === undefined && medida('alto', t.alto)}
       {!en3d && <CampoNumero etiqueta={t.giro} valor={e.rotacion} min={0} max={359} unidad="°" alCambiar={(n) => editar({ rotacion: n })} />}
       {def.alturaSueloEditable && (
         <CampoNumero etiqueta={t.alturaSuelo} valor={e.alturaSuelo} min={0} max={Math.max(0, doc.estancia.alto - e.medidas.alto)} unidad="cm"
@@ -209,6 +213,7 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
         <CampoColor key={z.clave} zona={z} valor={e.colores[z.clave] ?? z.defecto}
           alCambiar={(c) => editar({ colores: { [z.clave]: c } }, `color:${e.id}:${z.clave}`)} />
       ))}
+      <ProductoDeTienda e={e} def={def} />
       <div className="panel__acciones">
         {!en3d && <button type="button" onClick={() => duplicar(e.id)}>{t.duplicar}</button>}
         <button type="button" className="peligro" onClick={() => borrar(e.id)}>{t.borrar}</button>
