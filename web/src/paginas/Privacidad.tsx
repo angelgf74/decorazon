@@ -10,6 +10,7 @@ const secciones = [
   [t.guardamosTitulo, t.guardamos],
   [t.paraQueTitulo, t.paraQue],
   [t.correoTitulo, t.correo],
+  [t.sugerenciasTitulo, t.sugerencias],
   [t.anonimoTitulo, t.anonimo],
   [t.borrarTitulo, t.borrar],
 ] as const

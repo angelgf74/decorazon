@@ -224,6 +224,62 @@
         }
       }
     },
+    "/sugerencias": {
+      "post": {
+        "tags": [
+          "Sugerencias"
+        ],
+        "operationId": "enviarSugerencia",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PeticionDeSugerencia"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cuentas/registro": {
       "post": {
         "tags": [
@@ -1293,6 +1349,29 @@
           }
         }
       },
+      "PeticionDeSugerencia": {
+        "required": [
+          "texto",
+          "tipo"
+        ],
+        "type": "object",
+        "properties": {
+          "texto": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "correo": {
+            "maxLength": 254,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "RespuestaDeDiseno": {
         "required": [
           "id",
@@ -1507,6 +1586,9 @@
     },
     {
       "name": "Compartidos"
+    },
+    {
+      "name": "Sugerencias"
     },
     {
       "name": "Registro"

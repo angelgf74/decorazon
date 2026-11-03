@@ -78,6 +78,12 @@ describe('BarraSuperior', () => {
     expect(screen.queryByRole('link', { name: 'Mis diseños' })).toBeNull()
   })
 
+  it('con sesión y sin ella ofrece enviar una sugerencia', async () => {
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Sugerencias' }))
+    expect(screen.getByRole('dialog', { name: 'Envíanos una sugerencia' })).toBeInTheDocument()
+  })
+
   it('sin sesión "Guardar" lleva al registro', () => {
     render(<BarraSuperior />, { wrapper: MemoryRouter })
     expect(screen.getByRole('link', { name: 'Guardar' })).toHaveAttribute('href', '/registro')

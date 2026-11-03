@@ -68,6 +68,7 @@ Los tests de integración llevan `[Trait("Categoria","Integracion")]`; de ahí e
 - Los secretos de producción van por variables de entorno, con `srv secreto` (skill `servidor`): `ConnectionStrings__Decorazon`, `Jwt__ClaveDeFirma` y `Correo__ClaveDeApi`.
 - Los valores de producción que no son secretos viven en `appsettings.json`: el origen CORS y el correo (`Correo:UsarBrevo: true`, remitente y `Correo:BaseDeLaWeb` https).
 - El correo depende de `Correo:UsarBrevo`. Con `false` (desarrollo y tests) no se envía: el enlace va al log con `[CORREO SIMULADO]`. Fuera de Development y Testing la API no arranca sin Brevo (salvo `Correo:Simulado: true`) ni con una `Correo:BaseDeLaWeb` que no sea https.
+- Las sugerencias (`POST /sugerencias`) se entregan al buzón del proyecto GestorSugerencias (`Sugerencias:UrlBase`, sin clave; `appsettings.json` lo trae activo). En Development y Testing `Program` fuerza `Sugerencias:UsarServicioReal=false` pase lo que pase en la configuración: van al log con `[SUGERENCIA SIMULADA]`. Fuera, la API no arranca sin el buzón (salvo `Sugerencias:Simulado: true`) ni con una `UrlBase` que no sea https.
 
 ## Reglas globales
 
@@ -86,6 +87,10 @@ Los tests de integración llevan `[Trait("Categoria","Integracion")]`; de ahí e
 - El contenido rechaza números con exponente o de más de 32 caracteres: jsonb los guarda como `numeric` exacto y `1e200000` reventaba al guardar.
 - El diseño anónimo vive en `localStorage` bajo `decorazon.disenoAnonimo`, y todo número se redondea a 2 decimales al guardar para que `JSON.stringify` nunca emita exponentes.
 - Los adaptadores traducen la concurrencia de EF y los errores 23505/23503 de PostgreSQL a resultados del puerto (`false`); la aplicación nunca ve tipos de EF ni de Npgsql. La fecha de consumo de las solicitudes es token de concurrencia: un enlace solo se usa una vez aunque lleguen dos peticiones a la vez.
+- Sugerencias: `POST /sugerencias` no pide sesión. Con un token válido se responde al correo de la cuenta y el `correo` del cuerpo se ignora; sin token, ese correo es obligatorio. Un `Authorization` que no valida da 401, no "sin sesión": así la web cierra la sesión en vez de pedir un correo. Decorazon no guarda la sugerencia: si el buzón falla, 502 y la web conserva lo escrito. El buzón admite correos de 200 caracteres (una cuenta, 254): más largos, 400 antes de mandarlos. El tipo viaja al buzón por nombre (`NuevaFuncionalidad`…), no por número: el buzón no valida el rango de su enumerado y un número cambiaría de sentido si lo reordenan. Límite propio: 5 por hora, por cuenta o por IP.
+- En móvil el botón de sugerencias va en las pestañas de abajo del editor (`PestanasDeHojas`): en la barra superior no cabe sin recortar los pasos o el estado de guardado.
+- xUnit serializa los datos de `InlineData`: un sustituto suelto llega al test como U+FFFD. Esas cadenas se arman dentro del test.
+- jsdom trata un `<footer>` dentro de `<main>` como `contentinfo` y Chromium no: en los e2e, el pie del inicio se busca por su clase.
 
 ## Núcleo TS
 

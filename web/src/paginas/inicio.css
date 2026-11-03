@@ -122,6 +122,10 @@
 
 .inicio__pie a { font-size: 0.9rem; }
 
+.inicio__pie { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--esp-2); }
+/* "Sugerencias" es un botón (abre un diálogo) con el aspecto de los enlaces del pie. */
+.inicio__pie button.enlace { padding: 0 var(--esp-2); font-size: 0.9rem; text-underline-offset: 0.2em; }
+
 @media (min-width: 40rem) {
   .inicio__cuenta { padding: var(--esp-6) var(--esp-6) var(--esp-4); }
 }

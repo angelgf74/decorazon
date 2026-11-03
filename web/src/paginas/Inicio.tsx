@@ -4,6 +4,7 @@ import { empezarDeNuevo } from '../cuenta/disenosLocales'
 import { useSesion } from '../cuenta/sesion'
 import Confirmar from '../editor/comunes/Confirmar'
 import { useEditor } from '../editor/estado/almacen'
+import BotonDeSugerencia from '../sugerencias/BotonDeSugerencia'
 import { textos } from '../textos'
 import './inicio.css'
 
@@ -53,7 +54,10 @@ export default function Inicio() {
           </section>
         )}
 
-        <footer className="inicio__pie"><Link to="/privacidad">{t.privacidad}</Link></footer>
+        <footer className="inicio__pie">
+          <Link to="/privacidad">{t.privacidad}</Link>
+          <BotonDeSugerencia className="enlace">{textos.sugerencias.abrir}</BotonDeSugerencia>
+        </footer>
       </div>
       <Confirmar
         abierto={confirmando}

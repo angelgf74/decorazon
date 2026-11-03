@@ -108,6 +108,33 @@ test('lo movido se guarda solo en el servidor y sigue ahí al recargar', async (
   await expect.poll(() => distanciaDelArmarioA(page, movido)).toBeLessThan(3)
 })
 
+// La API corre en Development, que nunca entrega al buzón real: la sugerencia va a su log.
+test('sugerencias: con sesión no pide correo; sin ella, desde el inicio, sí', async ({ page, browser }) => {
+  await entrar(page, contrasena)
+  await expect(page).toHaveURL(/\/disenos$/)
+  await abrirDiseno(page)
+  await page.getByRole('button', { name: 'Sugerencias' }).click()
+  const conCuenta = page.getByRole('dialog', { name: 'Envíanos una sugerencia' })
+  await expect(conCuenta.getByText(`Te responderemos a ${correo}.`)).toBeVisible()
+  await expect(conCuenta.getByLabel('Tu correo')).toHaveCount(0)
+  await conCuenta.getByLabel('Tu sugerencia').fill('Con sesión: más tipos de cocina')
+  await conCuenta.getByRole('button', { name: 'Enviar' }).click()
+  await expect(conCuenta.getByText('Gracias. Hemos recibido tu sugerencia.')).toBeVisible()
+
+  // Otra persona, sin sesión ni nada en su navegador.
+  const invitado = await browser.newContext()
+  const anonimo = await invitado.newPage()
+  await anonimo.goto('/')
+  await anonimo.locator('.inicio__pie').getByRole('button', { name: 'Sugerencias' }).click()
+  const sinCuenta = anonimo.getByRole('dialog', { name: 'Envíanos una sugerencia' })
+  await sinCuenta.getByLabel('De qué va').selectOption({ label: 'Una pregunta' })
+  await sinCuenta.getByLabel('Tu sugerencia').fill('Sin sesión: ¿se puede exportar a PDF?')
+  await sinCuenta.getByLabel('Tu correo').fill('anonimo@ejemplo.test')
+  await sinCuenta.getByRole('button', { name: 'Enviar' }).click()
+  await expect(sinCuenta.getByText('Gracias. Hemos recibido tu sugerencia.')).toBeVisible()
+  await invitado.close()
+})
+
 test('dos pestañas: la segunda ve el aviso y recarga la versión de la primera', async ({ page, context }) => {
   await entrar(page, contrasena)
   await expect(page).toHaveURL(/\/disenos$/)

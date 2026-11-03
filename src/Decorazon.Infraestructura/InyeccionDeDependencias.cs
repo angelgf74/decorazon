@@ -2,6 +2,7 @@ using Decorazon.Dominio.Puertos;
 using Decorazon.Infraestructura.Correo;
 using Decorazon.Infraestructura.Persistencia;
 using Decorazon.Infraestructura.Seguridad;
+using Decorazon.Infraestructura.Sugerencias;
 using Decorazon.Infraestructura.Tiempo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -48,8 +49,32 @@ public static class InyeccionDeDependencias
 
         AnadirOpcionesDeJwt(servicios, configuracion);
         AnadirCorreo(servicios, configuracion);
+        AnadirSugerencias(servicios, configuracion);
 
         return servicios;
+    }
+
+    private static void AnadirSugerencias(IServiceCollection servicios, IConfiguration configuracion)
+    {
+        var opciones = new OpcionesDeSugerencias();
+        configuracion.GetSection(OpcionesDeSugerencias.Seccion).Bind(opciones);
+        opciones.Validar();
+
+        servicios.Configure<OpcionesDeSugerencias>(configuracion.GetSection(OpcionesDeSugerencias.Seccion));
+
+        if (!opciones.UsarServicioReal)
+        {
+            servicios.AddScoped<IEnviadorDeSugerencias, EnviadorDeSugerenciasDeConsola>();
+            return;
+        }
+
+        servicios.AddHttpClient<IEnviadorDeSugerencias, EnviadorDeSugerenciasHttp>(cliente =>
+        {
+            cliente.BaseAddress = opciones.DireccionBase();
+            cliente.DefaultRequestHeaders.Add("accept", "application/json");
+            // Quien escribe espera con el diálogo abierto: mejor un "inténtalo más tarde" pronto.
+            cliente.Timeout = TimeSpan.FromSeconds(10);
+        });
     }
 
     private static void AnadirOpcionesDeJwt(IServiceCollection servicios, IConfiguration configuracion)

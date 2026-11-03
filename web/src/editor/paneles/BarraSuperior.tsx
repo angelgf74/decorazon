@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { empezarDeNuevo, subirDisenoAnonimo } from '../../cuenta/disenosLocales'
 import { useSesion } from '../../cuenta/sesion'
+import BotonDeSugerencia from '../../sugerencias/BotonDeSugerencia'
 import { textos } from '../../textos'
 import Confirmar from '../comunes/Confirmar'
 import Icono from '../comunes/Icono'
@@ -127,6 +128,10 @@ export default function BarraSuperior({ alImprimir }: { alImprimir?: () => void 
           <Icono nombre="imprimir" /><span className="barra__texto">{textos.hoja.imprimir}</span>
         </button>
       )}
+
+      <BotonDeSugerencia className="enlace barra__sugerencia" title={textos.sugerencias.pista}>
+        <Icono nombre="sugerencia" /><span className="barra__texto">{textos.sugerencias.abrir}</span>
+      </BotonDeSugerencia>
 
       <nav className="barra__grupo barra__cuenta" aria-label="Cuenta">
         {haySesion ? (

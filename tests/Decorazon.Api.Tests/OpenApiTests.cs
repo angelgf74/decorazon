@@ -42,6 +42,8 @@ public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDat
         Assert.False(PideBearer(rutas.GetProperty("/compartidos/{enlace}/imagen").GetProperty("get")));
         Assert.False(PideBearer(rutas.GetProperty("/compartidos/{enlace}/tarjeta").GetProperty("get")));
         Assert.False(PideBearer(rutas.GetProperty("/cuentas/contrasena/olvido").GetProperty("post")));
+        // Con sesión o sin ella: el token viaja si lo hay, pero no se exige.
+        Assert.False(PideBearer(rutas.GetProperty("/sugerencias").GetProperty("post")));
     }
 
     [Fact]
@@ -95,7 +97,8 @@ public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDat
                 "borrarDiseno", "borrarMiCuenta", "cambiarContrasena", "confirmarRegistro", "consultarSalud",
                 "crearDiseno", "duplicarDiseno", "iniciarSesion", "listarDisenos", "obtenerDiseno",
                 "obtenerMiCuenta", "restablecerContrasena", "solicitarOlvidoDeContrasena", "solicitarRegistro",
-                "actualizarDiseno", "compartirDiseno", "dejarDeCompartirDiseno", "leerDisenoCompartido", "subirVistaPrevia", "leerVistaPrevia", "leerTarjeta"
+                "actualizarDiseno", "compartirDiseno", "dejarDeCompartirDiseno", "leerDisenoCompartido", "subirVistaPrevia", "leerVistaPrevia", "leerTarjeta",
+                "enviarSugerencia"
             }.Order(),
             ids.Order());
     }
@@ -114,6 +117,9 @@ public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDat
     [InlineData("/compartidos/{enlace}", "get", "429")]
     [InlineData("/compartidos/{enlace}/imagen", "get", "429")]
     [InlineData("/compartidos/{enlace}/tarjeta", "get", "429")]
+    [InlineData("/sugerencias", "post", "400")]
+    [InlineData("/sugerencias", "post", "429")]
+    [InlineData("/sugerencias", "post", "502")]
     public async Task Documento_DeclaraLos400YLos429QueDaLaApi(string ruta, string metodo, string codigo)
     {
         using var documento = await LeerDocumentoAsync();

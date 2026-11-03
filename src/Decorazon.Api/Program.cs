@@ -12,6 +12,7 @@ using Decorazon.Infraestructura;
 using Decorazon.Infraestructura.Correo;
 using Decorazon.Infraestructura.Persistencia;
 using Decorazon.Infraestructura.Seguridad;
+using Decorazon.Infraestructura.Sugerencias;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +45,18 @@ if (soloDocumentoOpenApi)
     });
 }
 
+// Desde desarrollo y desde los tests no sale ninguna sugerencia al buzón real del autor, diga lo
+// que diga la configuración: appsettings.json lo trae activo (es el valor de producción), y un
+// appsettings.Development.json copiado antes de existir esta sección no lo apagaría. Se añade el
+// último para que mande sobre cualquier otra fuente.
+if (constructor.Environment.IsDevelopment() || constructor.Environment.IsEnvironment("Testing"))
+{
+    constructor.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["Sugerencias:UsarServicioReal"] = "false"
+    });
+}
+
 constructor.Services
     .AddAplicacion()
     .AddInfraestructura(constructor.Configuration);
@@ -59,6 +72,11 @@ if (!constructor.Environment.IsDevelopment() && !constructor.Environment.IsEnvir
     var opcionesDeCorreo = new OpcionesDeCorreo();
     constructor.Configuration.GetSection(OpcionesDeCorreo.Seccion).Bind(opcionesDeCorreo);
     opcionesDeCorreo.ValidarFueraDeDesarrollo();
+
+    // Lo mismo con las sugerencias: con el buzón apagado irían al log y nadie las leería.
+    var opcionesDeSugerencias = new OpcionesDeSugerencias();
+    constructor.Configuration.GetSection(OpcionesDeSugerencias.Seccion).Bind(opcionesDeSugerencias);
+    opcionesDeSugerencias.ValidarFueraDeDesarrollo();
 }
 
 // Documento OpenAPI en /openapi/v1.json: el contrato del que sale el cliente de
@@ -230,6 +248,7 @@ aplicacion.MapearEndpointsDeContrasenas();
 aplicacion.MapearEndpointsDeCuentas();
 aplicacion.MapearEndpointsDeDisenos();
 aplicacion.MapearEndpointsDeCompartir();
+aplicacion.MapearEndpointsDeSugerencias();
 
 aplicacion.Run();
 
