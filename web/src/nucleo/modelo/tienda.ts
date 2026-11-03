@@ -56,3 +56,42 @@ export function esFechaPrecio(v: unknown): v is string {
   const d = new Date(`${v}T00:00:00Z`)
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v
 }
+
+type MedidasLeidas = Partial<Record<'ancho' | 'fondo' | 'alto', number>>
+
+const NUMERO = String.raw`(\d+(?:[.,]\d+)?)`
+// La etiqueta sola, con o sin dos puntos y con el número detrás (también en la línea de abajo, como al copiar una tabla).
+// Con complemento («Altura del asiento», «Ancho del colchón», «Altura máx.») no es la medida del mueble y no cuenta.
+const ETIQUETAS: ['ancho' | 'fondo' | 'alto', RegExp][] = [
+  ['ancho', new RegExp(String.raw`\b(?:ancho|anchura)\s*:?\s*${NUMERO}\s*cm`)],
+  ['fondo', new RegExp(String.raw`\b(?:fondo|profundidad)\s*:?\s*${NUMERO}\s*cm`)],
+  ['alto', new RegExp(String.raw`\b(?:alto|altura)\s*:?\s*${NUMERO}\s*cm`)],
+]
+/** Lo que se lee del texto pegado: el bloque de medidas cabe de sobra, y un texto enorme no deja la página pensando. */
+const LARGO_MAXIMO_MEDIDAS = 2000
+// «110/110x201 cm» (esquinero: los dos lados y el alto) y «110x58x201 cm» (ancho × fondo × alto).
+const ESQUINERO = new RegExp(String.raw`${NUMERO}\s*/\s*${NUMERO}\s*[x×]\s*${NUMERO}\s*cm`)
+const TRES = new RegExp(String.raw`${NUMERO}\s*[x×]\s*${NUMERO}\s*[x×]\s*${NUMERO}\s*cm`)
+
+const cm = (t: string) => Math.round(Number(t.replace(',', '.')))
+
+/**
+ * Las medidas del texto que pega el usuario (el bloque de medidas de la ficha de la tienda): etiquetas como «Ancho:
+ * 110 cm» en cualquier orden, «110x58x201 cm» o el «110/110x201 cm» de un esquinero. Lo que no encuentra no viene.
+ */
+export function leerMedidas(texto: string): MedidasLeidas {
+  const t = texto.slice(0, LARGO_MAXIMO_MEDIDAS).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+  const medidas: MedidasLeidas = {}
+  const forma = ESQUINERO.exec(t) ?? TRES.exec(t)
+  if (forma) {
+    medidas.ancho = cm(forma[1]!)
+    medidas.fondo = cm(forma[2]!)
+    medidas.alto = cm(forma[3]!)
+  }
+  // Las etiquetas mandan: son más explícitas que una medida suelta.
+  for (const [clave, patron] of ETIQUETAS) {
+    const m = patron.exec(t)
+    if (m) medidas[clave] = cm(m[1]!)
+  }
+  return medidas
+}

@@ -47,7 +47,7 @@ describe('PanelCatalogo', () => {
     almacen.getState().irAPaso(2)
     render(<PanelCatalogo />)
     const otros = screen.getByRole('region', { name: 'Otros muebles' })
-    const boton = within(otros).getByRole('button', { name: /^Armario(?! de espejo)/ })
+    const boton = within(otros).getByRole('button', { name: /^Armario(?! de espejo| esquinero)/ })
     expect(boton.getAttribute('draggable')).toBe('true')
     expect(boton.textContent).toContain('100 × 60 cm')
     await userEvent.click(boton)
@@ -66,7 +66,7 @@ describe('PanelCatalogo en una L', () => {
     almacen.getState().cambiar((d) => ({ ...d, estancia: { ...d.estancia, planta: ele } }))
     almacen.getState().irAPaso(2)
     render(<PanelCatalogo />)
-    await userEvent.click(within(screen.getByRole('region', { name: 'Otros muebles' })).getByRole('button', { name: /^Armario(?! de espejo)/ }))
+    await userEvent.click(within(screen.getByRole('region', { name: 'Otros muebles' })).getByRole('button', { name: /^Armario(?! de espejo| esquinero)/ }))
     const armario = almacen.getState().documento!.elementos[0]!
     expect(contienePunto(ele, armario.posicion)).toBe(true)
   })
@@ -76,7 +76,7 @@ describe('PanelCatalogo en una L', () => {
     render(<PanelCatalogo />)
     await userEvent.type(screen.getByRole('searchbox', { name: textos.catalogo.buscar }), 'LAMPARA')
     expect(screen.getByRole('button', { name: /^Lámpara de pie/ })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^Armario(?! de espejo)/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Armario(?! de espejo| esquinero)/ })).toBeNull()
   })
 
   it('sin coincidencias lo dice y no deja grupos vacíos', async () => {
@@ -107,7 +107,7 @@ describe('PanelCatalogo con el dedo', () => {
     const { container } = render(<><PanelCatalogo /><Lienzo /></>)
     const svg = container.querySelector('.lienzo__svg')!
     document.elementFromPoint = vi.fn(() => svg)
-    const asa = asaDe(/^Armario(?! de espejo)/)
+    const asa = asaDe(/^Armario(?! de espejo| esquinero)/)
     fireEvent.pointerDown(asa, { ...dedo, clientX: 50, clientY: 50 })
     fireEvent.pointerMove(asa, { ...dedo, clientX: 90, clientY: 100 })
     expect(fantasma()?.textContent).toBe('Armario')
@@ -127,7 +127,7 @@ describe('PanelCatalogo con el dedo', () => {
   it('soltar fuera del plano no añade nada ni dispara el clic', () => {
     const { container } = render(<><PanelCatalogo /><Lienzo /></>)
     document.elementFromPoint = vi.fn(() => container.querySelector('.panel-catalogo__buscar'))
-    const asa = asaDe(/^Armario(?! de espejo)/)
+    const asa = asaDe(/^Armario(?! de espejo| esquinero)/)
     fireEvent.pointerDown(asa, { ...dedo, clientX: 50, clientY: 50 })
     fireEvent.pointerMove(asa, { ...dedo, clientX: 60, clientY: 80 })
     fireEvent.pointerUp(asa, { ...dedo, clientX: 60, clientY: 80 })
@@ -140,11 +140,11 @@ describe('PanelCatalogo con el dedo', () => {
     const alEmpezar = vi.fn()
     const { container } = render(<><PanelCatalogo alEmpezarArrastre={alEmpezar} /><Lienzo /></>)
     document.elementFromPoint = vi.fn(() => container.querySelector('.lienzo__svg'))
-    fireEvent.pointerDown(asaDe(/^Armario(?! de espejo)/), { ...dedo, clientX: 50, clientY: 50 })
-    fireEvent.pointerMove(asaDe(/^Armario(?! de espejo)/), { ...dedo, clientX: 70, clientY: 70 })
+    fireEvent.pointerDown(asaDe(/^Armario(?! de espejo| esquinero)/), { ...dedo, clientX: 50, clientY: 50 })
+    fireEvent.pointerMove(asaDe(/^Armario(?! de espejo| esquinero)/), { ...dedo, clientX: 70, clientY: 70 })
     expect(alEmpezar).toHaveBeenCalledTimes(1)
     // Si el sistema cancela el toque, el arrastre acaba sin añadir nada.
-    fireEvent.pointerCancel(asaDe(/^Armario(?! de espejo)/), { ...dedo, clientX: 120, clientY: 140 })
+    fireEvent.pointerCancel(asaDe(/^Armario(?! de espejo| esquinero)/), { ...dedo, clientX: 120, clientY: 140 })
     expect(fantasma()).toBeNull()
     expect(almacen.getState().documento!.elementos).toHaveLength(0)
   })
@@ -153,7 +153,7 @@ describe('PanelCatalogo con el dedo', () => {
     const alEmpezar = vi.fn()
     const { container } = render(<><PanelCatalogo alEmpezarArrastre={alEmpezar} /><Lienzo /></>)
     document.elementFromPoint = vi.fn(() => container.querySelector('.lienzo__svg'))
-    const asa = asaDe(/^Armario(?! de espejo)/)
+    const asa = asaDe(/^Armario(?! de espejo| esquinero)/)
     fireEvent.pointerDown(asa, { ...dedo, clientX: 50, clientY: 50 })
     fireEvent.pointerMove(asa, { ...dedo, clientX: 51, clientY: 51 })
     expect(fantasma()).toBeNull()
@@ -167,7 +167,7 @@ describe('PanelCatalogo con el dedo', () => {
     const { container } = render(<><PanelCatalogo /><Lienzo /></>)
     const svg = container.querySelector('.lienzo__svg')!
     document.elementFromPoint = vi.fn(() => svg)
-    const asa = asaDe(/^Armario(?! de espejo)/)
+    const asa = asaDe(/^Armario(?! de espejo| esquinero)/)
     fireEvent.pointerDown(asa, { ...dedo, clientX: 50, clientY: 50 })
     fireEvent.pointerMove(asa, { ...dedo, clientX: 90, clientY: 100 })
     // El pointerup se perdió. La siguiente pulsación con el mismo id es otra cosa (aquí, en el vacío del plano).
@@ -182,8 +182,8 @@ describe('PanelCatalogo con el dedo', () => {
     const svg = container.querySelector('.lienzo__svg')!
     document.elementFromPoint = vi.fn(() => svg)
     const raton = { pointerType: 'mouse', pointerId: 1 }
-    fireEvent.pointerDown(asaDe(/^Armario(?! de espejo)/), { ...raton, clientX: 50, clientY: 50 })
-    fireEvent.pointerMove(asaDe(/^Armario(?! de espejo)/), { ...raton, clientX: 90, clientY: 100 })
+    fireEvent.pointerDown(asaDe(/^Armario(?! de espejo| esquinero)/), { ...raton, clientX: 50, clientY: 50 })
+    fireEvent.pointerMove(asaDe(/^Armario(?! de espejo| esquinero)/), { ...raton, clientX: 90, clientY: 100 })
     // Se pierde el pointerup; se arrastra otro tipo con el mismo puntero.
     const asa = asaDe(/^Cama/)
     fireEvent.pointerDown(asa, { ...raton, clientX: 50, clientY: 50 })
@@ -196,7 +196,7 @@ describe('PanelCatalogo con el dedo', () => {
   it('si el catálogo se desmonta a mitad del arrastre, soltar luego en el plano no añade nada', () => {
     const { container, rerender } = render(<><PanelCatalogo /><Lienzo /></>)
     document.elementFromPoint = vi.fn(() => container.querySelector('.lienzo__svg'))
-    const asa = asaDe(/^Armario(?! de espejo)/)
+    const asa = asaDe(/^Armario(?! de espejo| esquinero)/)
     fireEvent.pointerDown(asa, { ...dedo, clientX: 50, clientY: 50 })
     fireEvent.pointerMove(asa, { ...dedo, clientX: 90, clientY: 100 })
     rerender(<><Lienzo /></>)

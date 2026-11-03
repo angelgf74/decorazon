@@ -82,7 +82,7 @@ interface OrigenTienda {
 
 ## Fuera de alcance
 
-- Importar desde una URL o un feed: es la fase 2 o 3 del estudio.
+- Descargar la ficha de la tienda, desde el navegador o desde la API, o importar un feed: es la fase 2 o 3 del estudio. La fase 1b solo lee el texto del enlace y lo que el usuario pega.
 - Un catálogo común de productos de tienda.
 - Modelos 3D de los productos: se siguen pintando con el modelo paramétrico del tipo.
 - Otras monedas.
@@ -106,3 +106,111 @@ interface OrigenTienda {
   - la fila del producto, el total y la nota;
   - la URL en texto en la hoja y como enlace con `rel` en la página compartida.
 - **Plano:** la etiqueta lleva el nombre del producto.
+
+## Fase 1b: el enlace primero, leer la dirección y armario esquinero
+
+### Para qué
+
+Rellenar a mano tienda, nombre y referencia es lento. Casi siempre se empieza por la ficha del producto abierta en otra pestaña. Además, el primer producto de ejemplo de Angel es un armario esquinero (PAX / GRIMO, 110/110 × 201 cm), y Decorazon no tiene armarios en L.
+
+### Decisiones de Angel
+
+- **El enlace es el primer campo.** Una vez pegado, se rellena lo que se pueda.
+- **Se lee la dirección y se pegan las medidas.** No se abre la web de la tienda, ni desde el navegador ni desde la API: la spec (§6.3) y las condiciones de IKEA y Amazon lo prohíben, y el navegador tampoco podría por CORS. Del texto del enlace salen tienda, nombre, referencia, tipo y color. Las medidas salen de un recuadro donde el usuario pega el bloque de medidas que copia de la ficha.
+- **Se propone cambiar el tipo.** Si el enlace es de otro tipo de mueble (un esquinero pegado en un armario normal), un aviso lo dice y un botón convierte el mueble. No se cambia solo.
+
+### Leer la dirección
+
+`leerEnlace(url)` es una función pura del núcleo. Solo mira el texto y devuelve lo que encuentre; lo que no, queda sin rellenar:
+
+- **Tienda**, por el dominio, quitando `www.` y aceptando cualquier dominio de país:
+
+  | Dominio | Tienda |
+  |---|---|
+  | ikea.com | IKEA |
+  | leroymerlin.es | Leroy Merlin |
+  | conforama.es | Conforama |
+  | elcorteingles.es | El Corte Inglés |
+  | kavehome.com | Kave Home |
+  | maisonsdumonde.com | Maisons du Monde |
+  | sklum.com | Sklum |
+  | amazon.es | Amazon |
+
+  Otro dominio no rellena la tienda.
+- **Tipo**: se comparan las palabras de la ruta, sin tildes y en minúsculas, con los nombres del catálogo, y gana la coincidencia más larga. «armario esquinero» gana a «armario».
+- **Nombre**:
+  - En IKEA, las palabras de la ruta antes del tipo, en mayúsculas y unidas con « / »: `pax-grimo-armario-esquinero-…` → «PAX / GRIMO».
+  - En las demás tiendas, el último tramo de la ruta legible: guiones como espacios, la primera letra en mayúscula y sin el código final si lo hay.
+  - Se recorta al límite de 80.
+- **Referencia**: en IKEA, el código final de 8 cifras, con o sin la «s» de las combinaciones: `s29502652` → «295.026.52». En otras tiendas no se adivina.
+- **Color**: la primera palabra de la ruta que esté en una tabla corta de colores, pasada a hex: blanco, negro, gris, gris oscuro, beige, crema, roble, nogal, haya, pino, azul, verde, rosa, rojo, amarillo. Se aplica a la primera zona de color del mueble al guardar.
+
+**En el formulario:**
+- Al salir del campo del enlace, o al pegarlo, se rellenan los campos vacíos y los que rellenó un enlace anterior. Nunca se pisa lo que el usuario tecleó.
+- Solo se lee si el enlace es distinto del último leído. Al volver a «Editar producto», el enlace guardado no se vuelve a leer: ni nota, ni aviso, ni se pisa el color elegido después.
+- Debajo sale la nota «Rellenado a partir del enlace: revisa los datos», en una región que siempre está y se anuncia.
+- Lo leído sigue al enlace: si se borra o se cambia, desaparecen la nota y el aviso de tipo, y su color ya no se aplica al guardar.
+- Un enlace que no se lee (no http) no rellena nada ni borra lo que puso el anterior. Sin ruta, solo da la tienda. El error de enlace inválido sigue saliendo al guardar.
+- Un tipo que aparece tras «de», «del», «para» o «con» es un complemento y no cuenta: «lámpara de mesa», «silla de escritorio», «cabecero de cama». A igual largo, gana el tipo que aparece antes.
+- La tienda es la del dominio registrado, contando los dominios de país de dos partes (ikea.co.uk). «ikea.otrodominio.com» no es IKEA.
+- Fuera de IKEA, el nombre sale del último tramo con dos palabras o más y sin «=»: Amazon pone «ref=…» al final y el nombre antes de «/dp/». Los códigos del principio y del final no forman parte del nombre.
+- El color es el primero que aparece en la dirección, no el primero de la tabla.
+
+### Pegar las medidas
+
+Un recuadro opcional, «Pega aquí las medidas de la ficha». Al pegar o al salir de él, `leerMedidas(texto)` (pura) rellena ancho, fondo y alto. Entiende:
+
+- etiquetas: «Ancho» o «Anchura»; «Fondo» o «Profundidad»; «Alto» o «Altura», seguidas de un número y «cm» (también en la línea siguiente, como al copiar una tabla), en cualquier orden y con o sin dos puntos. Una etiqueta con complemento («Altura del asiento», «Ancho del colchón», «Altura máx.») no es la medida del mueble y no cuenta;
+- «110x58x201 cm» y «110 × 58 × 201 cm», como ancho × fondo × alto;
+- «110/110x201 cm», el formato de un esquinero: los dos lados y el alto (ancho 110, fondo 110, alto 201);
+- decimales con coma o punto, que se redondean al centímetro.
+
+Lo que no entiende no rellena nada. Aquí las medidas sí pisan lo que hubiera, porque el usuario acaba de pegarlas para eso, pero solo si el texto del recuadro ha cambiado: salir de él no deshace una corrección a mano. Siguen valiendo los rangos del tipo al guardar. Se leen los primeros 2.000 caracteres, de sobra para el bloque de medidas, para que un texto enorme no deje la página pensando.
+
+### Armario esquinero
+
+Tipo nuevo `armario-esquinero` («armario esquinero», masculino, dormitorio), en L como el sofá rinconera:
+
+- **Medidas:** `ancho` es el lado pegado a la pared del fondo y `fondo` el lado del ala, los dos medidos por fuera. Van de 80 a 200 cm, con 110 por defecto. El alto va de 150 a 260 cm, con 201 por defecto.
+- **Variantes:**
+  - «Rincón», izquierda o derecha: hacia dónde va el ala. Por defecto, izquierda.
+  - «Profundidad», 35 o 58 cm (por defecto 58, la de PAX): el grueso de los dos cuerpos.
+- **Huella:** la L de 6 vértices. Los volúmenes son dos cajas convexas que se tocan en el rincón y cubren la L.
+- **Puertas abatibles:** en cada cara frontal, las hojas justas para que ninguna pase de 60 cm, cada una con su zona de apertura. Se numeran desde fuera: la primera lleva la bisagra en el extremo exterior y se alternan. Si un lado tiene menos de 30 cm libres desde el rincón, no lleva puertas.
+- **3D:** los dos cuerpos, el rincón interior tapado, y los frentes y tiradores. Zonas de color: «Cuerpo» y «Puertas».
+- **Nombre en el plano:** sobre el lado largo, que es el del fondo o, si el ala es más larga, el ala.
+- **Imán:** pega al rincón por su rectángulo envolvente, como el sofá rinconera.
+
+### Cambiar el tipo
+
+`cambiarTipo(doc, catálogo, id, tipo)` es pura:
+- conserva id, posición, giro y origen;
+- recorta las medidas al rango del tipo nuevo;
+- conserva la altura desde el suelo solo si los dos tipos la dejan elegir; si no, pone la del tipo nuevo;
+- pone las variantes por defecto;
+- mantiene los colores de las zonas con la misma clave y pone por defecto las demás;
+- vuelve a imantar.
+
+En el formulario, si `leerEnlace` da un tipo distinto del mueble, sale el aviso «Este enlace parece un armario esquinero» con el botón «Cambiar a armario esquinero». El cambio es un solo paso de deshacer. El formulario sigue abierto con lo escrito, también las medidas, que desde ese momento se validan con los rangos del tipo nuevo. El foco va al enlace: el botón desaparece, y con el foco en la página Supr o Retroceso borrarían el mueble.
+
+### Pruebas
+
+- **`leerEnlace`:**
+  - el enlace del ejemplo: IKEA, «PAX / GRIMO», «295.026.52», armario esquinero y blanco;
+  - un artículo IKEA sin «s», una tienda de la lista sin referencia, un dominio desconocido, una ruta sin palabras, `javascript:` y vacío;
+  - la coincidencia más larga del tipo.
+- **`leerMedidas`:** cada formato, el orden libre de las etiquetas, los decimales y un texto sin medidas.
+- **`cambiarTipo`:** conserva lo que debe, recorta medidas, colores por clave y documento válido.
+- **Armario esquinero:**
+  - la integridad del catálogo;
+  - huella de 6 vértices;
+  - volúmenes que cubren la L;
+  - espejo izquierda/derecha;
+  - puertas y sus zonas;
+  - sin puerta en un ala estrecha.
+- **Formulario:**
+  - el enlace primero y con el foco;
+  - pegar el enlace del ejemplo en un armario rellena tienda, nombre y referencia, no pisa un nombre ya escrito y avisa del esquinero;
+  - el botón cambia el tipo (un deshacer);
+  - pegar «110/110x201 cm» rellena las medidas;
+  - el color se aplica al guardar.

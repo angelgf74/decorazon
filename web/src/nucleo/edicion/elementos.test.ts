@@ -4,7 +4,7 @@ import { documentoNuevo } from '../modelo/crear'
 import type { DocumentoDiseno } from '../modelo/documento'
 import { validarDocumento } from '../modelo/validar'
 import { detectarConflictos } from '../conflictos/detectar'
-import { anadirElemento, desvincularTienda, duplicarElemento, editarElemento, moverElemento, quitarElemento, vincularTienda } from './elementos'
+import { anadirElemento, cambiarTipo, desvincularTienda, duplicarElemento, editarElemento, moverElemento, quitarElemento, vincularTienda } from './elementos'
 import type { OrigenTienda } from '../modelo/documento'
 
 const sala = (): DocumentoDiseno => documentoNuevo('dormitorio', 400, 330, 250)
@@ -191,5 +191,43 @@ describe('muebles de tienda', () => {
     const e = r.elementos.find((x) => x.id === copia)!
     expect(e.origen).toEqual(pax)
     expect(e.origen).not.toBe(vinculado.elementos[0].origen)
+  })
+})
+
+describe('cambiarTipo', () => {
+  it('conserva id, posición, giro y producto; recorta las medidas al tipo nuevo; variantes por defecto; colores por clave', () => {
+    const { documento, id } = conArmario()
+    const pax: OrigenTienda = { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX / GRIMO' }
+    const preparado = { ...documento, elementos: documento.elementos.map((e) => ({ ...e, rotacion: 90, medidas: { ancho: 300, fondo: 60, alto: 220 }, variantes: { puertas: 'correderas', modulos: 3 }, colores: { cuerpo: '#111111' }, origen: pax })) }
+    const r = cambiarTipo(preparado, catalogoBase, id, 'armario-esquinero')
+    const e = r.elementos[0]!
+    expect(e).toMatchObject({ id, tipo: 'armario-esquinero', rotacion: 90, origen: pax })
+    expect(e.medidas).toEqual({ ancho: 200, fondo: 80, alto: 220 })
+    expect(e.variantes).toEqual({ rincon: 'izquierda', profundidad: 58 })
+    expect(e.colores).toEqual({ cuerpo: '#111111', puertas: '#f2f0ea' })
+    expect(validarDocumento(r).valido).toBe(true)
+  })
+
+  it('sin cambios con el mismo tipo, un tipo desconocido o un id que no existe', () => {
+    const { documento, id } = conArmario()
+    expect(cambiarTipo(documento, catalogoBase, id, 'armario')).toBe(documento)
+    expect(cambiarTipo(documento, catalogoBase, id, 'nave-espacial')).toBe(documento)
+    expect(cambiarTipo(documento, catalogoBase, 'otro', 'cama')).toBe(documento)
+  })
+})
+
+describe('cambiarTipo: altura y rincón', () => {
+  it('de un tipo de suelo a uno colgado, la altura por defecto del nuevo; entre colgados, la que tenía', () => {
+    const doc = documentoNuevo('salon', 400, 330, 250)
+    const { documento, id } = anadirElemento(doc, catalogoBase, 'comoda', { x: 200, y: 30 })
+    const espejo = cambiarTipo(documento, catalogoBase, id, 'cuadro')
+    expect(espejo.elementos[0]!.alturaSuelo).toBe(catalogoBase.get('cuadro')!.alturaSuelo)
+    const alto = editarElemento(espejo, catalogoBase, id, { alturaSuelo: 120 })
+    expect(cambiarTipo(alto, catalogoBase, id, 'modulo-alto').elementos[0]!.alturaSuelo).toBe(120)
+  })
+
+  it('un armario esquinero cerca del rincón se pega a las dos paredes', () => {
+    const { documento, id } = anadirElemento(sala(), catalogoBase, 'armario-esquinero', { x: 62, y: 60 })
+    expect(documento.elementos.find((e) => e.id === id)!.posicion).toEqual({ x: 55, y: 55 })
   })
 })

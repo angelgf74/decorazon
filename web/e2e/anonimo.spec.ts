@@ -28,7 +28,7 @@ test('diseño anónimo: crear, amueblar, mover, deshacer, recargar y cambiar la 
   await page.getByRole('button', { name: 'Crear estancia' }).click()
 
   await page.getByRole('button', { name: '2 Amueblar' }).click()
-  await page.getByRole('button', { name: /^Armario(?! de espejo)/ }).click()
+  await page.getByRole('button', { name: /^Armario(?! de espejo| esquinero)/ }).click()
   await page.getByRole('button', { name: /^Cama/ }).click()
   await expect(page.locator('[data-elemento]')).toHaveCount(2)
   await expect(aviso(page, 'se solapan').first()).toBeVisible()

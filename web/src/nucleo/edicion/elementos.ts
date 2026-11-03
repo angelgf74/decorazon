@@ -77,6 +77,27 @@ function editar(doc: DocumentoDiseno, catalogo: Catalogo, id: string, cambios: C
   return reemplazar(doc, { ...editado, posicion: r.posicion, rotacion: r.rotacion })
 }
 
+/**
+ * El mismo mueble como otro tipo (un armario que en realidad es un esquinero): conserva id, posición, giro y producto;
+ * las medidas se recortan al rango del tipo nuevo; variantes por defecto; los colores de las zonas con la misma clave.
+ */
+export function cambiarTipo(doc: DocumentoDiseno, catalogo: Catalogo, id: string, tipo: string): DocumentoDiseno {
+  const e = buscar(doc, id)
+  const def = catalogo.get(tipo)
+  if (!e || !def || e.tipo === tipo) return doc
+  const base = elementoNuevo(def, { ...e.posicion }, e.id)
+  const medidas = ajustarMedidas(def, e.medidas)
+  // La altura que tenía solo vale si los dos tipos la dejan elegir; si no, la del tipo nuevo (de una cómoda a un cuadro, la del cuadro).
+  const conAltura = def.alturaSueloEditable && catalogo.get(e.tipo)?.alturaSueloEditable === true
+  const alturaSuelo = conAltura ? Math.max(0, Math.min(doc.estancia.alto - medidas.alto, e.alturaSuelo)) : def.alturaSuelo
+  const cambiado: Elemento = {
+    ...base, rotacion: e.rotacion, medidas, alturaSuelo,
+    colores: Object.fromEntries(def.zonasColor.map((z) => [z.clave, e.colores[z.clave] ?? z.defecto])),
+    origen: { ...e.origen },
+  }
+  return reemplazar(doc, conIman(doc, catalogo, cambiado, e.rotacion % 90 !== 0))
+}
+
 /** Copia desplazada e imantada. Con un id inexistente devuelve el documento sin cambios y el mismo id. */
 export function duplicarElemento(doc: DocumentoDiseno, catalogo: Catalogo, id: string): { documento: DocumentoDiseno; id: string } {
   const e = buscar(doc, id)

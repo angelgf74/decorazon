@@ -1,7 +1,8 @@
 import { useId, useRef, useState } from 'react'
 import {
-  catalogoBase, desvincularTienda, esFechaPrecio, esUrlDeProducto, LIMITES_TIENDA, limpiarUrl, TIENDAS_SUGERIDAS, vincularTienda,
-  type DefinicionTipo, type Elemento, type Medidas, type OrigenTienda,
+  cambiarTipo, catalogoBase, desvincularTienda, editarElemento, esFechaPrecio, esUrlDeProducto, leerEnlace, leerMedidas, LIMITES_TIENDA,
+  limpiarUrl, TIENDAS_SUGERIDAS, vincularTienda,
+  type DatosDeEnlace, type DefinicionTipo, type Elemento, type Medidas, type OrigenTienda,
 } from '../../nucleo'
 import { textos } from '../../textos'
 import { formatoFecha, formatoPrecio, hoy, leerPrecio } from '../comunes/formatos'
@@ -13,7 +14,7 @@ type Campo = 'proveedor' | 'nombre' | 'referencia' | 'url' | 'precio' | 'fechaPr
 type Borrador = Record<Campo, string>
 type Errores = Partial<Record<Campo, string>>
 /** En el orden del formulario: el primero con error recibe el foco. */
-const CAMPOS: Campo[] = ['proveedor', 'nombre', 'referencia', 'url', 'precio', 'fechaPrecio', 'ancho', 'fondo', 'alto']
+const CAMPOS: Campo[] = ['url', 'proveedor', 'nombre', 'referencia', 'precio', 'fechaPrecio', 'ancho', 'fondo', 'alto']
 const MEDIDAS: (Campo & keyof Medidas)[] = ['ancho', 'fondo', 'alto']
 
 function borradorDe(e: Elemento): Borrador {
@@ -80,9 +81,12 @@ interface PropsCampo {
   enfocar?: boolean
   alCambiar(campo: Campo, valor: string): void
   referencia(campo: Campo, el: HTMLInputElement | null): void
+  /** Con el texto pegado o, al salir del campo, con el que tenga. */
+  alPegar?(texto: string): void
+  alSalir?(): void
 }
 
-function CampoProducto({ campo, valor, error, tipo = 'text', modo, lista, enfocar, alCambiar, referencia }: PropsCampo) {
+function CampoProducto({ campo, valor, error, tipo = 'text', modo, lista, enfocar, alCambiar, referencia, alPegar, alSalir }: PropsCampo) {
   const id = useId()
   const idError = `${id}-error`
   return (
@@ -99,6 +103,8 @@ function CampoProducto({ campo, valor, error, tipo = 'text', modo, lista, enfoca
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? idError : undefined}
         onChange={(ev) => alCambiar(campo, ev.target.value)}
+        onPaste={alPegar && ((ev) => alPegar(ev.clipboardData.getData('text')))}
+        onBlur={alSalir}
       />
       {error && <small id={idError} className="panel__error">{error}</small>}
     </div>
@@ -108,13 +114,27 @@ function CampoProducto({ campo, valor, error, tipo = 'text', modo, lista, enfoca
 function Formulario({ e, def, alTerminar }: { e: Elemento; def: DefinicionTipo; alTerminar(): void }) {
   const [borrador, setBorrador] = useState(() => borradorDe(e))
   const [errores, setErrores] = useState<Errores>({})
+  // El enlace con el que se abrió: mientras no cambie, no se lee (al volver a «Editar producto» no se pisa nada).
+  const [urlInicial] = useState(() => borrador.url.trim())
+  // Lo que dice el enlace actual: la nota, el tipo que parece y el color que se aplica al guardar. Sale del campo, así
+  // que borrarlo o cambiarlo se lo lleva.
+  const leido: DatosDeEnlace = borrador.url.trim() === urlInicial ? {} : leerEnlace(borrador.url, catalogoBase)
+  const hayLeido = Object.keys(leido).length > 0
+  // El último texto con el que se rellenó y los campos que rellenó el enlace (y el usuario no ha tocado): un enlace
+  // nuevo puede cambiarlos; lo tecleado, nunca.
+  const ultimaLeida = useRef(urlInicial)
+  const autorrellenados = useRef(new Set<Campo>())
+  const ultimasMedidas = useRef('')
   const campos = useRef<Partial<Record<Campo, HTMLInputElement | null>>>({})
   const idTiendas = useId()
   const idTitulo = useId()
+  const idMedidas = useId()
+  const idAyudaMedidas = useId()
 
   // Escribir o cambiar el precio pone la fecha de hoy: un precio sin fecha engaña. Se puede corregir después.
   // Corregir un campo quita su error, sin esperar al siguiente «Guardar».
   const cambiar = (campo: Campo, valor: string) => {
+    autorrellenados.current.delete(campo)
     setBorrador((b) => ({ ...b, [campo]: valor, ...(campo === 'precio' && { fechaPrecio: hoy() }) }))
     setErrores((previos) => {
       const resto = { ...previos }
@@ -122,6 +142,45 @@ function Formulario({ e, def, alTerminar }: { e: Elemento; def: DefinicionTipo; 
       return resto
     })
   }
+  /**
+   * Rellena desde el texto del enlace los campos vacíos y los que rellenó un enlace anterior; nunca lo que el usuario
+   * escribió. Solo si el texto es otro que el último leído: salir del campo sin cambiarlo no vuelve a rellenar.
+   */
+  const rellenarDesdeEnlace = (texto: string) => {
+    if (texto.trim() === ultimaLeida.current) return
+    ultimaLeida.current = texto.trim()
+    const datos = leerEnlace(texto, catalogoBase)
+    // Un enlace borrado o que no se lee no se lleva lo que puso el anterior: no hay nada mejor con qué sustituirlo.
+    if (Object.keys(datos).length === 0) return
+    const rellenables: (Campo & keyof DatosDeEnlace)[] = ['proveedor', 'nombre', 'referencia']
+    setBorrador((b) => {
+      const nuevo = { ...b }
+      for (const c of rellenables) {
+        if (b[c].trim() !== '' && !autorrellenados.current.has(c)) continue
+        nuevo[c] = datos[c] ?? ''
+        if (nuevo[c] !== '') autorrellenados.current.add(c)
+        else autorrellenados.current.delete(c)
+      }
+      return nuevo
+    })
+  }
+
+  /** Las medidas pegadas sí sustituyen a las que hubiera: se acaban de pegar para eso. Salir sin cambiar el texto, nada. */
+  const rellenarMedidas = (texto: string) => {
+    if (texto === ultimasMedidas.current) return
+    ultimasMedidas.current = texto
+    for (const [k, v] of Object.entries(leerMedidas(texto))) cambiar(k as Campo, String(v))
+  }
+
+  const otroTipo = leido.tipo && leido.tipo !== e.tipo ? catalogoBase.get(leido.tipo) : undefined
+  const convertir = () => {
+    if (!otroTipo) return
+    almacen.getState().cambiar((d) => cambiarTipo(d, catalogoBase, e.id, otroTipo.id))
+    // El formulario sigue con lo escrito (también las medidas, que ahora se validan con los rangos del tipo nuevo).
+    // El botón desaparece: el foco va al enlace, no a la página, donde Supr o Retroceso borrarían el mueble.
+    campos.current.url?.focus()
+  }
+
   const props = (campo: Campo) => ({
     campo, valor: borrador[campo], error: errores[campo], alCambiar: cambiar,
     referencia: (c: Campo, el: HTMLInputElement | null) => { campos.current[c] = el },
@@ -135,7 +194,13 @@ function Formulario({ e, def, alTerminar }: { e: Elemento; def: DefinicionTipo; 
       if (primero) campos.current[primero]?.focus()
       return
     }
-    almacen.getState().cambiar((d) => vincularTienda(d, catalogoBase, e.id, r.origen, r.medidas))
+    const zona = def.zonasColor[0]
+    const color = leido.color
+    // Un solo cambio, un solo deshacer: el producto, sus medidas y el color que nombra el enlace.
+    almacen.getState().cambiar((d) => {
+      const vinculado = vincularTienda(d, catalogoBase, e.id, r.origen, r.medidas)
+      return zona && color ? editarElemento(vinculado, catalogoBase, e.id, { colores: { [zona.clave]: color } }) : vinculado
+    })
     alTerminar()
   }
 
@@ -150,14 +215,34 @@ function Formulario({ e, def, alTerminar }: { e: Elemento; def: DefinicionTipo; 
       }}
     >
       <h3 id={idTitulo} className="panel__titulo">{t.titulo}</h3>
-      {/* Al abrir, el foco va al primer campo: sin él quedaría en la página, y Supr o Retroceso borrarían el mueble. */}
-      <CampoProducto {...props('proveedor')} lista={idTiendas} enfocar />
+      {/* El enlace, primero: de su texto salen tienda, nombre, referencia, tipo y color (sin abrir la web de la tienda).
+          Al abrir, el foco va aquí: sin él quedaría en la página, y Supr o Retroceso borrarían el mueble. */}
+      <CampoProducto {...props('url')} tipo="url" modo="url" enfocar alPegar={rellenarDesdeEnlace} alSalir={() => rellenarDesdeEnlace(borrador.url)} />
+      {/* Siempre montada, para que el lector de pantalla anuncie el cambio; el aviso de tipo va aparte, con su botón. */}
+      <p className="panel__nota producto-tienda__estado" role="status">{hayLeido ? t.rellenado : ''}</p>
+      {otroTipo && (
+        <div className="producto-tienda__aviso">
+          <p>{t.pareceOtroTipo(`${otroTipo.genero === 'm' ? 'un' : 'una'} ${otroTipo.nombre}`)}</p>
+          <button type="button" onClick={convertir}>{t.cambiarA(otroTipo.nombre)}</button>
+        </div>
+      )}
+      <CampoProducto {...props('proveedor')} lista={idTiendas} />
       <datalist id={idTiendas}>
         {TIENDAS_SUGERIDAS.map((tienda) => <option key={tienda} value={tienda} />)}
       </datalist>
       <CampoProducto {...props('nombre')} />
       <CampoProducto {...props('referencia')} />
-      <CampoProducto {...props('url')} tipo="url" modo="url" />
+      <div className="panel__campo">
+        <label htmlFor={idMedidas}>{t.medidasPegadas}</label>
+        <textarea
+          id={idMedidas}
+          rows={2}
+          aria-describedby={idAyudaMedidas}
+          onPaste={(ev) => rellenarMedidas(ev.clipboardData.getData('text'))}
+          onBlur={(ev) => rellenarMedidas(ev.target.value)}
+        />
+        <small id={idAyudaMedidas} className="campo-numero__ayuda">{t.ayudaMedidas}</small>
+      </div>
       <div className="panel__rejilla">
         <CampoProducto {...props('precio')} modo="decimal" />
         <CampoProducto {...props('fechaPrecio')} tipo="date" />
