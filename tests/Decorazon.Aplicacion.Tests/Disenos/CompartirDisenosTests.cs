@@ -15,7 +15,7 @@ public class CompartirDisenosTests
     private readonly GeneradorDeTokensPredecible _tokens = new();
     private readonly Guid _usuario = Guid.NewGuid();
 
-    private CompartirDisenos CasoDeUso => new(_disenos, _tokens);
+    private CompartirDisenos CasoDeUso => new(_disenos, _tokens, new RelojFalso(Ahora));
 
     private Diseno UnDiseno()
     {

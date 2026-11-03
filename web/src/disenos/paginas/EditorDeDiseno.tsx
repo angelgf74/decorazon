@@ -10,16 +10,18 @@ import { almacenamientoSeguro, borrarCopiaLocal, leerCopiaLocal, type CopiaLocal
 import { abrirDiseno, alBorrarseEnElServidor, elegirApertura, esperarGuardados, type Apertura } from '../../editor/persistencia/sincronizacion'
 import { textos } from '../../textos'
 import { crearDiseno, obtenerDiseno } from '../servidor'
+import RefrescoDeVistaPrevia from '../vistaPrevia/RefrescoDeVistaPrevia'
 
 const t = textos.editorDeDiseno
 
 type Carga =
-  | { id: string; estado: 'abierto' }
+  /** `compartido`: si al abrirlo se compartía; null si se abrió sin conexión y no se sabe. */
+  | { id: string; estado: 'abierto'; compartido: boolean | null }
   | { id: string; estado: 'fallo'; mensaje: string }
   /** Borrado en el servidor con cambios sin subir en este navegador: decide el usuario. */
   | { id: string; estado: 'huerfano'; copia: CopiaLocal; aviso: string | null; ocupado: boolean }
 
-type Resultado = { apertura: Apertura | null } | { huerfano: CopiaLocal } | { fallo: string }
+type Resultado = { apertura: Apertura | null; compartido: boolean | null } | { huerfano: CopiaLocal } | { fallo: string }
 
 export default function EditorDeDiseno() {
   const { id = '' } = useParams()
@@ -42,9 +44,10 @@ export default function EditorDeDiseno() {
       const st = almacenamientoSeguro()
       const copia = leerCopiaLocal(st, id)
       try {
-        return { apertura: elegirApertura(id, copia, await obtenerDiseno(id)) }
+        const remoto = await obtenerDiseno(id)
+        return { apertura: elegirApertura(id, copia, remoto), compartido: remoto.diseno.enlace != null }
       } catch (e) {
-        if (e instanceof ErrorDeApi && e.estado === 0 && copia !== null) return { apertura: elegirApertura(id, copia, null) }
+        if (e instanceof ErrorDeApi && e.estado === 0 && copia !== null) return { apertura: elegirApertura(id, copia, null), compartido: null }
         if (e instanceof ErrorDeApi && e.estado === 404) {
           if (copia?.pendiente) return { huerfano: copia }
           borrarCopiaLocal(st, id)
@@ -66,7 +69,7 @@ export default function EditorDeDiseno() {
         }
         if (r.apertura === null) return
         abrirDiseno(almacen, r.apertura)
-        setCarga({ id, estado: 'abierto' })
+        setCarga({ id, estado: 'abierto', compartido: r.compartido })
       })
       .catch((e: unknown) => {
         if (vigente) setCarga({ id, estado: 'fallo', mensaje: mensajeDeError(e) })
@@ -120,6 +123,7 @@ export default function EditorDeDiseno() {
     <>
       <Editor />
       <ConflictoDeVersion />
+      <RefrescoDeVistaPrevia id={id} compartido={carga.compartido} />
     </>
   )
 }

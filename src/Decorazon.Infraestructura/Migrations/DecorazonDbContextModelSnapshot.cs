@@ -81,6 +81,27 @@ namespace Decorazon.Infraestructura.Migrations
                     b.ToTable("disenos", (string)null);
                 });
 
+            modelBuilder.Entity("Decorazon.Dominio.Disenos.VistaPrevia", b =>
+                {
+                    b.Property<Guid>("DisenoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("diseno_id");
+
+                    b.Property<DateTimeOffset>("Fecha")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha");
+
+                    b.Property<byte[]>("Imagen")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("imagen");
+
+                    b.HasKey("DisenoId")
+                        .HasName("pk_vistas_previas");
+
+                    b.ToTable("vistas_previas", (string)null);
+                });
+
             modelBuilder.Entity("Decorazon.Dominio.Registro.SolicitudDeRegistro", b =>
                 {
                     b.Property<Guid>("Id")
@@ -242,6 +263,16 @@ namespace Decorazon.Infraestructura.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_disenos_usuarios_usuario_id");
+                });
+
+            modelBuilder.Entity("Decorazon.Dominio.Disenos.VistaPrevia", b =>
+                {
+                    b.HasOne("Decorazon.Dominio.Disenos.Diseno", null)
+                        .WithOne()
+                        .HasForeignKey("Decorazon.Dominio.Disenos.VistaPrevia", "DisenoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_vistas_previas_disenos_diseno_id");
                 });
 
             modelBuilder.Entity("Decorazon.Dominio.Usuarios.SolicitudDeContrasena", b =>

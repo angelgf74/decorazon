@@ -8,6 +8,8 @@
 
 # Ficheros de configuración que consume Linux.
 deploy/nginx/* text eol=lf
+deploy/nginx.conf text eol=lf
+srv.json text eol=lf
 deploy/systemd/* text eol=lf
 
 # Los flujos de trabajo se ejecutan en runners Linux, y sus bloques `run:` son

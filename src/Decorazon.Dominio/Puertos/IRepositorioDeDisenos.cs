@@ -32,6 +32,15 @@ public interface IRepositorioDeDisenos
     /// <returns>El enlace con que queda compartido (el que ya tuviera o este), o null si no existe o es de otro.</returns>
     Task<string?> CompartirAsync(Guid usuarioId, Guid id, string enlace, CancellationToken cancelacion = default);
 
+    /// <summary>
+    /// Guarda la vista previa del diseño del usuario; si ya tenía una, la sustituye. No toca el diseño ni su versión.
+    /// </summary>
+    /// <returns>False si el diseño no existe o es de otro.</returns>
+    Task<bool> GuardarVistaPreviaAsync(Guid usuarioId, Guid id, byte[] imagen, DateTimeOffset fecha, CancellationToken cancelacion = default);
+
+    /// <summary>La vista previa del diseño que se comparte con ese enlace, o null si no la hay. Solo lectura.</summary>
+    Task<VistaPrevia?> ObtenerVistaPreviaAsync(string enlace, CancellationToken cancelacion = default);
+
     /// <summary>Quita el enlace del diseño del usuario, en una sola escritura que no toca la versión.</summary>
     /// <returns>False si no existe o es de otro.</returns>
     Task<bool> DejarDeCompartirAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default);

@@ -95,6 +95,85 @@
         }
       }
     },
+    "/compartidos/{enlace}/imagen": {
+      "get": {
+        "tags": [
+          "Compartidos"
+        ],
+        "operationId": "leerVistaPrevia",
+        "parameters": [
+          {
+            "name": "enlace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compartidos/{enlace}/tarjeta": {
+      "get": {
+        "tags": [
+          "Compartidos"
+        ],
+        "operationId": "leerTarjeta",
+        "parameters": [
+          {
+            "name": "enlace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/compartidos/{enlace}": {
       "get": {
         "tags": [
@@ -926,6 +1005,69 @@
                 }
               }
             }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/disenos/{id}/vista-previa": {
+      "put": {
+        "tags": [
+          "Disenos"
+        ],
+        "operationId": "subirVistaPrevia",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "byte"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported Media Type"
           }
         },
         "security": [

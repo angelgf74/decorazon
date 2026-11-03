@@ -1,9 +1,10 @@
 {
   "app": "decorazon",
   "web": { "estatica": "web/public", "spa": true, "dominio": "decorazon.angelgf.com.es" },
-  "api": { "dotnet": "src/Decorazon.Api", "dominio": "decorazon-api.angelgf.com.es", "salud": "/salud", "tamanoMaximo": "2m" },
+  "api": { "dotnet": "src/Decorazon.Api", "dominio": "decorazon-api.angelgf.com.es", "puerto": 54011, "salud": "/salud", "tamanoMaximo": "2m" },
   "migraciones": { "proyecto": "src/Decorazon.Infraestructura", "inicio": "src/Decorazon.Api", "conexion": "ConnectionStrings__Decorazon" },
   "basedatos": "decorazon",
+  "nginx": "deploy/nginx.conf",
   "pasos": [
     { "programa": "node", "argumentos": ["deploy/construir-web.mjs"] }
   ]

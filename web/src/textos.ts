@@ -210,6 +210,7 @@ export const textos = {
     explicacion: 'Quien tenga el enlace podrá ver el plano, la vista 3D y la lista de muebles, y hacer una copia para editarla. Tu diseño no lo podrá cambiar.',
     siempreUltima: 'El enlace enseña siempre la última versión guardada.',
     crear: 'Crear enlace',
+    preparando: 'Preparando la vista previa del enlace…',
     enlace: 'Enlace',
     copiar: 'Copiar enlace',
     copiado: 'Enlace copiado',

@@ -19,6 +19,8 @@ public sealed class DecorazonDbContext(DbContextOptions<DecorazonDbContext> opci
 
     public DbSet<Diseno> Disenos => Set<Diseno>();
 
+    public DbSet<VistaPrevia> VistasPrevias => Set<VistaPrevia>();
+
     protected override void OnModelCreating(ModelBuilder modelo)
     {
         modelo.ApplyConfigurationsFromAssembly(typeof(DecorazonDbContext).Assembly);

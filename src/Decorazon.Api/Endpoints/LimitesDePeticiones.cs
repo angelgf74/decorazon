@@ -36,6 +36,12 @@ public static class LimitesDePeticiones
     /// </summary>
     public const string LecturaCompartida = "lectura-compartida";
 
+    /// <summary>
+    /// La tarjeta y la imagen de un enlace compartido, que piden los lectores de tarjetas (WhatsApp, Facebook…) desde
+    /// pocas IP: cubo propio y más holgado, 300 por IP cada minuto. Si se agota, nginx sirve la web de siempre.
+    /// </summary>
+    public const string Tarjetas = "tarjetas";
+
     public static void AnadirLimitesDePeticiones(this IServiceCollection servicios, IConfiguration configuracion)
     {
         // Configurables para que los tests puedan elevarlos y no chocar con el
@@ -44,6 +50,7 @@ public static class LimitesDePeticiones
         var maximoDeInicios = configuracion.GetValue("Limites:IniciosDeSesionPorVentana", 10);
         var maximoDeCambiosDeContrasena = configuracion.GetValue("Limites:CambiosDeContrasenaPorVentana", 10);
         var maximoDeLecturasCompartidas = configuracion.GetValue("Limites:LecturasCompartidasPorVentana", 120);
+        var maximoDeTarjetas = configuracion.GetValue("Limites:TarjetasPorVentana", 300);
 
         servicios.AddRateLimiter(opciones =>
         {
@@ -89,6 +96,15 @@ public static class LimitesDePeticiones
                     _ => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = maximoDeLecturasCompartidas,
+                        Window = TimeSpan.FromMinutes(1)
+                    }));
+
+            opciones.AddPolicy(Tarjetas, contexto =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    ClaveDeParticion(contexto),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = maximoDeTarjetas,
                         Window = TimeSpan.FromMinutes(1)
                     }));
         });
