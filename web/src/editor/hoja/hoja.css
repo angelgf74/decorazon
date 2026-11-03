@@ -60,6 +60,10 @@
 .hoja-impresion__tabla thead { display: table-header-group; }
 .hoja-impresion__tabla tr { break-inside: avoid; }
 .hoja-impresion__medidas { white-space: nowrap; }
+.hoja-impresion__tienda { margin-top: 0.15rem; color: var(--gris); }
+.hoja-impresion__url { overflow-wrap: anywhere; font-size: 0.85em; }
+.hoja-impresion__tabla .hoja-impresion__total { font-weight: 600; border-bottom: none; }
+.hoja-impresion__nota { margin: 0.4rem 0 0; color: var(--gris); font-size: var(--texto-s); }
 
 .hoja-impresion__colores { display: flex; flex-wrap: wrap; gap: 2px var(--esp-3); margin: 0; padding: 0; list-style: none; }
 .hoja-impresion__muestra {

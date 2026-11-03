@@ -12,6 +12,18 @@ export interface Viga { id: string; tipo: 'viga'; desde: Punto; hasta: Punto; an
 export interface Radiador { id: string; tipo: 'radiador'; pared: number; posicion: number; ancho: number; alto: number; fondo: number; alturaSuelo: number }
 export type Estructura = Columna | Viga | Radiador
 export interface Medidas { ancho: number; fondo: number; alto: number }
-export type Origen = { tipo: 'generico' }
+/** Un producto concreto de una tienda, con los datos que teclea el usuario. Sus medidas son las del elemento, fijas. */
+export interface OrigenTienda {
+  tipo: 'tienda'
+  proveedor: string
+  nombre: string
+  referencia?: string
+  url?: string
+  /** Euros. */
+  precio?: number
+  /** AAAA-MM-DD en que se anotó el precio. */
+  fechaPrecio?: string
+}
+export type Origen = { tipo: 'generico' } | OrigenTienda
 export interface Elemento { id: string; tipo: string; posicion: Punto; rotacion: number; medidas: Medidas; alturaSuelo: number; variantes: Record<string, string | number | boolean>; colores: Record<string, string>; origen: Origen }
 export interface DocumentoDiseno { formato: 1; estancia: Estancia; aberturas: Abertura[]; estructura: Estructura[]; elementos: Elemento[] }

@@ -1,4 +1,4 @@
-import { catalogoBase, huellasEnPlanta, nombreEnPlanta, rectangulo, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
+import { catalogoBase, huellasEnPlanta, nombreDeElemento, nombreEnPlanta, rectangulo, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
 import type { Seleccion } from '../../estado/almacen'
 import { manejador, puntos, type AlPulsar } from './comun'
 import { colocarNombres, type Etiqueta } from './nombres'
@@ -8,6 +8,12 @@ interface Props { documento: DocumentoDiseno; conflictos: Conflicto[]; seleccion
 
 /** Por debajo de este ancho no se escribe el nombre. */
 const ANCHO_NOMBRE_CM = 40
+/** El nombre de un producto puede ser largo («PAX armario blanco con puertas…»): en el plano se recorta; entero, en la lista. */
+const LETRAS_NOMBRE_PLANO = 20
+
+function recortar(nombre: string): string {
+  return nombre.length > LETRAS_NOMBRE_PLANO ? `${nombre.slice(0, LETRAS_NOMBRE_PLANO - 1).trimEnd()}…` : nombre
+}
 const COLOR_SIN_ZONA = '#d8d2ca'
 
 function Pieza({ e, elegido }: { e: Elemento; elegido: boolean }) {
@@ -31,7 +37,7 @@ function Pieza({ e, elegido }: { e: Elemento; elegido: boolean }) {
 function etiqueta(e: Elemento): Etiqueta | null {
   if (e.medidas.ancho <= ANCHO_NOMBRE_CM) return null
   const def = catalogoBase.get(e.tipo)
-  const nombre = def ? def.nombre.charAt(0).toUpperCase() + def.nombre.slice(1) : e.tipo
+  const nombre = recortar(nombreDeElemento(def, e))
   return { id: e.id, nombre, punto: def ? nombreEnPlanta(def, e) : e.posicion, altura: e.alturaSuelo }
 }
 

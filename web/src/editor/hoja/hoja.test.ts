@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { catalogoBase, desplazarPoligono, documentoNuevo, elementoNuevo, rectangulo } from '../../nucleo'
 import { aPantalla, MARGEN_ENCUADRE_PX } from '../lienzo/vista'
-import { filasDeMuebles, marcoDeImpresion } from './hoja'
+import { filasDeMuebles, marcoDeImpresion, totalAnotado } from './hoja'
 
 describe('marcoDeImpresion', () => {
   it('una estancia apaisada ocupa el ancho de la hoja y el alto se ajusta a ella', () => {
@@ -56,5 +56,38 @@ describe('filasDeMuebles', () => {
     const doc = documentoNuevo('salon', 400, 300, 250)
     doc.elementos = [{ ...elementoNuevo(catalogoBase.get('sofa')!, { x: 100, y: 100 }, 's'), tipo: 'desconocido' }]
     expect(filasDeMuebles(doc, catalogoBase)[0]).toMatchObject({ nombre: 'desconocido', variantes: [], colores: [] })
+  })
+})
+
+describe('muebles de tienda en la hoja', () => {
+  const doc = () => {
+    const d = documentoNuevo('dormitorio', 400, 300, 250)
+    const armario = elementoNuevo(catalogoBase.get('armario')!, { x: 100, y: 50 }, 'a')
+    const cama = elementoNuevo(catalogoBase.get('cama')!, { x: 200, y: 200 }, 'c')
+    const mesita = elementoNuevo(catalogoBase.get('mesita')!, { x: 300, y: 200 }, 'm')
+    d.elementos = [
+      { ...armario, origen: { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX', referencia: '805.483.84', url: 'https://www.ikea.com/es/es/p/pax/', precio: 199.9, fechaPrecio: '2026-11-03' } },
+      { ...cama, origen: { tipo: 'tienda', proveedor: 'Conforama', nombre: 'Cama Nube', precio: 0.2 } },
+      mesita,
+    ]
+    return d
+  }
+
+  it('el nombre del producto, y debajo el tipo, la tienda y la referencia, la URL y el precio con su fecha', () => {
+    const [pax, nube, mesita] = filasDeMuebles(doc(), catalogoBase)
+    expect(pax).toMatchObject({ nombre: 'PAX', tienda: { linea: 'Armario · IKEA · ref. 805.483.84', url: 'https://www.ikea.com/es/es/p/pax/' } })
+    expect(pax!.tienda!.precio).toMatch(/^199,90\s€ \(anotado el 03\/11\/2026\)$/)
+    expect(nube!.tienda).toMatchObject({ linea: 'Cama · Conforama' })
+    expect(nube!.tienda!.url).toBeUndefined()
+    expect(mesita!.tienda).toBeNull()
+  })
+
+  it('el total suma en céntimos los productos con precio; sin ninguno, null', () => {
+    expect(totalAnotado(doc())).toEqual({ importe: 200.1, productos: 2 })
+    // 0,1 + 0,2 da 0,30000000000000004 sumando sin más.
+    const d = doc()
+    d.elementos = d.elementos.map((e, i) => (e.origen.tipo === 'tienda' ? { ...e, origen: { ...e.origen, precio: i === 0 ? 0.1 : 0.2 } } : e))
+    expect(totalAnotado(d)).toEqual({ importe: 0.3, productos: 2 })
+    expect(totalAnotado(documentoNuevo('salon', 400, 300, 250))).toBeNull()
   })
 })

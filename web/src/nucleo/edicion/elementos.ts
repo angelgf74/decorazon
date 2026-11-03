@@ -1,7 +1,7 @@
 import { ajustarMedidas, elementoNuevo } from '../catalogo/elemento'
 import type { Catalogo } from '../catalogo/tipos'
 import type { Punto } from '../geometria/vector'
-import type { DocumentoDiseno, Elemento, Medidas } from '../modelo/documento'
+import type { DocumentoDiseno, Elemento, Medidas, OrigenTienda } from '../modelo/documento'
 import { imantar, normalizarGiro, paredesTocadas } from './iman'
 
 const DESPLAZAMIENTO_COPIA_CM = 20
@@ -27,10 +27,30 @@ export function moverElemento(doc: DocumentoDiseno, catalogo: Catalogo, id: stri
   return reemplazar(doc, conIman(doc, catalogo, { ...e, posicion: { ...posicion }, rotacion }, libre))
 }
 
-export function editarElemento(
-  doc: DocumentoDiseno, catalogo: Catalogo, id: string,
-  cambios: { medidas?: Partial<Medidas>; rotacion?: number; alturaSuelo?: number; variantes?: Record<string, string | number | boolean>; colores?: Record<string, string> },
-): DocumentoDiseno {
+type CambiosElemento = { medidas?: Partial<Medidas>; rotacion?: number; alturaSuelo?: number; variantes?: Record<string, string | number | boolean>; colores?: Record<string, string> }
+
+/** Las medidas de un mueble de tienda son las del producto: no se cambian aquí, solo al guardar el producto (vincularTienda). */
+export function editarElemento(doc: DocumentoDiseno, catalogo: Catalogo, id: string, cambios: CambiosElemento): DocumentoDiseno {
+  const e = buscar(doc, id)
+  if (e?.origen.tipo === 'tienda') return editar(doc, catalogo, id, { ...cambios, medidas: undefined })
+  return editar(doc, catalogo, id, cambios)
+}
+
+/** Hace del elemento ese producto de tienda, con sus medidas (recortadas al rango del tipo). */
+export function vincularTienda(doc: DocumentoDiseno, catalogo: Catalogo, id: string, origen: OrigenTienda, medidas: Medidas): DocumentoDiseno {
+  const e = buscar(doc, id)
+  if (!e || !catalogo.get(e.tipo)) return doc
+  return editar(reemplazar(doc, { ...e, origen: { ...origen } }), catalogo, id, { medidas })
+}
+
+/** Vuelve a ser un mueble genérico, con las medidas que tenía el producto. */
+export function desvincularTienda(doc: DocumentoDiseno, id: string): DocumentoDiseno {
+  const e = buscar(doc, id)
+  if (!e || e.origen.tipo !== 'tienda') return doc
+  return reemplazar(doc, { ...e, origen: { tipo: 'generico' } })
+}
+
+function editar(doc: DocumentoDiseno, catalogo: Catalogo, id: string, cambios: CambiosElemento): DocumentoDiseno {
   const e = buscar(doc, id)
   const def = e && catalogo.get(e.tipo)
   if (!e || !def) return doc

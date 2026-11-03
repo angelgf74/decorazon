@@ -1,5 +1,6 @@
 import { areaConSigno, esSimple } from '../geometria/poligono'
 import { FORMATO_ACTUAL, TIPOS_ESTANCIA, type DocumentoDiseno, type Punto } from './documento'
+import { esFechaPrecio, esPrecio, esUrlDeProducto, LIMITES_TIENDA } from './tienda'
 
 export type ResultadoValidacion =
   | { valido: true; documento: DocumentoDiseno }
@@ -36,6 +37,25 @@ class Validador {
   }
   texto(v: unknown, ruta: string) {
     if (typeof v !== 'string') this.err(ruta, 'debe ser un texto')
+  }
+  /** Texto sin espacios a los lados que cuenten: obligatorio, de 1 a max caracteres; opcional, hasta max. */
+  textoAcotado(v: unknown, ruta: string, max: number, obligatorio: boolean) {
+    const largo = typeof v === 'string' ? v.trim().length : -1
+    if (obligatorio && (largo < 1 || largo > max)) this.err(ruta, `debe ser un texto de 1 a ${max} caracteres`)
+    if (!obligatorio && (largo < 0 || largo > max)) this.err(ruta, `debe ser un texto de hasta ${max} caracteres`)
+  }
+  origen(o: Obj, r: string) {
+    if (o.tipo === 'generico') return
+    if (o.tipo !== 'tienda') { this.err(`${r}.tipo`, 'debe ser generico o tienda'); return }
+    this.textoAcotado(o.proveedor, `${r}.proveedor`, LIMITES_TIENDA.proveedor, true)
+    this.textoAcotado(o.nombre, `${r}.nombre`, LIMITES_TIENDA.nombre, true)
+    if (o.referencia !== undefined) this.textoAcotado(o.referencia, `${r}.referencia`, LIMITES_TIENDA.referencia, false)
+    if (o.url !== undefined && !esUrlDeProducto(o.url)) this.err(`${r}.url`, 'debe ser una dirección http o https')
+    if (o.precio !== undefined && !esPrecio(o.precio)) this.err(`${r}.precio`, 'debe ser un importe de 0 a 1.000.000 € con dos decimales como mucho')
+    if (o.fechaPrecio !== undefined) {
+      if (o.precio === undefined) this.err(`${r}.fechaPrecio`, 'solo puede ir junto a un precio')
+      else if (!esFechaPrecio(o.fechaPrecio)) this.err(`${r}.fechaPrecio`, 'debe ser una fecha AAAA-MM-DD')
+    }
   }
   booleano(v: unknown, ruta: string) {
     if (typeof v !== 'boolean') this.err(ruta, 'debe ser verdadero o falso')
@@ -171,7 +191,7 @@ class Validador {
       const co = this.objeto(o.colores, `${r}.colores`)
       if (co) for (const [k, x] of Object.entries(co)) this.texto(x, `${r}.colores.${k}`)
       const or = this.objeto(o.origen, `${r}.origen`)
-      if (or && or.tipo !== 'generico') this.err(`${r}.origen.tipo`, 'debe ser generico')
+      if (or) this.origen(or, `${r}.origen`)
     })
   }
 }

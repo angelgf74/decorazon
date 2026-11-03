@@ -4,7 +4,8 @@ import { documentoNuevo } from '../modelo/crear'
 import type { DocumentoDiseno } from '../modelo/documento'
 import { validarDocumento } from '../modelo/validar'
 import { detectarConflictos } from '../conflictos/detectar'
-import { anadirElemento, duplicarElemento, editarElemento, moverElemento, quitarElemento } from './elementos'
+import { anadirElemento, desvincularTienda, duplicarElemento, editarElemento, moverElemento, quitarElemento, vincularTienda } from './elementos'
+import type { OrigenTienda } from '../modelo/documento'
 
 const sala = (): DocumentoDiseno => documentoNuevo('dormitorio', 400, 330, 250)
 const conArmario = () => anadirElemento(sala(), catalogoBase, 'armario', { x: 200, y: 165 })
@@ -136,5 +137,59 @@ describe('editarElemento solo conserva a ras las paredes que el elemento toca', 
     const { documento, id } = armarioEn(29.95)
     const r = editarElemento(documento, catalogoBase, id, { variantes: { modulos: 3 } })
     expect(r.elementos[0].posicion).toEqual({ x: 200, y: 29.95 })
+  })
+})
+
+describe('muebles de tienda', () => {
+  const pax: OrigenTienda = { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX', referencia: '805.483.84', precio: 199, fechaPrecio: '2026-11-03' }
+  const medidasPax = { ancho: 100, fondo: 58, alto: 201 }
+
+  it('vincular pone el producto y sus medidas, sin mutar, y el documento sigue siendo válido', () => {
+    const { documento, id } = conArmario()
+    const r = vincularTienda(documento, catalogoBase, id, pax, medidasPax)
+    expect(documento.elementos[0].origen).toEqual({ tipo: 'generico' })
+    const e = r.elementos[0]
+    expect(e.origen).toEqual(pax)
+    expect(e.origen).not.toBe(pax)
+    expect(e.medidas).toEqual(medidasPax)
+    expect(validarDocumento(r).valido).toBe(true)
+  })
+
+  it('las medidas del producto se recortan al rango del tipo', () => {
+    const { documento, id } = conArmario()
+    const r = vincularTienda(documento, catalogoBase, id, pax, { ancho: 1000, fondo: 58, alto: 201.4 })
+    expect(r.elementos[0].medidas).toEqual({ ancho: 400, fondo: 58, alto: 201 })
+  })
+
+  it('editarElemento no cambia las medidas de un mueble de tienda, pero sí lo demás', () => {
+    const { documento, id } = conArmario()
+    const vinculado = vincularTienda(documento, catalogoBase, id, pax, medidasPax)
+    const r = editarElemento(vinculado, catalogoBase, id, { medidas: { ancho: 150 }, colores: { cuerpo: '#000000' } })
+    expect(r.elementos[0].medidas).toEqual(medidasPax)
+    expect(r.elementos[0].colores.cuerpo).toBe('#000000')
+  })
+
+  it('desvincular vuelve a genérico y conserva las medidas; con uno genérico o un id que no existe, nada', () => {
+    const { documento, id } = conArmario()
+    const vinculado = vincularTienda(documento, catalogoBase, id, pax, medidasPax)
+    const r = desvincularTienda(vinculado, id)
+    expect(r.elementos[0].origen).toEqual({ tipo: 'generico' })
+    expect(r.elementos[0].medidas).toEqual(medidasPax)
+    expect(desvincularTienda(documento, id)).toBe(documento)
+    expect(desvincularTienda(vinculado, 'otro')).toBe(vinculado)
+  })
+
+  it('vincular un id que no existe devuelve el mismo documento', () => {
+    const { documento } = conArmario()
+    expect(vincularTienda(documento, catalogoBase, 'otro', pax, medidasPax)).toBe(documento)
+  })
+
+  it('duplicar copia el producto, sin compartir el objeto', () => {
+    const { documento, id } = conArmario()
+    const vinculado = vincularTienda(documento, catalogoBase, id, pax, medidasPax)
+    const { documento: r, id: copia } = duplicarElemento(vinculado, catalogoBase, id)
+    const e = r.elementos.find((x) => x.id === copia)!
+    expect(e.origen).toEqual(pax)
+    expect(e.origen).not.toBe(vinculado.elementos[0].origen)
   })
 })

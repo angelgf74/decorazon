@@ -37,6 +37,19 @@ function descartar(st: Storage, crudo: string): null {
   return null
 }
 
+/** El documento de un diseño anónimo guardado, o null si no se entiende. */
+function documentoGuardado(crudo: string): DocumentoDiseno | null {
+  let dato: unknown
+  try {
+    dato = JSON.parse(crudo)
+  } catch {
+    return null
+  }
+  if (typeof dato !== 'object' || dato === null || (dato as { version?: unknown }).version !== 1) return null
+  const r = validarDocumento((dato as { documento?: unknown }).documento)
+  return r.valido ? r.documento : null
+}
+
 export function leerDisenoLocal(st: Storage | null): DocumentoDiseno | null {
   if (st === null) return null
   let crudo: string | null
@@ -45,22 +58,35 @@ export function leerDisenoLocal(st: Storage | null): DocumentoDiseno | null {
   } catch {
     return null
   }
-  if (crudo === null) return null
-  let dato: unknown
+  if (crudo === null) return recuperarDescartado(st)
+  return documentoGuardado(crudo) ?? descartar(st, crudo)
+}
+
+/**
+ * Sin diseño anónimo, el que se apartó por no entenderlo vuelve si ahora sí se entiende: una versión anterior de la
+ * web (tras volver atrás una release, o una pestaña con la versión vieja) aparta lo que no conoce, como un mueble de
+ * tienda. Descartarlo a propósito borra también el apartado (guardarDisenoLocal con null), así que no reaparece.
+ */
+function recuperarDescartado(st: Storage): DocumentoDiseno | null {
   try {
-    dato = JSON.parse(crudo)
+    const crudo = st.getItem(CLAVE_DESCARTADO)
+    const doc = crudo === null ? null : documentoGuardado(crudo)
+    if (crudo === null || doc === null) return null
+    st.setItem(CLAVE_DISENO, crudo)
+    st.removeItem(CLAVE_DESCARTADO)
+    return doc
   } catch {
-    return descartar(st, crudo)
+    return null
   }
-  if (typeof dato !== 'object' || dato === null || (dato as { version?: unknown }).version !== 1) return descartar(st, crudo)
-  const r = validarDocumento((dato as { documento?: unknown }).documento)
-  return r.valido ? r.documento : descartar(st, crudo)
 }
 
 export function guardarDisenoLocal(st: Storage | null, doc: DocumentoDiseno | null): boolean {
   if (st === null) return false
   try {
-    if (doc === null) st.removeItem(CLAVE_DISENO)
+    if (doc === null) {
+      st.removeItem(CLAVE_DISENO)
+      st.removeItem(CLAVE_DESCARTADO)
+    }
     else st.setItem(CLAVE_DISENO, JSON.stringify({ version: 1, guardadoEn: new Date().toISOString(), documento: redondearNumeros(doc) }))
     return true
   } catch {
