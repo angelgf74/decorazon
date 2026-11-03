@@ -54,6 +54,9 @@ public class ApiConPostgresFixture : WebApplicationFactory<Program>, IAsyncLifet
     /// <summary>Mismo motivo que <see cref="MaximoDeIniciosDeSesionPorVentana"/>.</summary>
     protected virtual int MaximoDeTarjetasPorVentana => 1000;
 
+    /// <summary>Mismo motivo que <see cref="MaximoDeIniciosDeSesionPorVentana"/>.</summary>
+    protected virtual int MaximoDeEscriturasPorVentana => 1000;
+
     public async Task InitializeAsync()
     {
         await _postgres.StartAsync();
@@ -96,6 +99,7 @@ public class ApiConPostgresFixture : WebApplicationFactory<Program>, IAsyncLifet
             "Limites:LecturasCompartidasPorVentana",
             MaximoDeLecturasCompartidasPorVentana.ToString());
         constructor.UseSetting("Limites:TarjetasPorVentana", MaximoDeTarjetasPorVentana.ToString());
+        constructor.UseSetting("Limites:EscriturasPorVentana", MaximoDeEscriturasPorVentana.ToString());
 
         constructor.ConfigureTestServices(servicios =>
         {

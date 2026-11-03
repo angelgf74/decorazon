@@ -45,6 +45,8 @@ public static class DisenosEndpoints
 
         grupo.MapPost("", CrearAsync)
             .WithName("crearDiseno")
+            .RequireRateLimiting(LimitesDePeticiones.Escrituras)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests)
             .Produces<RespuestaDeDiseno>(StatusCodes.Status201Created)
             .Produces<RespuestaDeDiseno>()
             .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
@@ -59,6 +61,8 @@ public static class DisenosEndpoints
 
         grupo.MapPut("/{id:guid}", ActualizarAsync)
             .WithName("actualizarDiseno")
+            .RequireRateLimiting(LimitesDePeticiones.Escrituras)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests)
             .Produces<RespuestaDeDiseno>()
             .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)
             .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound)
@@ -69,6 +73,8 @@ public static class DisenosEndpoints
 
         grupo.MapPost("/{id:guid}/duplicar", DuplicarAsync)
             .WithName("duplicarDiseno")
+            .RequireRateLimiting(LimitesDePeticiones.Escrituras)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests)
             .Produces<RespuestaDeDiseno>(StatusCodes.Status201Created)
             .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound)
             .Produces<RespuestaDeMensaje>(StatusCodes.Status409Conflict)
@@ -76,6 +82,8 @@ public static class DisenosEndpoints
 
         grupo.MapDelete("/{id:guid}", BorrarAsync)
             .WithName("borrarDiseno")
+            .RequireRateLimiting(LimitesDePeticiones.Escrituras)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests)
             .Produces(StatusCodes.Status204NoContent)
             .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound);
     }

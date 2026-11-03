@@ -916,6 +916,15 @@ export interface operations {
                     "application/json": components["schemas"]["RespuestaDeMensaje"];
                 };
             };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
         };
     };
     obtenerDiseno: {
@@ -1018,6 +1027,15 @@ export interface operations {
                     "application/json": components["schemas"]["RespuestaDeMensaje"];
                 };
             };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
         };
     };
     borrarDiseno: {
@@ -1040,6 +1058,15 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1091,6 +1118,15 @@ export interface operations {
                     "application/json": components["schemas"]["RespuestaDeMensaje"];
                 };
             };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
         };
     };
     compartirDiseno: {
@@ -1122,6 +1158,15 @@ export interface operations {
                     "application/json": components["schemas"]["RespuestaDeMensaje"];
                 };
             };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
         };
     };
     dejarDeCompartirDiseno: {
@@ -1144,6 +1189,15 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1199,6 +1253,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
             };
         };
     };

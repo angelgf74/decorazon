@@ -102,6 +102,8 @@ interface Trabajo {
   conflicto: boolean
   /** Ya no existe en el servidor y tiene cambios: no se sube más; decide el usuario (guardarlo como nuevo o descartarlo). */
   perdido: boolean
+  /** El servidor respondió 429: hasta que un reintento salga bien, editar no lanza PUT (los sube el reintento). */
+  limitado: boolean
   epoca: number
 }
 
@@ -214,6 +216,7 @@ export function conectarSincronizacion(
     try {
       const r = await guardarDiseno(t.id, t.version, { nombre: t.nombre, doc: t.documento })
       t.enVuelo = false
+      t.limitado = false
       t.version = r.version
       if (t.nombrePendiente === null) t.nombre = r.nombre
       copiar(t)
@@ -245,7 +248,16 @@ export function conectarSincronizacion(
         envioDesde = null
         pararReintentos()
         fijar(t, { guardado: 'conflicto', versionRemota: e.version ?? null })
+      } else if (e instanceof ErrorDeApi && e.estado === 429) {
+        // Límite de escrituras de la cuenta: pasa solo, así que se reintenta como sin red, pero se dice por qué.
+        t.limitado = true
+        fijar(t, { guardado: 'error', aviso: textos.barra.demasiadosGuardados })
+        iniciarReintentos()
       } else {
+        // Un 4xx no se arregla repitiendo el mismo PUT: si venía de un 429 o de sin red, se dejan los reintentos.
+        // Un 5xx (p. ej. el 502 de nginx mientras se publica) sí puede pasar solo: se sigue reintentando.
+        t.limitado = false
+        if (e instanceof ErrorDeApi && e.estado >= 400 && e.estado < 500) pararReintentos()
         // También un 401: si cierra la sesión, se sale del editor; la copia local sigue pendiente y se sube al volver.
         // Un 400 explica qué falla (p. ej. más de 1 MB): su mensaje no se pierde.
         fijar(t, { guardado: 'error', ...(e instanceof ErrorDeApi && e.estado === 400 && { aviso: e.mensaje }) })
@@ -308,7 +320,7 @@ export function conectarSincronizacion(
     dejar()
     if (estado.origen.tipo !== 'servidor' || estado.documento === null) return
     const { id, version, nombre } = estado.origen
-    actual = { id, version, nombre, documento: estado.documento, sucio: false, nombrePendiente: null, enVuelo: false, conflicto: false, perdido: false, epoca }
+    actual = { id, version, nombre, documento: estado.documento, sucio: false, nombrePendiente: null, enVuelo: false, conflicto: false, perdido: false, limitado: false, epoca }
     origenPropio = estado.origen
   }
 
@@ -319,7 +331,7 @@ export function conectarSincronizacion(
     t.sucio = true
     programarCopia(t)
     if (t.perdido || estado.guardado === 'conflicto') return
-    if (estado.guardado === 'sinConexion') {
+    if (estado.guardado === 'sinConexion' || t.limitado) {
       iniciarReintentos()
       return
     }

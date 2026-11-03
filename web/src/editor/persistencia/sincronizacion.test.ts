@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ErrorDeApi } from '../../api/cliente'
+import { textos } from '../../textos'
 import type { DisenoServidor } from '../../disenos/servidor'
 import { documentoNuevo, type DocumentoDiseno } from '../../nucleo'
 import { crearAlmacen } from '../estado/almacen'
@@ -418,6 +419,52 @@ describe('sincronización con el servidor', () => {
     expect(a.getState().guardado).toBe('error')
     expect(a.getState().aviso).toBe('El diseño ocupa más de 1 MB.')
     expect(leerCopiaLocal(st, ID)).toMatchObject({ pendiente: true })
+  })
+
+  it('un 429 al guardar: "error", aviso de que se reintenta solo, y a los 30 s lo sube sin más cambios', async () => {
+    servidorConVersion(4)
+    servidor.guardarDiseno.mockRejectedValueOnce(new ErrorDeApi(429, 'Demasiados intentos seguidos.'))
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(a.getState().guardado).toBe('error')
+    expect(a.getState().aviso).toBe(textos.barra.demasiadosGuardados)
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ pendiente: true })
+    await vi.advanceTimersByTimeAsync(REINTENTO_MS)
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(2)
+    expect(a.getState().guardado).toBe('guardado')
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ version: 5, pendiente: false })
+  })
+
+  it('tras un 429, seguir editando no lanza otro PUT: lo sube el reintento de los 30 s', async () => {
+    servidorConVersion(4)
+    servidor.guardarDiseno.mockRejectedValueOnce(new ErrorDeApi(429, 'Demasiados intentos seguidos.'))
+    const { a } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(2000)
+    a.getState().cambiar(alto(270))
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(REINTENTO_MS - 10_000)
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(2)
+    expect(a.getState().guardado).toBe('guardado')
+    a.getState().cambiar(alto(280))
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(3)
+  })
+
+  it('un 400 durante los reintentos los para: no repite cada 30 s un PUT que fallará igual', async () => {
+    servidorConVersion(4)
+    servidor.guardarDiseno
+      .mockRejectedValueOnce(new ErrorDeApi(429, 'Demasiados intentos seguidos.'))
+      .mockRejectedValueOnce(new ErrorDeApi(400, 'El diseño ocupa más de 1 MB.'))
+    const { a } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(2000)
+    await vi.advanceTimersByTimeAsync(REINTENTO_MS)
+    expect(a.getState().aviso).toBe('El diseño ocupa más de 1 MB.')
+    await vi.advanceTimersByTimeAsync(3 * REINTENTO_MS)
+    expect(servidor.guardarDiseno).toHaveBeenCalledTimes(2)
   })
 
   it('volver al anónimo con un cambio sin enviar lo guarda sin esperar', async () => {

@@ -42,6 +42,13 @@ public static class LimitesDePeticiones
     /// </summary>
     public const string Tarjetas = "tarjetas";
 
+    /// <summary>
+    /// Lo que escribe en la base con sesión: crear, guardar, duplicar y borrar diseños, compartirlos y subir su vista
+    /// previa. Se reparte por usuario, no por IP: frena a una cuenta que abuse sin tocar a las demás. 120 cada minuto;
+    /// el editor guarda como mucho cada 2 s por pestaña (30 por minuto), así que caben cuatro pestañas editando a la vez.
+    /// </summary>
+    public const string Escrituras = "escrituras";
+
     public static void AnadirLimitesDePeticiones(this IServiceCollection servicios, IConfiguration configuracion)
     {
         // Configurables para que los tests puedan elevarlos y no chocar con el
@@ -51,6 +58,7 @@ public static class LimitesDePeticiones
         var maximoDeCambiosDeContrasena = configuracion.GetValue("Limites:CambiosDeContrasenaPorVentana", 10);
         var maximoDeLecturasCompartidas = configuracion.GetValue("Limites:LecturasCompartidasPorVentana", 120);
         var maximoDeTarjetas = configuracion.GetValue("Limites:TarjetasPorVentana", 300);
+        var maximoDeEscrituras = configuracion.GetValue("Limites:EscriturasPorVentana", 120);
 
         servicios.AddRateLimiter(opciones =>
         {
@@ -107,6 +115,15 @@ public static class LimitesDePeticiones
                         PermitLimit = maximoDeTarjetas,
                         Window = TimeSpan.FromMinutes(1)
                     }));
+
+            opciones.AddPolicy(Escrituras, contexto =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    ClaveDeUsuario(contexto),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = maximoDeEscrituras,
+                        Window = TimeSpan.FromMinutes(1)
+                    }));
         });
     }
 
@@ -123,4 +140,11 @@ public static class LimitesDePeticiones
     /// </remarks>
     private static string ClaveDeParticion(HttpContext contexto) =>
         contexto.Connection.RemoteIpAddress?.ToString() ?? "desconocido";
+
+    /// <summary>
+    /// Se reparte por usuario de la sesión. Exige que el limitador vaya después de la autenticación en
+    /// <c>Program</c>; sin usuario (no debería llegar: las rutas piden sesión), cae al cubo de su IP.
+    /// </summary>
+    private static string ClaveDeUsuario(HttpContext contexto) =>
+        contexto.User.TryObtenerId(out var id) ? $"usuario:{id}" : $"ip:{ClaveDeParticion(contexto)}";
 }
