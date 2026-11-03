@@ -94,3 +94,39 @@ describe('validarDocumento', () => {
     expect(validarDocumento(d)).toMatchObject({ valido: true })
   })
 })
+
+describe('validarDocumento: origen de tienda', () => {
+  const conOrigen = (origen: unknown) => ({ ...base(), elementos: [elemento('e1', { origen: origen as Elemento['origen'] })] })
+  const completo = {
+    tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX', referencia: '805.483.84',
+    url: 'https://www.ikea.com/es/es/p/pax-80548384/', precio: 199.99, fechaPrecio: '2026-11-03',
+  }
+
+  it('completo es válido, y también solo con tienda y nombre', () => {
+    expect(validarDocumento(conOrigen(completo))).toMatchObject({ valido: true })
+    expect(validarDocumento(conOrigen({ tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX' }))).toMatchObject({ valido: true })
+  })
+
+  it('otro tipo de origen no vale', () => {
+    expect(errores(conOrigen({ tipo: 'catalogo' }))).toContain('elementos[0].origen.tipo: debe ser generico o tienda')
+  })
+
+  it('tienda y nombre obligatorios, no vacíos y con límite', () => {
+    expect(errores(conOrigen({ tipo: 'tienda', nombre: 'PAX' }))).toContain('elementos[0].origen.proveedor: debe ser un texto de 1 a 60 caracteres')
+    expect(errores(conOrigen({ tipo: 'tienda', proveedor: 'IKEA', nombre: '   ' }))).toContain('elementos[0].origen.nombre: debe ser un texto de 1 a 80 caracteres')
+    expect(errores(conOrigen({ ...completo, referencia: 'x'.repeat(41) }))).toContain('elementos[0].origen.referencia: debe ser un texto de hasta 40 caracteres')
+  })
+
+  it('la URL solo http o https: un diseño compartido la pinta como enlace', () => {
+    for (const url of ['javascript:alert(document.cookie)', 'data:text/html,x', 'www.ikea.com', 42]) {
+      expect(errores(conOrigen({ ...completo, url }))).toContain('elementos[0].origen.url: debe ser una dirección http o https')
+    }
+  })
+
+  it('el precio, un importe válido; la fecha, real y solo junto a un precio', () => {
+    expect(errores(conOrigen({ ...completo, precio: -5 }))).toContain('elementos[0].origen.precio: debe ser un importe de 0 a 1.000.000 € con dos decimales como mucho')
+    expect(errores(conOrigen({ ...completo, fechaPrecio: '2026-02-30' }))).toContain('elementos[0].origen.fechaPrecio: debe ser una fecha AAAA-MM-DD')
+    const { precio: _, ...sinPrecio } = completo
+    expect(errores(conOrigen(sinPrecio))).toContain('elementos[0].origen.fechaPrecio: solo puede ir junto a un precio')
+  })
+})

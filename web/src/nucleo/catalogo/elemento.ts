@@ -1,6 +1,6 @@
 import type { Elemento, Medidas, TipoEstancia } from '../modelo/documento'
 import type { Punto } from '../geometria/vector'
-import type { Catalogo, DefinicionTipo } from './tipos'
+import { capitalizar, type Catalogo, type DefinicionTipo } from './tipos'
 
 /** Elemento recién colocado: medidas, variantes y colores por defecto. */
 export function elementoNuevo(def: DefinicionTipo, posicion: Punto, id: string = crypto.randomUUID()): Elemento {
@@ -12,6 +12,12 @@ export function elementoNuevo(def: DefinicionTipo, posicion: Punto, id: string =
     colores: Object.fromEntries(def.zonasColor.map((z) => [z.clave, z.defecto])),
     origen: { tipo: 'generico' },
   }
+}
+
+/** El nombre que se enseña: el del producto si es de una tienda; si no, el del tipo con mayúscula. */
+export function nombreDeElemento(def: DefinicionTipo | undefined, e: Elemento): string {
+  if (e.origen.tipo === 'tienda') return e.origen.nombre
+  return def ? capitalizar(def.nombre) : e.tipo
 }
 
 /** Redondea a entero y recorta a cada rango. */

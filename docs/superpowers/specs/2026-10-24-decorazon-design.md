@@ -188,7 +188,7 @@ Lista mínima **(decisión de Claude; el constructor puede añadir)**:
 Los elementos "de pared" (cuadro, módulo alto, cortina) llevan altura desde el suelo.
 
 ### 6.3 Preparado para tiendas (fase posterior)
-Cada elemento lleva `origen`: `{ "tipo": "generico" }` en v1. Más adelante, `{ "tipo": "tienda", "proveedor": "ikea", "referencia": "...", "url": "..." }`, con medidas fijas. IKEA **no tiene API pública**: la vía será la carga manual de productos o un acuerdo, nunca extraer datos de su web. No se construye nada de esto en v1; solo se reserva el campo.
+Cada elemento lleva `origen`: `{ "tipo": "generico" }` en v1. Más adelante, `{ "tipo": "tienda", "proveedor": "ikea", "referencia": "...", "url": "..." }`, con medidas fijas. IKEA **no tiene API pública**: la vía será la carga manual de productos o un acuerdo, nunca extraer datos de su web. No se construye nada de esto en v1; solo se reserva el campo. **Fase 1 hecha (nov 2026):** carga manual por el usuario; el campo definitivo y sus reglas están en `2026-11-03-muebles-de-tienda-design.md` (y el porqué, en `docs/estudios/2026-11-03-catalogos-de-tiendas.md`).
 
 ## 7. Backend
 

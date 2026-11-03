@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ajustarMedidas, catalogoDeEstancia, elementoNuevo } from './elemento'
+import { ajustarMedidas, catalogoDeEstancia, elementoNuevo, nombreDeElemento } from './elemento'
 import { catalogoBase } from './catalogoBase'
 import { armario } from './definiciones/armario'
 
@@ -51,5 +51,14 @@ describe('catalogoDeEstancia', () => {
       const nombres = lista.map((d) => d.nombre)
       expect(nombres).toEqual([...nombres].sort((a, b) => a.localeCompare(b, 'es')))
     }
+  })
+})
+
+describe('nombreDeElemento', () => {
+  it('el del tipo con mayúscula; el del producto si es de una tienda; el tipo tal cual si no está en el catálogo', () => {
+    const e = elementoNuevo(armario, { x: 0, y: 0 }, 'e1')
+    expect(nombreDeElemento(armario, e)).toBe('Armario')
+    expect(nombreDeElemento(armario, { ...e, origen: { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX' } })).toBe('PAX')
+    expect(nombreDeElemento(undefined, { ...e, tipo: 'desconocido' })).toBe('desconocido')
   })
 })
