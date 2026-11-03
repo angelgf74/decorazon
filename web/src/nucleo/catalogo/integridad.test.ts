@@ -43,3 +43,17 @@ describe.each([...catalogoBase.entries()])('integridad de %s', (clave, def) => {
     expect(detectarConflictos(doc, catalogoBase)).toEqual([])
   })
 })
+
+describe('integridad: medidas extra', () => {
+  it('cada medida extra tiene un rango entero con min ≤ defecto ≤ max y clave única', () => {
+    for (const def of catalogoBase.values()) {
+      const claves = (def.medidasExtra ?? []).map((m) => m.clave)
+      expect(new Set(claves).size).toBe(claves.length)
+      for (const m of def.medidasExtra ?? []) {
+        const { min, max, defecto } = m.rango
+        expect([min, max, defecto].every(Number.isInteger)).toBe(true)
+        expect(min <= defecto && defecto <= max).toBe(true)
+      }
+    }
+  })
+})

@@ -2,6 +2,11 @@ import type { Elemento, Medidas, TipoEstancia } from '../modelo/documento'
 import type { Punto } from '../geometria/vector'
 import { capitalizar, type Catalogo, type DefinicionTipo } from './tipos'
 
+/** Las medidas extra por defecto del tipo, o nada si no tiene (los demás elementos no llevan el campo). */
+function extraPorDefecto(def: DefinicionTipo): { medidasExtra?: Record<string, number> } {
+  return def.medidasExtra?.length ? { medidasExtra: Object.fromEntries(def.medidasExtra.map((m) => [m.clave, m.rango.defecto])) } : {}
+}
+
 /** Elemento recién colocado: medidas, variantes y colores por defecto. */
 export function elementoNuevo(def: DefinicionTipo, posicion: Punto, id: string = crypto.randomUUID()): Elemento {
   return {
@@ -11,6 +16,7 @@ export function elementoNuevo(def: DefinicionTipo, posicion: Punto, id: string =
     variantes: Object.fromEntries(def.variantes.map((v) => [v.clave, v.defecto])),
     colores: Object.fromEntries(def.zonasColor.map((z) => [z.clave, z.defecto])),
     origen: { tipo: 'generico' },
+    ...extraPorDefecto(def),
   }
 }
 

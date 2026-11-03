@@ -190,6 +190,10 @@ class Validador {
       }
       const co = this.objeto(o.colores, `${r}.colores`)
       if (co) for (const [k, x] of Object.entries(co)) this.texto(x, `${r}.colores.${k}`)
+      if (o.medidasExtra !== undefined) {
+        const me = this.objeto(o.medidasExtra, `${r}.medidasExtra`)
+        if (me) for (const [k, x] of Object.entries(me)) this.noNegativo(x, `${r}.medidasExtra.${k}`)
+      }
       const or = this.objeto(o.origen, `${r}.origen`)
       if (or) this.origen(or, `${r}.origen`)
     })

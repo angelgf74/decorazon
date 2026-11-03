@@ -1,4 +1,4 @@
-import { valorVariante, type DefinicionTipo, type ZonaApertura } from '../tipos'
+import { valorMedidaExtra, valorVariante, type DefinicionTipo, type ZonaApertura } from '../tipos'
 import type { Elemento, Punto } from '../../modelo/documento'
 import type { PiezaLocal } from '../../modelo3d/tipos'
 import { sectorCircunscrito } from '../../geometria/formas'
@@ -8,6 +8,8 @@ import { caja } from '../modelos'
 /** Frente libre mínimo para poner puertas en un lado, y ancho máximo de cada hoja (como las de PAX). */
 const PUERTA_MINIMA = 30
 const HOJA_MAXIMA = 60
+/** Lo que queda como mínimo de frente en cada lado y de unión entre los dos cuerpos. */
+const MINIMO = 10
 /** Los frentes van retranqueados como los del armario, con una junta entre hojas. */
 const FRENTE_Y0 = 3.5
 const FRENTE_Y1 = 1.5
@@ -18,39 +20,80 @@ type Rect = [number, number, number, number]
 
 /** Con el rincón a la derecha, todo se refleja en x. */
 const derecha = (e: Elemento) => valorVariante(armarioEsquinero, e, 'rincon') === 'derecha'
-const profundidad = (e: Elemento) => Number(valorVariante(armarioEsquinero, e, 'profundidad'))
 
-function reflejar(e: Elemento, [x0, y0, x1, y1]: Rect): Rect {
-  return derecha(e) ? [-x1, y0, -x0, y1] : [x0, y0, x1, y1]
-}
-
-/** Un polígono local reflejado si hace falta (con el orden al revés, para conservar el sentido de giro). */
-function reflejarPoligono(e: Elemento, puntos: Punto[]): Punto[] {
-  return derecha(e) ? puntos.map((p) => ({ x: -p.x, y: p.y })).reverse() : puntos
-}
-
-/** Medidas locales con el rincón a la izquierda: dónde acaba el cuerpo del fondo (yFrente) y el del ala (xAla). */
-function marco(e: Elemento) {
-  const { ancho, fondo, alto } = e.medidas
-  const p = profundidad(e)
-  return { ancho, fondo, alto, p, yFrente: -fondo / 2 + p, xAla: -ancho / 2 + p }
+/** La profundidad de antes (variante 35/58), para los esquineros guardados sin medidas extra. */
+function profundidadDeAntes(e: Elemento): number | undefined {
+  const p = e.variantes.profundidad
+  return p === 35 || p === 58 ? p : undefined
 }
 
 /**
- * Los dos cuerpos, con el rincón a la izquierda: el del fondo a todo el ancho contra la pared de atrás y el del ala
- * contra la pared de la izquierda, hasta delante. El hueco de la L es lo que queda delante del cuerpo del fondo.
+ * Los rangos de las medidas extra según las demás: siempre queda frente (MINIMO), los dos cuerpos siguen unidos al
+ * menos MINIMO y el hueco no pasa del cuerpo del fondo. Así lo que dice cada campo es lo que se dibuja.
  */
+const conMaximo = (min: number, max: number, defecto: number) => ({ min, max: Math.max(min, max), defecto: Math.min(defecto, Math.max(min, max)) })
+const rangoFondo = (e: Elemento) => conMaximo(30, Math.min(70, e.medidas.fondo - MINIMO), 58)
+const rangoAla = (e: Elemento) => conMaximo(30, Math.min(70, e.medidas.ancho - MINIMO), 58)
+const rangoHuecoAncho = (e: Elemento) => conMaximo(0, Math.min(40, valorMedidaExtra(armarioEsquinero, e, 'anchoAla') - MINIMO), 0)
+const rangoHuecoFondo = (e: Elemento) => conMaximo(0, Math.min(70, valorMedidaExtra(armarioEsquinero, e, 'profundidadFondo')), 0)
+
+/**
+ * Las medidas con el rincón a la izquierda y el origen en la esquina de las dos paredes (X a lo largo de la pared del
+ * fondo, Y a lo largo de la izquierda), ya dentro de sus rangos. Con una de las dos medidas del hueco a 0, no hay hueco.
+ */
+function marco(e: Elemento) {
+  const { ancho: A, fondo: F, alto } = e.medidas
+  const pF = valorMedidaExtra(armarioEsquinero, e, 'profundidadFondo')
+  const aA = valorMedidaExtra(armarioEsquinero, e, 'anchoAla')
+  let hx = valorMedidaExtra(armarioEsquinero, e, 'huecoAncho')
+  let hy = valorMedidaExtra(armarioEsquinero, e, 'huecoFondo')
+  if (hx === 0 || hy === 0) hx = hy = 0
+  return { A, F, alto, pF, aA, hx, hy }
+}
+
+/** De coordenadas desde el rincón a locales (centro de la huella), reflejando si el rincón va a la derecha. */
+function local(e: Elemento, X: number, Y: number): Punto {
+  const x = -e.medidas.ancho / 2 + X
+  return { x: derecha(e) ? -x : x, y: -e.medidas.fondo / 2 + Y }
+}
+
+/** Un rectángulo desde el rincón, en locales y ordenado (x0 < x1). */
+function rect(e: Elemento, X0: number, Y0: number, X1: number, Y1: number): Rect {
+  const a = local(e, X0, Y0)
+  const b = local(e, X1, Y1)
+  return [Math.min(a.x, b.x), Math.min(a.y, b.y), Math.max(a.x, b.x), Math.max(a.y, b.y)]
+}
+
+/** Los dos cuerpos: el del fondo, contra la pared de atrás desde el hueco, y el ala, contra la izquierda desde el hueco. */
 function cuerpos(e: Elemento): Rect[] {
-  const { ancho, fondo, yFrente, xAla } = marco(e)
-  return [[-ancho / 2, -fondo / 2, ancho / 2, yFrente], [-ancho / 2, yFrente, xAla, fondo / 2]]
+  const { A, F, pF, aA, hx, hy } = marco(e)
+  return [rect(e, hx, 0, A, pF), rect(e, 0, hy, aA, F)]
+}
+
+/** El contorno de la unión de los dos cuerpos (hasta 8 vértices), sin vértices repetidos ni alineados. */
+function contorno(e: Elemento): Punto[] {
+  const { A, F, pF, aA, hx, hy } = marco(e)
+  const desdeRincon: [number, number][] = [[hx, 0], [A, 0], [A, pF], [aA, pF], [aA, F], [0, F], [0, hy], [hx, hy]]
+  const unicos = desdeRincon.filter(([x, y], i) => {
+    const [px, py] = desdeRincon[(i + desdeRincon.length - 1) % desdeRincon.length]!
+    return x !== px || y !== py
+  })
+  const sinAlineados = unicos.filter(([x, y], i) => {
+    const [px, py] = unicos[(i + unicos.length - 1) % unicos.length]!
+    const [nx, ny] = unicos[(i + 1) % unicos.length]!
+    return (x - px) * (ny - y) - (y - py) * (nx - x) !== 0
+  })
+  const puntos = sinAlineados.map(([x, y]) => local(e, x, y))
+  // Reflejado, el sentido de giro se invierte: se da la vuelta para conservarlo.
+  return derecha(e) ? puntos.reverse() : puntos
 }
 
 /** Cuántas hojas lleva un frente libre: ninguna si es estrecho; si no, las justas para no pasar de HOJA_MAXIMA. */
 const hojas = (libre: number) => (libre < PUERTA_MINIMA ? 0 : Math.ceil(libre / HOJA_MAXIMA))
 
 /**
- * Las hojas de cada frente, de fuera hacia el rincón. Cada una: dónde va (de `desde` a `hasta` a lo largo del frente) y
- * si la bisagra está en su extremo de fuera (la primera, la tercera…) o en el del rincón.
+ * Las hojas de un frente, de fuera hacia el rincón. Cada una: dónde va (de `a`, fuera, a `b`, hacia el rincón) a lo
+ * largo del frente y si la bisagra está en su extremo de fuera (la primera, la tercera…) o en el del rincón.
  */
 function hojasDe(desde: number, hasta: number): { a: number; b: number; bisagraFuera: boolean }[] {
   const n = hojas(Math.abs(hasta - desde))
@@ -58,34 +101,29 @@ function hojasDe(desde: number, hasta: number): { a: number; b: number; bisagraF
   return Array.from({ length: n }, (_, k) => ({ a: hasta - k * w, b: hasta - (k + 1) * w, bisagraFuera: k % 2 === 0 }))
 }
 
-function contornoL(e: Elemento): Punto[] {
-  const { ancho, fondo, yFrente, xAla } = marco(e)
-  return reflejarPoligono(e, [
-    { x: -ancho / 2, y: -fondo / 2 }, { x: ancho / 2, y: -fondo / 2 }, { x: ancho / 2, y: yFrente },
-    { x: xAla, y: yFrente }, { x: xAla, y: fondo / 2 }, { x: -ancho / 2, y: fondo / 2 },
-  ])
-}
-
-/** Las puertas abren hacia el hueco de la L: las del fondo hacia +y, las del ala hacia +x. */
+/** Las puertas abren hacia el hueco de la L: las del fondo hacia +Y, las del ala hacia +X. */
 function puertas(e: Elemento): ZonaApertura[] {
-  const { ancho, fondo, alto, yFrente, xAla } = marco(e)
+  const { A, F, alto, pF, aA } = marco(e)
   const sectores: Punto[][] = []
-  for (const { a, b, bisagraFuera } of hojasDe(xAla, ancho / 2)) {
+  for (const { a, b, bisagraFuera } of hojasDe(aA, A)) {
     const w = a - b
-    // Bisagra fuera (en a): cerrada mira a −x y abre a +y. En el rincón (en b): cerrada mira a +x.
-    sectores.push(bisagraFuera ? sectorCircunscrito({ x: a, y: yFrente }, w, 90, 180) : sectorCircunscrito({ x: b, y: yFrente }, w, 0, 90))
+    // Bisagra fuera (en a): cerrada mira a −X y abre a +Y. En el rincón (en b): cerrada mira a +X.
+    sectores.push(bisagraFuera ? sectorCircunscrito({ x: a, y: pF }, w, 90, 180) : sectorCircunscrito({ x: b, y: pF }, w, 0, 90))
   }
-  for (const { a, b, bisagraFuera } of hojasDe(yFrente, fondo / 2)) {
+  for (const { a, b, bisagraFuera } of hojasDe(pF, F)) {
     const w = a - b
-    // Bisagra fuera (en a): cerrada mira a −y y abre a +x. En el rincón (en b): cerrada mira a +y.
-    sectores.push(bisagraFuera ? sectorCircunscrito({ x: xAla, y: a }, w, 270, 360) : sectorCircunscrito({ x: xAla, y: b }, w, 0, 90))
+    // Bisagra fuera (en a): cerrada mira a −Y y abre a +X. En el rincón (en b): cerrada mira a +Y.
+    sectores.push(bisagraFuera ? sectorCircunscrito({ x: aA, y: a }, w, 270, 360) : sectorCircunscrito({ x: aA, y: b }, w, 0, 90))
   }
-  return sectores.map((s) => ({
-    nombre: 'la puerta',
-    huella: reflejarPoligono(e, s).map((q) => aMundo(e, q)),
-    zMin: e.alturaSuelo,
-    zMax: e.alturaSuelo + alto,
-  }))
+  return sectores.map((s) => {
+    const puntos = s.map((p) => local(e, p.x, p.y))
+    return {
+      nombre: 'la puerta',
+      huella: (derecha(e) ? puntos.reverse() : puntos).map((q) => aMundo(e, q)),
+      zMin: e.alturaSuelo,
+      zMax: e.alturaSuelo + alto,
+    }
+  })
 }
 
 export const armarioEsquinero: DefinicionTipo = {
@@ -93,56 +131,59 @@ export const armarioEsquinero: DefinicionTipo = {
   // Ancho: el lado contra la pared del fondo; fondo: el lado del ala. Los dos por fuera, como da la tienda («110/110»).
   medidas: { ancho: { min: 80, max: 200, defecto: 110 }, fondo: { min: 80, max: 200, defecto: 110 }, alto: { min: 150, max: 260, defecto: 201 } },
   alturaSuelo: 0, alturaSueloEditable: false,
-  variantes: [
-    { clave: 'rincon', etiqueta: 'Rincón', valores: ['izquierda', 'derecha'], defecto: 'izquierda' },
-    { clave: 'profundidad', etiqueta: 'Profundidad', valores: [35, 58], defecto: 58 },
+  variantes: [{ clave: 'rincon', etiqueta: 'Rincón', valores: ['izquierda', 'derecha'], defecto: 'izquierda' }],
+  // Sustituyen a la variante «Profundidad» 35/58: un esquinero guardado con ella la toma para el fondo y el ala.
+  medidasExtra: [
+    { clave: 'profundidadFondo', etiqueta: 'Profundidad del fondo', rango: { min: 30, max: 70, defecto: 58 }, rangoPara: rangoFondo, legado: profundidadDeAntes },
+    { clave: 'anchoAla', etiqueta: 'Ancho del ala', rango: { min: 30, max: 70, defecto: 58 }, rangoPara: rangoAla, legado: profundidadDeAntes },
+    { clave: 'huecoAncho', etiqueta: 'Hueco: ancho', rango: { min: 0, max: 40, defecto: 0 }, rangoPara: rangoHuecoAncho },
+    { clave: 'huecoFondo', etiqueta: 'Hueco: fondo', rango: { min: 0, max: 70, defecto: 0 }, rangoPara: rangoHuecoFondo },
   ],
+  detallesExtra(e) {
+    const { pF, aA, hx, hy } = marco(e)
+    return [`Profundidad del fondo: ${pF} cm`, `Ancho del ala: ${aA} cm`, ...(hx > 0 ? [`Hueco del rincón: ${hx} × ${hy} cm`] : [])]
+  },
   zonasColor: [
     { clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', defecto: '#e8e4dc' },
     { clave: 'puertas', etiqueta: 'Puertas', material: 'lacado', defecto: '#f2f0ea' },
   ],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
-  volumenes: (e) => cuerpos(e).map((r) => {
-    const [x0, y0, x1, y1] = reflejar(e, r)
-    return cajaMundo(e, x0, y0, x1, y1, 0, e.medidas.alto)
-  }),
-  planta: (e) => [contornoL(e).map((q) => aMundo(e, q))],
+  volumenes: (e) => cuerpos(e).map(([x0, y0, x1, y1]) => cajaMundo(e, x0, y0, x1, y1, 0, e.medidas.alto)),
+  planta: (e) => [contorno(e).map((q) => aMundo(e, q))],
   // Sobre el lado largo (`e.posicion` cae en el hueco de la L): el cuerpo del fondo o, si el ala es más larga, el ala.
   posicionNombre(e) {
-    const { ancho, fondo, p, yFrente } = marco(e)
-    const local = fondo > ancho ? { x: -ancho / 2 + p / 2, y: (yFrente + fondo / 2) / 2 } : { x: 0, y: -fondo / 2 + p / 2 }
-    return aMundo(e, derecha(e) ? { x: -local.x, y: local.y } : local)
+    const { A, F, pF, aA, hx } = marco(e)
+    return aMundo(e, F > A ? local(e, aA / 2, (pF + F) / 2) : local(e, (hx + A) / 2, pF / 2))
   },
   modelo3d(e) {
-    const { ancho, fondo, alto, yFrente, xAla } = marco(e)
+    const { A, F, alto, pF, aA, hx, hy } = marco(e)
     const zTirador = alto / 2 - TIRADOR / 2
-    // Con el rincón a la izquierda; después se refleja si va a la derecha.
+    // Cajas del cuerpo que no se solapan (con caras en el mismo plano parpadeaban, y la selección cruzaba la tapa):
+    // el fondo hasta el retranqueo de su frente; la franja de ese retranqueo detrás del ala, hasta el rincón de dentro;
+    // el ala delante de esa franja; y, si hay hueco y el ala llega más atrás, el trozo de ala al lado del hueco.
     const piezas: [Rect, number, number, string][] = [
-      [[-ancho / 2, -fondo / 2, ancho / 2, yFrente - FRENTE_Y0], 0, alto, 'cuerpo'],
-      [[-ancho / 2, yFrente - FRENTE_Y0, xAla - FRENTE_Y0, fondo / 2], 0, alto, 'cuerpo'],
-      // El rincón de dentro, donde se juntan los dos frentes: sin esto quedaba un hueco a toda la altura.
-      [[xAla - FRENTE_Y0, yFrente - FRENTE_Y0, xAla, yFrente], 0, alto, 'cuerpo'],
+      [rect(e, hx, 0, A, pF - FRENTE_Y0), 0, alto, 'cuerpo'],
+      [rect(e, hx, pF - FRENTE_Y0, aA, pF), 0, alto, 'cuerpo'],
+      [rect(e, 0, pF, aA - FRENTE_Y0, F), 0, alto, 'cuerpo'],
     ]
-    // Frente del fondo: hojas a lo largo de x, con el tirador junto al canto contrario a la bisagra.
-    const fondoHojas = hojasDe(xAla, ancho / 2)
-    if (fondoHojas.length === 0) piezas.push([[xAla, yFrente - FRENTE_Y0, ancho / 2, yFrente - FRENTE_Y1], 1, alto - 1, 'cuerpo'])
+    if (hx > 0 && hy < pF) piezas.push([rect(e, 0, hy, hx, pF), 0, alto, 'cuerpo'])
+    // Frente del fondo: hojas a lo largo de X, con el tirador junto al canto contrario a la bisagra.
+    const fondoHojas = hojasDe(aA, A)
+    if (fondoHojas.length === 0) piezas.push([rect(e, aA, pF - FRENTE_Y0, A, pF - FRENTE_Y1), 1, alto - 1, 'cuerpo'])
     for (const { a, b, bisagraFuera } of fondoHojas) {
-      piezas.push([[b + JUNTA / 2, yFrente - FRENTE_Y0, a - JUNTA / 2, yFrente - FRENTE_Y1], 1, alto - 1, 'puertas'])
+      piezas.push([rect(e, b + JUNTA / 2, pF - FRENTE_Y0, a - JUNTA / 2, pF - FRENTE_Y1), 1, alto - 1, 'puertas'])
       const x = bisagraFuera ? b + 2 : a - 3.5
-      piezas.push([[x, yFrente - FRENTE_Y1, x + 1.5, yFrente], zTirador, zTirador + TIRADOR, 'puertas'])
+      piezas.push([rect(e, x, pF - FRENTE_Y1, x + 1.5, pF), zTirador, zTirador + TIRADOR, 'puertas'])
     }
-    // Frente del ala: hojas a lo largo de y.
-    const alaHojas = hojasDe(yFrente, fondo / 2)
-    if (alaHojas.length === 0) piezas.push([[xAla - FRENTE_Y0, yFrente, xAla - FRENTE_Y1, fondo / 2], 1, alto - 1, 'cuerpo'])
+    // Frente del ala: hojas a lo largo de Y.
+    const alaHojas = hojasDe(pF, F)
+    if (alaHojas.length === 0) piezas.push([rect(e, aA - FRENTE_Y0, pF, aA - FRENTE_Y1, F), 1, alto - 1, 'cuerpo'])
     for (const { a, b, bisagraFuera } of alaHojas) {
-      piezas.push([[xAla - FRENTE_Y0, b + JUNTA / 2, xAla - FRENTE_Y1, a - JUNTA / 2], 1, alto - 1, 'puertas'])
+      piezas.push([rect(e, aA - FRENTE_Y0, b + JUNTA / 2, aA - FRENTE_Y1, a - JUNTA / 2), 1, alto - 1, 'puertas'])
       const y = bisagraFuera ? b + 2 : a - 3.5
-      piezas.push([[xAla - FRENTE_Y1, y, xAla, y + 1.5], zTirador, zTirador + TIRADOR, 'puertas'])
+      piezas.push([rect(e, aA - FRENTE_Y1, y, aA, y + 1.5), zTirador, zTirador + TIRADOR, 'puertas'])
     }
-    return piezas.map(([r, z0, z1, zona]): PiezaLocal => {
-      const [x0, y0, x1, y1] = reflejar(e, r)
-      return caja(x0, y0, z0, x1, y1, z1, zona)
-    })
+    return piezas.map(([[x0, y0, x1, y1], z0, z1, zona]): PiezaLocal => caja(x0, y0, z0, x1, y1, z1, zona))
   },
   zonasApertura: puertas,
 }

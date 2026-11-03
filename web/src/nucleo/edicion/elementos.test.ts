@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { catalogoBase } from '../catalogo/catalogoBase'
 import { documentoNuevo } from '../modelo/crear'
+import { elementoNuevo } from '../catalogo/elemento'
 import type { DocumentoDiseno } from '../modelo/documento'
 import { validarDocumento } from '../modelo/validar'
 import { detectarConflictos } from '../conflictos/detectar'
@@ -203,7 +204,8 @@ describe('cambiarTipo', () => {
     const e = r.elementos[0]!
     expect(e).toMatchObject({ id, tipo: 'armario-esquinero', rotacion: 90, origen: pax })
     expect(e.medidas).toEqual({ ancho: 200, fondo: 80, alto: 220 })
-    expect(e.variantes).toEqual({ rincon: 'izquierda', profundidad: 58 })
+    expect(e.variantes).toEqual({ rincon: 'izquierda' })
+    expect(e.medidasExtra).toEqual({ profundidadFondo: 58, anchoAla: 58, huecoAncho: 0, huecoFondo: 0 })
     expect(e.colores).toEqual({ cuerpo: '#111111', puertas: '#f2f0ea' })
     expect(validarDocumento(r).valido).toBe(true)
   })
@@ -229,5 +231,73 @@ describe('cambiarTipo: altura y rincón', () => {
   it('un armario esquinero cerca del rincón se pega a las dos paredes', () => {
     const { documento, id } = anadirElemento(sala(), catalogoBase, 'armario-esquinero', { x: 62, y: 60 })
     expect(documento.elementos.find((e) => e.id === id)!.posicion).toEqual({ x: 55, y: 55 })
+  })
+})
+
+describe('medidas extra al editar', () => {
+  const conEsquinero = () => anadirElemento(sala(), catalogoBase, 'armario-esquinero', { x: 62, y: 60 })
+
+  it('un esquinero nuevo lleva las de por defecto; un armario normal, ninguna', () => {
+    const { documento, id } = conEsquinero()
+    expect(documento.elementos.find((e) => e.id === id)!.medidasExtra).toEqual({ profundidadFondo: 58, anchoAla: 58, huecoAncho: 0, huecoFondo: 0 })
+    expect(conArmario().documento.elementos[0]!.medidasExtra).toBeUndefined()
+  })
+
+  it('editar las recorta a su rango; duplicar las copia sin compartir el objeto', () => {
+    const { documento, id } = conEsquinero()
+    const r = editarElemento(documento, catalogoBase, id, { medidasExtra: { huecoAncho: 11, huecoFondo: 999 } })
+    const e = r.elementos.find((x) => x.id === id)!
+    // El fondo del hueco no pasa del cuerpo del fondo (58), aunque su rango general llegue a 70.
+    expect(e.medidasExtra).toEqual({ profundidadFondo: 58, anchoAla: 58, huecoAncho: 11, huecoFondo: 58 })
+    const { documento: d2, id: copia } = duplicarElemento(r, catalogoBase, id)
+    const c = d2.elementos.find((x) => x.id === copia)!
+    expect(c.medidasExtra).toEqual(e.medidasExtra)
+    expect(c.medidasExtra).not.toBe(e.medidasExtra)
+  })
+
+  it('en un mueble de tienda son fijas: solo las cambia vincularTienda', () => {
+    const { documento, id } = conEsquinero()
+    const pax: OrigenTienda = { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX / GRIMO' }
+    const vinculado = vincularTienda(documento, catalogoBase, id, pax, { ancho: 111, fondo: 111, alto: 201 }, { huecoAncho: 11, huecoFondo: 58 })
+    const e = vinculado.elementos.find((x) => x.id === id)!
+    expect(e.medidasExtra).toMatchObject({ huecoAncho: 11, huecoFondo: 58 })
+    const r = editarElemento(vinculado, catalogoBase, id, { medidasExtra: { huecoAncho: 0 } })
+    expect(r.elementos.find((x) => x.id === id)!.medidasExtra).toEqual(e.medidasExtra)
+  })
+
+  it('cambiar de tipo pone las del tipo nuevo, o ninguna si no tiene', () => {
+    const { documento, id } = conArmario()
+    const esquinero = cambiarTipo(documento, catalogoBase, id, 'armario-esquinero')
+    expect(esquinero.elementos[0]!.medidasExtra).toEqual({ profundidadFondo: 58, anchoAla: 58, huecoAncho: 0, huecoFondo: 0 })
+    expect(cambiarTipo(esquinero, catalogoBase, id, 'armario').elementos[0]!.medidasExtra).toBeUndefined()
+  })
+})
+
+describe('medidas extra: lo que no debe mover el mueble', () => {
+  // Esquinero contra la pared del fondo y un armario a 6 cm por su derecha (dentro del alcance del imán).
+  function conVecino(extra?: Record<string, number>) {
+    const doc = documentoNuevo('dormitorio', 600, 330, 250)
+    const esquinero = { ...elementoNuevo(catalogoBase.get('armario-esquinero')!, { x: 311, y: 55 }, 'esq'), variantes: { rincon: 'izquierda', profundidad: 58 } }
+    if (extra) esquinero.medidasExtra = extra
+    else delete esquinero.medidasExtra
+    const armario = elementoNuevo(catalogoBase.get('armario')!, { x: 422, y: 30 }, 'arm')
+    return { ...doc, elementos: [esquinero, armario] }
+  }
+
+  it('cambiar el color de un esquinero guardado antes (sin medidas extra) no lo mueve', () => {
+    const r = editarElemento(conVecino(), catalogoBase, 'esq', { colores: { cuerpo: '#000000' } })
+    expect(r.elementos[0]!.posicion).toEqual({ x: 311, y: 55 })
+  })
+
+  it('tampoco si sus medidas extra vienen en otro orden (jsonb las reordena)', () => {
+    const r = editarElemento(conVecino({ anchoAla: 58, huecoAncho: 0, huecoFondo: 0, profundidadFondo: 58 }), catalogoBase, 'esq', { colores: { cuerpo: '#000000' } })
+    expect(r.elementos[0]!.posicion).toEqual({ x: 311, y: 55 })
+  })
+
+  it('un valor no finito no se guarda', () => {
+    const doc = conVecino({ profundidadFondo: 58, anchoAla: 58, huecoAncho: 0, huecoFondo: 0 })
+    const r = editarElemento(doc, catalogoBase, 'esq', { medidasExtra: { huecoAncho: Number.NaN } })
+    expect(r.elementos[0]!.medidasExtra!.huecoAncho).toBe(0)
+    expect(validarDocumento(r).valido).toBe(true)
   })
 })

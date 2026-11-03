@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from 'react'
 import {
   cambiarTipo, catalogoBase, desvincularTienda, editarElemento, esFechaPrecio, esUrlDeProducto, leerEnlace, leerMedidas, LIMITES_TIENDA,
-  limpiarUrl, TIENDAS_SUGERIDAS, vincularTienda,
+  limpiarUrl, lineasMedidasExtra, rangoMedidaExtra, TIENDAS_SUGERIDAS, valorMedidaExtra, vincularTienda,
   type DatosDeEnlace, type DefinicionTipo, type Elemento, type Medidas, type OrigenTienda,
 } from '../../nucleo'
 import { textos } from '../../textos'
@@ -37,6 +37,33 @@ function borradorDe(e: Elemento): Borrador {
  * inodoro con la cisterna empotrada: la taza), que tampoco se edita en un mueble genérico.
  */
 const medidasDe = (def: DefinicionTipo, e: Elemento) => MEDIDAS.filter((k) => k !== 'alto' || def.altoReal?.(e) === undefined)
+
+/** Las medidas extra del tipo leídas del formulario (fijas del producto, como las demás), o el error de cada una. */
+/**
+ * El mueble tal como quedaría con lo escrito en el formulario: los rangos de las medidas extra dependen de las demás
+ * (el hueco, del ancho del ala), así que se validan y se enseñan con lo que el usuario está escribiendo.
+ */
+function elementoConBorrador(e: Elemento, b: Borrador, escritas: Record<string, string>): Elemento {
+  const numero = (texto: string, antes: number) => (/^\d+$/.test(texto.trim()) ? Number(texto.trim()) : antes)
+  const medidas = { ancho: numero(b.ancho, e.medidas.ancho), fondo: numero(b.fondo, e.medidas.fondo), alto: numero(b.alto, e.medidas.alto) }
+  const extra = Object.fromEntries(Object.entries(escritas).map(([k, v]) => [k, numero(v, e.medidasExtra?.[k] ?? 0)]))
+  return { ...e, medidas, medidasExtra: { ...e.medidasExtra, ...extra } }
+}
+
+/** Las medidas extra del tipo leídas del formulario (fijas del producto, como las demás), o el error de cada una. */
+function leerExtra(escritas: Record<string, string>, def: DefinicionTipo, conBorrador: Elemento): { medidasExtra: Record<string, number> } | { errores: Record<string, string> } {
+  const errores: Record<string, string> = {}
+  const medidasExtra: Record<string, number> = {}
+  for (const m of def.medidasExtra ?? []) {
+    const { min, max } = rangoMedidaExtra(def, conBorrador, m.clave)
+    const texto = (escritas[m.clave] ?? '').trim()
+    const n = Number(texto)
+    if (!/^\d+$/.test(texto)) errores[m.clave] = /^\d+[.,]\d*$/.test(texto) ? t.errores.medidaEntera : t.errores.medida(min, max)
+    else if (n < min || n > max) errores[m.clave] = t.errores.medida(min, max)
+    medidasExtra[m.clave] = n
+  }
+  return Object.keys(errores).length > 0 ? { errores } : { medidasExtra }
+}
 
 /** El producto y sus medidas, o los errores de cada campo. Las medidas fuera del rango del tipo no se recortan en silencio. */
 function leerBorrador(b: Borrador, def: DefinicionTipo, e: Elemento): { origen: OrigenTienda; medidas: Medidas } | { errores: Errores } {
@@ -111,9 +138,51 @@ function CampoProducto({ campo, valor, error, tipo = 'text', modo, lista, enfoca
   )
 }
 
+interface PropsCampoExtra {
+  etiqueta: string; valor: string; rango: { min: number; max: number }; error?: string
+  alCambiar(valor: string): void; referencia(el: HTMLInputElement | null): void
+}
+
+/**
+ * Una medida extra del tipo (el hueco de un esquinero) como medida del producto: su etiqueta lo dice, para no
+ * confundirla con el campo de Propiedades que se ve a la vez. Debajo, el rango que admite ahora; o el error.
+ */
+function CampoExtra({ etiqueta, valor, rango, error, alCambiar, referencia }: PropsCampoExtra) {
+  const id = useId()
+  const idAyuda = `${id}-ayuda`
+  return (
+    <div className="panel__campo">
+      <label htmlFor={id}>{t.campoExtra(etiqueta)}</label>
+      <input
+        id={id} ref={referencia} type="text" inputMode="numeric" value={valor}
+        aria-invalid={error ? true : undefined} aria-describedby={idAyuda}
+        onChange={(ev) => alCambiar(ev.target.value)}
+      />
+      {error
+        ? <small id={idAyuda} className="panel__error">{error}</small>
+        : <small id={idAyuda} className="campo-numero__ayuda">{t.rangoCm(rango.min, rango.max)}</small>}
+    </div>
+  )
+}
+
 function Formulario({ e, def, alTerminar }: { e: Elemento; def: DefinicionTipo; alTerminar(): void }) {
   const [borrador, setBorrador] = useState(() => borradorDe(e))
   const [errores, setErrores] = useState<Errores>({})
+  // Las medidas extra tecleadas; las que no, se enseñan con el valor del mueble (también tras cambiar de tipo).
+  const [extra, setExtra] = useState<Record<string, string>>({})
+  const [erroresExtra, setErroresExtra] = useState<Record<string, string>>({})
+  const camposExtra = useRef<Record<string, HTMLInputElement | null>>({})
+  const valorExtra = (clave: string) => extra[clave] ?? String(valorMedidaExtra(def, e, clave))
+  const escritasExtra = Object.fromEntries((def.medidasExtra ?? []).map((m) => [m.clave, valorExtra(m.clave)]))
+  const conBorrador = elementoConBorrador(e, borrador, escritasExtra)
+  const cambiarExtra = (clave: string, valor: string) => {
+    setExtra((x) => ({ ...x, [clave]: valor }))
+    setErroresExtra((previos) => {
+      const resto = { ...previos }
+      delete resto[clave]
+      return resto
+    })
+  }
   // El enlace con el que se abrió: mientras no cambie, no se lee (al volver a «Editar producto» no se pisa nada).
   const [urlInicial] = useState(() => borrador.url.trim())
   // Lo que dice el enlace actual: la nota, el tipo que parece y el color que se aplica al guardar. Sale del campo, así
@@ -188,17 +257,21 @@ function Formulario({ e, def, alTerminar }: { e: Elemento; def: DefinicionTipo; 
 
   const guardar = () => {
     const r = leerBorrador(borrador, def, e)
-    if ('errores' in r) {
-      setErrores(r.errores)
-      const primero = CAMPOS.find((c) => r.errores[c])
+    const rx = leerExtra(escritasExtra, def, conBorrador)
+    if ('errores' in r || 'errores' in rx) {
+      setErrores('errores' in r ? r.errores : {})
+      setErroresExtra('errores' in rx ? rx.errores : {})
+      // El foco, al primer campo con error: los del producto van antes que las medidas extra.
+      const primero = 'errores' in r ? CAMPOS.find((c) => r.errores[c]) : undefined
       if (primero) campos.current[primero]?.focus()
+      else if ('errores' in rx) camposExtra.current[(def.medidasExtra ?? []).find((m) => rx.errores[m.clave])!.clave]?.focus()
       return
     }
     const zona = def.zonasColor[0]
     const color = leido.color
     // Un solo cambio, un solo deshacer: el producto, sus medidas y el color que nombra el enlace.
     almacen.getState().cambiar((d) => {
-      const vinculado = vincularTienda(d, catalogoBase, e.id, r.origen, r.medidas)
+      const vinculado = vincularTienda(d, catalogoBase, e.id, r.origen, r.medidas, rx.medidasExtra)
       return zona && color ? editarElemento(vinculado, catalogoBase, e.id, { colores: { [zona.clave]: color } }) : vinculado
     })
     alTerminar()
@@ -247,6 +320,13 @@ function Formulario({ e, def, alTerminar }: { e: Elemento; def: DefinicionTipo; 
         <CampoProducto {...props('precio')} modo="decimal" />
         <CampoProducto {...props('fechaPrecio')} tipo="date" />
         {medidasDe(def, e).map((k) => <CampoProducto key={k} {...props(k)} modo="numeric" />)}
+        {def.medidasExtra?.map((m) => (
+          <CampoExtra
+            key={m.clave} etiqueta={m.etiqueta} valor={valorExtra(m.clave)} error={erroresExtra[m.clave]}
+            rango={rangoMedidaExtra(def, conBorrador, m.clave)}
+            alCambiar={(v) => cambiarExtra(m.clave, v)} referencia={(el) => { camposExtra.current[m.clave] = el }}
+          />
+        ))}
       </div>
       <div className="panel__acciones">
         <button type="submit" className="primario">{t.guardar}</button>
@@ -281,7 +361,13 @@ function Ficha({ e, def, origen, enfocar, alEditar, alDesvincular }: PropsFicha)
           </>
         )}
         <dt>{t.ficha.medidas}</dt>
-        <dd>{`${ancho} × ${fondo} × ${alto} cm`}</dd>
+        {/* Las medidas extra van dentro del mismo valor: como dd sueltos descolocaban la rejilla de dos columnas. */}
+        <dd>
+          <div>{`${ancho} × ${fondo} × ${alto} cm`}</div>
+          {lineasMedidasExtra(def, e).map((linea) => (
+            <div key={linea}>{linea}</div>
+          ))}
+        </dd>
       </dl>
       {/* El validador ya rechaza otras; se comprueba otra vez porque aquí se pinta un enlace. */}
       {origen.url && esUrlDeProducto(origen.url) && (

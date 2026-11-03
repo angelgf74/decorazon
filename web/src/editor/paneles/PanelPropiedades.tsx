@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import {
   cambiarLongitudPared, capitalizar, catalogoBase, editarAbertura, editarElemento, editarEstructura, longitudPared, moverVertice, partirPared,
-  nombreDeElemento, quitarDeEstancia, quitarVertice, valoresVariante, valorVariante,
+  nombreDeElemento, quitarDeEstancia, quitarVertice, rangoMedidaExtra, valorMedidaExtra, valoresVariante, valorVariante,
   type Abertura, type Columna, type DocumentoDiseno, type Elemento, type Estructura, type Medidas, type Puerta,
   type Radiador, type ResultadoEdicion, type Ventana, type Viga, type ZonaColor,
 } from '../../nucleo'
@@ -198,6 +198,12 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
         {!deTienda && medida('ancho', t.ancho)}
         {!deTienda && medida('fondo', t.fondo)}
         {!deTienda && def.altoReal?.(e) === undefined && medida('alto', t.alto)}
+        {/* Las medidas propias del tipo (el hueco de un esquinero); en un mueble de tienda, como las demás, en su ficha. */}
+        {!deTienda && def.medidasExtra?.map((m) => (
+          <CampoNumero key={m.clave} etiqueta={m.etiqueta} valor={valorMedidaExtra(def, e, m.clave)} unidad="cm"
+            min={rangoMedidaExtra(def, e, m.clave).min} max={rangoMedidaExtra(def, e, m.clave).max}
+            alCambiar={(n) => editar({ medidasExtra: { [m.clave]: n } })} />
+        ))}
       {!en3d && <CampoNumero etiqueta={t.giro} valor={e.rotacion} min={0} max={359} unidad="°" alCambiar={(n) => editar({ rotacion: n })} />}
       {def.alturaSueloEditable && (
         <CampoNumero etiqueta={t.alturaSuelo} valor={e.alturaSuelo} min={0} max={Math.max(0, doc.estancia.alto - e.medidas.alto)} unidad="cm"

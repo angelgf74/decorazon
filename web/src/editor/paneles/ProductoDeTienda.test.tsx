@@ -349,3 +349,57 @@ describe('ProductoDeTienda: lo leído sigue al enlace', () => {
   })
 })
 
+describe('medidas extra del armario esquinero', () => {
+  let esquinero = ''
+  const elEsquinero = () => almacen.getState().documento!.elementos.find((x) => x.id === esquinero)!
+
+  beforeEach(() => {
+    almacen.getState().cambiar((d) => {
+      const r = anadirElemento(d, catalogoBase, 'armario-esquinero', { x: 300, y: 60 })
+      esquinero = r.id
+      return r.documento
+    })
+    almacen.getState().seleccionar({ tipo: 'elemento', id: esquinero })
+  })
+
+  it('en Propiedades, un campo por medida extra; cambiar el hueco lo guarda', async () => {
+    render(<PanelPropiedades />)
+    for (const etiqueta of ['Profundidad del fondo', 'Ancho del ala', 'Hueco: ancho', 'Hueco: fondo']) expect(screen.getByLabelText(etiqueta)).toBeInTheDocument()
+    await rellenar('Hueco: ancho', '11{Enter}')
+    await rellenar('Hueco: fondo', '58{Enter}')
+    expect(elEsquinero().medidasExtra).toMatchObject({ huecoAncho: 11, huecoFondo: 58 })
+  })
+
+  it('el formulario del producto las pide como medidas fijas y las guarda con el producto', async () => {
+    render(<PanelPropiedades />)
+    await userEvent.click(screen.getByRole('button', { name: t.esDeTienda }))
+    const formulario = screen.getByRole('form', { name: t.titulo })
+    expect((within(formulario).getByLabelText(t.campoExtra('Profundidad del fondo')) as HTMLInputElement).value).toBe('58')
+    await rellenar(t.campos.proveedor, 'IKEA')
+    await rellenar(t.campos.nombre, 'PAX / GRIMO')
+    await rellenar(t.campos.ancho, '111')
+    await rellenar(t.campos.fondo, '111')
+    await rellenar(t.campoExtra('Hueco: ancho'), '11')
+    await rellenar(t.campoExtra('Hueco: fondo'), '58')
+    await userEvent.click(screen.getByRole('button', { name: t.guardar }))
+    expect(elEsquinero()).toMatchObject({ medidas: { ancho: 111, fondo: 111 }, medidasExtra: { huecoAncho: 11, huecoFondo: 58 } })
+    // Vinculado: las medidas extra salen en la ficha y no como campos sueltos.
+    const ficha = screen.getByRole('region', { name: t.titulo })
+    expect(within(ficha).getByText('Hueco del rincón: 11 × 58 cm')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Hueco: ancho')).toBeNull()
+  })
+
+  it('una medida extra fuera de su rango no se recorta en silencio', async () => {
+    render(<PanelPropiedades />)
+    await userEvent.click(screen.getByRole('button', { name: t.esDeTienda }))
+    const formulario = screen.getByRole('form', { name: t.titulo })
+    await rellenar(t.campos.proveedor, 'IKEA')
+    await rellenar(t.campos.nombre, 'PAX')
+    await rellenar(t.campoExtra('Ancho del ala'), '30')
+    await rellenar(t.campoExtra('Hueco: ancho'), '25')
+    await userEvent.click(screen.getByRole('button', { name: t.guardar }))
+    expect(elEsquinero().origen).toEqual({ tipo: 'generico' })
+    // Con un ala de 30, el hueco llega como mucho a 20 (los cuerpos tienen que seguir unidos): se avisa, no se recorta.
+    expect(within(formulario).getByLabelText(t.campoExtra('Hueco: ancho'))).toHaveAccessibleDescription(t.errores.medida(0, 20))
+  })
+})
