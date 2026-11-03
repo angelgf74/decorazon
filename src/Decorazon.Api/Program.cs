@@ -215,9 +215,12 @@ aplicacion.UseForwardedHeaders();
 
 aplicacion.UseCors(PoliticaDeLaWeb);
 aplicacion.UsarMensajeEnPeticionesNoValidas();
-aplicacion.UseRateLimiter();
 aplicacion.UseAuthentication();
 aplicacion.UseAuthorization();
+// Tras la autenticación: el límite de escrituras se reparte por usuario. Coste asumido: una petición con token
+// que el limitador rechaza ya ha validado el JWT y consultado la versión de credenciales, como cualquier GET con
+// sesión (que no tiene límite). Si algún día pesa, cachear esa versión unos segundos.
+aplicacion.UseRateLimiter();
 
 aplicacion.MapOpenApi();
 aplicacion.MapSalud();

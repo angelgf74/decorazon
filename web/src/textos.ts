@@ -108,6 +108,7 @@ export const textos = {
     conflicto: 'Cambiado en otro sitio',
     errorServidor: 'No se pudo guardar',
     sinCopiaLocal: 'No se pudo guardar la copia en este navegador',
+    demasiadosGuardados: 'Demasiados guardados seguidos: se volverá a intentar en unos segundos',
     nombreDiseno: 'Nombre del diseño',
     catalogo: 'Catálogo',
     estancia: 'Estancia',

@@ -31,16 +31,22 @@ public static class CompartirEndpoints
 
         dueno.MapPut("/{id:guid}/enlace", CompartirAsync)
             .WithName("compartirDiseno")
+            .RequireRateLimiting(LimitesDePeticiones.Escrituras)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests)
             .Produces<RespuestaDeEnlace>()
             .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound);
 
         dueno.MapDelete("/{id:guid}/enlace", DejarDeCompartirAsync)
             .WithName("dejarDeCompartirDiseno")
+            .RequireRateLimiting(LimitesDePeticiones.Escrituras)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests)
             .Produces(StatusCodes.Status204NoContent)
             .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound);
 
         dueno.MapPut("/{id:guid}/vista-previa", SubirVistaPreviaAsync)
             .WithName("subirVistaPrevia")
+            .RequireRateLimiting(LimitesDePeticiones.Escrituras)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests)
             .Accepts<byte[]>("image/jpeg")
             .Produces(StatusCodes.Status204NoContent)
             .Produces<RespuestaDeMensaje>(StatusCodes.Status400BadRequest)

@@ -158,3 +158,43 @@ public class LimiteDeLecturaCompartidaTests(ApiConLimiteEstrechoParaLecturaCompa
         Assert.False(string.IsNullOrWhiteSpace((await rechazada.Content.ReadFromJsonAsync<RespuestaDeMensaje>())?.Mensaje));
     }
 }
+
+/// <summary>Fixture propio, con las escrituras con sesión bajadas a tres por ventana.</summary>
+public sealed class ApiConLimiteEstrechoParaEscriturasFixture : ApiConPostgresFixture
+{
+    protected override int MaximoDeEscriturasPorVentana => 3;
+}
+
+[Trait("Categoria", "Integracion")]
+public class LimiteDeEscriturasTests(ApiConLimiteEstrechoParaEscriturasFixture api)
+    : IClassFixture<ApiConLimiteEstrechoParaEscriturasFixture>
+{
+    /// <summary>
+    /// Crear, compartir y subir la vista previa comparten cubo, que se reparte por usuario y no por IP:
+    /// otra cuenta desde el mismo origen sigue escribiendo, y leer no cuenta.
+    /// </summary>
+    [Fact]
+    public async Task EscribirSinParar_Responde429SoloAEseUsuario()
+    {
+        var uno = await CuentasDePrueba.ConSesionAsync(api);
+        var otro = await CuentasDePrueba.ConSesionAsync(api);
+
+        var id = await DisenosDePrueba.CrearAsync(uno);
+        Assert.Equal(HttpStatusCode.OK, (await uno.PutAsync($"/disenos/{id}/enlace", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await SubirVistaPreviaAsync(uno, id)).StatusCode);
+
+        var rechazada = await SubirVistaPreviaAsync(uno, id);
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, rechazada.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace((await rechazada.Content.ReadFromJsonAsync<RespuestaDeMensaje>())?.Mensaje));
+        Assert.Equal(HttpStatusCode.OK, (await uno.GetAsync($"/disenos/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await otro.PostAsJsonAsync("/disenos", DisenosDePrueba.Peticion())).StatusCode);
+    }
+
+    private static Task<HttpResponseMessage> SubirVistaPreviaAsync(HttpClient cliente, Guid id)
+    {
+        var cuerpo = new ByteArrayContent([0xFF, 0xD8, 0xFF, 0x00]);
+        cuerpo.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        return cliente.PutAsync($"/disenos/{id}/vista-previa", cuerpo);
+    }
+}
