@@ -65,6 +65,15 @@ describe('Inicio', () => {
     expect(screen.queryByRole('link', { name: 'Entrar' })).toBeNull()
   })
 
+  it('el pie enlaza a Privacidad y ofrece enviar una sugerencia', async () => {
+    montar()
+    // Por la clase y no por el rol: un <footer> dentro de <main> no es "contentinfo" en un navegador real.
+    const pie = document.querySelector<HTMLElement>('.inicio__pie')!
+    expect(within(pie).getByRole('link', { name: 'Privacidad' })).toHaveAttribute('href', '/privacidad')
+    await userEvent.click(within(pie).getByRole('button', { name: 'Sugerencias' }))
+    expect(screen.getByRole('dialog', { name: 'Envíanos una sugerencia' })).toBeInTheDocument()
+  })
+
   it('"Empezar a diseñar" sigue siendo la acción principal, antes que la cuenta', () => {
     montar()
     const empezar = screen.getByRole('link', { name: 'Empezar a diseñar' })

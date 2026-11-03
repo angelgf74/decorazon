@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from 'react'
 import { versionCargada } from '../recargaPorVersion'
+import BotonDeSugerencia from '../sugerencias/BotonDeSugerencia'
 import { textos } from '../textos'
 import { almacen, useEditor } from './estado/almacen'
 import HojaImpresion from './hoja/HojaImpresion'
@@ -116,6 +117,11 @@ function PestanasDeHojas({ paso, hoja, alAlternar }: { paso: number; hoja: Hoja 
           </span>
         )}
       </button>
+      {/* En móvil no cabe en la barra de arriba: va aquí, que solo existe en móvil. */}
+      <BotonDeSugerencia className="pestanas__sugerencia" title={textos.sugerencias.pista}>
+        <Icono nombre="sugerencia" />
+        <span>{textos.sugerencias.abrir}</span>
+      </BotonDeSugerencia>
     </nav>
   )
 }

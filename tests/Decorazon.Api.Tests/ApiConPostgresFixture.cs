@@ -34,6 +34,9 @@ public class ApiConPostgresFixture : WebApplicationFactory<Program>, IAsyncLifet
     /// <summary>Correos que la API ha intentado enviar. Es donde se lee el enlace del alta.</summary>
     public EnviadorDeCorreoEspia Correo { get; } = new();
 
+    /// <summary>Sugerencias que la API ha intentado entregar al buzón.</summary>
+    public EnviadorDeSugerenciasEspia Sugerencias { get; } = new();
+
     /// <summary>Permite a un test bajar el límite de registros para comprobar el 429.</summary>
     protected virtual int MaximoDeRegistrosPorVentana => 1000;
 
@@ -56,6 +59,9 @@ public class ApiConPostgresFixture : WebApplicationFactory<Program>, IAsyncLifet
 
     /// <summary>Mismo motivo que <see cref="MaximoDeIniciosDeSesionPorVentana"/>.</summary>
     protected virtual int MaximoDeEscriturasPorVentana => 1000;
+
+    /// <summary>Mismo motivo que <see cref="MaximoDeIniciosDeSesionPorVentana"/>.</summary>
+    protected virtual int MaximoDeSugerenciasPorVentana => 1000;
 
     public async Task InitializeAsync()
     {
@@ -100,6 +106,7 @@ public class ApiConPostgresFixture : WebApplicationFactory<Program>, IAsyncLifet
             MaximoDeLecturasCompartidasPorVentana.ToString());
         constructor.UseSetting("Limites:TarjetasPorVentana", MaximoDeTarjetasPorVentana.ToString());
         constructor.UseSetting("Limites:EscriturasPorVentana", MaximoDeEscriturasPorVentana.ToString());
+        constructor.UseSetting("Limites:SugerenciasPorVentana", MaximoDeSugerenciasPorVentana.ToString());
 
         constructor.ConfigureTestServices(servicios =>
         {
@@ -107,6 +114,10 @@ public class ApiConPostgresFixture : WebApplicationFactory<Program>, IAsyncLifet
             // y es la única forma de leer el token que viaja en el enlace.
             servicios.RemoveAll<IEnviadorDeCorreo>();
             servicios.AddSingleton<IEnviadorDeCorreo>(Correo);
+
+            // Igual con las sugerencias: ninguna llega al buzón real del autor.
+            servicios.RemoveAll<IEnviadorDeSugerencias>();
+            servicios.AddSingleton<IEnviadorDeSugerencias>(Sugerencias);
         });
     }
 }

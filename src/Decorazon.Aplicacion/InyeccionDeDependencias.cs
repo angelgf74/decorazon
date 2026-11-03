@@ -5,6 +5,7 @@ using Decorazon.Aplicacion.Limpieza;
 using Decorazon.Aplicacion.Registro;
 using Decorazon.Aplicacion.Salud;
 using Decorazon.Aplicacion.Sesiones;
+using Decorazon.Aplicacion.Sugerencias;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Decorazon.Aplicacion;
@@ -25,6 +26,7 @@ public static class InyeccionDeDependencias
         servicios.AddScoped<GestionDeDisenos>();
         servicios.AddScoped<CompartirDisenos>();
         servicios.AddScoped<LimpiarCaducados>();
+        servicios.AddScoped<EnviarSugerencia>();
 
         return servicios;
     }

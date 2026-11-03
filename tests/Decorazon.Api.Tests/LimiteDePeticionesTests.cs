@@ -198,3 +198,45 @@ public class LimiteDeEscriturasTests(ApiConLimiteEstrechoParaEscriturasFixture a
         return cliente.PutAsync($"/disenos/{id}/vista-previa", cuerpo);
     }
 }
+
+/// <summary>Fixture propio, con las sugerencias bajadas a dos por ventana.</summary>
+public sealed class ApiConLimiteEstrechoParaSugerenciasFixture : ApiConPostgresFixture
+{
+    protected override int MaximoDeSugerenciasPorVentana => 2;
+}
+
+[Trait("Categoria", "Integracion")]
+public class LimiteDeSugerenciasTests(ApiConLimiteEstrechoParaSugerenciasFixture api)
+    : IClassFixture<ApiConLimiteEstrechoParaSugerenciasFixture>
+{
+    /// <summary>
+    /// Sin sesión el cubo es de la IP; con sesión, de la cuenta: quien agota el suyo sin entrar no
+    /// deja sin buzón a una cuenta que escribe desde la misma red.
+    /// </summary>
+    [Fact]
+    public async Task EnviarSinParar_Responde429YNoLlegaAlBuzon_SoloEnEseCubo()
+    {
+        var anonimo = api.CreateClient();
+        var conCuenta = await CuentasDePrueba.ConSesionAsync(api);
+
+        for (var intento = 0; intento < 2; intento++)
+        {
+            Assert.Equal(HttpStatusCode.NoContent, (await EnviarAsync(anonimo, $"permitida {intento}")).StatusCode);
+        }
+
+        var rechazada = await EnviarAsync(anonimo, "rechazada");
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, rechazada.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace((await rechazada.Content.ReadFromJsonAsync<RespuestaDeMensaje>())?.Mensaje));
+        Assert.Empty(api.Sugerencias.ConTexto("rechazada"));
+        Assert.Equal(HttpStatusCode.NoContent, (await EnviarAsync(conCuenta, "de la cuenta")).StatusCode);
+    }
+
+    private static Task<HttpResponseMessage> EnviarAsync(HttpClient cliente, string texto) =>
+        cliente.PostAsJsonAsync("/sugerencias", new Decorazon.Contratos.Sugerencias.PeticionDeSugerencia
+        {
+            Texto = texto,
+            Tipo = "mejora",
+            Correo = "ana@ejemplo.com"
+        });
+}

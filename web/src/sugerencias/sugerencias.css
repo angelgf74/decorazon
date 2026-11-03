@@ -1,0 +1,25 @@
+/* Solo abierto: un <dialog> cerrado debe seguir oculto. */
+.dialogo-sugerencia[open] { display: flex; flex-direction: column; gap: var(--esp-3); width: min(28rem, calc(100vw - 2rem)); }
+.dialogo-sugerencia h2 { margin: 0; font-size: 1.15rem; }
+.dialogo-sugerencia p { margin: 0; }
+.dialogo-sugerencia__formulario { display: flex; flex-direction: column; gap: var(--esp-3); }
+.dialogo-sugerencia__campo { display: flex; flex-direction: column; gap: 0.25rem; }
+.dialogo-sugerencia__campo label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; }
+.dialogo-sugerencia__campo :is(select, input, textarea) { font-weight: normal; }
+.dialogo-sugerencia textarea {
+  font: inherit;
+  width: 100%;
+  min-height: 7rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--gris);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--tinta);
+  resize: vertical;
+}
+.dialogo-sugerencia__ayuda { color: var(--gris); font-size: var(--texto-s); font-weight: normal; }
+.dialogo-sugerencia__ayuda a { color: var(--terracota); }
+.dialogo-sugerencia__error { color: var(--conflicto); font-weight: 600; }
+/* Vacío no ocupa sitio; con el aviso de enviada, se lee como un párrafo más. */
+.dialogo-sugerencia__estado:empty { display: none; }
+.dialogo-sugerencia__acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }

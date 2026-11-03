@@ -49,6 +49,12 @@ public static class LimitesDePeticiones
     /// </summary>
     public const string Escrituras = "escrituras";
 
+    /// <summary>
+    /// Mandar una sugerencia no pide sesión: sin límite, el endpoint sería un relé para llenar el buzón
+    /// del autor. Por cuenta con sesión y por IP sin ella, 5 cada hora: de sobra para quien opina.
+    /// </summary>
+    public const string Sugerencias = "sugerencias";
+
     public static void AnadirLimitesDePeticiones(this IServiceCollection servicios, IConfiguration configuracion)
     {
         // Configurables para que los tests puedan elevarlos y no chocar con el
@@ -59,6 +65,7 @@ public static class LimitesDePeticiones
         var maximoDeLecturasCompartidas = configuracion.GetValue("Limites:LecturasCompartidasPorVentana", 120);
         var maximoDeTarjetas = configuracion.GetValue("Limites:TarjetasPorVentana", 300);
         var maximoDeEscrituras = configuracion.GetValue("Limites:EscriturasPorVentana", 120);
+        var maximoDeSugerencias = configuracion.GetValue("Limites:SugerenciasPorVentana", 5);
 
         servicios.AddRateLimiter(opciones =>
         {
@@ -124,6 +131,15 @@ public static class LimitesDePeticiones
                         PermitLimit = maximoDeEscrituras,
                         Window = TimeSpan.FromMinutes(1)
                     }));
+
+            opciones.AddPolicy(Sugerencias, contexto =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    ClaveDeUsuario(contexto),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = maximoDeSugerencias,
+                        Window = TimeSpan.FromHours(1)
+                    }));
         });
     }
 
@@ -143,7 +159,7 @@ public static class LimitesDePeticiones
 
     /// <summary>
     /// Se reparte por usuario de la sesión. Exige que el limitador vaya después de la autenticación en
-    /// <c>Program</c>; sin usuario (no debería llegar: las rutas piden sesión), cae al cubo de su IP.
+    /// <c>Program</c>; sin usuario (las escrituras piden sesión; las sugerencias, no), cae al cubo de su IP.
     /// </summary>
     private static string ClaveDeUsuario(HttpContext contexto) =>
         contexto.User.TryObtenerId(out var id) ? $"usuario:{id}" : $"ip:{ClaveDeParticion(contexto)}";
