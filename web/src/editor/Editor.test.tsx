@@ -10,6 +10,9 @@ import { conflictosDe } from './estado/conflictos'
 import Editor from './Editor'
 
 const carga = vi.hoisted(() => ({ fallosPendientes: 0 }))
+const precarga = vi.hoisted(() => ({ cancelar: vi.fn(), precargar: vi.fn() }))
+
+vi.mock('./vista3d/precargar', () => ({ precargarVista3D: precarga.precargar }))
 
 // Sin red o con un fragmento de un despliegue anterior, el import dinámico rechaza.
 vi.mock('./vista3d/Vista3D', () => {
@@ -27,6 +30,29 @@ beforeEach(() => {
   almacen.getState().crear('salon', 400, 330, 250)
   almacen.getState().cambiarVista('3d')
   carga.fallosPendientes = 1
+  precarga.cancelar.mockReset()
+  precarga.precargar.mockReset().mockReturnValue(precarga.cancelar)
+})
+
+describe('Editor: precarga del 3D', () => {
+  it('al abrirse programa la precarga una vez y la cancela al salir', () => {
+    almacen.getState().cambiarVista('2d')
+    const { unmount } = render(<Editor />, { wrapper: MemoryRouter })
+    expect(precarga.precargar).toHaveBeenCalledTimes(1)
+    expect(precarga.cancelar).not.toHaveBeenCalled()
+    unmount()
+    expect(precarga.cancelar).toHaveBeenCalledTimes(1)
+  })
+
+  it('con el módulo ya precargado, pulsar 3D lo enseña al momento, sin pasar por la carga', async () => {
+    almacen.getState().cambiarVista('2d')
+    render(<Editor />, { wrapper: MemoryRouter })
+    const { alCargar } = precarga.precargar.mock.calls[0][0] as { alCargar: (m: { default: () => React.ReactNode }) => void }
+    act(() => alCargar({ default: () => <p>Vista 3D precargada</p> }))
+    await userEvent.click(screen.getByRole('button', { name: /^3D$/ }))
+    expect(screen.getByText('Vista 3D precargada')).toBeInTheDocument()
+    expect(screen.queryByText(textos.vista3d.cargando)).toBeNull()
+  })
 })
 
 describe('Editor: fragmento 3D', () => {
