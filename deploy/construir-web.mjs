@@ -14,7 +14,10 @@ if (!paquete) {
 
 const temporal = mkdtempSync(join(tmpdir(), 'decorazon-web-'))
 try {
-  execSync(`git archive --format=tar HEAD web | tar -x -C "${temporal}"`, { stdio: 'inherit', shell: true })
+  // tar se ejecuta dentro de la carpeta temporal y sin rutas: con `tar -C C:\...`, el tar de
+  // GNU (el de Git para Windows, si va primero en el PATH) toma `C:` por un servidor remoto.
+  const repo = process.cwd()
+  execSync(`git -C "${repo}" archive --format=tar HEAD web | tar -x`, { cwd: temporal, stdio: 'inherit', shell: true })
   const web = join(temporal, 'web')
   execSync('npm ci --no-audit --no-fund', { cwd: web, stdio: 'inherit' })
   execSync('npm run build', { cwd: web, stdio: 'inherit' })
