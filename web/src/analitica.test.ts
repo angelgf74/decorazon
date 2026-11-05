@@ -20,7 +20,8 @@ describe('iniciarAnalitica', () => {
     const scripts = document.querySelectorAll<HTMLScriptElement>('script[data-site-id]')
     expect(scripts).toHaveLength(1)
     expect(scripts[0].getAttribute('data-site-id')).toBe('abc')
-    expect(scripts[0].src).toBe('https://angelgf.com.es/webanalyticsapi/tracker.js')
+    // El tracker solo lee el sitio de ?site= (sin él responde 400); data-site-id es para no cargarlo dos veces.
+    expect(scripts[0].src).toBe('https://webanalytics-api.angelgf.com.es/tracker.js?site=abc')
     expect(scripts[0].async).toBe(true)
   })
 
