@@ -39,7 +39,13 @@ async function moverArmario(page: Page, fx: number, fy: number) {
 
 type Punto = { x: number; y: number }
 
+/**
+ * Centro del armario en píxeles, siempre sin selección: arrastrarlo lo selecciona y abre el panel derecho, que estrecha el
+ * plano y lo reencuadra; recargar lo deja sin selección. Medir en los dos estados daría distintos píxeles para el mismo sitio.
+ */
 async function centroDelArmario(page: Page): Promise<Punto> {
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.editor__derecha--oculta')).toHaveCount(1)
   const caja = (await armario(page).boundingBox())!
   return { x: caja.x + caja.width / 2, y: caja.y + caja.height / 2 }
 }
