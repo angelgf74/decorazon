@@ -225,6 +225,9 @@ export const textos = {
     buscar: 'Buscar mueble',
     sinResultados: 'Ningún mueble coincide',
     grupos: 'Grupos del catálogo',
+    favoritos: 'Favoritos',
+    recientes: 'Usados hace poco',
+    marcarFavorito: (nombre: string) => `Favorito: ${nombre}`,
   },
   avisos: {
     titulo: 'Avisos',

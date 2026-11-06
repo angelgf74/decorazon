@@ -309,13 +309,41 @@
 .panel-catalogo__nombre { font-size: var(--texto-m); font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
 .panel-catalogo__tipo small { color: var(--gris); font-size: var(--texto-s); white-space: nowrap; }
 @media (pointer: fine) { .panel-catalogo__tipo { cursor: grab; } }
+/* La huella del tipo, a su escala dentro de una franja fija; el trazo no se escala con el viewBox. */
+.panel-catalogo__tarjeta { position: relative; }
+.panel-catalogo__miniatura {
+  display: block;
+  width: 100%;
+  height: 3.5rem;
+  margin-bottom: var(--esp-1);
+  border-radius: calc(var(--radio) - 2px);
+  background: var(--crema-oscura);
+  pointer-events: none;
+}
+.panel-catalogo__miniatura polygon { vector-effect: non-scaling-stroke; }
+.panel-catalogo__miniatura .capa-elementos__apertura { stroke-width: 1; }
+/* La estrella, en la esquina superior derecha de la tarjeta, encima de la miniatura; el asa (con el dedo) va a la derecha del texto, debajo. */
+.panel-catalogo__favorito {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: var(--objetivo);
+  min-height: var(--objetivo);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gris);
+}
+.panel-catalogo__favorito:hover:not(:disabled) { background: none; color: var(--tinta); }
+.panel-catalogo__favorito--si { color: var(--terracota); }
+.panel-catalogo__favorito--si .icono { fill: currentColor; }
 /* Con el dedo la lista se desplaza: se arrastra solo desde el asa, en la esquina de la tarjeta. */
 .panel-catalogo__asa { display: none; }
 @media (pointer: coarse) {
   .panel-catalogo__tipo { padding-right: 2.25rem; }
   .panel-catalogo__asa {
     position: absolute;
-    top: 0;
+    top: calc(3.5rem + var(--esp-2));
     right: 0;
     bottom: 0;
     display: grid;

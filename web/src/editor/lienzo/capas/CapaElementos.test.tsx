@@ -54,3 +54,20 @@ describe('CapaElementos: muebles de tienda', () => {
     expect(container.querySelector('.capa-elementos text')!.textContent).toBe('PAX armario blanco…')
   })
 })
+
+describe('CapaElementos: cada pieza (vía Pieza)', () => {
+  it('el elegido lleva un halo por debajo de la huella y las aperturas van con trazo discontinuo', () => {
+    const doc = documentoNuevo('dormitorio', 400, 400, 250)
+    const armario = catalogoBase.get('armario')!
+    doc.elementos = [elementoNuevo(armario, { x: 200, y: 200 }, 'a')]
+    const { container } = render(<svg><CapaElementos documento={doc} conflictos={[]} seleccion={{ tipo: 'elemento', id: 'a' }} /></svg>)
+    const pieza = container.querySelector('[data-elemento="a"]')!
+    expect(pieza).toHaveClass('lienzo--seleccionado')
+    const halo = pieza.querySelector('.capa-elementos__halo')!
+    const huella = pieza.querySelector('.capa-elementos__huella')!
+    expect(halo.compareDocumentPosition(huella) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const aperturas = pieza.querySelectorAll('.capa-elementos__apertura')
+    expect(aperturas.length).toBe(armario.zonasApertura(doc.elementos[0]!).length)
+    for (const a of aperturas) expect(a.getAttribute('stroke-dasharray')).toBeTruthy()
+  })
+})
