@@ -19,6 +19,8 @@ export default function Vista3D() {
   const [conWebgl] = useState(hayWebgl)
   const [ocultar, setOcultar] = useState(true)
   const [encuadres, setEncuadres] = useState(0)
+  // Desde dentro (como al entrar por la puerta) las paredes no se ocultan: no tendría sentido.
+  const [dentro, setDentro] = useState(false)
   if (doc === null) return null
 
   const aviso = <AvisoVista3D texto={t.sinWebgl} />
@@ -28,12 +30,13 @@ export default function Vista3D() {
       {conWebgl ? (
         <SinFallos alternativa={aviso}>
           <div className="vista3d__barra">
-            <button type="button" aria-pressed={ocultar} onClick={() => setOcultar(!ocultar)}>{t.ocultarParedes}</button>
+            <button type="button" aria-pressed={dentro} onClick={() => setDentro(!dentro)}>{t.desdeDentro}</button>
+            <button type="button" aria-pressed={ocultar} disabled={dentro} onClick={() => setOcultar(!ocultar)}>{t.ocultarParedes}</button>
             <button type="button" onClick={() => setEncuadres(encuadres + 1)}>{t.encuadrar}</button>
           </div>
           {/* Pulsar el vacío (o el suelo, para mirar) solo suelta un mueble: lo seleccionado en el paso 1 sigue. */}
           <Lienzo3D shadows frameloop="demand" dpr={[1, 2]} camera={{ fov: 45 }} onPointerMissed={anularMueble}>
-            <Escena doc={doc} ocultar={ocultar} encuadres={encuadres} />
+            <Escena doc={doc} ocultar={ocultar} encuadres={encuadres} desdeDentro={dentro} />
           </Lienzo3D>
         </SinFallos>
       ) : aviso}

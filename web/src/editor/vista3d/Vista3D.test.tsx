@@ -101,6 +101,21 @@ describe('Vista3D', () => {
     expect(screen.getByRole('button', { name: 'Encuadrar' })).toBeInTheDocument()
   })
 
+  it('"Desde dentro" alterna y, mientras está dentro, "Ocultar paredes delante" queda desactivado', async () => {
+    conWebgl()
+    render(<Vista3D />)
+    const dentro = screen.getByRole('button', { name: 'Desde dentro' })
+    const ocultar = screen.getByRole('button', { name: 'Ocultar paredes delante' })
+    expect(dentro).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(dentro)
+    expect(dentro).toHaveAttribute('aria-pressed', 'true')
+    expect(ocultar).toBeDisabled()
+    await userEvent.click(dentro)
+    expect(dentro).toHaveAttribute('aria-pressed', 'false')
+    expect(ocultar).toBeEnabled()
+    expect(ocultar).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('con WebGL monta el lienzo y libera el contexto de la comprobación', async () => {
     const loseContext = conWebgl()
     const { container } = render(<Vista3D />)

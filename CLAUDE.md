@@ -102,6 +102,8 @@ Coordenadas con x a la derecha e y hacia abajo, y tolerancia de 0,1 cm. Detalle 
 
 Paso del plano a la escena 3D (función única `aEscena`, en `nucleo/modelo3d`): cm a metros, y el eje y del plano pasa a ser el z de la escena (`x_escena = x/100`, `y_escena = z/100` hacia arriba, `z_escena = y/100`). El giro de `θ` grados en el plano es `giroY = −θ·π/180` en la escena.
 
+«Desde dentro» (barra de `Vista3D`) pone la cámara con `camaraDesdeDentro` (1,6 m de altura, 0,6 m dentro desde el centro de la primera puerta, o de la pared 0 sin puerta) y `Escena3D` cambia los `OrbitControls` a distancia fija de 1 m sin zoom ni desplazamiento (orbitar alrededor del punto que se mira, que está delante, es girar la cabeza en el sentido natural; un `rotateSpeed` negativo lo invierte); las paredes no se ocultan mientras tanto. `Captura3D` y `Vista3DSoloVer` no lo usan.
+
 Lo que se pinta en 3D sale de `modelo3d` (`piezasDeElemento`, parametrizado por las variantes) y queda dentro de los `volumenes` del tipo, que son también los que usan los conflictos: lo que se ve es lo que choca. `modelos3dIntegridad.test.ts` lo comprueba para cada tipo. En 3D solo se selecciona, edita y borra; mover y girar es solo en 2D.
 
 ## Despliegue

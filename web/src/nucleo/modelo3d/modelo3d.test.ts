@@ -5,7 +5,7 @@ import { elementoNuevo } from '../catalogo/elemento'
 import type { DefinicionTipo } from '../catalogo/tipos'
 import { rectangulo } from '../geometria/formas'
 import { aEscena, modeloPorVolumenes, piezasDeElemento } from './escena'
-import { camaraAPlano, camaraInicial, direccionSol, paredesQueTapan } from './camara'
+import { camaraAPlano, camaraDesdeDentro, camaraInicial, direccionSol, paredesQueTapan } from './camara'
 import { PBR } from './materiales'
 import type { PiezaLocal } from './tipos'
 
@@ -84,6 +84,41 @@ describe('camaraInicial', () => {
     expect(c.distanciaMin).toBe(1)
     expect(c.distanciaMax).toBeCloseTo(3 * diag)
     expect(Math.hypot(c.posicion[0] - 2, c.posicion[1] - 1, c.posicion[2] - 1.65)).toBeCloseTo(1.6 * diag)
+  })
+})
+
+describe('camaraDesdeDentro', () => {
+  const salon = () => documentoNuevo('salon', 400, 330, 250)
+  const puerta = (pared: number, posicion: number) => ({ id: 'p', tipo: 'puerta' as const, pared, posicion, ancho: 82, alto: 203, hoja: 'abatible' as const, bisagra: 'izquierda' as const, abreHacia: 'dentro' as const })
+
+  it('a 1,6 m de altura, 0,6 m dentro desde el centro de la primera puerta, mirando al centro a 1 m', () => {
+    const doc = salon()
+    doc.aberturas = [puerta(0, 159)]
+    const c = camaraDesdeDentro(doc)
+    expect(c.posicion.map((v) => Number(v.toFixed(3)))).toEqual([2, 1.6, 0.6])
+    // El objetivo está a 1 m, hacia el centro (2, 1, 1,65): más z y algo más bajo.
+    const [ox, oy, oz] = c.objetivo
+    expect(Math.hypot(ox - 2, oy - 1.6, oz - 0.6)).toBeCloseTo(1)
+    expect(ox).toBeCloseTo(2)
+    expect(oz).toBeGreaterThan(0.6)
+    expect(oy).toBeLessThan(1.6)
+    expect(oy).toBeGreaterThan(1)
+  })
+
+  it('con la puerta en la pared de abajo (de derecha a izquierda) queda 0,6 m por dentro de esa pared', () => {
+    const doc = salon()
+    doc.aberturas = [puerta(2, 20)]
+    const c = camaraDesdeDentro(doc)
+    // Pared 2: de (400, 330) a (0, 330); posición 20 + 41 → x = 400 − 61 = 339 cm.
+    expect(c.posicion.map((v) => Number(v.toFixed(3)))).toEqual([3.39, 1.6, 2.7])
+    expect(c.objetivo[2]).toBeLessThan(2.7)
+  })
+
+  it('sin puerta, desde el centro de la pared 0; y una ventana no cuenta como puerta', () => {
+    const doc = salon()
+    expect(camaraDesdeDentro(doc).posicion.map((v) => Number(v.toFixed(3)))).toEqual([2, 1.6, 0.6])
+    doc.aberturas = [{ id: 'v', tipo: 'ventana', pared: 1, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false }]
+    expect(camaraDesdeDentro(doc).posicion.map((v) => Number(v.toFixed(3)))).toEqual([2, 1.6, 0.6])
   })
 })
 

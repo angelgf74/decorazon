@@ -23,6 +23,32 @@ function normalExterior(planta: Punto[], pared: number): Punto {
   return { x: d.y, y: -d.x }
 }
 
+/** Altura de los ojos y cuánto se entra desde la puerta, en metros; el objetivo queda a un metro (los controles giran alrededor de él). */
+const ALTURA_OJOS_M = 1.6
+const ENTRADA_M = 0.6
+const DISTANCIA_MIRADA_M = 1
+
+/**
+ * La cámara como al entrar por la puerta: a la altura de los ojos, 0,6 m dentro desde el centro de la primera puerta
+ * (sin puerta, desde el centro de la pared 0) y mirando hacia el centro de la estancia a 1 m de altura. El objetivo es
+ * el punto a 1 m en esa dirección: orbitar alrededor de él es girar la cabeza.
+ */
+export function camaraDesdeDentro(doc: DocumentoDiseno): { posicion: Vec3; objetivo: Vec3 } {
+  const { planta } = doc.estancia
+  const puerta = doc.aberturas.find((a) => a.tipo === 'puerta')
+  const pared = puerta?.pared ?? 0
+  const a = planta[pared]!, b = planta[(pared + 1) % planta.length]!
+  const enPared = puerta ? puerta.posicion + puerta.ancho / 2 : Math.hypot(b.x - a.x, b.y - a.y) / 2
+  const { cercano, n } = hueco(planta, pared, enPared)
+  const pie = sumar(cercano, escalar(n, ENTRADA_M * 100))
+  const posicion: Vec3 = [pie.x / 100, ALTURA_OJOS_M, pie.y / 100]
+  const c = cajaPlanta(planta)
+  const centro: Vec3 = [(c.minX + c.maxX) / 200, ALTURA_OBJETIVO_M, (c.minY + c.maxY) / 200]
+  const hacia = normalizar3([centro[0] - posicion[0], centro[1] - posicion[1], centro[2] - posicion[2]])
+  const objetivo = posicion.map((v, k) => v + hacia[k] * DISTANCIA_MIRADA_M) as Vec3
+  return { posicion, objetivo }
+}
+
 export function direccionSol(doc: DocumentoDiseno): Vec3 {
   let ancha: { pared: number; ancho: number } | undefined
   for (const a of doc.aberturas) {

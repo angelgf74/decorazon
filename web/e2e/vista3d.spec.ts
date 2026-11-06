@@ -50,6 +50,16 @@ test('vista 3D: canvas con contenido, sin errores y paredes alternables', async 
   await paredes.click()
   await expect(paredes).toHaveAttribute('aria-pressed', antes!)
 
+  // Desde dentro: la cámara entra por la puerta, las paredes no se ocultan y el lienzo sigue pintando.
+  const dentro = page.getByRole('button', { name: 'Desde dentro' })
+  await dentro.click()
+  await expect(dentro).toHaveAttribute('aria-pressed', 'true')
+  await expect(paredes).toBeDisabled()
+  await expect(lienzo).toBeVisible()
+  await dentro.click()
+  await expect(dentro).toHaveAttribute('aria-pressed', 'false')
+  await expect(paredes).toBeEnabled()
+
   await page.getByRole('button', { name: '2D', exact: true }).click()
   await expect(page.locator('[data-elemento]')).toHaveCount(2)
   expect(errores).toEqual([])
