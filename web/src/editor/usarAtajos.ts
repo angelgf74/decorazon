@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
-import { desplazarElemento, editarAbertura, editarEstructura, longitudPared, moverVertice, quitarDeEstancia, quitarVertice } from '../nucleo'
+import { desplazarElemento, editarAbertura, editarEstructura, moverVertice, quitarDeEstancia, quitarVertice } from '../nucleo'
 import { almacen } from './estado/almacen'
 import { borrar, duplicar, girar90 } from './estado/elementos'
-import { hayArrastre } from './lienzo/arrastres'
+import { hayArrastre, posicionEnPared } from './lienzo/arrastres'
 
 const FLECHAS: Record<string, { dx: number; dy: number }> = {
   ArrowLeft: { dx: -1, dy: 0 }, ArrowRight: { dx: 1, dy: 0 }, ArrowUp: { dx: 0, dy: -1 }, ArrowDown: { dx: 0, dy: 1 },
@@ -24,9 +24,10 @@ function mover(dx: number, dy: number): boolean {
   const e0 = almacen.getState()
   const s = e0.seleccion
   const doc = e0.documento
-  if (s === null || doc === null) return false
+  // En 3D no se mueve nada (§4.2), tampoco lo del paso 1 que siguiera seleccionado.
+  if (s === null || doc === null || e0.vista === '3d') return false
   if (e0.paso === 2) {
-    if (s.tipo !== 'elemento' || e0.vista === '3d') return false
+    if (s.tipo !== 'elemento') return false
     e0.cambiar((d) => desplazarElemento(d, s.id, dx, dy), `teclado:${s.id}`)
     return true
   }
@@ -38,20 +39,24 @@ function mover(dx: number, dy: number): boolean {
     return true
   }
   const grupo = `teclado:${'id' in s ? s.id : ''}`
+  // A lo largo de la pared: la flecha va en pantalla y se proyecta sobre la pared, como el ratón (`posicionEnPared`), así que
+  // en la pared de abajo (horaria: de derecha a izquierda) → acerca al inicio y en una vertical mueven ↑↓. En el tope no se
+  // edita: `editarAbertura` devolvería un documento nuevo igual y el historial apuntaría un paso vacío.
+  const aLoLargo = (pared: number, ancho: number, posicion: number) =>
+    posicionEnPared(doc.estancia.planta, pared, ancho, posicion, { x: 0, y: 0 }, { x: dx, y: dy })
   if (s.tipo === 'abertura') {
     const a = doc.aberturas.find((x) => x.id === s.id)
-    if (!a || dx === 0) return false
-    const posicion = enPared(doc.estancia.planta, a.pared, a.ancho, a.posicion + dx)
-    e0.intentar((d) => editarAbertura(d, s.id, { posicion }), grupo)
+    if (!a) return false
+    const posicion = aLoLargo(a.pared, a.ancho, a.posicion)
+    if (posicion !== a.posicion) e0.intentar((d) => editarAbertura(d, s.id, { posicion }), grupo)
     return true
   }
   if (s.tipo === 'estructura') {
     const x = doc.estructura.find((e) => e.id === s.id)
     if (!x) return false
     if (x.tipo === 'radiador') {
-      if (dx === 0) return false
-      const posicion = enPared(doc.estancia.planta, x.pared, x.ancho, x.posicion + dx)
-      e0.intentar((d) => editarEstructura(d, s.id, { posicion }), grupo)
+      const posicion = aLoLargo(x.pared, x.ancho, x.posicion)
+      if (posicion !== x.posicion) e0.intentar((d) => editarEstructura(d, s.id, { posicion }), grupo)
     } else if (x.tipo === 'columna') {
       e0.intentar((d) => editarEstructura(d, s.id, { centro: { x: x.centro.x + dx, y: x.centro.y + dy } }), grupo)
     } else {
@@ -60,12 +65,6 @@ function mover(dx: number, dy: number): boolean {
     return true
   }
   return false
-}
-
-/** Posición a lo largo de la pared recortada a lo que cabe, como al arrastrar (`posicionEnPared`). */
-function enPared(planta: { x: number; y: number }[], pared: number, ancho: number, posicion: number): number {
-  const maximo = Math.max(0, Math.floor(longitudPared(planta, pared) - ancho))
-  return Math.min(maximo, Math.max(0, Math.round(posicion)))
 }
 
 export function useAtajos(): void {
@@ -117,15 +116,23 @@ export function useAtajos(): void {
         }
       }
     }
-    // Soltar una flecha cierra el paso de deshacer: la siguiente pulsación empieza otro.
+    // Soltar una flecha cierra el paso de deshacer del teclado: la siguiente pulsación empieza otro. Solo el del teclado: a
+    // mitad de un arrastre con el ratón (grupo `mover:…`) o de un color, soltar una flecha no parte ese paso en dos.
+    function cerrarPasoDelTeclado() {
+      const e0 = almacen.getState()
+      if (e0.grupo?.startsWith('teclado:')) e0.terminarGrupo()
+    }
     function alSoltar(e: KeyboardEvent) {
-      if (FLECHAS[e.key] !== undefined) almacen.getState().terminarGrupo()
+      if (FLECHAS[e.key] !== undefined) cerrarPasoDelTeclado()
     }
     window.addEventListener('keydown', alPulsar)
     window.addEventListener('keyup', alSoltar)
+    // Si la tecla se suelta con la ventana sin foco, el keyup no llega: perder el foco cierra el paso igualmente.
+    window.addEventListener('blur', cerrarPasoDelTeclado)
     return () => {
       window.removeEventListener('keydown', alPulsar)
       window.removeEventListener('keyup', alSoltar)
+      window.removeEventListener('blur', cerrarPasoDelTeclado)
     }
   }, [])
 }

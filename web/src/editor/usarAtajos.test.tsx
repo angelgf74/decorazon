@@ -222,6 +222,26 @@ describe('usarAtajos durante un arrastre: todo lo que edita espera', () => {
   })
 })
 
+describe('usarAtajos: soltar una flecha no cierra el paso de otra cosa', () => {
+  it('un arrastre con el ratón sigue siendo un solo paso de deshacer aunque se suelte una flecha a mitad', () => {
+    const r = anadirElemento(almacen.getState().documento!, catalogoBase, 'mesa', { x: 200, y: 165 })
+    almacen.getState().cambiar(() => r.documento)
+    almacen.getState().irAPaso(2)
+    render(<><Sonda /><Lienzo /></>)
+    const huella = document.querySelector(`[data-elemento="${r.id}"] polygon`)
+    if (!huella) throw new Error('sin huella')
+    const posicion = () => almacen.getState().documento!.elementos[0]!.posicion
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 200, clientY: 165 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 230, clientY: 165 })
+    fireEvent.keyUp(window, { key: 'ArrowRight' })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 260, clientY: 165 })
+    fireEvent.pointerUp(huella, { pointerId: 1 })
+    expect(posicion()).toEqual({ x: 260, y: 165 })
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    expect(posicion()).toEqual({ x: 200, y: 165 })
+  })
+})
+
 describe('usarAtajos: un arrastre cuya pieza desaparece', () => {
   it('Escape durante el giro desmonta el tirador y soltar en la ventana termina el arrastre', () => {
     const r = anadirElemento(almacen.getState().documento!, catalogoBase, 'mesa', { x: 200, y: 165 })
@@ -342,7 +362,7 @@ describe('usarAtajos: flechas en el paso 1', () => {
     expect(doc().estancia.planta[2]).toEqual({ x: 400, y: 330 })
   })
 
-  it('desplaza una ventana por su pared sin salirse de ella; ↑↓ no hacen nada', () => {
+  it('desplaza una ventana por su pared sin salirse de ella; ↑↓ no hacen nada en una pared horizontal', () => {
     almacen.getState().seleccionar({ tipo: 'abertura', id: 'v' })
     render(<Sonda />)
     fireEvent.keyDown(window, { key: 'ArrowRight' })
@@ -353,6 +373,49 @@ describe('usarAtajos: flechas en el paso 1', () => {
     expect(doc().aberturas[0]!.posicion).toBe(300)
     for (let i = 0; i < 40; i++) fireEvent.keyDown(window, { key: 'ArrowLeft', shiftKey: true })
     expect(doc().aberturas[0]!.posicion).toBe(0)
+  })
+
+  it('la flecha sigue la pantalla, no el sentido de la pared: en la de abajo → acerca al inicio y en una vertical mueve ↑↓', () => {
+    // La planta es horaria: la pared 2 (abajo) va de derecha a izquierda y la 1 (derecha) de arriba abajo.
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      aberturas: [
+        { id: 'abajo', tipo: 'ventana', pared: 2, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false },
+        { id: 'derecha', tipo: 'ventana', pared: 1, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false },
+      ],
+    }))
+    render(<Sonda />)
+    almacen.getState().seleccionar({ tipo: 'abertura', id: 'abajo' })
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(doc().aberturas[0]!.posicion).toBe(49)
+    almacen.getState().seleccionar({ tipo: 'abertura', id: 'derecha' })
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    expect(doc().aberturas[1]!.posicion).toBe(51)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(doc().aberturas[1]!.posicion).toBe(51)
+  })
+
+  it('en el tope de la pared la flecha no crea un paso de deshacer vacío ni pierde el rehacer', () => {
+    almacen.getState().cambiar((d) => ({ ...d, aberturas: [{ ...d.aberturas[0]!, posicion: 0 }] }))
+    almacen.getState().cambiar((d) => ({ ...d, estancia: { ...d.estancia, alto: 270 } }))
+    almacen.getState().deshacer()
+    expect(almacen.getState().futuro).toHaveLength(1)
+    almacen.getState().seleccionar({ tipo: 'abertura', id: 'v' })
+    render(<Sonda />)
+    expect(fireEvent.keyDown(window, { key: 'ArrowLeft', cancelable: true })).toBe(false)
+    expect(doc().aberturas[0]!.posicion).toBe(0)
+    expect(almacen.getState().futuro).toHaveLength(1)
+  })
+
+  it('en 3D las flechas tampoco mueven lo del paso 1', () => {
+    almacen.getState().seleccionar({ tipo: 'vertice', indice: 2 })
+    almacen.getState().cambiarVista('3d')
+    render(<Sonda />)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(doc().estancia.planta[2]).toEqual({ x: 400, y: 330 })
+    almacen.getState().seleccionar({ tipo: 'abertura', id: 'v' })
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(doc().aberturas[0]!.posicion).toBe(50)
   })
 
   it('mueve el centro de una columna y la viga entera', () => {

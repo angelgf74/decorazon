@@ -109,12 +109,23 @@ describe('AvisosDelPlano: anuncio al lector de pantalla', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
-  it('hay una región aria-live oculta, sin role="status", que empieza vacía', () => {
+  it('hay una región aria-live oculta, sin role="status", que empieza vacía y no anuncia lo que ya había al abrir', () => {
+    dosCamas()
     render(<AvisosDelPlano />)
     expect(anuncio()).not.toBeNull()
     expect(anuncio()).not.toHaveAttribute('role')
-    expect(anuncio()).toHaveTextContent('')
     expect(screen.queryByRole('status')).toBeNull()
+    act(() => { vi.advanceTimersByTime(1000) })
+    expect(anuncio()).toHaveTextContent('')
+  })
+
+  it('la región es el mismo nodo con el chip verde y con el chip de avisos (no se recrea al cambiar de estado)', () => {
+    render(<AvisosDelPlano />)
+    const nodo = anuncio()
+    act(() => { dosCamas() })
+    expect(anuncio()).toBe(nodo)
+    act(() => almacen.getState().deshacer())
+    expect(anuncio()).toBe(nodo)
   })
 
   it('anuncia cuántos avisos hay pasados 600 ms, y no antes; al volver a cero, que todo cabe', () => {
@@ -139,11 +150,13 @@ describe('AvisosDelPlano: anuncio al lector de pantalla', () => {
     act(() => almacen.getState().cambiar((d) => ({ ...d, elementos: d.elementos.map((e, i) => (i === 0 ? { ...e, posicion: { x: e.posicion.x + 1, y: e.posicion.y } } : e)) })))
     act(() => { vi.advanceTimersByTime(600) })
     expect(anuncio()!.textContent).toBe(texto)
-    // Varios cambios dentro de los 600 ms: un solo anuncio, el último.
+    // Varios cambios dentro de los 600 ms: un solo anuncio, el último (el temporizador del primero se cancela).
     act(() => almacen.getState().deshacer())
     act(() => { vi.advanceTimersByTime(300) })
     act(() => almacen.getState().rehacer())
-    act(() => { vi.advanceTimersByTime(600) })
+    act(() => { vi.advanceTimersByTime(300) })
+    expect(anuncio()!.textContent).toBe(texto)
+    act(() => { vi.advanceTimersByTime(300) })
     expect(anuncio()!.textContent).toBe(texto)
   })
 })

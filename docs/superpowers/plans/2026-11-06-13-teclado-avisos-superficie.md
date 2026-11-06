@@ -54,10 +54,17 @@
 
 ### Task 3: cierre
 
-- [ ] `npm test`, `npm run lint`, `npm run build`, `npm run e2e`; capturas a 1440 (panel de Estancia con m², atajos desplegados) y 390 px.
-- [ ] `CLAUDE.md`: flechas sin imán y agrupadas; aviso `aria-live` con retardo y por qué no es `status`.
-- [ ] `mejoras.md`: M-01, M-26, M-03 → `realizada` con fecha y PR. Este plan con todo marcado.
+- [x] `npm test` (1365), `npm run lint`, `npm run build`, `npm run e2e` (10 de 10); capturas a 1440 (pared seleccionada, atajos desplegados, panel de Estancia con m²) y 390 px (hoja de Estancia).
+- [x] `CLAUDE.md`: flechas sin imán y agrupadas; aviso `aria-live` con retardo y por qué no es `status`.
+- [x] `mejoras.md`: M-01, M-26, M-03 → `realizada` (PR #43). Este plan con todo marcado.
+
+## Revisión final (6 nov 2026)
+
+Arreglado tras la revisión de la rama: las flechas no movían en 3D lo del paso 1; las aberturas y radiadores iban al revés en las paredes de abajo y de la izquierda y ↑↓ no servían en una vertical (ahora se proyecta la flecha sobre la pared con `posicionEnPared`, como el ratón); una flecha en el tope de la pared creaba un paso de deshacer vacío y borraba el rehacer; soltar una flecha a mitad de un arrastre partía el arrastre en dos pasos (el `keyup` solo cierra grupos `teclado:`, y `blur` también los cierra); la región `aria-live` se recreaba al cambiar de chip (ahora va siempre en el mismo sitio del árbol) y en StrictMode anunciaba el estado inicial (se compara con el último valor visto).
 
 ## Pendiente
 
-- (se rellena al cerrar)
+- Los atajos del panel enseñan «Mover» también con una pared seleccionada (las flechas no mueven paredes) y en 3D; la lista no depende del tipo de selección ni de la vista.
+- Con el menú «Más acciones» abierto, ←→ mueven lo seleccionado (el menú solo consume ↑↓); con la lista de avisos abierta, ↑↓ también. Con el foco en un botón del panel las flechas mueven en vez de desplazar el panel: revisar con M-28.
+- La vista compartida enseña las dimensiones sin los m² (`VistaCompartida.tsx` copia la línea de `HojaImpresion.tsx`; una función `resumenEstancia` compartida lo evitaría).
+- Con el teclado se puede meter un mueble 1 cm en la pared (el imán del ratón lo impide); lo marca `fueraDeEstancia` y, si luego cambian medidas o giro, `paredesTocadas` lo vuelve a pegar. Aceptado.
