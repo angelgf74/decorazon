@@ -106,7 +106,7 @@ describe('Editor: pestañas de las hojas (móvil)', () => {
     expect(estancia).toHaveAttribute('aria-expanded', 'false')
   })
 
-  it('"Propiedades" dice cuántos avisos hay', () => {
+  it('"Propiedades" ya no lleva insignia: los avisos están sobre el plano', () => {
     const def = catalogoBase.get('armario')
     if (!def) throw new Error('armario')
     almacen.getState().cambiar((d) => ({ ...d, elementos: [elementoNuevo(def, { x: 1000, y: 100 }, 'a')] }))
@@ -114,8 +114,43 @@ describe('Editor: pestañas de las hojas (móvil)', () => {
     expect(n).toBeGreaterThan(0)
     render(<Editor />, { wrapper: MemoryRouter })
     const propiedades = within(pestanas()).getByText(textos.barra.propiedades).closest('button')!
-    expect(within(propiedades).getByText(String(n))).toHaveAttribute('aria-hidden', 'true')
-    expect(within(propiedades).getByText(`, ${textos.barra.avisos(n)}`)).toHaveClass('solo-lectores')
+    expect(within(propiedades).queryByText(String(n))).toBeNull()
+    const lienzo = document.querySelector<HTMLElement>('.editor__lienzo')!
+    expect(within(lienzo).getByRole('button', { name: textos.barra.avisos(n) })).toBeInTheDocument()
+  })
+})
+
+describe('Editor: panel derecho contextual', () => {
+  beforeEach(() => almacen.getState().cambiarVista('2d'))
+
+  it('sin selección el panel se oculta y el cuerpo lo sabe; con una pared seleccionada aparece', () => {
+    render(<Editor />, { wrapper: MemoryRouter })
+    expect(document.querySelector('.editor__cuerpo')).toHaveClass('editor__cuerpo--sin-panel')
+    expect(document.querySelector('.editor__derecha')).toHaveClass('editor__derecha--oculta')
+    act(() => almacen.getState().seleccionar({ tipo: 'pared', indice: 0 }))
+    expect(document.querySelector('.editor__cuerpo')).not.toHaveClass('editor__cuerpo--sin-panel')
+    expect(document.querySelector('.editor__derecha')).not.toHaveClass('editor__derecha--oculta')
+    expect(screen.getByRole('heading', { name: 'Pared 1' })).toBeInTheDocument()
+  })
+
+  it('una selección que no es de este paso tampoco abre el panel', () => {
+    const def = catalogoBase.get('armario')
+    if (!def) throw new Error('armario')
+    almacen.getState().cambiar((d) => ({ ...d, elementos: [elementoNuevo(def, { x: 100, y: 100 }, 'a')] }))
+    almacen.getState().irAPaso(2)
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a' })
+    render(<Editor />, { wrapper: MemoryRouter })
+    expect(document.querySelector('.editor__derecha')).not.toHaveClass('editor__derecha--oculta')
+    // Al volver al paso 1 el almacén suelta la selección del mueble: sin nada que enseñar, se oculta.
+    act(() => almacen.getState().irAPaso(1))
+    expect(document.querySelector('.editor__derecha')).toHaveClass('editor__derecha--oculta')
+  })
+
+  it('el chip de avisos sigue sobre la vista 3D', () => {
+    almacen.getState().cambiarVista('3d')
+    render(<Editor />, { wrapper: MemoryRouter })
+    const lienzo = document.querySelector<HTMLElement>('.editor__lienzo')!
+    expect(within(lienzo).getByText(textos.avisos.todoBien)).toBeInTheDocument()
   })
 })
 

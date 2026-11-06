@@ -62,6 +62,8 @@ function seleccionValida(s: Seleccion, doc: DocumentoDiseno | null): Seleccion {
 
 /** Paso en el que se edita lo seleccionado: los elementos en el 2; la estancia en el 1. */
 const pasoDe = (s: NonNullable<Seleccion>): Paso => (s.tipo === 'elemento' ? 2 : 1)
+/** Si lo seleccionado es de este paso: pared, esquina, abertura o estructura en el 1; elemento en el 2. */
+export const seleccionDelPaso = (s: Seleccion | null, paso: Paso): boolean => s !== null && pasoDe(s) === paso
 
 const vacio = () => ({ pasado: [], futuro: [], grupo: null, seleccion: null, aviso: null })
 

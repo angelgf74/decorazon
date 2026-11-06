@@ -160,20 +160,39 @@ describe('PanelPropiedades con un elemento', () => {
 })
 
 describe('PanelPropiedades sin selección', () => {
-  const atajos = () => screen.getByRole('region', { name: textos.propiedades.atajos })
-
-  it('en el paso 1 explica qué pulsar y enseña los atajos de la estancia', () => {
+  it('en el paso 1 explica qué pulsar, sin atajos', () => {
     render(<PanelPropiedades />)
     expect(screen.getByRole('heading', { name: textos.propiedades.nadaSeleccionado })).toBeInTheDocument()
     expect(screen.getByText(textos.propiedades.nada)).toBeInTheDocument()
+    expect(screen.queryByText(textos.propiedades.atajos)).toBeNull()
+  })
+
+  it('en el paso 2 explica qué pulsar', () => {
+    act(() => almacen.getState().irAPaso(2))
+    render(<PanelPropiedades />)
+    expect(screen.getByText(textos.propiedades.nadaElemento)).toBeInTheDocument()
+    expect(screen.queryByText(textos.propiedades.atajos)).toBeNull()
+  })
+})
+
+describe('PanelPropiedades: atajos de teclado al pie, plegados', () => {
+  const atajos = () => screen.getByRole('region', { name: textos.propiedades.atajos })
+
+  it('con una pared seleccionada enseña los de la estancia al desplegarlos', async () => {
+    almacen.getState().seleccionar({ tipo: 'pared', indice: 0 })
+    render(<PanelPropiedades />)
+    expect(document.querySelector('details.atajos')).not.toHaveAttribute('open')
+    await userEvent.click(screen.getByText(textos.propiedades.atajos))
     expect(within(atajos()).getByText(textos.propiedades.atajo.quitar)).toBeInTheDocument()
     expect(within(atajos()).queryByText(textos.propiedades.atajo.girar)).toBeNull()
   })
 
-  it('en el paso 2 añade girar y duplicar', () => {
-    act(() => almacen.getState().irAPaso(2))
+  it('con un mueble seleccionado añade girar y duplicar', async () => {
+    almacen.getState().irAPaso(2)
+    almacen.getState().cambiar((d) => anadirElemento(d, catalogoBase, 'cama', { x: 200, y: 165 }).documento)
+    almacen.getState().seleccionar({ tipo: 'elemento', id: almacen.getState().documento!.elementos[0]!.id })
     render(<PanelPropiedades />)
-    expect(screen.getByText(textos.propiedades.nadaElemento)).toBeInTheDocument()
+    await userEvent.click(screen.getByText(textos.propiedades.atajos))
     expect(within(atajos()).getByText(textos.propiedades.atajo.girar)).toBeInTheDocument()
     expect(within(atajos()).getByText(textos.propiedades.atajo.duplicar)).toBeInTheDocument()
   })
