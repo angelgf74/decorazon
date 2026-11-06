@@ -1,7 +1,7 @@
-import { ajustarMedidas, elementoNuevo } from '../catalogo/elemento'
-import { medidasExtraDe, valorMedidaExtra, type Catalogo } from '../catalogo/tipos'
+import { ajustarMedidas, elementoNuevo, esVarianteDeLado } from '../catalogo/elemento'
+import { medidasExtraDe, valorMedidaExtra, valorVariante, type Catalogo } from '../catalogo/tipos'
 import type { Punto } from '../geometria/vector'
-import type { DocumentoDiseno, Elemento, Medidas, OrigenTienda } from '../modelo/documento'
+import { LIMITE_NOMBRE_ELEMENTO, type DocumentoDiseno, type Elemento, type Medidas, type OrigenTienda } from '../modelo/documento'
 import { imantar, normalizarGiro, paredesTocadas } from './iman'
 
 const DESPLAZAMIENTO_COPIA_CM = 20
@@ -21,18 +21,52 @@ export function anadirElemento(doc: DocumentoDiseno, catalogo: Catalogo, tipo: s
   return { documento: { ...doc, elementos: [...doc.elementos, e] }, id: e.id }
 }
 
+/** Un bloqueado no se mueve ni se gira: el mismo documento, para que el historial no apunte un paso vacío. */
 export function moverElemento(doc: DocumentoDiseno, catalogo: Catalogo, id: string, posicion: Punto, rotacion: number, libre: boolean): DocumentoDiseno {
   const e = buscar(doc, id)
-  if (!e) return doc
+  if (!e || e.bloqueado) return doc
   return reemplazar(doc, conIman(doc, catalogo, { ...e, posicion: { ...posicion }, rotacion }, libre))
 }
 
 /** Desplaza el elemento (dx, dy) cm **sin imán**: es lo que hacen las flechas del teclado, un ajuste fino que el imán desharía. */
 export function desplazarElemento(doc: DocumentoDiseno, id: string, dx: number, dy: number): DocumentoDiseno {
   const e = buscar(doc, id)
-  if (!e) return doc
+  if (!e || e.bloqueado) return doc
   const redondear = (n: number) => Math.round(n * 100) / 100
   return reemplazar(doc, { ...e, posicion: { x: redondear(e.posicion.x + dx), y: redondear(e.posicion.y + dy) } })
+}
+
+/** Bloquea o libera el elemento. Libre, el campo no se guarda (los diseños de antes no lo llevan). */
+export function bloquearElemento(doc: DocumentoDiseno, id: string, bloqueado: boolean): DocumentoDiseno {
+  const e = buscar(doc, id)
+  if (!e || (e.bloqueado === true) === bloqueado) return doc
+  const { bloqueado: _quitado, ...libre } = e
+  return reemplazar(doc, bloqueado ? { ...libre, bloqueado: true } : libre)
+}
+
+/** Nombre propio, sin espacios a los lados y cortado al límite; vacío o solo espacios quita el campo. */
+export function renombrarElemento(doc: DocumentoDiseno, id: string, nombre: string): DocumentoDiseno {
+  const e = buscar(doc, id)
+  if (!e) return doc
+  const limpio = nombre.trim().slice(0, LIMITE_NOMBRE_ELEMENTO).trimEnd()
+  if ((e.nombre ?? '') === limpio) return doc
+  const { nombre: _quitado, ...sinNombre } = e
+  return reemplazar(doc, limpio === '' ? sinNombre : { ...sinNombre, nombre: limpio })
+}
+
+/** Cambia de lado todas las variantes de lado que tengan un lado elegido (izquierda ↔ derecha); si ninguna, el mismo documento. */
+export function voltearElemento(doc: DocumentoDiseno, catalogo: Catalogo, id: string): DocumentoDiseno {
+  const e = buscar(doc, id)
+  const def = e && catalogo.get(e.tipo)
+  if (!e || !def) return doc
+  const cambios: Record<string, string> = {}
+  for (const v of def.variantes.filter(esVarianteDeLado)) {
+    const actual = valorVariante(def, e, v.clave)
+    if (actual === 'izquierda') cambios[v.clave] = 'derecha'
+    else if (actual === 'derecha') cambios[v.clave] = 'izquierda'
+  }
+  if (Object.keys(cambios).length === 0) return doc
+  return editar(doc, catalogo, id, { variantes: cambios })
 }
 
 type CambiosElemento = {
@@ -69,7 +103,8 @@ function editar(doc: DocumentoDiseno, catalogo: Catalogo, id: string, cambios: C
   if (!e || !def) return doc
   const nuevasMedidas = Object.fromEntries(Object.entries(cambios.medidas ?? {}).filter(([, v]) => Number.isFinite(v)))
   const medidas = ajustarMedidas(def, { ...e.medidas, ...nuevasMedidas })
-  const rotacion = Number.isFinite(cambios.rotacion) ? normalizarGiro(Math.round(cambios.rotacion!)) : e.rotacion
+  // Un bloqueado no gira (el panel no ofrece el campo; por si llega de otro camino).
+  const rotacion = Number.isFinite(cambios.rotacion) && !e.bloqueado ? normalizarGiro(Math.round(cambios.rotacion!)) : e.rotacion
   let alturaSuelo = e.alturaSuelo
   if (def.alturaSueloEditable) {
     const pedida = Number.isFinite(cambios.alturaSuelo) ? Math.round(cambios.alturaSuelo!) : e.alturaSuelo
@@ -114,16 +149,19 @@ export function cambiarTipo(doc: DocumentoDiseno, catalogo: Catalogo, id: string
     ...base, rotacion: e.rotacion, medidas, alturaSuelo,
     colores: Object.fromEntries(def.zonasColor.map((z) => [z.clave, e.colores[z.clave] ?? z.defecto])),
     origen: { ...e.origen },
+    ...(e.bloqueado && { bloqueado: true }),
+    ...(e.nombre !== undefined && { nombre: e.nombre }),
   }
   return reemplazar(doc, conIman(doc, catalogo, cambiado, e.rotacion % 90 !== 0))
 }
 
-/** Copia desplazada e imantada. Con un id inexistente devuelve el documento sin cambios y el mismo id. */
+/** Copia desplazada e imantada, con el nombre propio pero libre (se duplica para colocar la copia). Con un id inexistente, el documento sin cambios y el mismo id. */
 export function duplicarElemento(doc: DocumentoDiseno, catalogo: Catalogo, id: string): { documento: DocumentoDiseno; id: string } {
   const e = buscar(doc, id)
   if (!e) return { documento: doc, id }
+  const { bloqueado: _quitado, ...original } = e
   const copia: Elemento = {
-    ...e,
+    ...original,
     id: crypto.randomUUID(),
     posicion: { x: e.posicion.x + DESPLAZAMIENTO_COPIA_CM, y: e.posicion.y + DESPLAZAMIENTO_COPIA_CM },
     medidas: { ...e.medidas },

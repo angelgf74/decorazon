@@ -145,3 +145,19 @@ describe('validarDocumento: medidas extra', () => {
     expect(errores(con({ huecoAncho: -1 }))).toContain('elementos[0].medidasExtra.huecoAncho: debe ser un entero mayor o igual que 0')
   })
 })
+
+describe('validarDocumento: bloqueado y nombre propio', () => {
+  const con = (extra: Partial<Elemento>) => ({ ...base(), elementos: [elemento('e1', extra)] })
+
+  it('opcionales: bloqueado true y un nombre de hasta 60 caracteres, válido; false y vacío, también', () => {
+    expect(validarDocumento(con({ bloqueado: true, nombre: 'Armario de Ana' }))).toMatchObject({ valido: true })
+    expect(validarDocumento(con({ bloqueado: false, nombre: '' } as unknown as Partial<Elemento>))).toMatchObject({ valido: true })
+    expect(validarDocumento(con({ nombre: 'a'.repeat(60) }))).toMatchObject({ valido: true })
+  })
+
+  it('bloqueado que no es booleano o nombre de más de 60, no', () => {
+    expect(errores(con({ bloqueado: 'sí' } as unknown as Partial<Elemento>))).toContain('elementos[0].bloqueado: debe ser verdadero o falso')
+    expect(errores(con({ nombre: 'a'.repeat(61) }))).toContain('elementos[0].nombre: debe ser un texto de hasta 60 caracteres')
+    expect(errores(con({ nombre: 7 } as unknown as Partial<Elemento>))).toContain('elementos[0].nombre: debe ser un texto de hasta 60 caracteres')
+  })
+})

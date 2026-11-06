@@ -20,11 +20,19 @@ export function elementoNuevo(def: DefinicionTipo, posicion: Punto, id: string =
   }
 }
 
-/** El nombre que se enseña: el del producto si es de una tienda; si no, el del tipo con mayúscula. */
+/** El nombre que se enseña: el propio si lo tiene; si no, el del producto si es de una tienda; si no, el del tipo con mayúscula. */
 export function nombreDeElemento(def: DefinicionTipo | undefined, e: Elemento): string {
+  if (e.nombre !== undefined && e.nombre.trim() !== '') return e.nombre
   if (e.origen.tipo === 'tienda') return e.origen.nombre
   return def ? capitalizar(def.nombre) : e.tipo
 }
+
+/** Una variante «de lado» admite izquierda y derecha (la chaise de un sofá, el ala de un escritorio en L, el rincón). */
+export const esVarianteDeLado = (v: { valores: readonly (string | number | boolean)[] }): boolean =>
+  v.valores.includes('izquierda') && v.valores.includes('derecha')
+
+/** true si el tipo tiene alguna variante de lado: «Voltear» tiene sentido. */
+export const sePuedeVoltear = (def: DefinicionTipo): boolean => def.variantes.some(esVarianteDeLado)
 
 /** Redondea a entero y recorta a cada rango. */
 export function ajustarMedidas(def: DefinicionTipo, m: Medidas): Medidas {

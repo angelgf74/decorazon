@@ -1,5 +1,5 @@
 import { areaConSigno, esSimple } from '../geometria/poligono'
-import { FORMATO_ACTUAL, TIPOS_ESTANCIA, type DocumentoDiseno, type Punto } from './documento'
+import { FORMATO_ACTUAL, LIMITE_NOMBRE_ELEMENTO, TIPOS_ESTANCIA, type DocumentoDiseno, type Punto } from './documento'
 import { esFechaPrecio, esPrecio, esUrlDeProducto, LIMITES_TIENDA } from './tienda'
 
 export type ResultadoValidacion =
@@ -194,6 +194,8 @@ class Validador {
         const me = this.objeto(o.medidasExtra, `${r}.medidasExtra`)
         if (me) for (const [k, x] of Object.entries(me)) this.noNegativo(x, `${r}.medidasExtra.${k}`)
       }
+      if (o.bloqueado !== undefined) this.booleano(o.bloqueado, `${r}.bloqueado`)
+      if (o.nombre !== undefined) this.textoAcotado(o.nombre, `${r}.nombre`, LIMITE_NOMBRE_ELEMENTO, false)
       const or = this.objeto(o.origen, `${r}.origen`)
       if (or) this.origen(or, `${r}.origen`)
     })

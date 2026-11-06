@@ -46,3 +46,20 @@ describe('cotasEnPared', () => {
     expect(cotasEnPared(planta, 0, 0, 82).map(c => c.valor)).toEqual([318])
   })
 })
+
+describe('cotasAParedes con obstáculos', () => {
+  it('la cota va al vecino si está antes que la pared, y se omite si está pegado', () => {
+    const rect = rectangulo({ x: 100, y: 100 }, 100, 60, 0)
+    const vecino = rectangulo({ x: 225, y: 100 }, 50, 50, 0)
+    const cotas = cotasAParedes(planta, rect, [vecino])
+    expect(cotas.map(c => c.valor)).toEqual([70, 50, 200, 50])
+    expect(cotas[1].hasta).toEqual({ x: 200, y: 100 })
+    const pegado = rectangulo({ x: 175, y: 100 }, 50, 50, 0)
+    expect(cotasAParedes(planta, rect, [pegado]).map(c => c.valor)).toEqual([70, 200, 50])
+  })
+  it('un vecino solapado da la cota a su borde de salida', () => {
+    const rect = rectangulo({ x: 100, y: 100 }, 100, 60, 0)
+    const encima = rectangulo({ x: 140, y: 100 }, 50, 50, 0)
+    expect(cotasAParedes(planta, rect, [encima]).map(c => c.valor)).toEqual([70, 15, 200, 50])
+  })
+})

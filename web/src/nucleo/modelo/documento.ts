@@ -30,5 +30,10 @@ export interface Elemento {
   variantes: Record<string, string | number | boolean>; colores: Record<string, string>; origen: Origen
   /** Medidas propias del tipo además de ancho, fondo y alto (el hueco del rincón de un esquinero), en cm enteros. Opcional: los diseños de antes no lo llevan. */
   medidasExtra?: Record<string, number>
+  /** Bloqueado: se selecciona y se edita, pero no se mueve ni se gira. Solo se guarda cuando es verdadero. */
+  bloqueado?: true
+  /** Nombre propio («Armario de Ana»), sin espacios a los lados y hasta LIMITE_NOMBRE_ELEMENTO; sin él, el del producto o del tipo. */
+  nombre?: string
 }
+export const LIMITE_NOMBRE_ELEMENTO = 60
 export interface DocumentoDiseno { formato: 1; estancia: Estancia; aberturas: Abertura[]; estructura: Estructura[]; elementos: Elemento[] }

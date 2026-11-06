@@ -5,7 +5,10 @@ import { elementoNuevo } from '../catalogo/elemento'
 import type { DocumentoDiseno } from '../modelo/documento'
 import { validarDocumento } from '../modelo/validar'
 import { detectarConflictos } from '../conflictos/detectar'
-import { anadirElemento, cambiarTipo, desplazarElemento, desvincularTienda, duplicarElemento, editarElemento, moverElemento, quitarElemento, vincularTienda } from './elementos'
+import {
+  anadirElemento, bloquearElemento, cambiarTipo, desplazarElemento, desvincularTienda, duplicarElemento, editarElemento, moverElemento, quitarElemento,
+  renombrarElemento, vincularTienda, voltearElemento,
+} from './elementos'
 import type { OrigenTienda } from '../modelo/documento'
 
 const sala = (): DocumentoDiseno => documentoNuevo('dormitorio', 400, 330, 250)
@@ -318,5 +321,69 @@ describe('medidas extra: lo que no debe mover el mueble', () => {
     const r = editarElemento(doc, catalogoBase, 'esq', { medidasExtra: { huecoAncho: Number.NaN } })
     expect(r.elementos[0]!.medidasExtra!.huecoAncho).toBe(0)
     expect(validarDocumento(r).valido).toBe(true)
+  })
+})
+
+describe('bloquearElemento', () => {
+  it('pone bloqueado: true y al quitarlo el campo desaparece; con un id que no existe, el mismo documento', () => {
+    const { documento, id } = conArmario()
+    const b = bloquearElemento(documento, id, true)
+    expect(b.elementos[0]!.bloqueado).toBe(true)
+    expect(validarDocumento(b).valido).toBe(true)
+    const libre = bloquearElemento(b, id, false)
+    expect('bloqueado' in libre.elementos[0]!).toBe(false)
+    expect(bloquearElemento(documento, 'otro', true)).toBe(documento)
+    expect(bloquearElemento(documento, id, false)).toBe(documento)
+  })
+
+  it('un bloqueado no se mueve ni se desplaza ni se gira, pero sí cambia de color', () => {
+    const { documento, id } = conArmario()
+    const b = bloquearElemento(documento, id, true)
+    expect(moverElemento(b, catalogoBase, id, { x: 50, y: 50 }, 90, false)).toBe(b)
+    expect(desplazarElemento(b, id, 1, 0)).toBe(b)
+    const editado = editarElemento(b, catalogoBase, id, { rotacion: 90, colores: { cuerpo: '#111111' } })
+    expect(editado.elementos[0]!.rotacion).toBe(0)
+    expect(editado.elementos[0]!.colores.cuerpo).toBe('#111111')
+  })
+})
+
+describe('renombrarElemento', () => {
+  it('recorta los espacios y corta a 60 caracteres; solo espacios o vacío quita el campo', () => {
+    const { documento, id } = conArmario()
+    const r = renombrarElemento(documento, id, '  Armario de Ana  ')
+    expect(r.elementos[0]!.nombre).toBe('Armario de Ana')
+    expect(renombrarElemento(documento, id, 'a'.repeat(70)).elementos[0]!.nombre).toBe('a'.repeat(60))
+    expect('nombre' in renombrarElemento(r, id, '   ').elementos[0]!).toBe(false)
+    expect(renombrarElemento(documento, id, '')).toBe(documento)
+    expect(renombrarElemento(r, id, 'Armario de Ana')).toBe(r)
+    expect(renombrarElemento(documento, 'otro', 'x')).toBe(documento)
+  })
+})
+
+describe('voltearElemento', () => {
+  it('intercambia izquierda y derecha en las variantes de lado; sin lado elegido o sin variante de lado, el mismo documento', () => {
+    const conSofa = anadirElemento(sala(), catalogoBase, 'sofa', { x: 200, y: 165 })
+    const sinChaise = conSofa.documento
+    expect(voltearElemento(sinChaise, catalogoBase, conSofa.id)).toBe(sinChaise)
+    const izquierda = editarElemento(sinChaise, catalogoBase, conSofa.id, { variantes: { chaise: 'izquierda' } })
+    const volteado = voltearElemento(izquierda, catalogoBase, conSofa.id)
+    expect(volteado.elementos[0]!.variantes.chaise).toBe('derecha')
+    expect(voltearElemento(volteado, catalogoBase, conSofa.id).elementos[0]!.variantes.chaise).toBe('izquierda')
+    const { documento, id } = conArmario()
+    expect(voltearElemento(documento, catalogoBase, id)).toBe(documento)
+    expect(voltearElemento(documento, catalogoBase, 'otro')).toBe(documento)
+  })
+})
+
+describe('bloqueado y nombre al cambiar de tipo y al duplicar', () => {
+  it('cambiarTipo conserva los dos; duplicar copia el nombre y la copia nace libre', () => {
+    const { documento, id } = conArmario()
+    const preparado = renombrarElemento(bloquearElemento(documento, id, true), id, 'Armario de Ana')
+    const cambiado = cambiarTipo(preparado, catalogoBase, id, 'armario-esquinero').elementos[0]!
+    expect(cambiado).toMatchObject({ bloqueado: true, nombre: 'Armario de Ana' })
+    const r = duplicarElemento(preparado, catalogoBase, id)
+    const copia = r.documento.elementos.find((e) => e.id === r.id)!
+    expect(copia.nombre).toBe('Armario de Ana')
+    expect('bloqueado' in copia).toBe(false)
   })
 })
