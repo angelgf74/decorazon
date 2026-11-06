@@ -55,6 +55,19 @@ describe('Editor: precarga del 3D', () => {
   })
 })
 
+describe('Editor: selector de vista sobre el plano', () => {
+  it('2D va pulsado por defecto y 3D cambia la vista; el selector sigue ahí en 3D', async () => {
+    almacen.getState().cambiarVista('2d')
+    render(<Editor />, { wrapper: MemoryRouter })
+    const vista = screen.getByRole('group', { name: textos.barra.vista })
+    expect(within(vista).getByRole('button', { name: '2D' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(within(vista).getByRole('button', { name: '3D' }))
+    expect(almacen.getState().vista).toBe('3d')
+    expect(within(vista).getByRole('button', { name: '3D' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('group', { name: textos.barra.vista })).toBeInTheDocument()
+  })
+})
+
 describe('Editor: fragmento 3D', () => {
   it('si no se puede cargar, avisa y "Volver al 2D" vuelve al plano', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})

@@ -3,4 +3,6 @@
   position: absolute; inset: 0; z-index: 0; margin: 0; display: grid; place-items: center;
   background: #f4efe8; color: var(--gris); pointer-events: none;
 }
-.vista3d__barra { position: absolute; top: 0.75rem; left: 0.75rem; display: flex; gap: 0.5rem; z-index: 1; }
+/* Abajo a la derecha, donde el plano 2D tiene su Encuadrar: el mismo sitio en las dos vistas. */
+.vista3d__barra { position: absolute; right: 0.75rem; bottom: 0.75rem; display: flex; gap: 0.5rem; z-index: 1; }
+.vista3d__barra button { box-shadow: 0 4px 16px rgb(43 38 34 / 0.1); }

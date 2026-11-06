@@ -14,7 +14,9 @@
 }
 
 /* El plano y la vista 3D atienden sus propios gestos: ningún pellizco que empiece aquí amplía la página. */
-.editor__lienzo { min-width: 0; min-height: 0; background: var(--superficie); touch-action: none; }
+.editor__lienzo { position: relative; min-width: 0; min-height: 0; background: var(--superficie); touch-action: none; }
+/* 2D/3D flota arriba a la derecha del plano, en las dos vistas. */
+.editor__vista { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 2; background: var(--superficie); box-shadow: 0 4px 16px rgb(43 38 34 / 0.1); }
 /* Aquí y no en vista3d.css: se usa también cuando el fragmento 3D no llega a cargarse. */
 .vista3d__aviso { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; height: 100%; padding: 1rem; text-align: center; }
 .editor__izquierda, .editor__derecha { padding: var(--esp-4); overflow: auto; background: var(--crema); }

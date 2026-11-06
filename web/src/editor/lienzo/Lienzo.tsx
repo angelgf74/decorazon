@@ -15,11 +15,13 @@ import CapaTiradores, { TiradorGiro } from './capas/CapaTiradores'
 import type { AlPulsar } from './capas/comun'
 import { ContextoLienzo, puntoDelPlano } from './usarPuntoDelPlano'
 import PistasDelPlano from './PistasDelPlano'
-import { encuadrar, pellizcar, zoomEn, type Vista2D } from './vista'
+import { encuadrar, ESCALA_MAX, ESCALA_MIN, pellizcar, zoomEn, type Vista2D } from './vista'
 import Icono from '../comunes/Icono'
 import './lienzo.css'
 
 const ZOOM_POR_PX_RUEDA = 0.0015
+/** Cada pulsación de Acercar o Alejar, alrededor del centro del plano. */
+const FACTOR_ZOOM_BOTON = 1.25
 const PX_POR_LINEA = 16
 const VISTA_INICIAL: Vista2D = { x: 0, y: 0, escala: 1 }
 
@@ -82,6 +84,13 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
     tamano.current = { ancho: caja.width, alto: caja.height }
     return true
   }, [aplicar])
+
+  const zoomPorBoton = (factor: number) => {
+    const caja = svg.current?.getBoundingClientRect()
+    const centro = caja ? { x: caja.width / 2, y: caja.height / 2 } : { x: 0, y: 0 }
+    movidaAMano.current = true
+    aplicar((v) => zoomEn(v, factor, centro))
+  }
 
   useEffect(() => {
     const el = svg.current
@@ -252,9 +261,20 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
           </ContextoLienzo.Provider>
         </g>
       </svg>
-      <button type="button" className="lienzo__encuadrar" onClick={() => encuadrarVista()}>
-        <Icono nombre="encuadrar" /><span className="lienzo__texto-boton">{textos.lienzo.encuadrar}</span>
-      </button>
+      <div className="lienzo__controles" role="group" aria-label={textos.lienzo.zoom}>
+        <button type="button" className="boton-icono lienzo__zoom" aria-label={textos.lienzo.alejar} title={textos.lienzo.alejar}
+          disabled={vista.escala <= ESCALA_MIN} onClick={() => zoomPorBoton(1 / FACTOR_ZOOM_BOTON)}>
+          <Icono nombre="menos" />
+        </button>
+        <button type="button" className="boton-icono lienzo__zoom" aria-label={textos.lienzo.acercar} title={textos.lienzo.acercar}
+          disabled={vista.escala >= ESCALA_MAX} onClick={() => zoomPorBoton(FACTOR_ZOOM_BOTON)}>
+          <Icono nombre="mas" />
+        </button>
+        <span className="lienzo__separador" aria-hidden="true" />
+        <button type="button" className="boton-icono lienzo__encuadrar" aria-label={textos.lienzo.encuadrar} title={textos.lienzo.encuadrar} onClick={() => encuadrarVista()}>
+          <Icono nombre="encuadrar" />
+        </button>
+      </div>
       <PistasDelPlano />
     </div>
   )
