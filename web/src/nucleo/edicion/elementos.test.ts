@@ -5,7 +5,7 @@ import { elementoNuevo } from '../catalogo/elemento'
 import type { DocumentoDiseno } from '../modelo/documento'
 import { validarDocumento } from '../modelo/validar'
 import { detectarConflictos } from '../conflictos/detectar'
-import { anadirElemento, cambiarTipo, desvincularTienda, duplicarElemento, editarElemento, moverElemento, quitarElemento, vincularTienda } from './elementos'
+import { anadirElemento, cambiarTipo, desplazarElemento, desvincularTienda, duplicarElemento, editarElemento, moverElemento, quitarElemento, vincularTienda } from './elementos'
 import type { OrigenTienda } from '../modelo/documento'
 
 const sala = (): DocumentoDiseno => documentoNuevo('dormitorio', 400, 330, 250)
@@ -32,6 +32,25 @@ describe('moverElemento', () => {
     expect(r.elementos[0].posicion).toEqual({ x: 50, y: 300 })
     expect(documento.elementos[0].posicion).toEqual({ x: 200, y: 165 })
     expect(moverElemento(documento, catalogoBase, id, { x: 100, y: 100 }, 93, true).elementos[0].rotacion).toBe(93)
+  })
+})
+
+describe('desplazarElemento', () => {
+  it('suma el desplazamiento sin imantar, sin mutar y redondeado a 2 decimales', () => {
+    // Armario a ras de la pared de arriba (y = 30, imantado): un paso de 1 cm hacia abajo tiene que alejarlo de verdad.
+    const { documento, id } = anadirElemento(sala(), catalogoBase, 'armario', { x: 200, y: 38 })
+    expect(documento.elementos[0].posicion).toEqual({ x: 200, y: 30 })
+    const r = desplazarElemento(documento, id, 0, 1)
+    expect(r.elementos[0].posicion).toEqual({ x: 200, y: 31 })
+    expect(documento.elementos[0].posicion).toEqual({ x: 200, y: 30 })
+    expect(desplazarElemento(r, id, 10, -1).elementos[0].posicion).toEqual({ x: 210, y: 30 })
+    expect(desplazarElemento(documento, id, 0.004, 0.006).elementos[0].posicion).toEqual({ x: 200, y: 30.01 })
+  })
+  it('conserva el giro y con un id que no existe devuelve el mismo documento', () => {
+    const { documento, id } = conArmario()
+    const girado = editarElemento(documento, catalogoBase, id, { rotacion: 93 })
+    expect(desplazarElemento(girado, id, 1, 0).elementos[0].rotacion).toBe(93)
+    expect(desplazarElemento(documento, 'otro', 1, 0)).toBe(documento)
   })
 })
 

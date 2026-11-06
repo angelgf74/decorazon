@@ -260,6 +260,123 @@ describe('usarAtajos: un arrastre cuya pieza desaparece', () => {
   })
 })
 
+describe('usarAtajos: flechas en el paso 2', () => {
+  const elementos = () => almacen.getState().documento!.elementos
+  const posicion = () => elementos()[0]!.posicion
+
+  beforeEach(() => {
+    // Armario a ras de la pared de arriba (y = 30 tras imantar): la flecha tiene que poder alejarlo 1 cm.
+    const r = anadirElemento(almacen.getState().documento!, catalogoBase, 'armario', { x: 200, y: 38 })
+    almacen.getState().cambiar(() => r.documento)
+    almacen.getState().irAPaso(2)
+    almacen.getState().seleccionar({ tipo: 'elemento', id: r.id })
+    expect(posicion()).toEqual({ x: 200, y: 30 })
+  })
+
+  it('→ y ↓ mueven 1 cm; ← y ↑ vuelven; junto a la pared no se vuelve a pegar', () => {
+    render(<Sonda />)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(posicion()).toEqual({ x: 201, y: 30 })
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    expect(posicion()).toEqual({ x: 201, y: 31 })
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    expect(posicion()).toEqual({ x: 200, y: 30 })
+  })
+
+  it('con Mayúsculas mueve 10 cm y evita el scroll de la página', () => {
+    render(<Sonda />)
+    expect(fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true, cancelable: true })).toBe(false)
+    expect(posicion()).toEqual({ x: 210, y: 30 })
+  })
+
+  it('pulsaciones seguidas son un solo paso de deshacer; soltar la tecla cierra el paso', () => {
+    render(<Sonda />)
+    for (let i = 0; i < 10; i++) fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(posicion()).toEqual({ x: 210, y: 30 })
+    fireEvent.keyUp(window, { key: 'ArrowRight' })
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.keyUp(window, { key: 'ArrowRight' })
+    expect(posicion()).toEqual({ x: 211, y: 30 })
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    expect(posicion()).toEqual({ x: 210, y: 30 })
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    expect(posicion()).toEqual({ x: 200, y: 30 })
+  })
+
+  it('no mueve con el foco en un campo, con el evento ya atendido (menú abierto) ni en 3D', () => {
+    render(<Sonda />)
+    fireEvent.keyDown(screen.getByLabelText('campo'), { key: 'ArrowRight' })
+    expect(posicion()).toEqual({ x: 200, y: 30 })
+    const atendido = new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true, bubbles: true })
+    atendido.preventDefault()
+    window.dispatchEvent(atendido)
+    expect(posicion()).toEqual({ x: 200, y: 30 })
+    almacen.getState().cambiarVista('3d')
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(posicion()).toEqual({ x: 200, y: 30 })
+  })
+})
+
+describe('usarAtajos: flechas en el paso 1', () => {
+  beforeEach(() => {
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      aberturas: [{ id: 'v', tipo: 'ventana', pared: 0, posicion: 50, ancho: 100, alto: 120, alturaSuelo: 90, abreHaciaDentro: false }],
+      estructura: [
+        { id: 'c', tipo: 'columna', centro: { x: 200, y: 165 }, ancho: 30, fondo: 30, rotacion: 0 },
+        { id: 'g', tipo: 'viga', desde: { x: 0, y: 100 }, hasta: { x: 400, y: 100 }, ancho: 20, canto: 30 },
+      ],
+    }))
+  })
+  const doc = () => almacen.getState().documento!
+
+  it('mueve la esquina seleccionada y el movimiento es un solo paso de deshacer', () => {
+    almacen.getState().seleccionar({ tipo: 'vertice', indice: 2 })
+    render(<Sonda />)
+    fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    expect(doc().estancia.planta[2]).toEqual({ x: 410, y: 331 })
+    fireEvent.keyUp(window, { key: 'ArrowDown' })
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    expect(doc().estancia.planta[2]).toEqual({ x: 400, y: 330 })
+  })
+
+  it('desplaza una ventana por su pared sin salirse de ella; ↑↓ no hacen nada', () => {
+    almacen.getState().seleccionar({ tipo: 'abertura', id: 'v' })
+    render(<Sonda />)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(doc().aberturas[0]!.posicion).toBe(51)
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    expect(doc().aberturas[0]!.posicion).toBe(51)
+    for (let i = 0; i < 40; i++) fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true })
+    expect(doc().aberturas[0]!.posicion).toBe(300)
+    for (let i = 0; i < 40; i++) fireEvent.keyDown(window, { key: 'ArrowLeft', shiftKey: true })
+    expect(doc().aberturas[0]!.posicion).toBe(0)
+  })
+
+  it('mueve el centro de una columna y la viga entera', () => {
+    almacen.getState().seleccionar({ tipo: 'estructura', id: 'c' })
+    render(<Sonda />)
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    fireEvent.keyDown(window, { key: 'ArrowUp', shiftKey: true })
+    expect(doc().estructura[0]).toMatchObject({ centro: { x: 199, y: 155 } })
+    almacen.getState().seleccionar({ tipo: 'estructura', id: 'g' })
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    expect(doc().estructura[1]).toMatchObject({ desde: { x: 0, y: 101 }, hasta: { x: 400, y: 101 } })
+  })
+
+  it('un movimiento que deja la planta inválida se rechaza con aviso', () => {
+    almacen.getState().cambiar((d) => ({ ...d, aberturas: [], estructura: [] }))
+    almacen.getState().seleccionar({ tipo: 'vertice', indice: 0 })
+    render(<Sonda />)
+    // La esquina 0 (0, 0) no puede cruzar la pared de arriba: 330 cm hacia abajo, en pasos de 10, se para en el límite.
+    for (let i = 0; i < 40; i++) fireEvent.keyDown(window, { key: 'ArrowDown', shiftKey: true })
+    expect(doc().estancia.planta[0]!.y).toBeLessThan(330)
+    expect(almacen.getState().aviso).not.toBeNull()
+  })
+})
+
 describe('usarAtajos en la vista 3D', () => {
   beforeEach(() => {
     const r = anadirElemento(almacen.getState().documento!, catalogoBase, 'mesa', { x: 200, y: 165 })

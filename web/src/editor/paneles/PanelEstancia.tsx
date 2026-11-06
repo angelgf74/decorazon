@@ -1,11 +1,12 @@
 import { useId, type ReactNode } from 'react'
 import {
-  anadirAbertura, anadirEstructura, cajaPlanta, editarEstancia, esRectangular, redimensionarRectangulo, TIPOS_ESTANCIA,
+  anadirAbertura, anadirEstructura, cajaPlanta, editarEstancia, esRectangular, perimetro, redimensionarRectangulo, superficie, TIPOS_ESTANCIA,
   type DocumentoDiseno, type Estancia, type ResultadoEdicion, type TipoEstancia,
 } from '../../nucleo'
 import { textos } from '../../textos'
 import CampoNumero from '../comunes/CampoNumero'
 import EntradaColor from '../comunes/EntradaColor'
+import { formatoMetros } from '../comunes/formatos'
 import Icono from '../comunes/Icono'
 import { almacen, useEditor } from '../estado/almacen'
 
@@ -106,6 +107,10 @@ export default function PanelEstancia() {
             {TIPOS_ESTANCIA.map((x) => <option key={x} value={x}>{textos.nuevaEstancia.tipos[x]}</option>)}
           </select>
         </div>
+        <p className="panel__dato">
+          <span>{t.superficie(formatoMetros(superficie(planta) / 10000))}</span>
+          <span>{t.paredes(formatoMetros(perimetro(planta) / 100))}</span>
+        </p>
         {!esRectangular(planta) && <p className="panel__nota">{textos.edicion.noRectangular}</p>}
         <div className="panel__rejilla">
           {esRectangular(planta) && (

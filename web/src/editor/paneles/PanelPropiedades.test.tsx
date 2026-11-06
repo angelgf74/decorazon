@@ -184,6 +184,7 @@ describe('PanelPropiedades: atajos de teclado al pie, plegados', () => {
     expect(document.querySelector('details.atajos')).not.toHaveAttribute('open')
     await userEvent.click(screen.getByText(textos.propiedades.atajos))
     expect(within(atajos()).getByText(textos.propiedades.atajo.quitar)).toBeInTheDocument()
+    expect(within(atajos()).getByText(textos.propiedades.atajo.mover)).toBeInTheDocument()
     expect(within(atajos()).queryByText(textos.propiedades.atajo.girar)).toBeNull()
   })
 

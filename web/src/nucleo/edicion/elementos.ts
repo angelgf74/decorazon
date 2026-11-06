@@ -27,6 +27,14 @@ export function moverElemento(doc: DocumentoDiseno, catalogo: Catalogo, id: stri
   return reemplazar(doc, conIman(doc, catalogo, { ...e, posicion: { ...posicion }, rotacion }, libre))
 }
 
+/** Desplaza el elemento (dx, dy) cm **sin imán**: es lo que hacen las flechas del teclado, un ajuste fino que el imán desharía. */
+export function desplazarElemento(doc: DocumentoDiseno, id: string, dx: number, dy: number): DocumentoDiseno {
+  const e = buscar(doc, id)
+  if (!e) return doc
+  const redondear = (n: number) => Math.round(n * 100) / 100
+  return reemplazar(doc, { ...e, posicion: { x: redondear(e.posicion.x + dx), y: redondear(e.posicion.y + dy) } })
+}
+
 type CambiosElemento = {
   medidas?: Partial<Medidas>; medidasExtra?: Record<string, number>; rotacion?: number; alturaSuelo?: number
   variantes?: Record<string, string | number | boolean>; colores?: Record<string, string>

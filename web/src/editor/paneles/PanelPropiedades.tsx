@@ -231,6 +231,7 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
 const ATAJOS_ESTANCIA = [
   { teclas: ['Ctrl', 'Z'], accion: t.atajo.deshacer },
   { teclas: ['Ctrl', 'Y'], accion: t.atajo.rehacer },
+  { teclas: ['← → ↑ ↓'], accion: t.atajo.mover },
   { teclas: ['Supr'], accion: t.atajo.quitar },
   { teclas: ['Esc'], accion: t.atajo.soltar },
 ]

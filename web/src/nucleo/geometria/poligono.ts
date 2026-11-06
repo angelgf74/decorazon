@@ -9,6 +9,16 @@ export function areaConSigno(p: Punto[]): number {
   return s / 2
 }
 
+/** Superficie en cm², sea cual sea el sentido del polígono. */
+export const superficie = (p: Punto[]): number => Math.abs(areaConSigno(p))
+
+/** Suma de las paredes, en cm. */
+export function perimetro(p: Punto[]): number {
+  let s = 0
+  for (let i = 0; i < p.length; i++) s += longitud(restar(p[(i + 1) % p.length], p[i]))
+  return s
+}
+
 export function distanciaPuntoSegmento(q: Punto, a: Punto, b: Punto): number {
   const ab = restar(b, a)
   const l2 = ab.x * ab.x + ab.y * ab.y

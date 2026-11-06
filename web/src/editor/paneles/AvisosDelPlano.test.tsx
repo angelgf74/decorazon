@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { anadirElemento, catalogoBase, type Abertura, type DocumentoDiseno } from '../../nucleo'
 import { textos } from '../../textos'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
@@ -100,5 +100,50 @@ describe('AvisosDelPlano', () => {
     act(() => almacen.getState().deshacer())
     expect(screen.getByText('Todo cabe y se abre')).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: textos.avisos.titulo })).toBeNull()
+  })
+})
+
+describe('AvisosDelPlano: anuncio al lector de pantalla', () => {
+  const anuncio = () => document.querySelector('.solo-lectores[aria-live="polite"]')
+
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  it('hay una región aria-live oculta, sin role="status", que empieza vacía', () => {
+    render(<AvisosDelPlano />)
+    expect(anuncio()).not.toBeNull()
+    expect(anuncio()).not.toHaveAttribute('role')
+    expect(anuncio()).toHaveTextContent('')
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
+  it('anuncia cuántos avisos hay pasados 600 ms, y no antes; al volver a cero, que todo cabe', () => {
+    render(<AvisosDelPlano />)
+    act(() => { dosCamas() })
+    const n = conflictosDe(almacen.getState().documento!).length
+    act(() => { vi.advanceTimersByTime(500) })
+    expect(anuncio()).toHaveTextContent('')
+    act(() => { vi.advanceTimersByTime(100) })
+    expect(anuncio()).toHaveTextContent(textos.barra.avisos(n))
+    act(() => almacen.getState().deshacer())
+    act(() => { vi.advanceTimersByTime(600) })
+    expect(anuncio()).toHaveTextContent(textos.avisos.todoBien)
+  })
+
+  it('el mismo número de avisos no se vuelve a anunciar; un arrastre con cambios seguidos solo anuncia el final', () => {
+    render(<AvisosDelPlano />)
+    act(() => { dosCamas() })
+    act(() => { vi.advanceTimersByTime(600) })
+    const texto = anuncio()!.textContent
+    // Mover una cama 1 cm deja los mismos conflictos: el anuncio no cambia (ni se vacía y repinta).
+    act(() => almacen.getState().cambiar((d) => ({ ...d, elementos: d.elementos.map((e, i) => (i === 0 ? { ...e, posicion: { x: e.posicion.x + 1, y: e.posicion.y } } : e)) })))
+    act(() => { vi.advanceTimersByTime(600) })
+    expect(anuncio()!.textContent).toBe(texto)
+    // Varios cambios dentro de los 600 ms: un solo anuncio, el último.
+    act(() => almacen.getState().deshacer())
+    act(() => { vi.advanceTimersByTime(300) })
+    act(() => almacen.getState().rehacer())
+    act(() => { vi.advanceTimersByTime(600) })
+    expect(anuncio()!.textContent).toBe(texto)
   })
 })
