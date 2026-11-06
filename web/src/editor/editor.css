@@ -194,6 +194,8 @@
 .producto-tienda__aviso p { margin: 0 0 var(--esp-2); }
 .producto-tienda__estado:empty { margin: 0; }
 .panel__nota { margin: var(--esp-2) 0; color: var(--gris); font-size: var(--texto-s); line-height: 1.45; }
+/* Superficie y metros de pared: dato de un vistazo bajo el tipo de estancia. */
+.panel__dato { display: flex; flex-wrap: wrap; gap: var(--esp-1) var(--esp-3); margin: var(--esp-2) 0; color: var(--gris); font-size: var(--texto-s); font-variant-numeric: tabular-nums; }
 .panel__botones { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin: var(--esp-3) 0; }
 .panel__acciones {
   display: flex;

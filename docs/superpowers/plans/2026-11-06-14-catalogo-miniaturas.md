@@ -1,0 +1,52 @@
+# Plan 14: catálogo con miniaturas (fase 2 de las mejoras)
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** que cada tarjeta del catálogo enseñe la huella del tipo (M-14), y que «Favoritos» y «Usados hace poco» vayan delante (M-15).
+
+**Índice:** [plan 12](2026-11-06-12-mejoras-hoja-de-ruta.md); mejoras en [`docs/mejoras.md`](../../mejoras.md).
+
+**Architecture:**
+- La huella ya existe: `huellasEnPlanta(def, e)` y `def.zonasApertura(e)` (`nucleo/catalogo/elemento.ts`, `tipos.ts`) dependen de un `Elemento`, y `elementoNuevo(def, posicion, id)` da uno con las medidas, variantes y colores por defecto. La miniatura es ese elemento en (0, 0) con giro 0 (frente hacia abajo, como en el plano).
+- `Pieza`, el componente privado de `lienzo/capas/CapaElementos.tsx` que pinta huellas y aperturas, se extrae a `lienzo/capas/Pieza.tsx` y lo usan el plano y la miniatura. Así lo que se ve en la tarjeta es lo que se verá en el plano.
+- `paneles/MiniaturaDeTipo.tsx`: `<svg aria-hidden>` con `viewBox` = caja de huellas ∪ aperturas + margen, `vector-effect: non-scaling-stroke` en los trazos, y un `Map` a nivel de módulo por `def.id` (las medidas por defecto no cambian).
+- Favoritos y recientes en `localStorage` (`decorazon.catalogo.favoritos`, `decorazon.catalogo.recientes`, máximo 6), siempre con `try/catch`; dos grupos nuevos delante de los demás, con chip, solo si tienen algo. La estrella es un `<button>` hermano de la tarjeta dentro del `<li>` (un botón dentro de otro no es válido), en una esquina.
+
+**Tech Stack:** React 19, Zustand, Vitest + Testing Library (jsdom), Playwright.
+
+## Global Constraints
+
+- No cambian: el nombre accesible de cada tarjeta («Armario 100 × 60 cm»), las regiones de grupo que buscan los e2e («Para tu cocina», «Decoración», «Otros muebles»), las clases `.panel-catalogo__tipo` y `.panel-catalogo__asa`, el arrastre táctil por el asa.
+- Textos nuevos en `web/src/textos.ts`. Sin dependencias nuevas. La miniatura no repinta el catálogo en cada render: se memoriza.
+- Verde al cerrar: `npm test`, `npm run lint`, `npm run build`, `npm run e2e`.
+
+## Tasks
+
+### Task 1: tests (rojo)
+
+- [ ] `nucleo/catalogo/integridad.test.ts`: para todo tipo de `catalogoBase`, el elemento por defecto en (0, 0) tiene al menos una huella con área > 0 y la caja (huellas ∪ aperturas) es finita.
+- [ ] `editor/paneles/MiniaturaDeTipo.test.tsx`: el `svg` lleva `aria-hidden`, un `viewBox` que contiene todos los puntos de las huellas y las aperturas, un `polygon` por huella y los de apertura con trazo discontinuo.
+- [ ] `editor/lienzo/capas/CapaElementos.test.tsx`: sigue pintando el halo del elegido y las aperturas (ahora vía `Pieza`).
+- [ ] `editor/paneles/PanelCatalogo.test.tsx`: cada tarjeta contiene un `svg`; pulsar la estrella de «Armario» crea el grupo «Favoritos» con esa tarjeta y marca `aria-pressed`; volver a pulsarla lo quita; añadir un tipo (pulsar la tarjeta) lo pone en «Usados hace poco», el más reciente primero y como mucho 6; con un `localStorage` que lanza, el catálogo se pinta igual y sin esos grupos; los chips incluyen los grupos nuevos solo cuando tienen algo; el buscador filtra también dentro de ellos.
+
+### Task 2: código
+
+- [ ] `lienzo/capas/Pieza.tsx` exportado (`def`, `e`, `elegido?`); `CapaElementos.tsx` lo importa.
+- [ ] `paneles/MiniaturaDeTipo.tsx` con la caché por `def.id`.
+- [ ] `paneles/catalogoLocal.ts`: `leerFavoritos`, `alternarFavorito`, `leerRecientes`, `anotarReciente` (con `try/catch` y respaldo en memoria mientras dure la pestaña). `estado/elementos.ts` → `anadirTipo` llama a `anotarReciente`.
+- [ ] `PanelCatalogo.tsx`: grupos «Favoritos» y «Usados hace poco» delante de `todos`; estrella como botón hermano con `aria-pressed` y `aria-label` `textos.catalogo.marcarFavorito(nombre)`; tarjeta en columna: miniatura, nombre, medidas.
+- [ ] `textos.catalogo.favoritos`, `textos.catalogo.recientes`, `textos.catalogo.marcarFavorito`.
+
+### Task 3: estilos
+
+- [ ] `editor.css`: `.panel-catalogo__miniatura` (alto fijo ~56 px, fondo `--crema-oscura`, radio), `.panel-catalogo__favorito` (esquina superior derecha de la tarjeta, 2.5 rem de objetivo táctil, no pisa el asa), relleno de huella con `--borde-suave` y trazo `--tinta`; en móvil (hoja) igual.
+
+### Task 4: cierre
+
+- [ ] `npm test`, `npm run lint`, `npm run build`, `npm run e2e`; capturas a 1440 (catálogo, con favoritos y recientes) y 390 px (hoja del catálogo).
+- [ ] `CLAUDE.md`: `Pieza` compartida; claves nuevas de `localStorage`.
+- [ ] `mejoras.md`: M-14, M-15 → `realizada` con fecha y PR. Este plan con todo marcado.
+
+## Pendiente
+
+- (se rellena al cerrar)

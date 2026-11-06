@@ -6,6 +6,11 @@ const EUROS = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR
 /** «199,00 €». */
 export const formatoPrecio = (euros: number): string => EUROS.format(euros)
 
+const METROS = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 })
+
+/** Metros o m² con coma decimal, hasta 2 decimales y sin ceros de más: «13,2», «12». */
+export const formatoMetros = (n: number): string => METROS.format(n)
+
 /** AAAA-MM-DD como dd/mm/aaaa. */
 export function formatoFecha(fecha: string): string {
   const [a, m, d] = fecha.split('-')

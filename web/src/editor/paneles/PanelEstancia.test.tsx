@@ -109,6 +109,26 @@ describe('PanelEstancia', () => {
   })
 })
 
+describe('PanelEstancia: superficie y paredes', () => {
+  it('enseña los m² y los metros de pared con coma decimal y sin ceros de más, y cambian con la planta', async () => {
+    render(<PanelEstancia />)
+    expect(screen.getByText(textos.estancia.superficie('13,2'))).toBeInTheDocument()
+    expect(screen.getByText(textos.estancia.paredes('14,6'))).toBeInTheDocument()
+    await escribir('Ancho', '300')
+    expect(screen.getByText(textos.estancia.superficie('9,9'))).toBeInTheDocument()
+    expect(screen.getByText(textos.estancia.paredes('12,6'))).toBeInTheDocument()
+  })
+
+  it('en una L también, con la superficie real y no la de la caja', () => {
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      estancia: { ...d.estancia, planta: [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 200, y: 330 }, { x: 200, y: 200 }, { x: 0, y: 200 }] },
+    }))
+    render(<PanelEstancia />)
+    expect(screen.getByText(textos.estancia.superficie('10,6'))).toBeInTheDocument()
+  })
+})
+
 describe('PanelEstancia: siguiente paso', () => {
   it('"Amueblar" al pie pasa al paso 2', async () => {
     render(<PanelEstancia />)

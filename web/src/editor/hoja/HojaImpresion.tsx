@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { cajaPlanta } from '../../nucleo'
+import { cajaPlanta, superficie } from '../../nucleo'
 import { textos } from '../../textos'
+import { formatoMetros } from '../comunes/formatos'
 import Icono from '../comunes/Icono'
 import SinFallos from '../comunes/SinFallos'
 import { hayWebgl } from '../comunes/webgl'
@@ -64,7 +65,7 @@ export default function HojaImpresion({ alCerrar }: { alCerrar(): void }) {
         <header className="hoja-impresion__cabecera">
           <h1>{nombre ?? t.sinNombre}</h1>
           <p className="hoja-impresion__fecha">{fecha}</p>
-          <p>{`${textos.nuevaEstancia.tipos[estancia.tipo]} · ${t.dimensiones(Math.round(caja.maxX - caja.minX), Math.round(caja.maxY - caja.minY), estancia.alto)}`}</p>
+          <p>{`${textos.nuevaEstancia.tipos[estancia.tipo]} · ${t.dimensiones(Math.round(caja.maxX - caja.minX), Math.round(caja.maxY - caja.minY), estancia.alto)} · ${t.superficie(formatoMetros(superficie(estancia.planta) / 10000))}`}</p>
         </header>
 
         <PlanoDelDiseno doc={doc} rayado="hoja-rayado" className="hoja-impresion__plano" />

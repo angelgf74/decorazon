@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { formatoFecha, formatoPrecio, hoy, leerPrecio } from './formatos'
+import { formatoFecha, formatoMetros, formatoPrecio, hoy, leerPrecio } from './formatos'
+
+describe('formatoMetros', () => {
+  it('coma decimal, como mucho 2 decimales y sin ceros de más', () => {
+    expect(formatoMetros(12)).toBe('12')
+    expect(formatoMetros(13.2)).toBe('13,2')
+    expect(formatoMetros(10.555)).toBe('10,56')
+    expect(formatoMetros(0)).toBe('0')
+  })
+})
 
 describe('formatos de los muebles de tienda', () => {
   it('precio en euros a la española', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areaConSigno, cajaPlanta, contienePunto, distanciaAlBorde, distanciaPuntoSegmento, desplazarPoligono, distanciaSegmentos, esSimple, puntoInterior } from './poligono'
+import { areaConSigno, cajaPlanta, contienePunto, distanciaAlBorde, distanciaPuntoSegmento, desplazarPoligono, distanciaSegmentos, esSimple, perimetro, puntoInterior, superficie } from './poligono'
 
 const sala = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 0, y: 330 }]
 
@@ -40,6 +40,20 @@ describe('poligono', () => {
   it('desplazarPoligono: aristas colineales usan el punto desplazado', () => {
     const conPuntoIntermedio = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 0, y: 330 }]
     expect(desplazarPoligono(conPuntoIntermedio, 10)[1]).toEqual({ x: 200, y: -10 })
+  })
+})
+
+describe('superficie y perimetro', () => {
+  const ele = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 200, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 300 }, { x: 0, y: 300 }]
+
+  it('superficie en cm², siempre positiva, también de una L', () => {
+    expect(superficie(sala)).toBe(132000)
+    expect(superficie([...sala].reverse())).toBe(132000)
+    expect(superficie(ele)).toBe(40000)
+  })
+  it('perímetro: suma de las paredes', () => {
+    expect(perimetro(sala)).toBe(1460)
+    expect(perimetro(ele)).toBe(1000)
   })
 })
 

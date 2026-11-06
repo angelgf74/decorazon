@@ -22,7 +22,7 @@ describe('HojaImpresion', () => {
     render(<HojaImpresion alCerrar={() => {}} />)
     const hoja = screen.getByRole('dialog', { name: 'Hoja para imprimir' })
     expect(within(hoja).getByRole('heading', { level: 1, name: 'Mi diseño' })).toBeInTheDocument()
-    expect(within(hoja).getByText(/Cocina · 400 × 300 cm, 250 cm de alto/)).toBeInTheDocument()
+    expect(within(hoja).getByText(/Cocina · 400 × 300 cm, 250 cm de alto · 12 m²/)).toBeInTheDocument()
 
     const plano = within(hoja).getByRole('img', { name: 'Plano' })
     const textos = [...plano.querySelectorAll('text')].map((n) => n.textContent)
