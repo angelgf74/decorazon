@@ -31,7 +31,8 @@
   display: flex;
   align-items: center;
   gap: var(--esp-2);
-  max-width: calc(100% - 10rem);
+  /* Deja sitio a los controles de la derecha (Medir, zoom y Encuadrar: unos 11,5 rem) sin pisarlos. */
+  max-width: calc(100% - 13rem);
   padding: 0.25rem 0.25rem 0.25rem 0.9rem;
   border-radius: 999px;
   background: var(--tinta);
@@ -50,7 +51,7 @@
 @media (max-width: 767px) {
   .lienzo__zoom, .lienzo__separador { display: none; }
   /* En un móvil el plano es pequeño: solo las dos primeras pistas, que son las que importan en cada paso. */
-  .lienzo__pistas { max-width: calc(100% - 4.5rem); }
+  .lienzo__pistas { max-width: calc(100% - 7.5rem); }
   .lienzo__pistas li:nth-child(n + 3) { display: none; }
   .lienzo__pistas li:nth-child(2)::after { content: none; }
 }
