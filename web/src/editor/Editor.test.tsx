@@ -7,9 +7,14 @@ import { catalogoBase, elementoNuevo } from '../nucleo'
 import { textos } from '../textos'
 import { almacen, reiniciarAlmacen } from './estado/almacen'
 import { conflictosDe } from './estado/conflictos'
+import * as descargas from './comunes/descargar'
 import Editor from './Editor'
 
 const carga = vi.hoisted(() => ({ fallosPendientes: 0 }))
+const webgl = vi.hoisted(() => ({ hay: false }))
+vi.mock('./comunes/webgl', () => ({ hayWebgl: () => webgl.hay }))
+// La captura 3D de verdad necesita WebGL: aquí es un marcador que nunca captura.
+vi.mock('./vista3d/Captura3D', () => ({ default: () => <p>captura 3d</p> }))
 const precarga = vi.hoisted(() => ({ cancelar: vi.fn(), precargar: vi.fn() }))
 
 vi.mock('./vista3d/precargar', () => ({ precargarVista3D: precarga.precargar }))
@@ -181,5 +186,66 @@ describe('Editor: hoja para imprimir', () => {
     // Deshacer tampoco: quitaría la cama recién añadida.
     await userEvent.keyboard('{Control>}z{/Control}')
     expect(almacen.getState().documento!.elementos).toHaveLength(1)
+  })
+})
+
+describe('Editor: descargas del menú', () => {
+  it('"Descargar diseño" descarga «Mi diseño.decorazon.json» con el diseño del editor', async () => {
+    almacen.getState().cambiarVista('2d')
+    const descargar = vi.spyOn(descargas, 'descargar').mockImplementation(() => {})
+    render(<Editor />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: textos.barra.descargarDiseno }))
+    expect(descargar).toHaveBeenCalledOnce()
+    const [nombre, blob] = descargar.mock.calls[0]!
+    expect(nombre).toBe('Mi diseño.decorazon.json')
+    expect(JSON.parse(await (blob as Blob).text())).toEqual(almacen.getState().documento)
+    descargar.mockRestore()
+  })
+
+  it('"Descargar plano" descarga «Mi diseño - plano.svg» (sin canvas, el svg)', async () => {
+    almacen.getState().cambiarVista('2d')
+    const descargar = vi.spyOn(descargas, 'descargar').mockImplementation(() => {})
+    render(<Editor />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: textos.barra.descargarPlano }))
+    await vi.waitFor(() => expect(descargar).toHaveBeenCalledOnce())
+    expect(descargar.mock.calls[0]![0]).toBe('Mi diseño - plano.svg')
+    descargar.mockRestore()
+  })
+
+  it('"Descargar imagen 3D" sin WebGL avisa y no descarga nada', async () => {
+    almacen.getState().cambiarVista('2d')
+    const descargar = vi.spyOn(descargas, 'descargar').mockImplementation(() => {})
+    render(<Editor />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: textos.barra.descargarImagen }))
+    expect(await screen.findByText(textos.hoja.sin3d)).toBeInTheDocument()
+    expect(descargar).not.toHaveBeenCalled()
+    descargar.mockRestore()
+  })
+})
+
+describe('Editor: la captura de la imagen 3D y «Nuevo diseño»', () => {
+  it('empezar un diseño nuevo a mitad de la captura la anula: la estancia siguiente no descarga nada ni dice «Preparando…»', async () => {
+    almacen.getState().cambiarVista('2d')
+    webgl.hay = true
+    const descargar = vi.spyOn(descargas, 'descargar').mockImplementation(() => {})
+    render(<Editor />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: textos.barra.descargarImagen }))
+    expect(await screen.findByText('captura 3d')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    expect(screen.getByRole('button', { name: textos.barra.preparandoImagen })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: textos.barra.nuevoDiseno }))
+    await userEvent.click(screen.getByRole('button', { name: textos.comun.aceptar }))
+    expect(almacen.getState().documento).toBeNull()
+    act(() => almacen.getState().crear('cocina', 300, 250, 250))
+    expect(screen.queryByText('captura 3d')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    expect(screen.getByRole('button', { name: textos.barra.descargarImagen })).toBeEnabled()
+    expect(descargar).not.toHaveBeenCalled()
+    descargar.mockRestore()
+    webgl.hay = false
   })
 })

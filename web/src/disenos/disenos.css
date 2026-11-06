@@ -9,6 +9,7 @@
 
 .disenos__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .disenos__cabecera h1 { margin: 0; color: var(--terracota); }
+.disenos__cabecera-acciones { display: flex; flex-wrap: wrap; gap: var(--esp-2); }
 .disenos__aviso { margin: 0; padding: 0.6rem 0.75rem; border-radius: 0.5rem; background: var(--crema); border: 1px solid var(--amarillo); }
 .disenos__vacio { color: var(--gris); }
 

@@ -78,7 +78,9 @@ button.peligro:hover:not(:disabled) { background: #fbeceb; }
 .boton-icono { width: var(--objetivo); padding: 0; flex: none; }
 
 /* Anillo doble: el oscuro destaca sobre fondos claros y el amarillo sobre los oscuros. */
-:is(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+:is(button, a, input, select, textarea, summary, [tabindex]):focus-visible,
+/* Un campo de fichero oculto tras una etiqueta con aspecto de botón: el anillo va en la etiqueta, que es lo que se ve. */
+label.boton:has(+ input.solo-lectores:focus-visible) {
   outline: 2px solid var(--tinta);
   outline-offset: 2px;
   box-shadow: 0 0 0 5px var(--amarillo);

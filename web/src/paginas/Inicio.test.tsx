@@ -5,6 +5,8 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { CLAVE_SESION, reiniciarSesion } from '../cuenta/sesion'
 import { almacen, reiniciarAlmacen } from '../editor/estado/almacen'
+import { catalogoBase, documentoNuevo, elementoNuevo } from '../nucleo'
+import { textos } from '../textos'
 import Inicio from './Inicio'
 
 function montar() {
@@ -79,5 +81,44 @@ describe('Inicio', () => {
     const empezar = screen.getByRole('link', { name: 'Empezar a diseñar' })
     expect(empezar).toHaveClass('primario')
     expect(empezar.compareDocumentPosition(screen.getByRole('link', { name: 'Entrar' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+})
+
+describe('Inicio: abrir un fichero', () => {
+  const ficheroValido = () => new File([JSON.stringify(documentoNuevo('cocina', 300, 250, 250))], 'Cocina.decorazon.json', { type: 'application/json' })
+  const subir = (fichero: File) => userEvent.upload(screen.getByLabelText(textos.importar.abrir), fichero)
+
+  it('con un fichero válido y sin diseño en el navegador, lo abre en el editor', async () => {
+    montar()
+    await subir(ficheroValido())
+    expect(await screen.findByText('pantalla del editor')).toBeInTheDocument()
+    const doc = almacen.getState().documento!
+    expect(doc.estancia.tipo).toBe('cocina')
+    expect(almacen.getState().origen.tipo).toBe('anonimo')
+  })
+
+  it('con un diseño en el navegador (con algo dentro) pregunta antes; «Cancelar» no cambia nada', async () => {
+    almacen.getState().crear('salon', 400, 330, 250)
+    almacen.getState().cambiar((d) => ({ ...d, elementos: [elementoNuevo(catalogoBase.get('sofa')!, { x: 200, y: 165 }, 's')] }))
+    montar()
+    await subir(ficheroValido())
+    expect(await screen.findByText(textos.importar.sustituir)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: textos.comun.cancelar }))
+    expect(almacen.getState().documento!.estancia.tipo).toBe('salon')
+    expect(screen.queryByText('pantalla del editor')).toBeNull()
+    // Y el mismo fichero se puede volver a elegir: el campo se vacía.
+    await subir(ficheroValido())
+    expect(await screen.findByText(textos.importar.sustituir)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: textos.compartir.sustituir }))
+    expect(await screen.findByText('pantalla del editor')).toBeInTheDocument()
+    expect(almacen.getState().documento!.estancia.tipo).toBe('cocina')
+  })
+
+  it('con un fichero que no es un diseño avisa y no cambia nada', async () => {
+    montar()
+    await subir(new File(['{"formato":1}'], 'otra-cosa.json', { type: 'application/json' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(textos.importar.noValido)
+    expect(almacen.getState().documento).toBeNull()
+    expect(screen.queryByText('pantalla del editor')).toBeNull()
   })
 })

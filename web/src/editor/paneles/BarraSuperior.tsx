@@ -61,6 +61,8 @@ interface Opcion {
   texto: string
   title?: string
   className?: string
+  /** Una acción en marcha (preparar la imagen 3D): la opción se enseña pero no se puede volver a pulsar. */
+  disabled?: boolean
   alElegir(): void
 }
 
@@ -97,7 +99,7 @@ function MenuMas({ opciones }: { opciones: Opcion[] }) {
         <div className="menu__lista" role="group" aria-label={t.mas}>
           {opciones.map((o) => (
             <button key={o.texto} type="button" className={`menu__opcion${o.className ? ` ${o.className}` : ''}`} title={o.title}
-              onClick={() => { cerrar(); o.alElegir() }}>
+              disabled={o.disabled} onClick={() => { cerrar(); o.alElegir() }}>
               <Icono nombre={o.icono} />{o.texto}
             </button>
           ))}
@@ -107,8 +109,18 @@ function MenuMas({ opciones }: { opciones: Opcion[] }) {
   )
 }
 
-/** `alImprimir` abre la hoja para imprimir o guardar como PDF. */
-export default function BarraSuperior({ alImprimir }: { alImprimir?: () => void }) {
+interface Props {
+  /** Abre la hoja para imprimir o guardar como PDF. */
+  alImprimir?: () => void
+  /** Descargas del menú; cada una existe solo si se pasa su función. */
+  alDescargarImagen?: () => void
+  /** Mientras se captura la imagen 3D: la opción lo dice y no se puede repetir. */
+  preparandoImagen?: boolean
+  alDescargarPlano?: () => void
+  alDescargarDiseno?: () => void
+}
+
+export default function BarraSuperior({ alImprimir, alDescargarImagen, preparandoImagen = false, alDescargarPlano, alDescargarDiseno }: Props) {
   const paso = useEditor((e) => e.paso)
   const guardado = useEditor((e) => e.guardado)
   const nombreDiseno = useEditor((e) => (e.origen.tipo === 'servidor' ? e.origen.nombre : null))
@@ -141,6 +153,11 @@ export default function BarraSuperior({ alImprimir }: { alImprimir?: () => void 
   const opciones: Opcion[] = [
     ...(nombreDiseno === null ? [{ icono: 'nuevo', texto: t.nuevoDiseno, alElegir: () => setConfirmando(true) } satisfies Opcion] : []),
     ...(alImprimir ? [{ icono: 'imprimir', texto: textos.hoja.imprimir, alElegir: alImprimir } satisfies Opcion] : []),
+    ...(alDescargarImagen
+      ? [{ icono: 'descargar', texto: preparandoImagen ? t.preparandoImagen : t.descargarImagen, disabled: preparandoImagen, alElegir: alDescargarImagen } satisfies Opcion]
+      : []),
+    ...(alDescargarPlano ? [{ icono: 'descargar', texto: t.descargarPlano, alElegir: alDescargarPlano } satisfies Opcion] : []),
+    ...(alDescargarDiseno ? [{ icono: 'descargar', texto: t.descargarDiseno, alElegir: alDescargarDiseno } satisfies Opcion] : []),
     // En móvil la sugerencia va en las pestañas de abajo (al alcance del pulgar): aquí se oculta por CSS.
     { icono: 'sugerencia', texto: textos.sugerencias.abrir, title: textos.sugerencias.pista, className: 'menu__sugerencia', alElegir: () => setSugiriendo(true) },
   ]

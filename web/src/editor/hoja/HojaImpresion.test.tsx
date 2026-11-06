@@ -70,3 +70,23 @@ describe('HojaImpresion', () => {
     expect(alCerrar).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('HojaImpresion con el documento por props (vista compartida)', () => {
+  it('con doc y nombre no lee el almacén: pinta ese diseño con ese nombre', () => {
+    const doc = almacen.getState().documento!
+    reiniciarAlmacen()
+    expect(almacen.getState().documento).toBeNull()
+    render(<HojaImpresion doc={doc} nombre="Baño de arriba" alCerrar={() => {}} />)
+    const hoja = screen.getByRole('dialog', { name: 'Hoja para imprimir' })
+    expect(within(hoja).getByRole('heading', { level: 1, name: 'Baño de arriba' })).toBeInTheDocument()
+    expect(within(hoja).getByRole('img', { name: 'Plano' })).toBeInTheDocument()
+    expect(within(within(hoja).getByRole('table')).getByText('Armario')).toBeInTheDocument()
+  })
+
+  it('con doc pero sin nombre, «Mi diseño»', () => {
+    const doc = almacen.getState().documento!
+    reiniciarAlmacen()
+    render(<HojaImpresion doc={doc} alCerrar={() => {}} />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Mi diseño' })).toBeInTheDocument()
+  })
+})

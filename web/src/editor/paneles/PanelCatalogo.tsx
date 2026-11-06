@@ -193,8 +193,8 @@ function useRecientesQuietos(recientes: string[]): { recientes: string[]; onPoin
   const [vistos, setVistos] = useState(recientes)
   const puntero = useRef(false)
   const actuales = useRef(recientes)
-  actuales.current = recientes
   useEffect(() => {
+    actuales.current = recientes
     if (!puntero.current) setVistos(recientes)
   }, [recientes])
   return {

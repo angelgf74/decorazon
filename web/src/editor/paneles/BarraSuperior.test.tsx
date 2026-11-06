@@ -248,3 +248,41 @@ describe('BarraSuperior con sesión y un diseño anónimo', () => {
     expect(screen.queryByRole('button', { name: 'Guardar en mi cuenta' })).toBeNull()
   })
 })
+
+describe('BarraSuperior: descargas en el menú', () => {
+  const nombres = ['Descargar imagen 3D', 'Descargar plano', 'Descargar diseño'] as const
+
+  it('con el menú cerrado no están; abierto, están tras Imprimir y cada una devuelve el foco a "Más acciones" antes de actuar', async () => {
+    const llamadas: string[] = []
+    const alDescargar = (nombre: string) => vi.fn(() => {
+      expect(screen.getByRole('button', { name: 'Más acciones' })).toHaveFocus()
+      llamadas.push(nombre)
+    })
+    const [imagen, plano, diseno] = nombres.map(alDescargar)
+    render(<BarraSuperior alImprimir={() => {}} alDescargarImagen={imagen} alDescargarPlano={plano} alDescargarDiseno={diseno} />, { wrapper: MemoryRouter })
+    for (const n of nombres) expect(screen.queryByRole('button', { name: n })).toBeNull()
+    for (const n of nombres) {
+      await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+      const opciones = screen.getAllByRole('button').filter((b) => b.classList.contains('menu__opcion')).map((b) => b.textContent)
+      expect(opciones.indexOf('Imprimir')).toBeLessThan(opciones.indexOf(n))
+      await userEvent.click(screen.getByRole('button', { name: n }))
+      expect(screen.queryByRole('button', { name: n })).toBeNull()
+    }
+    expect(llamadas).toEqual([...nombres])
+  })
+
+  it('mientras se prepara la imagen 3D, la opción lo dice y no se puede volver a pulsar', async () => {
+    const imagen = vi.fn()
+    render(<BarraSuperior alDescargarImagen={imagen} preparandoImagen />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    const opcion = screen.getByRole('button', { name: 'Preparando la imagen 3D…' })
+    expect(opcion).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Descargar imagen 3D' })).toBeNull()
+  })
+
+  it('sin las funciones de descarga, el menú no las ofrece', async () => {
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    for (const n of nombres) expect(screen.queryByRole('button', { name: n })).toBeNull()
+  })
+})
