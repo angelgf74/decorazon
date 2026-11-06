@@ -119,20 +119,17 @@ function Grupo({ titulo, tipos, centro, alPulsarAsa, conDedo }: PropsGrupo) {
   return (
     <section className="panel-catalogo__grupo" aria-labelledby={id}>
       <h2 id={id} className="panel__titulo">{titulo}</h2>
-      <ul>
+      <ul className="panel-catalogo__rejilla">
         {tipos.map((def) => (
           <li key={def.id}>
             {/* El clic que sigue a soltar el asa no cuenta como pulsar la tarjeta. */}
             <button type="button" draggable className="panel-catalogo__tipo" onDragStart={empezarArrastre(def)}
               onClick={(ev) => { if (!(ev.target as Element).closest('.panel-catalogo__asa')) anadirTipo(def.id, centro) }}>
+              <span className="panel-catalogo__nombre">{capitalizar(def.nombre)}</span>{' '}
+              <small>{`${def.medidas.ancho.defecto} × ${def.medidas.fondo.defecto} cm`}</small>
               <span className="panel-catalogo__asa" aria-hidden="true" onPointerDown={alPulsarAsa(def)}>
                 <Icono nombre="mover" />
               </span>
-              <span className="panel-catalogo__texto">
-                <span className="panel-catalogo__nombre">{capitalizar(def.nombre)}</span>{' '}
-                <small>{`${def.medidas.ancho.defecto} × ${def.medidas.fondo.defecto} cm`}</small>
-              </span>
-              <Icono nombre="mas" />
             </button>
           </li>
         ))}
@@ -151,6 +148,8 @@ const normalizar = (texto: string) => texto.normalize('NFD').replace(/\p{Diacrit
 export default function PanelCatalogo({ alEmpezarArrastre }: { alEmpezarArrastre?: () => void }) {
   const estancia = useEditor((e) => e.documento?.estancia)
   const [busqueda, setBusqueda] = useState('')
+  // Chip pulsado: solo ese grupo a la vista; sin ninguno, todos.
+  const [grupoElegido, setGrupoElegido] = useState<string | null>(null)
   const idBuscar = useId()
   const { alPulsarAsa, enCurso, fantasma } = useArrastreConDedo(alEmpezarArrastre)
   if (!estancia) return null
@@ -158,11 +157,14 @@ export default function PanelCatalogo({ alEmpezarArrastre }: { alEmpezarArrastre
   const centro = puntoInterior(estancia.planta)
   const buscado = normalizar(busqueda)
   const filtrar = (tipos: DefinicionTipo[]) => tipos.filter((d) => normalizar(d.nombre).includes(buscado))
-  const grupos = [
-    { titulo: `${t.paraTu} ${t.estancias[estancia.tipo]}`, tipos: filtrar(deLaEstancia) },
-    { titulo: t.decoracion, tipos: filtrar(decoracion) },
-    { titulo: t.otros, tipos: filtrar(otros) },
-  ]
+  const todos = [
+    { titulo: `${t.paraTu} ${t.estancias[estancia.tipo]}`, tipos: deLaEstancia },
+    { titulo: t.decoracion, tipos: decoracion },
+    { titulo: t.otros, tipos: otros },
+  ].filter((g) => g.tipos.length > 0)
+  const grupos = todos
+    .filter((g) => grupoElegido === null || g.titulo === grupoElegido)
+    .map((g) => ({ ...g, tipos: filtrar(g.tipos) }))
   const conDedo = () => enCurso.current
   return (
     <div className="panel-catalogo">
@@ -170,6 +172,14 @@ export default function PanelCatalogo({ alEmpezarArrastre }: { alEmpezarArrastre
         <label htmlFor={idBuscar} className="solo-lectores">{t.buscar}</label>
         <Icono nombre="buscar" />
         <input id={idBuscar} type="search" placeholder={t.buscar} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+      </div>
+      <div className="panel-catalogo__chips" role="group" aria-label={t.grupos}>
+        {todos.map((g) => (
+          <button key={g.titulo} type="button" className="chip" aria-pressed={grupoElegido === g.titulo}
+            onClick={() => setGrupoElegido((actual) => (actual === g.titulo ? null : g.titulo))}>
+            {g.titulo}
+          </button>
+        ))}
       </div>
       <p className="panel__nota">{t.ayuda}</p>
       {grupos.every((g) => g.tipos.length === 0) && <p className="panel__nota" role="status">{t.sinResultados}</p>}

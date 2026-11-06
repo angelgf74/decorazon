@@ -23,6 +23,10 @@
 .editor__izquierda { border-right: 1px solid var(--borde-suave); }
 .editor__derecha { display: flex; flex-direction: column; gap: var(--esp-4); border-left: 1px solid var(--borde-suave); }
 .panel-propiedades { display: flex; flex-direction: column; flex: 1 1 auto; }
+/* El panel ocupa todo el alto de la columna para que "Amueblar" quede al pie, nunca a menos de esp-6 de lo anterior. */
+.panel-estancia { display: flex; flex-direction: column; min-height: 100%; }
+.panel-estancia__pie { display: flex; margin-top: auto; padding-top: var(--esp-6); }
+.panel-estancia__siguiente { flex: 1 1 auto; justify-content: center; }
 /* Sin nada que enseñar, en escritorio la columna derecha desaparece y el plano gana su sitio (en móvil manda la hoja). */
 @media (min-width: 768px) {
   .editor__cuerpo--sin-panel { grid-template-columns: 18rem 1fr; }
@@ -271,35 +275,54 @@
 }
 .panel-catalogo__buscar .icono { position: absolute; left: calc(var(--esp-4) + 0.65rem); color: var(--gris); pointer-events: none; }
 .panel-catalogo__buscar input[type='search'] { width: 100%; padding-left: 2.25rem; }
+/* Chips de grupo: uno pulsado deja solo ese grupo. */
+.panel-catalogo__chips { display: flex; flex-wrap: wrap; gap: var(--esp-1) 0.4rem; margin-top: var(--esp-2); }
+.chip {
+  min-height: 2rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--borde-suave);
+  border-radius: 999px;
+  font-size: var(--texto-s);
+  font-weight: 600;
+}
+.chip[aria-pressed='true'] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.chip[aria-pressed='true']:hover:not(:disabled) { background: var(--tinta); }
+
 .panel-catalogo__grupo { margin-top: var(--esp-4); }
-.panel-catalogo__grupo ul { display: flex; flex-direction: column; gap: var(--esp-1); margin: 0; padding: 0; list-style: none; }
+/* Tarjetas en dos columnas: nombre y medidas; pulsar añade, arrastrar coloca. */
+.panel-catalogo__rejilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--esp-2); margin: 0; padding: 0; list-style: none; }
 .panel-catalogo__tipo {
+  position: relative;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
   width: 100%;
-  justify-content: space-between;
-  gap: var(--esp-2);
+  min-height: 3.75rem;
   padding: var(--esp-2) var(--esp-3);
   border-color: var(--borde-suave);
   text-align: left;
 }
-.panel-catalogo__tipo:hover:not(:disabled) { border-color: var(--borde); }
-.panel-catalogo__texto { display: flex; flex: 1; flex-direction: column; min-width: 0; }
-.panel-catalogo__nombre { font-size: var(--texto-m); font-weight: 600; }
+.panel-catalogo__tipo:hover:not(:disabled) { border-color: var(--borde); box-shadow: 0 2px 8px rgb(43 38 34 / 0.08); }
+.panel-catalogo__nombre { font-size: var(--texto-m); font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
 .panel-catalogo__tipo small { color: var(--gris); font-size: var(--texto-s); white-space: nowrap; }
-.panel-catalogo__tipo .icono { color: var(--terracota); }
 @media (pointer: fine) { .panel-catalogo__tipo { cursor: grab; } }
-/* Con el dedo la lista se desplaza: se arrastra solo desde el asa, que ocupa todo el alto de la tarjeta. */
+/* Con el dedo la lista se desplaza: se arrastra solo desde el asa, en la esquina de la tarjeta. */
 .panel-catalogo__asa { display: none; }
 @media (pointer: coarse) {
+  .panel-catalogo__tipo { padding-right: 2.25rem; }
   .panel-catalogo__asa {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
     display: grid;
     place-items: center;
-    align-self: stretch;
-    min-width: var(--objetivo);
-    margin: calc(-1 * var(--esp-2)) 0 calc(-1 * var(--esp-2)) calc(-1 * var(--esp-3));
+    width: 2.25rem;
+    color: var(--gris);
     touch-action: none;
     user-select: none;
   }
-  .panel-catalogo__tipo .panel-catalogo__asa .icono { color: var(--gris); }
 }
 .panel-catalogo__fantasma {
   position: fixed;

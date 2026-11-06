@@ -137,6 +137,12 @@ export default function PanelEstancia() {
         </div>
         <p className="panel__nota">{paredElegida === null ? t.dondeSeAnade : t.dondeSeAnadePared(paredElegida + 1)}</p>
       </Seccion>
+      {/* El paso 1 acaba aquí: el siguiente, al pie, sin subir a la barra. */}
+      <div className="panel-estancia__pie">
+        <button type="button" className="primario panel-estancia__siguiente" onClick={() => almacen.getState().irAPaso(2)}>
+          {textos.barra.amueblar}<Icono nombre="flecha" />
+        </button>
+      </div>
     </div>
   )
 }

@@ -71,6 +71,35 @@ describe('PanelCatalogo en una L', () => {
     expect(contienePunto(ele, armario.posicion)).toBe(true)
   })
 
+  it('los chips dejan un solo grupo a la vista; volver a pulsarlo enseña todos', async () => {
+    almacen.getState().crear('dormitorio', 400, 330, 250)
+    render(<PanelCatalogo />)
+    const chips = within(screen.getByRole('group', { name: textos.catalogo.grupos })).getAllByRole('button')
+    expect(chips.map((c) => c.textContent)).toEqual(['Para tu dormitorio', 'Decoración', 'Otros muebles'])
+    expect(chips.every((c) => c.getAttribute('aria-pressed') === 'false')).toBe(true)
+    expect(screen.getAllByRole('region')).toHaveLength(3)
+
+    await userEvent.click(chips[1]!)
+    expect(chips[1]).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getAllByRole('region')).toHaveLength(1)
+    expect(screen.getByRole('region', { name: 'Decoración' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Armario(?! de espejo| esquinero)/ })).toBeNull()
+
+    await userEvent.click(chips[1]!)
+    expect(chips[1]).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getAllByRole('region')).toHaveLength(3)
+  })
+
+  it('el buscador filtra dentro del grupo elegido', async () => {
+    almacen.getState().crear('dormitorio', 400, 330, 250)
+    render(<PanelCatalogo />)
+    await userEvent.click(screen.getByRole('button', { name: 'Otros muebles' }))
+    await userEvent.type(screen.getByRole('searchbox', { name: textos.catalogo.buscar }), 'lampara')
+    expect(screen.getByText(textos.catalogo.sinResultados)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Otros muebles' }))
+    expect(screen.getByRole('button', { name: /^Lámpara de pie/ })).toBeInTheDocument()
+  })
+
   it('el buscador filtra sin distinguir mayúsculas ni tildes', async () => {
     almacen.getState().crear('dormitorio', 400, 330, 250)
     render(<PanelCatalogo />)
