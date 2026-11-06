@@ -269,6 +269,14 @@ describe('Editor: guía del primer uso', () => {
     expect(localStorage.getItem('decorazon.guia')).toBe('vista')
   })
 
+  it('si el editor estaba en 3D, la guía vuelve al plano 2D: sus pasos hablan de esquinas y del plano', () => {
+    render(<Editor />, { wrapper: MemoryRouter })
+    almacen.getState().cambiarVista('3d')
+    act(() => almacen.getState().crear('dormitorio', 400, 330, 250))
+    expect(screen.getByRole('region', { name: t.titulo })).toBeInTheDocument()
+    expect(almacen.getState().vista).toBe('2d')
+  })
+
   it('con la marca puesta no se enseña', () => {
     localStorage.setItem('decorazon.guia', 'vista')
     render(<Editor />, { wrapper: MemoryRouter })

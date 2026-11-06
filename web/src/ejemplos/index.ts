@@ -27,7 +27,7 @@ const dormitorio: DocumentoDiseno = estancia('dormitorio', 400, 330, {
   ],
 })
 
-/** Salón de 450 × 380: sofá frente al mueble de TV, mesa de centro, sillón, estantería y una planta junto a la puerta. */
+/** Salón de 450 × 380: sofá frente al mueble de TV, mesa de centro, sillón, lámpara, y estantería con una planta al lado; la puerta abajo a la izquierda. */
 const salon: DocumentoDiseno = estancia('salon', 450, 380, {
   aberturas: [puerta('puerta', 3, 30), ventana('ventana', 1, 100, 150)],
   elementos: [

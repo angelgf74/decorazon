@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { textos } from '../textos'
+import { almacen, reiniciarAlmacen } from './estado/almacen'
 import GuiaInicial from './GuiaInicial'
 import { CLAVE_GUIA, guiaVista, marcarGuiaVista } from './marcaDeGuia'
 
@@ -54,6 +55,31 @@ describe('GuiaInicial', () => {
     await userEvent.keyboard('{Escape}')
     expect(alCerrar).toHaveBeenCalledOnce()
     expect(guiaVista()).toBe(true)
+  })
+
+  it('Escape con el foco fuera de la guía (un campo, el plano) no la cierra: es de quien lo tenga', async () => {
+    const alCerrar = vi.fn()
+    render(<><input aria-label="campo" /><GuiaInicial alCerrar={alCerrar} /></>)
+    screen.getByRole('textbox', { name: 'campo' }).focus()
+    await userEvent.keyboard('{Escape}')
+    expect(alCerrar).not.toHaveBeenCalled()
+    expect(guiaVista()).toBe(false)
+  })
+
+  it('el anillo se vuelve a colocar cuando cambia el estado del editor (el panel abre y el plano se mueve)', () => {
+    let desplazamiento = 0
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const x = this.classList.contains('lienzo__svg') ? 100 + desplazamiento : 0
+      return { x, y: 50, left: x, top: 50, right: x + 300, bottom: 250, width: 300, height: 200, toJSON: () => ({}) } as DOMRect
+    })
+    reiniciarAlmacen()
+    almacen.getState().crear('salon', 400, 330, 250)
+    render(<><svg className="lienzo__svg" /><GuiaInicial alCerrar={() => {}} /></>)
+    const anillo = document.querySelector<HTMLElement>('.guia__objetivo')!
+    expect(anillo.style.left).toBe('94px')
+    desplazamiento = 200
+    act(() => almacen.getState().seleccionar({ tipo: 'vertice', indice: 0 }))
+    expect(anillo.style.left).toBe('294px')
   })
 
   it('con un localStorage que lanza, no rompe: la guía se enseña y se puede saltar', async () => {

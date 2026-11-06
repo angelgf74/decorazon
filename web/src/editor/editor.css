@@ -174,6 +174,10 @@
   transform: translateX(-50%);
 }
 .guia:focus { outline: none; }
+/* Si lo que señala el paso queda detrás de la tarjeta (el zoom en un móvil), la tarjeta pasa arriba, bajo la barra. */
+.guia--arriba { top: 4.5rem; bottom: auto; }
+/* Los avisos del editor comparten sitio con la tarjeta: con la guía abajo, suben; con ella arriba, se quedan. */
+.editor:has(.guia:not(.guia--arriba)) .editor__aviso { top: 4.5rem; bottom: auto; }
 .guia__paso { margin: 0; color: var(--gris); font-size: var(--texto-s); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
 .guia__titulo { margin: var(--esp-1) 0 0; font-size: 1.1rem; }
 .guia__texto { margin: var(--esp-2) 0 0; line-height: 1.45; }
@@ -540,6 +544,8 @@
     transform: translateX(-50%);
   }
   .editor__aviso { bottom: calc(4.75rem + env(safe-area-inset-bottom)); }
-  /* Por encima de las pestañas de abajo. */
+  /* Por encima de las pestañas de abajo; arriba, bajo la barra de dos filas. */
   .guia { bottom: calc(4.25rem + env(safe-area-inset-bottom)); }
+  .guia--arriba { top: 6.5rem; bottom: auto; }
+  .editor:has(.guia:not(.guia--arriba)) .editor__aviso { top: 6.5rem; bottom: auto; }
 }

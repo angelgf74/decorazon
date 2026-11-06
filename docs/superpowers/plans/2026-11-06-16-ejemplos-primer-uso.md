@@ -53,7 +53,12 @@
 - Los e2e llevan la marca puesta con `storageState` (`e2e/estado-sin-guia.json`) en las dos configuraciones; `ejemplos.spec.ts` la quita en su `describe` de la guía.
 - M-18: el test de cambiar el tipo con muebles pasa sin tocar código (los muebles se conservan y el catálogo reordena): se cierra como realizada con esa nota.
 
+## Revisión final (6 nov 2026)
+
+Arreglado tras la revisión de la rama: el anillo no se recolocaba al abrirse el panel o la hoja móvil (ahora se mide también con un `ResizeObserver` sobre el plano y con cada cambio del almacén); en móvil la tarjeta tapaba el zoom que señala el paso 3 (si el objetivo se pisa con la tarjeta, esta pasa arriba, `guia--arriba`); Escape desde cualquier sitio (deseleccionar, un campo, un diálogo) cerraba la guía para siempre (ahora solo con el foco en ella); la tarjeta tapaba los avisos del editor (suben con la guía abajo); la guía podía abrirse en 3D (vuelve a 2D); el e2e de la recarga no probaba la marca (ahora crea otra estancia tras recargar).
+
 ## Pendiente
 
+- Menores de la revisión: un diseño nuevo de la cuenta no enseña la guía (el plan lo excluye; decisión de producto); sin almacenamiento sale en cada estancia nueva de la pestaña; en escritorio la tarjeta tapa el «+» de la pared de abajo; el cambio de paso no se anuncia a los lectores y al cerrar el foco cae en `body`; `OBJETIVOS` y `textos.guia.pasos` son listas paralelas; el origen de `estado-sin-guia.json` va fijado a mano; `vi.unstubAllGlobals` fuera de `afterEach` en `Inicio.test.tsx`.
 - La guía no se adapta a la hoja móvil: en el paso 2 señala «2 Amueblar» en la barra, no la pestaña «Catálogo».
 - Las imágenes de los ejemplos pesan 70–85 kB cada una (PNG); un WebP las dejaría en un tercio.

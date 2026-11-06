@@ -73,7 +73,11 @@ export default function Editor() {
   useEffect(() => almacen.subscribe((e, antes) => {
     // «Nuevo diseño» a mitad de una captura la anula: la estancia siguiente no descarga una imagen que nadie pidió.
     if (e.documento === null && antes.documento !== null) setDocCaptura(null)
-    if (antes.documento === null && e.documento !== null && e.origen.tipo === 'anonimo' && !guiaVista()) setGuia(true)
+    if (antes.documento === null && e.documento !== null && e.origen.tipo === 'anonimo' && !guiaVista()) {
+      // La guía habla de esquinas y del plano: en 2D (crear no cambia la vista).
+      if (e.vista === '3d') e.cambiarVista('2d')
+      setGuia(true)
+    }
   }), [])
 
   if (!hayDocumento) return <NuevaEstancia />
