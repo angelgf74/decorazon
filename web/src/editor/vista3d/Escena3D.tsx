@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Compone
 import { useThree } from '@react-three/fiber'
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei'
 import { Object3D, Vector3, type DirectionalLight } from 'three'
-import { cajaPlanta, camaraAPlano, camaraInicial, direccionSol, paredesQueTapan, type DocumentoDiseno, type Vec3 } from '../../nucleo'
+import { cajaPlanta, camaraAPlano, camaraDesdeDentro, camaraInicial, direccionSol, DISTANCIA_MIRADA_M, paredesQueTapan, type DocumentoDiseno, type Vec3 } from '../../nucleo'
 import Estancia3D from './Estancia3D'
 import Mueble3D from './Mueble3D'
 import { useContextoRestaurado } from './usarContextoRestaurado'
@@ -25,7 +25,20 @@ function CamaraInicial({ posicion }: { posicion: Vec3 }) {
   return null
 }
 
-export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false }: { doc: DocumentoDiseno; ocultar: boolean; encuadres: number; sinResaltes?: boolean }) {
+/** Desde dentro se gira la cabeza (el objetivo está a un centímetro): sin zoom ni desplazamiento, mirando arriba y abajo hasta ±73°. */
+const POLAR_DENTRO = 0.3
+const GIRO_DENTRO = 0.5
+
+interface Props {
+  doc: DocumentoDiseno
+  ocultar: boolean
+  encuadres: number
+  sinResaltes?: boolean
+  /** La cámara dentro de la estancia, como al entrar por la puerta (M-09). */
+  desdeDentro?: boolean
+}
+
+export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false, desdeDentro = false }: Props) {
   const [inicial] = useState(() => camaraInicial(doc))
   const camara = useThree((e) => e.camera)
   const invalidate = useThree((e) => e.invalidate)
@@ -34,25 +47,29 @@ export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false 
   const planta = doc.estancia.planta
   useContextoRestaurado()
 
-  // Paredes entre la cámara y la estancia; solo cambia el estado si cambia el conjunto.
+  // Paredes entre la cámara y la estancia; solo cambia el estado si cambia el conjunto. Desde dentro, ninguna.
   const actualizarOcultas = useCallback(() => {
-    const nuevas = ocultar ? new Set(paredesQueTapan(planta, camaraAPlano(camara.position.toArray()))) : SIN_OCULTAS
+    const nuevas = ocultar && !desdeDentro ? new Set(paredesQueTapan(planta, camaraAPlano(camara.position.toArray()))) : SIN_OCULTAS
     // oxlint-disable-next-line react/set-state-in-effect
     setOcultas((previas) => (mismoConjunto(previas, nuevas) ? previas : nuevas))
-  }, [ocultar, planta, camara])
+  }, [ocultar, desdeDentro, planta, camara])
   // Sincroniza con la cámara, que vive fuera de React.
   useEffect(actualizarOcultas, [actualizarOcultas])
 
-  // "Encuadrar": la cámara vuelve a su posición inicial.
-  const anterior = useRef(encuadres)
+  // "Encuadrar" y entrar o salir: la cámara va a la posición inicial del modo (fuera, la de siempre; dentro, la puerta).
+  // Montada ya desde dentro, también entra (el valor previo empieza en «fuera»).
+  const anterior = useRef({ encuadres, desdeDentro: false })
   useEffect(() => {
-    if (anterior.current === encuadres) return
-    anterior.current = encuadres
-    const c = camaraInicial(doc)
+    if (anterior.current.encuadres === encuadres && anterior.current.desdeDentro === desdeDentro) return
+    anterior.current = { encuadres, desdeDentro }
+    const c = desdeDentro ? camaraDesdeDentro(doc) : camaraInicial(doc)
     camara.position.set(...c.posicion)
     controles.current?.target.set(...c.objetivo)
     controles.current?.update()
-  }, [encuadres, doc, camara])
+    // Las paredes que tapan dependen de dónde quedó la cámara (update emite change, pero no en todos los controles).
+    actualizarOcultas()
+    invalidate()
+  }, [encuadres, desdeDentro, doc, camara, invalidate, actualizarOcultas])
   const [objetivoSol] = useState(() => new Object3D())
   const { distanciaMin, distanciaMax, objetivo } = camaraInicial(doc)
   const c = cajaPlanta(doc.estancia.planta)
@@ -74,7 +91,8 @@ export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false 
     invalidate()
   }, [radio, cx, cz, invalidate])
 
-  // Si cambia la caja de la planta (no al editar muebles), el objetivo va al nuevo centro y la cámara lo acompaña.
+  // Si cambia la caja de la planta (no al editar muebles), el objetivo va al nuevo centro y la cámara lo acompaña;
+  // desde dentro, la cámara vuelve a la puerta de la planta nueva.
   const [ox, oy, oz] = objetivo
   const objetivoPrevio = useRef(inicial.objetivo)
   useEffect(() => {
@@ -83,12 +101,18 @@ export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false 
     objetivoPrevio.current = [ox, oy, oz]
     const c = controles.current
     if (!c) return
-    const desplazamiento = new Vector3(ox, oy, oz).sub(c.target)
-    c.target.add(desplazamiento)
-    camara.position.add(desplazamiento)
+    if (desdeDentro) {
+      const dentro = camaraDesdeDentro(doc)
+      camara.position.set(...dentro.posicion)
+      c.target.set(...dentro.objetivo)
+    } else {
+      const desplazamiento = new Vector3(ox, oy, oz).sub(c.target)
+      c.target.add(desplazamiento)
+      camara.position.add(desplazamiento)
+    }
     c.update()
     invalidate()
-  }, [ox, oy, oz, camara, invalidate])
+  }, [ox, oy, oz, camara, invalidate, desdeDentro, doc])
 
   return (
     <>
@@ -116,15 +140,24 @@ export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false 
         <Lightformer name="relleno" form="rect" intensity={0.5} position={[-sol[0] * 5, 1, -sol[2] * 5]} scale={[6, 3, 1]} target={[0, 0, 0]} />
       </Environment>
       <CamaraInicial posicion={inicial.posicion} />
+      {/*
+        Un solo OrbitControls con todas las props explícitas en los dos modos: React reutiliza la misma instancia al
+        cambiar de modo y r3f pone a 0 las props que desaparecen (el constructor lleva argumentos), lo que dejaría la
+        órbita de fuera sin girar. Desde dentro, orbitar a un centímetro del punto que se mira es girar la cabeza; con el
+        objetivo delante, arrastrar a la derecha mira a la derecha.
+      */}
       <OrbitControls
         ref={controles}
         makeDefault
         onChange={actualizarOcultas}
         target={inicial.objetivo}
-        minDistance={distanciaMin}
-        maxDistance={distanciaMax}
-        minPolarAngle={0.1}
-        maxPolarAngle={Math.PI / 2 - 0.05}
+        enableZoom={!desdeDentro}
+        enablePan={!desdeDentro}
+        rotateSpeed={desdeDentro ? GIRO_DENTRO : 1}
+        minDistance={desdeDentro ? DISTANCIA_MIRADA_M : distanciaMin}
+        maxDistance={desdeDentro ? DISTANCIA_MIRADA_M : distanciaMax}
+        minPolarAngle={desdeDentro ? POLAR_DENTRO : 0.1}
+        maxPolarAngle={desdeDentro ? Math.PI - POLAR_DENTRO : Math.PI / 2 - 0.05}
       />
       <Estancia3D doc={doc} ocultas={ocultas} />
       {doc.elementos.map((e) => <Mueble3D key={e.id} elemento={e} sinResaltes={sinResaltes} />)}

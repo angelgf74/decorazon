@@ -268,6 +268,7 @@ export const textos = {
     sinCarga: 'No se pudo cargar la vista 3D. El plano 2D sigue funcionando.',
     volver2d: 'Volver al 2D',
     ocultarParedes: 'Ocultar paredes delante',
+    desdeDentro: 'Desde dentro',
     encuadrar: 'Encuadrar',
   },
   disenos: {

@@ -50,6 +50,24 @@ test('vista 3D: canvas con contenido, sin errores y paredes alternables', async 
   await paredes.click()
   await expect(paredes).toHaveAttribute('aria-pressed', antes!)
 
+  // Desde dentro: la cámara entra por la puerta, las paredes no se ocultan y el lienzo sigue pintando.
+  const dentro = page.getByRole('button', { name: 'Desde dentro' })
+  await dentro.click()
+  await expect(dentro).toHaveAttribute('aria-pressed', 'true')
+  await expect(paredes).toBeDisabled()
+  await expect(lienzo).toBeVisible()
+  await dentro.click()
+  await expect(dentro).toHaveAttribute('aria-pressed', 'false')
+  await expect(paredes).toBeEnabled()
+  // Y la órbita de fuera sigue girando: un arrastre cambia lo que se ve (r3f ponía a 0 las props que desaparecían).
+  const caja = (await lienzo.boundingBox())!
+  const antesDeGirar = await lienzo.screenshot()
+  await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(caja.x + caja.width / 2 + 200, caja.y + caja.height / 2, { steps: 8 })
+  await page.mouse.up()
+  await expect.poll(async () => Buffer.compare(await lienzo.screenshot(), antesDeGirar) !== 0, { timeout: 10000 }).toBe(true)
+
   await page.getByRole('button', { name: '2D', exact: true }).click()
   await expect(page.locator('[data-elemento]')).toHaveCount(2)
   expect(errores).toEqual([])

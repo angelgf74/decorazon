@@ -3,7 +3,7 @@ import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
 import { Vector3, type Camera, type DirectionalLight } from 'three'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { camaraInicial, documentoNuevo, escenaEstancia, type DocumentoDiseno, type Vec3 } from '../../nucleo'
+import { camaraDesdeDentro, camaraInicial, documentoNuevo, escenaEstancia, type DocumentoDiseno, type Vec3 } from '../../nucleo'
 import { reiniciarAlmacen } from '../estado/almacen'
 import Escena3D from './Escena3D'
 
@@ -13,6 +13,8 @@ interface ControlesFalsos { target: Vector3; update(): void }
 const controles = vi.hoisted(() => ({
   onChange: undefined as (() => void) | undefined,
   instancia: undefined as unknown as ControlesFalsos,
+  /** Las últimas props que recibió OrbitControls (zoom, desplazamiento, distancias…). */
+  props: {} as Record<string, unknown>,
 }))
 
 /** Veces que se monta el Environment: drei pinta sus Lightformer solo al montarlo. */
@@ -27,8 +29,9 @@ vi.mock('@react-three/drei', async () => {
       return null
     },
     Lightformer: () => null,
-    OrbitControls: ({ onChange, target, ref }: { onChange?: () => void; target: Vec3; ref?: import('react').Ref<ControlesFalsos> }) => {
+    OrbitControls: ({ onChange, target, ref, ...resto }: { onChange?: () => void; target: Vec3; ref?: import('react').Ref<ControlesFalsos> } & Record<string, unknown>) => {
       controles.onChange = onChange
+      controles.props = resto
       useState(() => controles.instancia.target.set(...target))
       useImperativeHandle(ref, () => controles.instancia, [])
       return null
@@ -45,9 +48,9 @@ function Sonda() {
   return null
 }
 
-const escena = (doc: DocumentoDiseno, ocultar: boolean, encuadres = 0) => (
+const escena = (doc: DocumentoDiseno, ocultar: boolean, encuadres = 0, desdeDentro = false) => (
   <>
-    <Escena3D doc={doc} ocultar={ocultar} encuadres={encuadres} />
+    <Escena3D doc={doc} ocultar={ocultar} encuadres={encuadres} desdeDentro={desdeDentro} />
     <Sonda />
   </>
 )
@@ -112,6 +115,62 @@ describe('Escena3D: encuadrar', () => {
     expect(sonda.camara.position.toArray()).toEqual([2, 2, -10])
     await r.update(escena(doc, true, 1))
     expect(sonda.camara.position.toArray()).toEqual(camaraInicial(doc).posicion)
+  })
+})
+
+describe('Escena3D: desde dentro', () => {
+  const redondeado = (v: Vec3 | number[]) => v.map((x) => Number(x.toFixed(6)))
+
+  it('con desdeDentro la cámara y el objetivo van a camaraDesdeDentro; los controles sin zoom ni desplazamiento y a 1 cm fijo', async () => {
+    const doc = documento()
+    const r = await ReactThreeTestRenderer.create(escena(doc, true))
+    expect(controles.props['enableZoom']).toBe(true)
+    await r.update(escena(doc, true, 0, true))
+    const dentro = camaraDesdeDentro(doc)
+    expect(redondeado(sonda.camara.position.toArray())).toEqual(redondeado(dentro.posicion))
+    expect(redondeado(controles.instancia.target.toArray())).toEqual(redondeado(dentro.objetivo))
+    expect(controles.props['enableZoom']).toBe(false)
+    expect(controles.props['enablePan']).toBe(false)
+    expect(controles.props['minDistance']).toBe(0.01)
+    expect(controles.props['maxDistance']).toBe(0.01)
+  })
+
+  it('montada ya desde dentro, la cámara entra igualmente', async () => {
+    const doc = documento()
+    await ReactThreeTestRenderer.create(escena(doc, true, 0, true))
+    expect(redondeado(sonda.camara.position.toArray())).toEqual(redondeado(camaraDesdeDentro(doc).posicion))
+  })
+
+  it('desde dentro no se oculta ninguna pared aunque ocultar esté activo; al volver fuera, sí', async () => {
+    const doc = documento()
+    const r = await ReactThreeTestRenderer.create(escena(doc, true, 0, true))
+    expect(contarMallas(r)).toBe(esperadas(doc, []))
+    await r.update(escena(doc, true, 0, false))
+    expect(contarMallas(r)).toBe(esperadas(doc, [2, 3]))
+  })
+
+  it('si cambia la caja de la planta estando dentro, la cámara vuelve a la puerta de la planta nueva', async () => {
+    const doc = documento()
+    const r = await ReactThreeTestRenderer.create(escena(doc, true, 0, true))
+    const grande = documentoNuevo('salon', 600, 500, 250)
+    grande.aberturas = doc.aberturas
+    await r.update(escena(grande, true, 0, true))
+    expect(redondeado(sonda.camara.position.toArray())).toEqual(redondeado(camaraDesdeDentro(grande).posicion))
+  })
+
+  it('al volver fuera la cámara va a camaraInicial, y «Encuadrar» desde dentro vuelve a la puerta', async () => {
+    const doc = documento()
+    const r = await ReactThreeTestRenderer.create(escena(doc, true, 0, true))
+    sonda.camara.position.set(1, 1.6, 1)
+    await r.update(escena(doc, true, 1, true))
+    expect(redondeado(sonda.camara.position.toArray())).toEqual(redondeado(camaraDesdeDentro(doc).posicion))
+    await r.update(escena(doc, true, 1, false))
+    expect(redondeado(sonda.camara.position.toArray())).toEqual(redondeado(camaraInicial(doc).posicion))
+    expect(redondeado(controles.instancia.target.toArray())).toEqual(redondeado(camaraInicial(doc).objetivo))
+    // Las props vuelven explícitas (no desaparecen): r3f pondría a 0 las que faltaran en el mismo OrbitControls.
+    expect(controles.props['enableZoom']).toBe(true)
+    expect(controles.props['enablePan']).toBe(true)
+    expect(controles.props['rotateSpeed']).toBe(1)
   })
 })
 
