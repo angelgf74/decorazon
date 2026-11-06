@@ -126,13 +126,11 @@ function MenuMas({ opciones }: { opciones: Opcion[] }) {
 /** `alImprimir` abre la hoja para imprimir o guardar como PDF. */
 export default function BarraSuperior({ alImprimir }: { alImprimir?: () => void }) {
   const paso = useEditor((e) => e.paso)
-  const vista = useEditor((e) => e.vista)
   const guardado = useEditor((e) => e.guardado)
   const nombreDiseno = useEditor((e) => (e.origen.tipo === 'servidor' ? e.origen.nombre : null))
   const hayPasado = useEditor((e) => e.pasado.length > 0)
   const hayFuturo = useEditor((e) => e.futuro.length > 0)
   const irAPaso = useEditor((e) => e.irAPaso)
-  const cambiarVista = useEditor((e) => e.cambiarVista)
   const deshacer = useEditor((e) => e.deshacer)
   const rehacer = useEditor((e) => e.rehacer)
   const haySesion = useSesion((s) => s.haySesion())
@@ -185,11 +183,6 @@ export default function BarraSuperior({ alImprimir }: { alImprimir?: () => void 
             <span className="pasos__numero">2</span> <span>{t.amueblar}</span>
           </button>
         </nav>
-
-        <div className="segmentado" role="group" aria-label={t.vista}>
-          <button type="button" aria-pressed={vista === '2d'} onClick={() => cambiarVista('2d')}>{t.vista2d}</button>
-          <button type="button" aria-pressed={vista === '3d'} onClick={() => cambiarVista('3d')}>{t.vista3d}</button>
-        </div>
       </div>
 
       <div className="barra__acciones">

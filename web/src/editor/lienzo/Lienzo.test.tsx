@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { act, createEvent, fireEvent, render } from '@testing-library/react'
+import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { catalogoBase, desplazarPoligono, elementoNuevo, longitudPared, type Abertura, type Punto } from '../../nucleo'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import { hayArrastre } from './arrastres'
 import Lienzo from './Lienzo'
-import { encuadrar } from './vista'
+import { encuadrar, ESCALA_MAX } from './vista'
 import { usePuntoDelPlano } from './usarPuntoDelPlano'
 
 function colocar(tipo: string, id: string, posicion: Punto) {
@@ -533,5 +533,29 @@ describe('Lienzo con los dedos', () => {
       espia.mockRestore()
       globalThis.ResizeObserver = original
     }
+  })
+})
+
+describe('Lienzo: zoom con botones', () => {
+  const escalaDe = (container: HTMLElement) =>
+    Number(container.querySelector('svg > g')!.getAttribute('transform')!.match(/scale\(([^)]+)\)/)![1])
+
+  it('Acercar multiplica la escala por 1,25 y Alejar la divide', () => {
+    const { container } = render(<Lienzo />)
+    expect(escalaDe(container)).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Acercar' }))
+    expect(escalaDe(container)).toBeCloseTo(1.25)
+    fireEvent.click(screen.getByRole('button', { name: 'Alejar' }))
+    expect(escalaDe(container)).toBeCloseTo(1)
+  })
+
+  it('en la escala máxima Acercar se desactiva, y Encuadrar sigue disponible', () => {
+    const { container } = render(<Lienzo />)
+    const acercar = screen.getByRole('button', { name: 'Acercar' })
+    for (let i = 0; i < 12; i++) fireEvent.click(acercar)
+    expect(escalaDe(container)).toBe(ESCALA_MAX)
+    expect(acercar).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Alejar' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Encuadrar' })).toBeEnabled()
   })
 })

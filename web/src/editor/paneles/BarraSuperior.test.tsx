@@ -40,14 +40,10 @@ describe('BarraSuperior', () => {
     expect(screen.getByRole('button', { name: '2 Amueblar' })).toHaveAttribute('aria-current', 'step')
   })
 
-  it('el botón 3D está activado y cambia a la vista 3D', async () => {
+  it('el selector 2D/3D ya no va en la barra: está sobre el plano (Editor)', () => {
     render(<BarraSuperior />, { wrapper: MemoryRouter })
-    const b = screen.getByRole('button', { name: '3D' })
-    expect(b).toBeEnabled()
-    expect(screen.queryByText('La vista 3D llega pronto')).toBeNull()
-    await userEvent.click(b)
-    expect(almacen.getState().vista).toBe('3d')
-    expect(b).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('button', { name: '3D' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '2D' })).toBeNull()
   })
 
   it('con el menú cerrado, "Nuevo diseño", "Imprimir" y "Sugerencias" no están en la página', () => {
@@ -83,7 +79,7 @@ describe('BarraSuperior', () => {
   it('pulsar fuera cierra el menú', async () => {
     render(<BarraSuperior />, { wrapper: MemoryRouter })
     await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
-    await userEvent.click(screen.getByRole('button', { name: '2D' }))
+    await userEvent.click(screen.getByRole('button', { name: '1 Estancia' }))
     expect(screen.queryByRole('button', { name: 'Nuevo diseño' })).toBeNull()
   })
 

@@ -130,6 +130,9 @@ export const textos = {
   },
   lienzo: {
     encuadrar: 'Encuadrar',
+    zoom: 'Zoom',
+    acercar: 'Acercar',
+    alejar: 'Alejar',
     plano: 'Plano de la estancia',
     canto: 'canto',
     partir: 'Partir esta pared',

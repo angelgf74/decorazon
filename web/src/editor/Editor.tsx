@@ -84,6 +84,7 @@ export default function Editor() {
               <Suspense fallback={textos.vista3d.cargando}><Vista3D /></Suspense>
             </SinFallos>
           ) : <Lienzo />}
+          <SelectorDeVista />
         </div>
         <aside className={`editor__derecha hoja${hoja === 'derecha' ? ' hoja--abierta' : ''}`}>
           <PanelPropiedades />
@@ -93,6 +94,19 @@ export default function Editor() {
       <PestanasDeHojas paso={paso} hoja={hoja} alAlternar={alternar} />
       {aviso !== null && <p className="editor__aviso" role="status">{aviso}</p>}
       {imprimiendo && <HojaImpresion alCerrar={cerrarImpresion} />}
+    </div>
+  )
+}
+
+/** 2D/3D flota sobre el plano y sobre la vista 3D: está junto a lo que cambia, y el Lienzo se desmonta al pasar a 3D. */
+function SelectorDeVista() {
+  const vista = useEditor((e) => e.vista)
+  const cambiarVista = useEditor((e) => e.cambiarVista)
+  const t = textos.barra
+  return (
+    <div className="segmentado editor__vista" role="group" aria-label={t.vista}>
+      <button type="button" aria-pressed={vista === '2d'} onClick={() => cambiarVista('2d')}>{t.vista2d}</button>
+      <button type="button" aria-pressed={vista === '3d'} onClick={() => cambiarVista('3d')}>{t.vista3d}</button>
     </div>
   )
 }
