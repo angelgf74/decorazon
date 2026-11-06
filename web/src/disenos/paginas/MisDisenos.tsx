@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { ErrorDeApi } from '../../api/cliente'
 import { mensajeDeError } from '../../cuenta/errores'
@@ -7,6 +7,7 @@ import { sesion, useSesion } from '../../cuenta/sesion'
 import Confirmar from '../../editor/comunes/Confirmar'
 import { useDialogoModal } from '../../editor/comunes/usarDialogoModal'
 import NuevaEstancia from '../../editor/paneles/NuevaEstancia'
+import { importarDiseno } from '../../editor/persistencia/fichero'
 import { almacenamientoSeguro, borrarCopiaLocal, type CopiaListada } from '../../editor/persistencia/local'
 import { documentoNuevo, type TipoEstancia } from '../../nucleo'
 import { textos } from '../../textos'
@@ -66,6 +67,7 @@ export default function MisDisenos() {
   const [borrando, setBorrando] = useState<ResumenDiseno | null>(null)
   const [compartiendo, setCompartiendo] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
+  const idFichero = useId()
 
   const recargar = useCallback(async () => {
     try {
@@ -106,6 +108,22 @@ export default function MisDisenos() {
       const d = await crearDiseno(t.nombrePorDefecto, documentoNuevo(tipo, ancho, largo, alto))
       navegar(`/disenos/${d.id}`)
     })
+
+  /** «Importar»: un fichero descargado con «Descargar diseño» pasa a ser un diseño de la cuenta, con el nombre del fichero. */
+  const importar = async (ev: ChangeEvent<HTMLInputElement>) => {
+    const fichero = ev.target.files?.[0]
+    ev.target.value = ''
+    if (!fichero) return
+    const r = await importarDiseno(fichero)
+    if (!r.ok) {
+      setAviso(textos.importar.noValido)
+      return
+    }
+    await intentar(async () => {
+      const d = await crearDiseno(r.nombre === '' ? t.nombrePorDefecto : r.nombre, r.documento)
+      navegar(`/disenos/${d.id}`)
+    })
+  }
 
   const duplicar = (id: string) =>
     intentar(async () => {
@@ -157,7 +175,12 @@ export default function MisDisenos() {
     <main className="disenos">
       <header className="disenos__cabecera">
         <h1>{t.titulo}</h1>
-        <button type="button" className="primario" disabled={ocupado} onClick={() => setCreando(true)}>{t.nuevo}</button>
+        <div className="disenos__cabecera-acciones">
+          <button type="button" className="primario" disabled={ocupado} onClick={() => setCreando(true)}>{t.nuevo}</button>
+          {/* El campo de fichero va oculto tras la etiqueta, que se ve como un botón (base.css). */}
+          <label htmlFor={idFichero} className="boton">{textos.importar.importar}</label>
+          <input id={idFichero} type="file" accept=".json,application/json" className="solo-lectores" disabled={ocupado} onChange={(ev) => void importar(ev)} />
+        </div>
       </header>
       {aviso && <p className="disenos__aviso" role="alert">{aviso}</p>}
       {locales !== null ? (

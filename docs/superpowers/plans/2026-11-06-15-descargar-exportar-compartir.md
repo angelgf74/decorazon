@@ -27,33 +27,43 @@
 
 ### Task 1: tests (rojo)
 
-- [ ] `editor/comunes/descargar.test.ts`: crea un `<a download="nombre">`, lo pulsa y lo quita; con un `Blob` crea y revoca la URL; `nombreDeFichero('Dormitorio de Ana / 2')` → `Dormitorio de Ana - 2`.
-- [ ] `editor/hoja/exportarPlano.test.ts`: el SVG serializado lleva `<style>` y el `viewBox` de `marcoDeImpresion`; sin canvas devuelve `image/svg+xml`.
-- [ ] `editor/paneles/BarraSuperior.test.tsx`: el menú lleva «Descargar imagen 3D», «Descargar plano» y «Descargar diseño»; cada una devuelve el foco al botón y llama a su `alDescargar…`; «Descargar diseño» produce un JSON que pasa `validarDocumento`.
-- [ ] `editor/hoja/HojaImpresion.test.tsx`: con `doc` y `nombre` por props no lee el almacén; sin ellos, como hasta ahora.
-- [ ] `disenos/paginas/VistaCompartida.test.tsx`: «Imprimir» abre la hoja con el documento compartido y su nombre.
-- [ ] `disenos/paginas/DialogoCompartir.test.tsx`: con `navigator.share` simulado aparece «Enviar» y se llama con la URL de `direccionCompartida`; `AbortError` no enseña error; sin `share` el botón no existe.
-- [ ] `paginas/Inicio.test.tsx`: «Abrir un fichero» con un JSON válido abre `/disenar` con ese documento; con diseño anónimo pregunta antes y «Cancelar» no cambia nada; con un JSON inválido enseña `textos.importar.noValido`.
-- [ ] `disenos/paginas/MisDisenos.test.tsx`: «Importar» con un JSON válido llama a `crearDiseno` con el nombre del fichero (sin `.decorazon.json`) y el documento; inválido enseña el error.
+- [x] `editor/comunes/descargar.test.ts`: crea un `<a download="nombre">`, lo pulsa y lo quita; con un `Blob` crea y revoca la URL; `nombreDeFichero('Dormitorio de Ana / 2')` → `Dormitorio de Ana - 2`.
+- [x] `editor/hoja/exportarPlano.test.ts`: el SVG serializado lleva `<style>` y el `viewBox` de `marcoDeImpresion`; sin canvas devuelve `image/svg+xml`.
+- [x] `editor/paneles/BarraSuperior.test.tsx`: el menú lleva «Descargar imagen 3D», «Descargar plano» y «Descargar diseño»; cada una devuelve el foco al botón y llama a su `alDescargar…`; «Descargar diseño» produce un JSON que pasa `validarDocumento`.
+- [x] `editor/hoja/HojaImpresion.test.tsx`: con `doc` y `nombre` por props no lee el almacén; sin ellos, como hasta ahora.
+- [x] `disenos/paginas/VistaCompartida.test.tsx`: «Imprimir» abre la hoja con el documento compartido y su nombre.
+- [x] `disenos/paginas/DialogoCompartir.test.tsx`: con `navigator.share` simulado aparece «Enviar» y se llama con la URL de `direccionCompartida`; `AbortError` no enseña error; sin `share` el botón no existe.
+- [x] `paginas/Inicio.test.tsx`: «Abrir un fichero» con un JSON válido abre `/disenar` con ese documento; con diseño anónimo pregunta antes y «Cancelar» no cambia nada; con un JSON inválido enseña `textos.importar.noValido`.
+- [x] `disenos/paginas/MisDisenos.test.tsx`: «Importar» con un JSON válido llama a `crearDiseno` con el nombre del fichero (sin `.decorazon.json`) y el documento; inválido enseña el error.
 
 ### Task 2: código
 
-- [ ] `editor/comunes/descargar.ts`, `editor/hoja/usarCaptura3D.ts` (y `HojaImpresion` lo usa), `editor/hoja/exportarPlano.ts` con `ESTILOS_DEL_PLANO`.
-- [ ] `BarraSuperior.tsx`: tres opciones en `MenuMas` con `alDescargarImagen`, `alDescargarPlano`, `alDescargarDiseno` cableadas en `Editor.tsx` (la imagen 3D monta `Captura3D` fuera de pantalla dentro de `SinFallos` + `Suspense`, como la hoja; mientras captura, la opción enseña «Preparando…»).
-- [ ] `nucleo/edicion/serializar.ts` o `editor/persistencia/fichero.ts`: `exportarDiseno(doc, nombre)` e `importarDiseno(File): Promise<Resultado>` (lee, `JSON.parse` con `try/catch`, `validarDocumento`).
-- [ ] `Inicio.tsx`: «Abrir un fichero» (`<input type="file" accept=".json,application/json">` oculto tras un botón) con el flujo de copia; `MisDisenos.tsx`: «Importar».
-- [ ] `DialogoCompartir.tsx`: «Enviar» con `navigator.share`.
-- [ ] `HojaImpresion.tsx`: props opcionales; `VistaCompartida.tsx`: botón «Imprimir» junto a «Hacer una copia».
-- [ ] Textos: `barra.descargarImagen`, `barra.descargarPlano`, `barra.descargarDiseno`, `barra.preparandoImagen`, `importar.abrir`, `importar.importar`, `importar.noValido`, `importar.sustituir` (reutilizar `compartir.confirmarSustituir` si encaja), `compartir.enviar`, `compartir.imprimir`.
+- [x] `editor/comunes/descargar.ts`, `editor/hoja/usarCaptura3D.ts` (y `HojaImpresion` lo usa), `editor/hoja/exportarPlano.ts` con `ESTILOS_DEL_PLANO`.
+- [x] `BarraSuperior.tsx`: tres opciones en `MenuMas` con `alDescargarImagen`, `alDescargarPlano`, `alDescargarDiseno` cableadas en `Editor.tsx` (la imagen 3D monta `Captura3D` fuera de pantalla dentro de `SinFallos` + `Suspense`, como la hoja; mientras captura, la opción enseña «Preparando…»).
+- [x] `nucleo/edicion/serializar.ts` o `editor/persistencia/fichero.ts`: `exportarDiseno(doc, nombre)` e `importarDiseno(File): Promise<Resultado>` (lee, `JSON.parse` con `try/catch`, `validarDocumento`).
+- [x] `Inicio.tsx`: «Abrir un fichero» (`<input type="file" accept=".json,application/json">` oculto tras un botón) con el flujo de copia; `MisDisenos.tsx`: «Importar».
+- [x] `DialogoCompartir.tsx`: «Enviar» con `navigator.share`.
+- [x] `HojaImpresion.tsx`: props opcionales; `VistaCompartida.tsx`: botón «Imprimir» junto a «Hacer una copia».
+- [x] Textos: `barra.descargarImagen`, `barra.descargarPlano`, `barra.descargarDiseno`, `barra.preparandoImagen`, `importar.abrir`, `importar.importar`, `importar.noValido`, `importar.sustituir` (reutilizar `compartir.confirmarSustituir` si encaja), `compartir.enviar`, `compartir.imprimir`.
 
 ### Task 3: cierre
 
-- [ ] `npm test`, `npm run lint`, `npm run build`, `npm run e2e`, `npm run e2e:cuentas`.
-- [ ] A mano en Chromium: descargar el plano de un diseño con puerta, ventana y cotas y abrir el PNG (los estilos incrustados son lo frágil); descargar la imagen 3D; exportar e importar el mismo diseño y comprobar que es idéntico; en un móvil o con `navigator.share` emulado, «Enviar».
-- [ ] Capturas a 1440 (menú con las opciones nuevas) y 390 px (diálogo de compartir con «Enviar»).
-- [ ] `CLAUDE.md`: el PNG del plano lleva los estilos incrustados (`ESTILOS_DEL_PLANO`): al cambiar `lienzo.css` hay que revisarlo; formato del fichero exportado.
-- [ ] `mejoras.md`: M-11, M-20, M-22, M-24 → `realizada` con fecha y PR. Este plan con todo marcado.
+- [x] `npm test`, `npm run lint`, `npm run build`, `npm run e2e`, `npm run e2e:cuentas`.
+- [x] A mano en Chromium: descargar el plano de un diseño con puerta, ventana y cotas y abrir el PNG (los estilos incrustados son lo frágil); descargar la imagen 3D; exportar e importar el mismo diseño y comprobar que es idéntico; en un móvil o con `navigator.share` emulado, «Enviar».
+- [x] Capturas a 1440 (menú con las opciones nuevas) y 390 px (diálogo de compartir con «Enviar»).
+- [x] `CLAUDE.md`: el PNG del plano lleva los estilos incrustados (`ESTILOS_DEL_PLANO`): al cambiar `lienzo.css` hay que revisarlo; formato del fichero exportado.
+- [x] `mejoras.md`: M-11, M-20, M-22, M-24 → `realizada` con fecha y PR. Este plan con todo marcado.
+
+## Decisiones al ejecutar (6 nov 2026)
+
+- En vez del hook `usarCaptura3D`, un componente `CapturaFueraDePantalla` (WebGL, `Captura3D` perezoso, `SinFallos`, `Suspense`, tiempo límite) que usan la hoja y «Descargar imagen 3D».
+- El svg del plano se obtiene con `renderToStaticMarkup(PlanoDelDiseno)` (`react-dom/server`): no depende de que la hoja esté montada.
+- `HojaImpresion` se importa de forma estática en la vista compartida: Vite avisaba de que el import dinámico no la movía de fragmento (el editor ya la importa estática).
+- El campo de fichero va oculto tras una etiqueta con aspecto de botón y se vacía al elegir, para poder repetir el mismo fichero.
+- La captura a 390 px del diálogo de compartir con «Enviar» necesita la API con sesión: lo cubre el test con `navigator.share` simulado; se tomó la del inicio con «Abrir un fichero».
 
 ## Pendiente
 
-- (se rellena al cerrar)
+- El PNG del plano sale a 2× del tamaño de la hoja (1360 px de ancho); no hay opción de tamaño.
+- «Descargar imagen 3D» en un dispositivo sin WebGL avisa con el texto de la hoja («La vista 3D no está disponible…»); no se oculta la opción de antemano.
+- `ESTILOS_DEL_PLANO` copia reglas de `lienzo.css` a mano: al cambiar el css del plano hay que revisarlo (lo dice CLAUDE.md).

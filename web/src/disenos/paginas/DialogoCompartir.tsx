@@ -106,6 +106,19 @@ export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props)
     }
   }
 
+  // La hoja de compartir del sistema (el móvil, sobre todo): solo donde existe.
+  const puedeEnviar = typeof navigator.share === 'function'
+  const enviar = async () => {
+    if (enlace === null) return
+    setAviso(null)
+    try {
+      await navigator.share({ title: diseno.nombre, url: direccionCompartida(enlace) })
+    } catch (e) {
+      // Cerrar la hoja sin elegir nada es AbortError: no es un fallo.
+      if (!(e instanceof DOMException && e.name === 'AbortError')) setAviso(t.noEnviado)
+    }
+  }
+
   return (
     <dialog ref={ref} className="confirmar dialogo-compartir" aria-labelledby={idTitulo}
       onCancel={(e) => { e.preventDefault(); if (!ocupado) alCerrar() }} onClose={alCerrarlo}>
@@ -134,6 +147,7 @@ export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props)
               {/* Siempre en la página: una región viva que aparece de golpe no siempre se anuncia. */}
               <span className="dialogo-compartir__estado" role="status">{copiado ? t.copiado : ''}</span>
               <button ref={enfocar('copiar')} type="button" className="primario" onClick={() => void copiar()}>{t.copiar}</button>
+              {puedeEnviar && <button type="button" onClick={() => void enviar()}>{t.enviar}</button>}
               <button ref={enfocar('dejar')} type="button" className="peligro" disabled={ocupado} onClick={() => { foco.current = 'cancelar'; setConfirmando(true) }}>{t.dejar}</button>
               <button type="button" disabled={ocupado} onClick={alCerrar}>{t.cerrar}</button>
             </div>

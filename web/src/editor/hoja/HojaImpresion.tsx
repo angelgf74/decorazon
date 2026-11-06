@@ -1,34 +1,36 @@
-import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { cajaPlanta, superficie } from '../../nucleo'
+import { cajaPlanta, superficie, type DocumentoDiseno } from '../../nucleo'
 import { textos } from '../../textos'
 import { formatoMetros } from '../comunes/formatos'
 import Icono from '../comunes/Icono'
-import SinFallos from '../comunes/SinFallos'
-import { hayWebgl } from '../comunes/webgl'
 import { useEditor } from '../estado/almacen'
+import CapturaFueraDePantalla from './CapturaFueraDePantalla'
 import PlanoDelDiseno from './PlanoDelDiseno'
 import TablaDeMuebles from './TablaDeMuebles'
 import './hoja.css'
 
 const t = textos.hoja
 
-// Con three: solo se carga al abrir la hoja.
-const Captura3D = lazy(() => import('../vista3d/Captura3D'))
-
-/** Si la vista 3D no llega a capturarse en este tiempo, se imprime sin ella. */
-const ESPERA_3D_MS = 8000
-
 type Estado3D = { tipo: 'preparando' } | { tipo: 'lista'; url: string } | { tipo: 'sin3d' }
+
+interface Props {
+  /** El diseño y su nombre; sin ellos, los del editor (la vista compartida pasa los suyos). */
+  doc?: DocumentoDiseno
+  nombre?: string
+  alCerrar(): void
+}
 
 /**
  * Vista previa de la hoja para imprimir o guardar como PDF: cabecera, plano con cotas y nombres, lista de muebles y,
  * en otra página, la vista 3D. Va directamente en el body: al imprimir se oculta todo lo demás (hoja.css).
  */
-export default function HojaImpresion({ alCerrar }: { alCerrar(): void }) {
-  const doc = useEditor((e) => e.documento)
-  const nombre = useEditor((e) => (e.origen.tipo === 'servidor' ? e.origen.nombre : null))
-  const [estado3d, setEstado3d] = useState<Estado3D>(() => (hayWebgl() ? { tipo: 'preparando' } : { tipo: 'sin3d' }))
+export default function HojaImpresion({ doc: docDado, nombre: nombreDado, alCerrar }: Props) {
+  const docDelEditor = useEditor((e) => e.documento)
+  const nombreDelEditor = useEditor((e) => (e.origen.tipo === 'servidor' ? e.origen.nombre : null))
+  const doc = docDado ?? docDelEditor
+  const nombre = nombreDado ?? nombreDelEditor
+  const [estado3d, setEstado3d] = useState<Estado3D>({ tipo: 'preparando' })
   const dialogo = useRef<HTMLDivElement>(null)
   const idTitulo = useId()
   const [fecha] = useState(() => new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }))
@@ -41,12 +43,6 @@ export default function HojaImpresion({ alCerrar }: { alCerrar(): void }) {
     window.addEventListener('keydown', tecla)
     return () => window.removeEventListener('keydown', tecla)
   }, [alCerrar])
-  useEffect(() => {
-    if (estado3d.tipo !== 'preparando') return
-    const id = setTimeout(() => setEstado3d({ tipo: 'sin3d' }), ESPERA_3D_MS)
-    return () => clearTimeout(id)
-  }, [estado3d.tipo])
-
   if (doc === null) return null
   const { estancia } = doc
   const caja = cajaPlanta(estancia.planta)
@@ -85,11 +81,7 @@ export default function HojaImpresion({ alCerrar }: { alCerrar(): void }) {
       </article>
 
       {estado3d.tipo === 'preparando' && (
-        <SinFallos alternativa={null} alFallar={() => setEstado3d({ tipo: 'sin3d' })}>
-          <Suspense fallback={null}>
-            <Captura3D doc={doc} alCapturar={(url) => setEstado3d({ tipo: 'lista', url })} />
-          </Suspense>
-        </SinFallos>
+        <CapturaFueraDePantalla doc={doc} alCapturar={(url) => setEstado3d({ tipo: 'lista', url })} alFallar={() => setEstado3d({ tipo: 'sin3d' })} />
       )}
     </div>,
     document.body,

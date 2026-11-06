@@ -3,7 +3,11 @@ import { versionCargada } from '../recargaPorVersion'
 import BotonDeSugerencia from '../sugerencias/BotonDeSugerencia'
 import { textos } from '../textos'
 import { almacen, seleccionDelPaso, useEditor } from './estado/almacen'
+import { descargar, nombreDeFichero } from './comunes/descargar'
+import CapturaFueraDePantalla from './hoja/CapturaFueraDePantalla'
+import { exportarPlano } from './hoja/exportarPlano'
 import HojaImpresion from './hoja/HojaImpresion'
+import { exportarDiseno } from './persistencia/fichero'
 import BarraSuperior from './paneles/BarraSuperior'
 import NuevaEstancia from './paneles/NuevaEstancia'
 import AvisosDelPlano from './paneles/AvisosDelPlano'
@@ -40,6 +44,8 @@ export default function Editor() {
   const hayPanel = useEditor((e) => seleccionDelPaso(e.seleccion, e.paso))
   const [hoja, setHoja] = useState<Hoja | null>(null)
   const [imprimiendo, setImprimiendo] = useState(false)
+  // «Descargar imagen 3D»: mientras se captura fuera de la pantalla.
+  const [capturando, setCapturando] = useState(false)
   // Al cerrar la hoja para imprimir, el foco vuelve a donde estaba (el botón Imprimir).
   const focoAntes = useRef<HTMLElement | null>(null)
   // lazy guarda el import rechazado: tras un fallo se crea otro para que volver a pulsar 3D reintente la carga.
@@ -71,10 +77,27 @@ export default function Editor() {
     setImprimiendo(false)
     focoAntes.current?.focus()
   }
+  // Las descargas llevan el nombre del diseño (o «Mi diseño»), limpio para un fichero.
+  const nombreDeDescarga = () => {
+    const e = almacen.getState()
+    return nombreDeFichero(e.origen.tipo === 'servidor' ? e.origen.nombre : textos.hoja.sinNombre)
+  }
+  const documento = () => almacen.getState().documento
+  const descargarDiseno = () => {
+    const doc = documento()
+    if (doc) exportarDiseno(doc, nombreDeDescarga())
+  }
+  const descargarPlano = () => {
+    const doc = documento()
+    if (!doc) return
+    void exportarPlano(doc).then(({ blob, extension }) => descargar(`${nombreDeDescarga()} - plano.${extension}`, blob))
+  }
+  const docParaCapturar = capturando ? documento() : null
 
   return (
     <div className="editor">
-      <BarraSuperior alImprimir={abrirImpresion} />
+      <BarraSuperior alImprimir={abrirImpresion} alDescargarImagen={() => setCapturando(true)} preparandoImagen={capturando}
+        alDescargarPlano={descargarPlano} alDescargarDiseno={descargarDiseno} />
       <div className={`editor__cuerpo${hayPanel ? '' : ' editor__cuerpo--sin-panel'}`}>
         <aside className={`editor__izquierda hoja${hoja === 'izquierda' ? ' hoja--abierta' : ''}`}>
           {paso === 1 ? <PanelEstancia /> : <PanelCatalogo alEmpezarArrastre={() => setHoja(null)} />}
@@ -95,6 +118,13 @@ export default function Editor() {
       <PestanasDeHojas paso={paso} hoja={hoja} alAlternar={alternar} />
       {aviso !== null && <p className="editor__aviso" role="status">{aviso}</p>}
       {imprimiendo && <HojaImpresion alCerrar={cerrarImpresion} />}
+      {docParaCapturar && (
+        <CapturaFueraDePantalla
+          doc={docParaCapturar}
+          alCapturar={(url) => { setCapturando(false); descargar(`${nombreDeDescarga()}.png`, url) }}
+          alFallar={() => { setCapturando(false); almacen.setState({ aviso: textos.hoja.sin3d }) }}
+        />
+      )}
     </div>
   )
 }

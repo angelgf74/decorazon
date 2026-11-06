@@ -8,6 +8,8 @@ import Confirmar from '../../editor/comunes/Confirmar'
 import SinFallos from '../../editor/comunes/SinFallos'
 import { hayWebgl } from '../../editor/comunes/webgl'
 import Icono from '../../editor/comunes/Icono'
+// Va en el fragmento principal con el editor: importarla aquí de forma perezosa no la movería a otro.
+import HojaImpresion from '../../editor/hoja/HojaImpresion'
 import PlanoAmpliado from '../../editor/hoja/PlanoAmpliado'
 import PlanoDelDiseno from '../../editor/hoja/PlanoDelDiseno'
 import TablaDeMuebles from '../../editor/hoja/TablaDeMuebles'
@@ -81,7 +83,9 @@ export default function VistaCompartida() {
   // La 3D no se monta hasta pedirla: en el móvil, sus controles se quedarían el gesto de desplazar la página.
   const [ver3d, setVer3d] = useState(false)
   const [ampliado, setAmpliado] = useState(false)
+  const [imprimiendo, setImprimiendo] = useState(false)
   const botonAmpliar = useRef<HTMLButtonElement>(null)
+  const botonImprimir = useRef<HTMLButtonElement>(null)
   const zonaPlano = useRef<HTMLDivElement>(null)
   const anchoPlano = useAncho(zonaPlano, estado.tipo === 'listo')
   const idPlano = useId()
@@ -166,8 +170,10 @@ export default function VistaCompartida() {
         {fecha && <p className="compartido__datos">{t.actualizado(fecha)}</p>}
         <div className="compartido__copia">
           <button type="button" className="primario" disabled={ocupado} aria-busy={ocupado} onClick={() => void hacerCopia()}>{t.hacerCopia}</button>
+          <button ref={botonImprimir} type="button" onClick={() => setImprimiendo(true)}><Icono nombre="imprimir" />{textos.hoja.imprimir}</button>
           <p>{t.explicacionCopia}</p>
         </div>
+        {imprimiendo && <HojaImpresion doc={doc} nombre={diseno.nombre} alCerrar={() => { setImprimiendo(false); botonImprimir.current?.focus() }} />}
         {aviso && <p className="compartido__aviso" role="alert">{aviso}</p>}
       </header>
 

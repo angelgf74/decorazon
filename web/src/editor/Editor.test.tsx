@@ -7,6 +7,7 @@ import { catalogoBase, elementoNuevo } from '../nucleo'
 import { textos } from '../textos'
 import { almacen, reiniciarAlmacen } from './estado/almacen'
 import { conflictosDe } from './estado/conflictos'
+import * as descargas from './comunes/descargar'
 import Editor from './Editor'
 
 const carga = vi.hoisted(() => ({ fallosPendientes: 0 }))
@@ -181,5 +182,42 @@ describe('Editor: hoja para imprimir', () => {
     // Deshacer tampoco: quitaría la cama recién añadida.
     await userEvent.keyboard('{Control>}z{/Control}')
     expect(almacen.getState().documento!.elementos).toHaveLength(1)
+  })
+})
+
+describe('Editor: descargas del menú', () => {
+  it('"Descargar diseño" descarga «Mi diseño.decorazon.json» con el diseño del editor', async () => {
+    almacen.getState().cambiarVista('2d')
+    const descargar = vi.spyOn(descargas, 'descargar').mockImplementation(() => {})
+    render(<Editor />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: textos.barra.descargarDiseno }))
+    expect(descargar).toHaveBeenCalledOnce()
+    const [nombre, blob] = descargar.mock.calls[0]!
+    expect(nombre).toBe('Mi diseño.decorazon.json')
+    expect(JSON.parse(await (blob as Blob).text())).toEqual(almacen.getState().documento)
+    descargar.mockRestore()
+  })
+
+  it('"Descargar plano" descarga «Mi diseño - plano.svg» (sin canvas, el svg)', async () => {
+    almacen.getState().cambiarVista('2d')
+    const descargar = vi.spyOn(descargas, 'descargar').mockImplementation(() => {})
+    render(<Editor />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: textos.barra.descargarPlano }))
+    await vi.waitFor(() => expect(descargar).toHaveBeenCalledOnce())
+    expect(descargar.mock.calls[0]![0]).toBe('Mi diseño - plano.svg')
+    descargar.mockRestore()
+  })
+
+  it('"Descargar imagen 3D" sin WebGL avisa y no descarga nada', async () => {
+    almacen.getState().cambiarVista('2d')
+    const descargar = vi.spyOn(descargas, 'descargar').mockImplementation(() => {})
+    render(<Editor />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: textos.barra.descargarImagen }))
+    expect(await screen.findByText(textos.hoja.sin3d)).toBeInTheDocument()
+    expect(descargar).not.toHaveBeenCalled()
+    descargar.mockRestore()
   })
 })

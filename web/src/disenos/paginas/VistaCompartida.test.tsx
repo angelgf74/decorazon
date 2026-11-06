@@ -228,3 +228,21 @@ describe('VistaCompartida: muebles de tienda', () => {
   })
 })
 
+
+describe('VistaCompartida: imprimir', () => {
+  it('«Imprimir» abre la hoja con el diseño compartido y su nombre; al cerrarla el foco vuelve al botón', async () => {
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, compartido()))
+    montar()
+    await screen.findByRole('heading', { level: 1, name: 'Baño de arriba' })
+    const boton = screen.getByRole('button', { name: textos.hoja.imprimir })
+    await userEvent.click(boton)
+    const hoja = await screen.findByRole('dialog', { name: textos.hoja.titulo })
+    expect(within(hoja).getByRole('heading', { level: 1, name: 'Baño de arriba' })).toBeInTheDocument()
+    expect(within(hoja).getByText('Inodoro')).toBeInTheDocument()
+    // El almacén del editor no se toca: el diseño compartido no sustituye al del navegador.
+    expect(almacen.getState().documento).toBeNull()
+    await userEvent.click(within(hoja).getByRole('button', { name: textos.hoja.cerrar }))
+    expect(screen.queryByRole('dialog', { name: textos.hoja.titulo })).toBeNull()
+    expect(boton).toHaveFocus()
+  })
+})

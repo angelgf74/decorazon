@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useId, useState, type ChangeEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
-import { empezarDeNuevo } from '../cuenta/disenosLocales'
+import { empezarAnonimoCon, empezarDeNuevo, sustituiriaDisenoAnonimo } from '../cuenta/disenosLocales'
 import { useSesion } from '../cuenta/sesion'
 import Confirmar from '../editor/comunes/Confirmar'
 import { useEditor } from '../editor/estado/almacen'
+import { importarDiseno } from '../editor/persistencia/fichero'
+import type { DocumentoDiseno } from '../nucleo'
 import BotonDeSugerencia from '../sugerencias/BotonDeSugerencia'
 import { textos } from '../textos'
 import './inicio.css'
@@ -17,6 +19,29 @@ export default function Inicio() {
   const aviso = typeof estado === 'object' && estado !== null && typeof (estado as { mensaje?: unknown }).mensaje === 'string' ? (estado as { mensaje: string }).mensaje : null
   const haySesion = useSesion((s) => s.haySesion())
   const [confirmando, setConfirmando] = useState(false)
+  // Un diseño leído de un fichero que espera a que se confirme sustituir el del navegador.
+  const [importado, setImportado] = useState<DocumentoDiseno | null>(null)
+  const [avisoImportar, setAvisoImportar] = useState<string | null>(null)
+  const idFichero = useId()
+
+  const abrirImportado = (doc: DocumentoDiseno) => {
+    empezarAnonimoCon(doc)
+    navegar('/disenar')
+  }
+  const alElegirFichero = async (ev: ChangeEvent<HTMLInputElement>) => {
+    const fichero = ev.target.files?.[0]
+    // Vaciado ya: el mismo fichero se puede volver a elegir (change no salta si el valor no cambia).
+    ev.target.value = ''
+    if (!fichero) return
+    setAvisoImportar(null)
+    const r = await importarDiseno(fichero)
+    if (!r.ok) {
+      setAvisoImportar(textos.importar.noValido)
+      return
+    }
+    if (sustituiriaDisenoAnonimo()) setImportado(r.documento)
+    else abrirImportado(r.documento)
+  }
 
   return (
     <main className="inicio">
@@ -33,6 +58,10 @@ export default function Inicio() {
           {hayDocumento && (
             <button type="button" className="enlace" onClick={() => setConfirmando(true)}>{t.nuevo}</button>
           )}
+          {/* Un diseño descargado («Descargar diseño» en el editor) se abre desde aquí. */}
+          <label htmlFor={idFichero} className="boton enlace inicio__abrir">{textos.importar.abrir}</label>
+          <input id={idFichero} type="file" accept=".json,application/json" className="solo-lectores" onChange={(ev) => void alElegirFichero(ev)} />
+          {avisoImportar && <p className="inicio__aviso" role="alert">{avisoImportar}</p>}
         </div>
 
         {haySesion ? (
@@ -65,6 +94,13 @@ export default function Inicio() {
         textoAceptar={textos.comun.aceptar}
         alAceptar={() => { setConfirmando(false); empezarDeNuevo(); navegar('/disenar') }}
         alCancelar={() => setConfirmando(false)}
+      />
+      <Confirmar
+        abierto={importado !== null}
+        mensaje={textos.importar.sustituir}
+        textoAceptar={textos.compartir.sustituir}
+        alAceptar={() => { if (importado) abrirImportado(importado); setImportado(null) }}
+        alCancelar={() => setImportado(null)}
       />
     </main>
   )

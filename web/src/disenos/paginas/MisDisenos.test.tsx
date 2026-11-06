@@ -7,6 +7,7 @@ import { CLAVE_SESION, conectarSesionConApi, reiniciarSesion, sesion } from '../
 import { CLAVE_DUENO_COPIAS, guardarCopiaLocal, leerCopiaLocal } from '../../editor/persistencia/local'
 import { documentoNuevo } from '../../nucleo'
 import { respuesta } from '../../pruebas/respuesta'
+import { textos } from '../../textos'
 import MisDisenos from './MisDisenos'
 
 // Sin WebGL en jsdom: el generador de la vista previa entrega una imagen al momento.
@@ -384,5 +385,35 @@ describe('MisDisenos sin conexión o con la carga fallida', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Algo ha fallado')
     expect(screen.queryByText('Aún no tienes diseños')).toBeNull()
     expect(screen.queryByText('Cargando…')).toBeNull()
+  })
+})
+
+describe('MisDisenos: importar', () => {
+  it('«Importar» con un fichero válido crea el diseño con el nombre del fichero y abre el editor', async () => {
+    conSesion()
+    const doc = documentoNuevo('cocina', 300, 250, 250)
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, []))
+    montar()
+    await screen.findByText(textos.disenos.vacio)
+    let enviado: { nombre: string; tipoEstancia: string; contenido: unknown } | null = null
+    fetchSimulado.mockImplementationOnce(async (p) => {
+      enviado = await p.json() as typeof enviado
+      return respuesta(201, { ...resumen('nuevo', 'Cocina de Ana', '2026-11-06T10:00:00Z'), contenido: doc, enlace: null })
+    })
+    await userEvent.upload(screen.getByLabelText(textos.importar.importar), new File([JSON.stringify(doc)], 'Cocina de Ana.decorazon.json', { type: 'application/json' }))
+    expect(await screen.findByText('editor')).toBeInTheDocument()
+    expect(enviado).toMatchObject({ nombre: 'Cocina de Ana', tipoEstancia: 'cocina', contenido: doc })
+    const alta = fetchSimulado.mock.calls[1]![0]
+    expect(`${alta.method} ${new URL(alta.url).pathname}`).toBe('POST /disenos')
+  })
+
+  it('con un fichero que no es un diseño avisa y no llama al servidor', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, []))
+    montar()
+    await screen.findByText(textos.disenos.vacio)
+    await userEvent.upload(screen.getByLabelText(textos.importar.importar), new File(['[]'], 'nada.json', { type: 'application/json' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(textos.importar.noValido)
+    expect(fetchSimulado).toHaveBeenCalledTimes(1)
   })
 })
