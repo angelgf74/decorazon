@@ -41,7 +41,8 @@ const pulsarPared = (indice: number) => almacen.getState().seleccionar({ tipo: '
  * en el paso 2, los muebles se mueven y giran, y recibe los tipos que se sueltan desde el catálogo.
  * `children` va encima de las capas, en las mismas coordenadas (el punto del puntero sale de `usePuntoDelPlano`).
  */
-export default function Lienzo({ children }: { children?: ReactNode }) {
+/** `sinPistas`: con la guía del primer uso abierta, la píldora de pistas sobraría. */
+export default function Lienzo({ children, sinPistas = false }: { children?: ReactNode; sinPistas?: boolean }) {
   const documento = useEditor((e) => e.documento)
   const seleccion = useEditor((e) => e.seleccion)
   const paso = useEditor((e) => e.paso)
@@ -275,7 +276,7 @@ export default function Lienzo({ children }: { children?: ReactNode }) {
           <Icono nombre="encuadrar" />
         </button>
       </div>
-      <PistasDelPlano />
+      {!sinPistas && <PistasDelPlano />}
     </div>
   )
 }

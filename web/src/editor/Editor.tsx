@@ -5,6 +5,8 @@ import { textos } from '../textos'
 import { almacen, seleccionDelPaso, useEditor } from './estado/almacen'
 import { descargar, nombreDeFichero } from './comunes/descargar'
 import CapturaFueraDePantalla from './hoja/CapturaFueraDePantalla'
+import GuiaInicial from './GuiaInicial'
+import { guiaVista } from './marcaDeGuia'
 import HojaImpresion from './hoja/HojaImpresion'
 import type { DocumentoDiseno } from '../nucleo'
 import { exportarDiseno } from './persistencia/fichero'
@@ -66,9 +68,16 @@ export default function Editor() {
     },
   }), [])
 
-  // «Nuevo diseño» a mitad de una captura la anula: la estancia siguiente no descarga una imagen que nadie pidió.
+  // La guía del primer uso: solo con una estancia anónima recién creada aquí (no con una copia, un fichero o un diseño de la cuenta).
+  const [guia, setGuia] = useState(false)
   useEffect(() => almacen.subscribe((e, antes) => {
+    // «Nuevo diseño» a mitad de una captura la anula: la estancia siguiente no descarga una imagen que nadie pidió.
     if (e.documento === null && antes.documento !== null) setDocCaptura(null)
+    if (antes.documento === null && e.documento !== null && e.origen.tipo === 'anonimo' && !guiaVista()) {
+      // La guía habla de esquinas y del plano: en 2D (crear no cambia la vista).
+      if (e.vista === '3d') e.cambiarVista('2d')
+      setGuia(true)
+    }
   }), [])
 
   if (!hayDocumento) return <NuevaEstancia />
@@ -115,7 +124,7 @@ export default function Editor() {
             <SinFallos alternativa={<AvisoVista3D texto={textos.vista3d.sinCarga} />} alFallar={() => setVista3D(vista3dPerezosa)}>
               <Suspense fallback={textos.vista3d.cargando}><Vista3D /></Suspense>
             </SinFallos>
-          ) : <Lienzo />}
+          ) : <Lienzo sinPistas={guia} />}
           <div className="editor__avisos"><AvisosDelPlano /></div>
           <SelectorDeVista />
         </div>
@@ -126,6 +135,7 @@ export default function Editor() {
       <PestanasDeHojas paso={paso} hoja={hoja} alAlternar={alternar} />
       {aviso !== null && <p className="editor__aviso" role="status">{aviso}</p>}
       {imprimiendo && <HojaImpresion alCerrar={cerrarImpresion} />}
+      {guia && <GuiaInicial alCerrar={() => setGuia(false)} />}
       {docCaptura && (
         <CapturaFueraDePantalla
           doc={docCaptura}

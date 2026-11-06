@@ -15,6 +15,23 @@ export const textos = {
     miCuenta: 'Mi cuenta',
     privacidad: 'Privacidad',
     cuentaBorrada: 'Tu cuenta se ha borrado.',
+    ejemplos: 'Empieza con un ejemplo',
+    ejemplosDetalle: 'Una copia para ti: cámbiala como quieras.',
+    abrirCopia: 'Abrir una copia',
+    guardarEnCuenta: 'Guardar en mi cuenta',
+    sustituirEjemplo: 'El ejemplo sustituirá el diseño que tienes en este navegador. ¿Seguir?',
+  },
+  guia: {
+    titulo: 'Primeros pasos',
+    pasoDe: (n: number, total: number) => `${n} de ${total}`,
+    pasos: [
+      { titulo: 'Da forma a la estancia', texto: 'Arrastra las esquinas del plano para cambiar la forma y pulsa + sobre una pared para partirla. Las puertas y ventanas se añaden desde el panel.' },
+      { titulo: 'Amuebla', texto: 'En «2 Amueblar» está el catálogo: pulsa un mueble para ponerlo en el centro o arrástralo al plano.' },
+      { titulo: 'Gira, acerca y mira en 3D', texto: 'Con un mueble elegido, arrastra su círculo para girarlo. Abajo a la derecha tienes el zoom y Encuadrar; con 3D lo ves en volumen.' },
+    ],
+    siguiente: 'Siguiente',
+    terminar: 'Entendido',
+    saltar: 'Saltar',
   },
   hoja: {
     imprimir: 'Imprimir',

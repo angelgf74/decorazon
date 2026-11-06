@@ -1,0 +1,6 @@
+{
+  "cookies": [],
+  "origins": [
+    { "origin": "http://localhost:5322", "localStorage": [{ "name": "decorazon.guia", "value": "vista" }] }
+  ]
+}

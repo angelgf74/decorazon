@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { catalogoBase, elementoNuevo } from '../../nucleo'
 import { textos } from '../../textos'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import { conflictosDe } from '../estado/conflictos'
+import PanelCatalogo from './PanelCatalogo'
 import PanelEstancia from './PanelEstancia'
 
 beforeEach(() => {
@@ -135,5 +136,23 @@ describe('PanelEstancia: siguiente paso', () => {
     expect(almacen.getState().paso).toBe(1)
     await userEvent.click(screen.getByRole('button', { name: textos.barra.amueblar }))
     expect(almacen.getState().paso).toBe(2)
+  })
+})
+
+describe('PanelEstancia: cambiar el tipo de estancia (M-18)', () => {
+  it('cambiar de dormitorio a despacho conserva los muebles y el catálogo pone «Para tu despacho» el primero', async () => {
+    reiniciarAlmacen()
+    almacen.getState().crear('dormitorio', 400, 330, 250)
+    almacen.getState().cambiar((d) => ({ ...d, elementos: [elementoNuevo(catalogoBase.get('cama')!, { x: 200, y: 100 }, 'c')] }))
+    render(<><PanelEstancia /><PanelCatalogo /></>)
+    const catalogo = () => within(document.querySelector<HTMLElement>('.panel-catalogo')!)
+    expect(catalogo().getAllByRole('region')[0]).toHaveAccessibleName('Para tu dormitorio')
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: textos.estancia.tipo }), 'despacho')
+    const doc = almacen.getState().documento!
+    expect(doc.estancia.tipo).toBe('despacho')
+    expect(doc.elementos.map((e) => e.tipo)).toEqual(['cama'])
+    expect(catalogo().getAllByRole('region')[0]).toHaveAccessibleName('Para tu despacho')
+    // La cama sigue en el catálogo, ahora en «Otros muebles».
+    expect(within(catalogo().getByRole('region', { name: 'Otros muebles' })).getByRole('button', { name: /^Cama/ })).toBeInTheDocument()
   })
 })
