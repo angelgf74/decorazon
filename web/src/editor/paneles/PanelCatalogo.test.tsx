@@ -10,6 +10,8 @@ import PanelCatalogo from './PanelCatalogo'
 
 beforeEach(() => {
   reiniciarAlmacen()
+  // Favoritos y recientes viven en localStorage, que jsdom comparte entre los tests del fichero.
+  localStorage.clear()
 })
 
 describe('PanelCatalogo', () => {
@@ -232,5 +234,115 @@ describe('PanelCatalogo con el dedo', () => {
     expect(fantasma()).toBeNull()
     fireEvent.pointerUp(window, { ...dedo, clientX: 120, clientY: 140 })
     expect(almacen.getState().documento!.elementos).toHaveLength(0)
+  })
+})
+
+describe('PanelCatalogo: miniaturas, favoritos y usados hace poco', () => {
+  const armario = /^Armario(?! de espejo| esquinero)/
+  const region = (nombre: string) => screen.getByRole('region', { name: nombre })
+  const chips = () => within(screen.getByRole('group', { name: textos.catalogo.grupos })).getAllByRole('button').map((c) => c.textContent)
+  const estrellaDe = (grupo: string, nombre: string) =>
+    within(region(grupo)).getByRole('button', { name: textos.catalogo.marcarFavorito(nombre) })
+
+  beforeEach(() => {
+    // En un salón, el armario y los demás que se usan aquí van en «Otros muebles».
+    almacen.getState().crear('salon', 400, 330, 250)
+    almacen.getState().irAPaso(2)
+  })
+
+  it('cada tarjeta lleva la miniatura del tipo y conserva su nombre accesible', () => {
+    render(<PanelCatalogo />)
+    const tarjetas = document.querySelectorAll('.panel-catalogo__tipo')
+    expect(tarjetas.length).toBeGreaterThan(10)
+    for (const t of tarjetas) expect(t.querySelector('svg.panel-catalogo__miniatura')).not.toBeNull()
+    expect(screen.getByRole('button', { name: armario }).textContent).toContain('100 × 60 cm')
+  })
+
+  it('la estrella de "Armario" crea el grupo "Favoritos" con esa tarjeta, marcada; volver a pulsarla lo quita', async () => {
+    render(<PanelCatalogo />)
+    expect(screen.queryByRole('region', { name: textos.catalogo.favoritos })).toBeNull()
+    const estrella = estrellaDe('Otros muebles', 'Armario')
+    expect(estrella).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(estrella)
+    expect(estrella).toHaveAttribute('aria-pressed', 'true')
+    const favoritos = region(textos.catalogo.favoritos)
+    expect(screen.getAllByRole('region')[0]).toBe(favoritos)
+    expect(within(favoritos).getByRole('button', { name: armario })).toBeInTheDocument()
+    expect(within(favoritos).getByRole('button', { name: textos.catalogo.marcarFavorito('Armario') })).toHaveAttribute('aria-pressed', 'true')
+    expect(chips()[0]).toBe(textos.catalogo.favoritos)
+    // La estrella no añade el mueble al plano.
+    expect(almacen.getState().documento!.elementos).toHaveLength(0)
+    expect(JSON.parse(localStorage.getItem('decorazon.catalogo.favoritos')!)).toEqual(['armario'])
+
+    await userEvent.click(estrella)
+    expect(estrella).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.queryByRole('region', { name: textos.catalogo.favoritos })).toBeNull()
+    expect(chips()).toEqual(['Para tu salón', 'Decoración', 'Otros muebles'])
+  })
+
+  it('los favoritos se recuerdan entre visitas', () => {
+    localStorage.setItem('decorazon.catalogo.favoritos', JSON.stringify(['cama', 'armario']))
+    render(<PanelCatalogo />)
+    const favoritos = region(textos.catalogo.favoritos)
+    expect(within(favoritos).getAllByRole('button').filter((b) => b.classList.contains('panel-catalogo__tipo'))).toHaveLength(2)
+  })
+
+  it('añadir un tipo lo pone en "Usados hace poco", el más reciente primero y como mucho seis', async () => {
+    render(<PanelCatalogo />)
+    expect(screen.queryByRole('region', { name: textos.catalogo.recientes })).toBeNull()
+    await userEvent.click(within(region('Otros muebles')).getByRole('button', { name: armario }))
+    let recientes = region(textos.catalogo.recientes)
+    expect(within(recientes).getByRole('button', { name: armario })).toBeInTheDocument()
+    expect(chips()).toContain(textos.catalogo.recientes)
+
+    const otros = region('Otros muebles')
+    for (const nombre of [/^Archivador/, /^Cama/, /^Cajonera/, /^Escritorio en L/, /^Inodoro/, /^Lavabo/]) {
+      await userEvent.click(within(otros).getByRole('button', { name: nombre }))
+    }
+    recientes = region(textos.catalogo.recientes)
+    const nombres = within(recientes).getAllByRole('button').filter((b) => b.classList.contains('panel-catalogo__tipo')).map((b) => b.querySelector('.panel-catalogo__nombre')!.textContent)
+    expect(nombres).toHaveLength(6)
+    expect(nombres[0]).toBe('Lavabo')
+    expect(nombres).not.toContain('Armario')
+    expect(JSON.parse(localStorage.getItem('decorazon.catalogo.recientes')!)).toHaveLength(6)
+  })
+
+  it('volver a añadir un tipo lo sube al principio sin repetirlo', async () => {
+    render(<PanelCatalogo />)
+    const otros = region('Otros muebles')
+    await userEvent.click(within(otros).getByRole('button', { name: armario }))
+    await userEvent.click(within(otros).getByRole('button', { name: /^Cama/ }))
+    await userEvent.click(within(otros).getByRole('button', { name: armario }))
+    const nombres = within(region(textos.catalogo.recientes)).getAllByRole('button').filter((b) => b.classList.contains('panel-catalogo__tipo')).map((b) => b.querySelector('.panel-catalogo__nombre')!.textContent)
+    expect(nombres).toEqual(['Armario', 'Cama'])
+  })
+
+  it('el buscador filtra también dentro de favoritos y recientes', async () => {
+    localStorage.setItem('decorazon.catalogo.favoritos', JSON.stringify(['cama', 'armario']))
+    render(<PanelCatalogo />)
+    await userEvent.type(screen.getByRole('searchbox', { name: textos.catalogo.buscar }), 'arma')
+    const favoritos = region(textos.catalogo.favoritos)
+    expect(within(favoritos).getByRole('button', { name: armario })).toBeInTheDocument()
+    expect(within(favoritos).queryByRole('button', { name: /^Cama/ })).toBeNull()
+  })
+
+  it('un favorito que ya no existe en el catálogo se ignora', () => {
+    localStorage.setItem('decorazon.catalogo.favoritos', JSON.stringify(['tipo-que-no-existe']))
+    render(<PanelCatalogo />)
+    expect(screen.queryByRole('region', { name: textos.catalogo.favoritos })).toBeNull()
+  })
+
+  it('con un localStorage que lanza, el catálogo se pinta igual, sin esos grupos, y la estrella sigue funcionando en la pestaña', async () => {
+    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('bloqueado') })
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('bloqueado') })
+    try {
+      render(<PanelCatalogo />)
+      expect(chips()).toEqual(['Para tu salón', 'Decoración', 'Otros muebles'])
+      await userEvent.click(estrellaDe('Otros muebles', 'Armario'))
+      expect(within(region(textos.catalogo.favoritos)).getByRole('button', { name: armario })).toBeInTheDocument()
+    } finally {
+      getItem.mockRestore()
+      setItem.mockRestore()
+    }
   })
 })

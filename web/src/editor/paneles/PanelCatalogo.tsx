@@ -6,6 +6,8 @@ import Icono from '../comunes/Icono'
 import { anadirTipo } from '../estado/elementos'
 import { useEditor } from '../estado/almacen'
 import { EVENTO_SOLTAR_TIPO, MIME_TIPO, UMBRAL_ARRASTRE_PX, type DetalleSoltarTipo } from '../lienzo/arrastres'
+import { alternarFavorito, useCatalogoLocal } from './catalogoLocal'
+import MiniaturaDeTipo from './MiniaturaDeTipo'
 
 const t = textos.catalogo
 
@@ -100,12 +102,13 @@ interface PropsGrupo {
   titulo: string
   tipos: DefinicionTipo[]
   centro: Punto
+  favoritos: string[]
   alPulsarAsa: AlPulsarAsa
   /** true mientras se arrastra con el dedo: entonces no empieza el arrastre de HTML5. */
   conDedo: () => boolean
 }
 
-function Grupo({ titulo, tipos, centro, alPulsarAsa, conDedo }: PropsGrupo) {
+function Grupo({ titulo, tipos, centro, favoritos, alPulsarAsa, conDedo }: PropsGrupo) {
   const id = useId()
   if (tipos.length === 0) return null
   const empezarArrastre = (def: DefinicionTipo) => (ev: DragEvent<HTMLButtonElement>) => {
@@ -120,19 +123,29 @@ function Grupo({ titulo, tipos, centro, alPulsarAsa, conDedo }: PropsGrupo) {
     <section className="panel-catalogo__grupo" aria-labelledby={id}>
       <h2 id={id} className="panel__titulo">{titulo}</h2>
       <ul className="panel-catalogo__rejilla">
-        {tipos.map((def) => (
-          <li key={def.id}>
-            {/* El clic que sigue a soltar el asa no cuenta como pulsar la tarjeta. */}
-            <button type="button" draggable className="panel-catalogo__tipo" onDragStart={empezarArrastre(def)}
-              onClick={(ev) => { if (!(ev.target as Element).closest('.panel-catalogo__asa')) anadirTipo(def.id, centro) }}>
-              <span className="panel-catalogo__nombre">{capitalizar(def.nombre)}</span>{' '}
-              <small>{`${def.medidas.ancho.defecto} × ${def.medidas.fondo.defecto} cm`}</small>
-              <span className="panel-catalogo__asa" aria-hidden="true" onPointerDown={alPulsarAsa(def)}>
-                <Icono nombre="mover" />
-              </span>
-            </button>
-          </li>
-        ))}
+        {tipos.map((def) => {
+          const nombre = capitalizar(def.nombre)
+          const favorito = favoritos.includes(def.id)
+          return (
+            <li key={def.id} className="panel-catalogo__tarjeta">
+              {/* El clic que sigue a soltar el asa no cuenta como pulsar la tarjeta. */}
+              <button type="button" draggable className="panel-catalogo__tipo" onDragStart={empezarArrastre(def)}
+                onClick={(ev) => { if (!(ev.target as Element).closest('.panel-catalogo__asa')) anadirTipo(def.id, centro) }}>
+                <MiniaturaDeTipo def={def} />
+                <span className="panel-catalogo__nombre">{nombre}</span>{' '}
+                <small>{`${def.medidas.ancho.defecto} × ${def.medidas.fondo.defecto} cm`}</small>
+                <span className="panel-catalogo__asa" aria-hidden="true" onPointerDown={alPulsarAsa(def)}>
+                  <Icono nombre="mover" />
+                </span>
+              </button>
+              {/* Hermana de la tarjeta, no dentro (un botón dentro de otro no es válido). */}
+              <button type="button" className={`panel-catalogo__favorito${favorito ? ' panel-catalogo__favorito--si' : ''}`}
+                aria-pressed={favorito} aria-label={t.marcarFavorito(nombre)} onClick={() => alternarFavorito(def.id)}>
+                <Icono nombre="estrella" />
+              </button>
+            </li>
+          )
+        })}
       </ul>
     </section>
   )
@@ -141,9 +154,15 @@ function Grupo({ titulo, tipos, centro, alPulsarAsa, conDedo }: PropsGrupo) {
 /** Sin mayúsculas ni tildes: "lampara" encuentra "Lámpara de pie". */
 const normalizar = (texto: string) => texto.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim()
 
+/** Las definiciones de unos ids, en ese orden, saltando los que ya no existan en el catálogo. */
+const definiciones = (ids: string[]): DefinicionTipo[] => ids.map((id) => catalogoBase.get(id)).filter((d) => d !== undefined)
+
+const porNombre = (a: DefinicionTipo, b: DefinicionTipo) => a.nombre.localeCompare(b.nombre, 'es')
+
 /**
  * Paso 2: los tipos del catálogo; pulsar uno lo pone en el centro de la estancia y arrastrarlo (con el dedo, por su asa),
- * donde se suelte en el plano. `alEmpezarArrastre` avisa al empezar a arrastrar con el dedo, para cerrar la hoja.
+ * donde se suelte en el plano. Delante, los favoritos (por nombre) y los usados hace poco (el último, primero), solo si
+ * hay alguno. `alEmpezarArrastre` avisa al empezar a arrastrar con el dedo, para cerrar la hoja.
  */
 export default function PanelCatalogo({ alEmpezarArrastre }: { alEmpezarArrastre?: () => void }) {
   const estancia = useEditor((e) => e.documento?.estancia)
@@ -152,12 +171,15 @@ export default function PanelCatalogo({ alEmpezarArrastre }: { alEmpezarArrastre
   const [grupoElegido, setGrupoElegido] = useState<string | null>(null)
   const idBuscar = useId()
   const { alPulsarAsa, enCurso, fantasma } = useArrastreConDedo(alEmpezarArrastre)
+  const { favoritos, recientes } = useCatalogoLocal()
   if (!estancia) return null
   const { deLaEstancia, otros, decoracion } = catalogoDeEstancia(catalogoBase, estancia.tipo)
   const centro = puntoInterior(estancia.planta)
   const buscado = normalizar(busqueda)
   const filtrar = (tipos: DefinicionTipo[]) => tipos.filter((d) => normalizar(d.nombre).includes(buscado))
   const todos = [
+    { titulo: t.favoritos, tipos: definiciones(favoritos).sort(porNombre) },
+    { titulo: t.recientes, tipos: definiciones(recientes) },
     { titulo: `${t.paraTu} ${t.estancias[estancia.tipo]}`, tipos: deLaEstancia },
     { titulo: t.decoracion, tipos: decoracion },
     { titulo: t.otros, tipos: otros },
@@ -183,7 +205,7 @@ export default function PanelCatalogo({ alEmpezarArrastre }: { alEmpezarArrastre
       </div>
       <p className="panel__nota">{t.ayuda}</p>
       {grupos.every((g) => g.tipos.length === 0) && <p className="panel__nota" role="status">{t.sinResultados}</p>}
-      {grupos.map((g) => <Grupo key={g.titulo} titulo={g.titulo} tipos={g.tipos} centro={centro} alPulsarAsa={alPulsarAsa} conDedo={conDedo} />)}
+      {grupos.map((g) => <Grupo key={g.titulo} titulo={g.titulo} tipos={g.tipos} centro={centro} favoritos={favoritos} alPulsarAsa={alPulsarAsa} conDedo={conDedo} />)}
       {fantasma}
     </div>
   )

@@ -1,13 +1,15 @@
 import { anadirElemento, catalogoBase, duplicarElemento, moverElemento, quitarElemento, type Punto } from '../../nucleo'
+import { anotarReciente } from '../paneles/catalogoLocal'
 import { almacen } from './almacen'
 
-/** Añade un tipo del catálogo en `posicion` (cm enteros, imantado) y lo deja seleccionado. */
+/** Añade un tipo del catálogo en `posicion` (cm enteros, imantado), lo deja seleccionado y lo apunta como usado hace poco. */
 export function anadirTipo(tipo: string, posicion: Punto): void {
   const { documento, cambiar, seleccionar } = almacen.getState()
   if (!documento || !catalogoBase.has(tipo)) return
   const r = anadirElemento(documento, catalogoBase, tipo, { x: Math.round(posicion.x), y: Math.round(posicion.y) })
   cambiar(() => r.documento)
   seleccionar({ tipo: 'elemento', id: r.id })
+  anotarReciente(tipo)
 }
 
 /** Duplica el elemento y deja seleccionada la copia. */

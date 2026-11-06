@@ -1,7 +1,8 @@
-import { catalogoBase, huellasEnPlanta, nombreDeElemento, nombreEnPlanta, rectangulo, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
+import { catalogoBase, nombreDeElemento, nombreEnPlanta, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
 import type { Seleccion } from '../../estado/almacen'
-import { manejador, puntos, type AlPulsar } from './comun'
+import { manejador, type AlPulsar } from './comun'
 import { colocarNombres, type Etiqueta } from './nombres'
+import Pieza from './Pieza'
 
 /** `escala`: px de pantalla por cm, para no escribir un nombre encima de otro. */
 interface Props { documento: DocumentoDiseno; conflictos: Conflicto[]; seleccion: Seleccion; alPulsar?: AlPulsar; escala?: number }
@@ -14,25 +15,6 @@ const LETRAS_NOMBRE_PLANO = 20
 function recortar(nombre: string): string {
   return nombre.length > LETRAS_NOMBRE_PLANO ? `${nombre.slice(0, LETRAS_NOMBRE_PLANO - 1).trimEnd()}…` : nombre
 }
-const COLOR_SIN_ZONA = '#d8d2ca'
-
-function Pieza({ e, elegido }: { e: Elemento; elegido: boolean }) {
-  const def = catalogoBase.get(e.tipo)
-  const huellas = def ? huellasEnPlanta(def, e) : [rectangulo(e.posicion, e.medidas.ancho, e.medidas.fondo, e.rotacion)]
-  const zona = def?.zonasColor[0]
-  const relleno = zona ? (e.colores[zona.clave] ?? zona.defecto) : COLOR_SIN_ZONA
-  return (
-    <>
-      {/* La selección es un halo por debajo: el contorno rojo de un conflicto sigue a la vista. */}
-      {elegido && huellas.map((h, i) => <polygon key={`h${i}`} className="capa-elementos__halo" points={puntos(h)} />)}
-      {huellas.map((h, i) => <polygon key={i} className="capa-elementos__huella" points={puntos(h)} fill={relleno} />)}
-      {def?.zonasApertura(e).map((z, i) => (
-        <polygon key={`a${i}`} className="capa-elementos__apertura" points={puntos(z.huella)} strokeDasharray="6 4" />
-      ))}
-    </>
-  )
-}
-
 /** El nombre de la pieza y dónde va; null si es demasiado estrecha para escribirlo. */
 function etiqueta(e: Elemento): Etiqueta | null {
   if (e.medidas.ancho <= ANCHO_NOMBRE_CM) return null
@@ -58,7 +40,7 @@ export default function CapaElementos({ documento, conflictos, seleccion, alPuls
             className={`capa-elementos__pieza${elegido ? ' lienzo--seleccionado' : ''}${alPulsar ? ' lienzo--pulsable' : ''}`}
             onPointerDown={manejador(e.id, alPulsar)}
           >
-            <Pieza e={e} elegido={elegido} />
+            <Pieza def={catalogoBase.get(e.tipo)} e={e} elegido={elegido} />
           </g>
         )
       })}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { catalogoBase } from './catalogoBase'
-import { elementoNuevo } from './elemento'
+import { elementoNuevo, huellasEnPlanta } from './elemento'
+import { cajaPlanta, superficie } from '../geometria/poligono'
 import { documentoNuevo } from '../modelo/crear'
 import { detectarConflictos } from '../conflictos/detectar'
 import type { DefinicionTipo } from './tipos'
@@ -54,6 +55,20 @@ describe('integridad: medidas extra', () => {
         expect([min, max, defecto].every(Number.isInteger)).toBe(true)
         expect(min <= defecto && defecto <= max).toBe(true)
       }
+    }
+  })
+})
+
+describe('integridad: miniatura del catálogo', () => {
+  it('el elemento por defecto en (0, 0) tiene una huella con área y una caja finita (huellas y aperturas)', () => {
+    for (const def of catalogoBase.values()) {
+      const e = elementoNuevo(def, { x: 0, y: 0 }, `miniatura-${def.id}`)
+      const huellas = huellasEnPlanta(def, e)
+      expect(huellas.some((h) => superficie(h) > 0), def.id).toBe(true)
+      const caja = cajaPlanta([...huellas, ...def.zonasApertura(e).map((z) => z.huella)].flat())
+      for (const n of [caja.minX, caja.minY, caja.maxX, caja.maxY]) expect(Number.isFinite(n), def.id).toBe(true)
+      expect(caja.maxX - caja.minX, def.id).toBeGreaterThan(0)
+      expect(caja.maxY - caja.minY, def.id).toBeGreaterThan(0)
     }
   })
 })
