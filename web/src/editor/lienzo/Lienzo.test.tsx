@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { catalogoBase, desplazarPoligono, elementoNuevo, longitudPared, type Abertura, type Punto } from '../../nucleo'
+import { bloquearElemento, catalogoBase, desplazarPoligono, elementoNuevo, longitudPared, type Abertura, type Punto } from '../../nucleo'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import { hayArrastre } from './arrastres'
 import Lienzo from './Lienzo'
@@ -557,5 +557,156 @@ describe('Lienzo: zoom con botones', () => {
     expect(acercar).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Alejar' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Encuadrar' })).toBeEnabled()
+  })
+})
+
+describe('Lienzo: cinta métrica', () => {
+  const svgDe = (container: HTMLElement) => container.querySelector('svg')!
+  const toque = (el: Element, x: number, y: number) => {
+    fireEvent.pointerDown(el, { pointerId: 1, button: 0, clientX: x, clientY: y })
+    fireEvent.pointerUp(el, { pointerId: 1, clientX: x, clientY: y })
+  }
+  const cota = (container: HTMLElement) => container.querySelector('[data-cota-libre]')
+
+  it('«Medir» y dos toques en el fondo acotan la distancia en cm; un tercero empieza otra', () => {
+    const { container } = render(<Lienzo />)
+    const medir = screen.getByRole('button', { name: 'Medir' })
+    expect(medir).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(medir)
+    expect(medir).toHaveAttribute('aria-pressed', 'true')
+    const svg = svgDe(container)
+    toque(svg, 100, 100)
+    expect(cota(container)).not.toBeNull()
+    expect(cota(container)!.textContent).toBe('')
+    // Entre el primer toque y el segundo, la cota sigue al puntero.
+    fireEvent.pointerMove(svg, { pointerId: 2, clientX: 250, clientY: 100 })
+    expect(cota(container)!.textContent).toBe('150 cm')
+    toque(svg, 400.4, 100)
+    expect(cota(container)!.textContent).toBe('300 cm')
+    fireEvent.pointerMove(svg, { pointerId: 2, clientX: 10, clientY: 10 })
+    expect(cota(container)!.textContent).toBe('300 cm')
+    toque(svg, 200, 200)
+    expect(container.querySelectorAll('[data-cota-libre]')).toHaveLength(1)
+    expect(cota(container)!.textContent).toBe('')
+    fireEvent.pointerMove(svg, { pointerId: 2, clientX: 230, clientY: 240 })
+    expect(cota(container)!.textContent).toBe('50 cm')
+    expect(almacen.getState().seleccion).toBeNull()
+  })
+
+  it('Escape quita la cota y suelta el botón; el botón pulsado otra vez también', () => {
+    const { container } = render(<Lienzo />)
+    const medir = screen.getByRole('button', { name: 'Medir' })
+    fireEvent.click(medir)
+    const svg = svgDe(container)
+    toque(svg, 100, 100)
+    toque(svg, 200, 100)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(cota(container)).toBeNull()
+    expect(medir).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(medir)
+    toque(svg, 100, 100)
+    fireEvent.click(medir)
+    expect(cota(container)).toBeNull()
+    expect(medir).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('midiendo, tocar un mueble no lo selecciona (fija un punto) y arrastrar el fondo sigue siendo pan', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    const { container } = render(<Lienzo />)
+    fireEvent.click(screen.getByRole('button', { name: 'Medir' }))
+    expect(container.querySelector('[data-giro]')).toBeNull()
+    const huella = container.querySelector('[data-elemento="a"] polygon')!
+    toque(huella, 200, 165)
+    expect(almacen.getState().seleccion).toBeNull()
+    expect(cota(container)).not.toBeNull()
+    const svg = svgDe(container)
+    fireEvent.pointerDown(svg, { pointerId: 3, button: 0, clientX: 50, clientY: 50 })
+    fireEvent.pointerMove(svg, { pointerId: 3, clientX: 90, clientY: 50 })
+    fireEvent.pointerUp(svg, { pointerId: 3, clientX: 90, clientY: 50 })
+    expect(svg.querySelector('g')!.getAttribute('transform')).toContain('translate(40 0)')
+    expect(cota(container)!.textContent).toBe('')
+  })
+
+  it('en el paso 1, midiendo, ni las esquinas ni las puertas se pulsan: el toque fija un punto', () => {
+    const puerta: Abertura = { id: 'p', tipo: 'puerta', pared: 0, posicion: 50, ancho: 80, alto: 210, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' }
+    almacen.getState().cambiar((d) => ({ ...d, aberturas: [puerta] }))
+    almacen.getState().irAPaso(1)
+    const { container } = render(<Lienzo />)
+    expect(container.querySelector('[data-vertice]')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Medir' }))
+    expect(container.querySelector('[data-vertice]')).toBeNull()
+    toque(container.querySelector('[data-abertura="p"] polygon')!, 90, 0)
+    expect(almacen.getState().seleccion).toBeNull()
+    expect(cota(container)).not.toBeNull()
+    fireEvent.pointerMove(svgDe(container), { pointerId: 2, clientX: 90, clientY: 330 })
+    expect(cota(container)!.textContent).toBe('330 cm')
+  })
+
+  it('cambiar de paso quita la cota y deja de medir', () => {
+    const { container } = render(<Lienzo />)
+    fireEvent.click(screen.getByRole('button', { name: 'Medir' }))
+    toque(svgDe(container), 100, 100)
+    act(() => almacen.getState().irAPaso(1))
+    expect(cota(container)).toBeNull()
+    expect(screen.getByRole('button', { name: 'Medir' })).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+
+describe('Lienzo: mueble bloqueado y cotas a los vecinos', () => {
+  const armario = () => almacen.getState().documento!.elementos.find((e) => e.id === 'a')!
+
+  it('un bloqueado se selecciona, lleva candado, no tiene tirador de giro y arrastrarlo no lo mueve', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    almacen.getState().cambiar((d) => bloquearElemento(d, 'a', true))
+    const pasos = almacen.getState().pasado.length
+    const { container } = render(<Lienzo />)
+    expect(container.querySelector('[data-elemento="a"] [data-candado]')).not.toBeNull()
+    const huella = container.querySelector('[data-elemento="a"] polygon')!
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 200, clientY: 165 })
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: 'a' })
+    expect(container.querySelector('[data-giro]')).toBeNull()
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 230, clientY: 180 })
+    fireEvent.pointerUp(huella, { pointerId: 1 })
+    expect(armario().posicion).toEqual({ x: 200, y: 165 })
+    expect(container.querySelector('[data-cota-elemento]')).toBeNull()
+    expect(almacen.getState().pasado).toHaveLength(pasos)
+    expect(hayArrastre()).toBe(false)
+  })
+
+  it('arrastrar desde un bloqueado hace pan (en móvil sería una zona muerta) y un toque sin mover lo deja seleccionado', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    almacen.getState().cambiar((d) => bloquearElemento(d, 'a', true))
+    const { container } = render(<Lienzo />)
+    const huella = container.querySelector('[data-elemento="a"] polygon')!
+    fireEvent.pointerDown(huella, { pointerId: 1, button: 0, clientX: 200, clientY: 165 })
+    fireEvent.pointerMove(container.querySelector('svg')!, { pointerId: 1, clientX: 240, clientY: 165 })
+    fireEvent.pointerUp(container.querySelector('svg')!, { pointerId: 1, clientX: 240, clientY: 165 })
+    expect(container.querySelector('svg > g')!.getAttribute('transform')).toContain('translate(40 0)')
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: 'a' })
+    fireEvent.pointerDown(huella, { pointerId: 1, button: 0, clientX: 200, clientY: 165 })
+    fireEvent.pointerUp(container.querySelector('svg')!, { pointerId: 1, clientX: 200, clientY: 165 })
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: 'a' })
+  })
+
+  it('un mueble libre no lleva candado', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    const { container } = render(<Lienzo />)
+    expect(container.querySelector('[data-candado]')).toBeNull()
+  })
+
+  it('al arrastrar, la cota de un lado va al vecino que está antes que la pared; una alfombra no cuenta', () => {
+    colocar('armario', 'a', { x: 100, y: 165 })
+    colocar('armario', 'b', { x: 300, y: 165 })
+    colocar('alfombra', 'f', { x: 100, y: 250 })
+    const { container } = render(<Lienzo />)
+    const huella = container.querySelector('[data-elemento="a"] polygon')!
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 100, clientY: 165 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 110, clientY: 170 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 101, clientY: 166 })
+    expect(armario().posicion).toEqual({ x: 101, y: 166 })
+    // Armario de 100 × 60 en (101, 166): 99 cm hasta el otro armario (borde en 250), 51 a la izquierda, 136 arriba y 134 abajo (la alfombra no corta).
+    const cotas = [...container.querySelectorAll('[data-cota-elemento]')].map((n) => n.textContent)
+    expect(cotas.sort()).toEqual(['134 cm', '136 cm', '51 cm', '99 cm'])
+    fireEvent.pointerUp(huella, { pointerId: 1 })
   })
 })

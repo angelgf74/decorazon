@@ -23,8 +23,12 @@ function distanciaRayo(planta: Punto[], origen: Punto, dir: Punto): number | nul
   return mejor
 }
 
-/** Una cota por lado del rectángulo (4 vértices horarios), desde su punto medio hasta la pared por la normal exterior. */
-export function cotasAParedes(planta: Punto[], rect: Punto[]): Cota[] {
+/**
+ * Una cota por lado del rectángulo (4 vértices horarios), desde su punto medio hasta lo primero que corta la normal exterior:
+ * la pared o uno de los `obstaculos` (las huellas de los muebles vecinos). Uno pegado (corte ≈ 0) omite la cota, como la pared;
+ * uno solapado da la cota a su borde de salida.
+ */
+export function cotasAParedes(planta: Punto[], rect: Punto[], obstaculos: Punto[][] = []): Cota[] {
   const cotas: Cota[] = []
   for (let i = 0; i < rect.length; i++) {
     const a = rect[i]
@@ -32,7 +36,11 @@ export function cotasAParedes(planta: Punto[], rect: Punto[]): Cota[] {
     const u = normalizar(restar(b, a))
     const normal = { x: u.y, y: -u.x }
     const desde = escalar(sumar(a, b), 0.5)
-    const t = distanciaRayo(planta, desde, normal)
+    let t = distanciaRayo(planta, desde, normal)
+    for (const o of obstaculos) {
+      const to = distanciaRayo(o, desde, normal)
+      if (to !== null && (t === null || to < t)) t = to
+    }
     if (t === null || t <= TOLERANCIA_CM) continue
     cotas.push({ desde, hasta: sumar(desde, escalar(normal, t)), valor: redondearAbajo(t) })
   }

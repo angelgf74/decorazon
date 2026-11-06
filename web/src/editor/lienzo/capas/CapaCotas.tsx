@@ -1,6 +1,7 @@
 import type { PointerEvent } from 'react'
 import {
-  catalogoBase, cotasAParedes, cotasEnPared, escalar, hueco, imantar, longitudPared, rectangulo, sumar, type DocumentoDiseno, type Elemento,
+  catalogoBase, cotasAParedes, cotasEnPared, escalar, hueco, huellasEnPlanta, imantar, longitudPared, rectangulo, sumar,
+  type DocumentoDiseno, type Elemento, type Punto,
 } from '../../../nucleo'
 import { almacen, type Seleccion } from '../../estado/almacen'
 import { esBotonPrincipal } from './comun'
@@ -42,10 +43,20 @@ export default function CapaCotas({ documento, seleccion, escala, soloVer = fals
   )
 }
 
-/** Paso 2, mientras se arrastra un elemento: su distancia a las paredes y, resaltadas, las paredes a las que se pega. */
+/** Las huellas de los demás muebles, para acotar hasta ellos; lo pisable (alfombras) no corta una cota. */
+function huellasVecinas(documento: DocumentoDiseno, id: string): Punto[][] {
+  return documento.elementos.flatMap((x) => {
+    if (x.id === id) return []
+    const def = catalogoBase.get(x.tipo)
+    if (!def) return [rectangulo(x.posicion, x.medidas.ancho, x.medidas.fondo, x.rotacion)]
+    return def.pisable ? [] : huellasEnPlanta(def, x)
+  })
+}
+
+/** Paso 2, mientras se arrastra un elemento: su distancia a las paredes o al vecino que esté antes, y, resaltadas, las paredes a las que se pega. */
 export function CotasElemento({ documento, elemento: e }: { documento: DocumentoDiseno; elemento: Elemento }) {
   const { planta } = documento.estancia
-  const cotas = cotasAParedes(planta, rectangulo(e.posicion, e.medidas.ancho, e.medidas.fondo, e.rotacion))
+  const cotas = cotasAParedes(planta, rectangulo(e.posicion, e.medidas.ancho, e.medidas.fondo, e.rotacion), huellasVecinas(documento, e.id))
   const { pegadoA } = imantar(documento, catalogoBase, e, { libre: e.rotacion % 90 !== 0 })
   const paredes = pegadoA.filter((p) => p.startsWith('pared:')).map((p) => Number(p.slice('pared:'.length)))
   return (
@@ -63,6 +74,27 @@ export function CotasElemento({ documento, elemento: e }: { documento: Documento
           </g>
         )
       })}
+    </g>
+  )
+}
+
+/** Radio en px de pantalla de los extremos de la cinta métrica. */
+const RADIO_PUNTO_PX = 4
+
+/** La cinta métrica (M-06): un punto fijado y, si lo hay, el segundo (o el puntero) con la distancia en cm. No se guarda. */
+export function CotaLibre({ a, b, escala }: { a: Punto; b: Punto | null; escala: number }) {
+  const r = RADIO_PUNTO_PX / escala
+  const m = b && escalar(sumar(a, b), 0.5)
+  return (
+    <g data-cota-libre className="capa-cotas capa-cotas--elemento capa-cotas--libre">
+      <circle className="capa-cotas__punto" cx={a.x} cy={a.y} r={r} />
+      {b && m && (
+        <g className="capa-cotas__cota">
+          <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+          <circle className="capa-cotas__punto" cx={b.x} cy={b.y} r={r} />
+          <text className="lienzo__texto" x={m.x} y={m.y}>{`${Math.round(Math.hypot(b.x - a.x, b.y - a.y))} cm`}</text>
+        </g>
+      )}
     </g>
   )
 }

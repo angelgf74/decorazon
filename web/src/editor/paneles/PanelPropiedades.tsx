@@ -1,12 +1,14 @@
 import { useId } from 'react'
 import {
-  cambiarLongitudPared, capitalizar, catalogoBase, editarAbertura, editarElemento, editarEstructura, longitudPared, moverVertice, partirPared,
-  nombreDeElemento, quitarDeEstancia, quitarVertice, rangoMedidaExtra, valorMedidaExtra, valoresVariante, valorVariante,
+  bloquearElemento, cambiarLongitudPared, capitalizar, catalogoBase, editarAbertura, editarElemento, editarEstructura, LIMITE_NOMBRE_ELEMENTO,
+  longitudPared, moverVertice, nombreDeElemento, partirPared, quitarDeEstancia, quitarVertice, rangoMedidaExtra, renombrarElemento, sePuedeVoltear,
+  valorMedidaExtra, valoresVariante, valorVariante, voltearElemento,
   type Abertura, type Columna, type DocumentoDiseno, type Elemento, type Estructura, type Medidas, type Puerta,
   type Radiador, type ResultadoEdicion, type Ventana, type Viga, type ZonaColor,
 } from '../../nucleo'
 import { textos } from '../../textos'
 import CampoNumero from '../comunes/CampoNumero'
+import CampoTexto from '../comunes/CampoTexto'
 import EntradaColor from '../comunes/EntradaColor'
 import { etiquetaValor } from '../comunes/variantes'
 import Icono from '../comunes/Icono'
@@ -108,6 +110,11 @@ function PropiedadesAbertura({ doc, a }: { doc: DocumentoDiseno; a: Abertura }) 
           <Opciones etiqueta={t.hoja} valor={a.hoja} opciones={t.hojas} alCambiar={(hoja) => cambiar({ hoja })} />
           <Opciones etiqueta={t.bisagra} valor={a.bisagra} opciones={t.bisagras} alCambiar={(bisagra) => cambiar({ bisagra })} />
           <Opciones etiqueta={t.sentido} valor={a.abreHacia} opciones={t.sentidos} alCambiar={(abreHacia) => cambiar({ abreHacia })} />
+          <div className="panel__botones">
+            <button type="button" onClick={() => cambiar({ bisagra: a.bisagra === 'izquierda' ? 'derecha' : 'izquierda' })}>
+              <Icono nombre="voltear" />{t.voltear}
+            </button>
+          </div>
         </>
       ) : (
         <label className="panel__casilla">
@@ -185,14 +192,22 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
   const editar = (cambios: CambiosElemento, grupo?: string) =>
     almacen.getState().cambiar((d) => editarElemento(d, catalogoBase, e.id, cambios), grupo)
   const deTienda = e.origen.tipo === 'tienda'
+  const bloqueado = e.bloqueado === true
   const medida = (clave: keyof Medidas, etiqueta: string) => (
     <CampoNumero etiqueta={etiqueta} valor={e.medidas[clave]} min={def.medidas[clave].min} max={def.medidas[clave].max} unidad="cm"
       alCambiar={(n) => editar({ medidas: { [clave]: n } })} />
   )
+  // Sin nombre propio, el campo enseña en gris lo que se escribiría en su lugar: el producto o el tipo.
+  const nombrePorDefecto = nombreDeElemento(def, { ...e, nombre: undefined })
   return (
     <>
       <h2>{nombreDeElemento(def, e)}</h2>
-      {e.origen.tipo === 'tienda' && <p className="panel__subtitulo">{textos.tienda.deTienda(capitalizar(def.nombre), e.origen.proveedor)}</p>}
+      {/* Con nombre propio, el subtítulo dice lo que se tapa: el producto (y su tienda) o el tipo. */}
+      {e.origen.tipo === 'tienda'
+        ? <p className="panel__subtitulo">{`${nombreDeElemento(def, e) !== e.origen.nombre ? `${e.origen.nombre} · ` : ''}${textos.tienda.deTienda(capitalizar(def.nombre), e.origen.proveedor)}`}</p>
+        : nombreDeElemento(def, e) !== capitalizar(def.nombre) && <p className="panel__subtitulo">{capitalizar(def.nombre)}</p>}
+      <CampoTexto etiqueta={t.nombre} valor={e.nombre ?? ''} placeholder={nombrePorDefecto} maxLength={LIMITE_NOMBRE_ELEMENTO}
+        alCambiar={(nombre) => almacen.getState().cambiar((d) => renombrarElemento(d, e.id, nombre))} />
       <div className="panel__rejilla">
         {/* Las de un mueble de tienda son las del producto: se cambian en «Editar producto». */}
         {!deTienda && medida('ancho', t.ancho)}
@@ -204,7 +219,8 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
             min={rangoMedidaExtra(def, e, m.clave).min} max={rangoMedidaExtra(def, e, m.clave).max}
             alCambiar={(n) => editar({ medidasExtra: { [m.clave]: n } })} />
         ))}
-      {!en3d && <CampoNumero etiqueta={t.giro} valor={e.rotacion} min={0} max={359} unidad="°" alCambiar={(n) => editar({ rotacion: n })} />}
+      {/* Un bloqueado no gira (tampoco con el tirador ni con R). */}
+      {!en3d && !bloqueado && <CampoNumero etiqueta={t.giro} valor={e.rotacion} min={0} max={359} unidad="°" alCambiar={(n) => editar({ rotacion: n })} />}
       {def.alturaSueloEditable && (
         <CampoNumero etiqueta={t.alturaSuelo} valor={e.alturaSuelo} min={0} max={Math.max(0, doc.estancia.alto - e.medidas.alto)} unidad="cm"
           alCambiar={(n) => editar({ alturaSuelo: n })} />
@@ -221,6 +237,15 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
       ))}
       <ProductoDeTienda e={e} def={def} />
       <div className="panel__acciones">
+        {/* Bloqueado: se selecciona y se edita, pero el plano no lo mueve ni lo gira (M-05). Voltear: izquierda ↔ derecha (M-08). */}
+        <button type="button" aria-pressed={bloqueado} onClick={() => almacen.getState().cambiar((d) => bloquearElemento(d, e.id, !bloqueado))}>
+          <Icono nombre={bloqueado ? 'candado' : 'candadoAbierto'} />{bloqueado ? t.desbloquear : t.bloquear}
+        </button>
+        {!en3d && sePuedeVoltear(def) && (
+          <button type="button" onClick={() => almacen.getState().cambiar((d) => voltearElemento(d, catalogoBase, e.id))}>
+            <Icono nombre="voltear" />{t.voltear}
+          </button>
+        )}
         {!en3d && <button type="button" onClick={() => duplicar(e.id)}>{t.duplicar}</button>}
         <button type="button" className="peligro" onClick={() => borrar(e.id)}>{t.borrar}</button>
       </div>

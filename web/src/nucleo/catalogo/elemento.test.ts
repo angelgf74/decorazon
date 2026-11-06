@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ajustarMedidas, catalogoDeEstancia, elementoNuevo, nombreDeElemento } from './elemento'
+import { ajustarMedidas, catalogoDeEstancia, elementoNuevo, nombreDeElemento, sePuedeVoltear } from './elemento'
 import { catalogoBase } from './catalogoBase'
 import { armario } from './definiciones/armario'
 
@@ -60,5 +60,20 @@ describe('nombreDeElemento', () => {
     expect(nombreDeElemento(armario, e)).toBe('Armario')
     expect(nombreDeElemento(armario, { ...e, origen: { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX' } })).toBe('PAX')
     expect(nombreDeElemento(undefined, { ...e, tipo: 'desconocido' })).toBe('desconocido')
+  })
+  it('el nombre propio manda sobre el producto y el tipo', () => {
+    const e = elementoNuevo(armario, { x: 0, y: 0 })
+    const deTienda = { ...e, origen: { tipo: 'tienda' as const, proveedor: 'IKEA', nombre: 'PAX' } }
+    expect(nombreDeElemento(armario, { ...deTienda, nombre: 'Armario de Ana' })).toBe('Armario de Ana')
+    expect(nombreDeElemento(undefined, { ...e, nombre: 'Armario de Ana' })).toBe('Armario de Ana')
+  })
+})
+
+describe('sePuedeVoltear', () => {
+  it('lo que tiene una variante con izquierda y derecha', () => {
+    expect(sePuedeVoltear(catalogoBase.get('sofa')!)).toBe(true)
+    expect(sePuedeVoltear(catalogoBase.get('escritorio-l')!)).toBe(true)
+    expect(sePuedeVoltear(catalogoBase.get('sofa-rinconera')!)).toBe(true)
+    expect(sePuedeVoltear(armario)).toBe(false)
   })
 })

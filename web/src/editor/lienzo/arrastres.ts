@@ -144,7 +144,8 @@ export function pulsarElemento(aPlano: APlano, id: string, ev: PointerEventReact
   const { documento, seleccionar } = almacen.getState()
   seleccionar({ tipo: 'elemento', id })
   const e = documento?.elementos.find((x) => x.id === id)
-  if (!e) return
+  // Un bloqueado se selecciona y nada más (M-05): sin arrastre, el toque no mueve ni enseña cotas.
+  if (!e || e.bloqueado) return
   const p0 = aPlano(ev)
   arrastrar(ev, (m) => {
     avisar(id)

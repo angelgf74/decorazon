@@ -6,7 +6,7 @@ import { almacen, useEditor } from '../estado/almacen'
 import { anadirTipo } from '../estado/elementos'
 import { cortarArrastre, EVENTO_SOLTAR_TIPO, MIME_TIPO, pulsarAbertura, pulsarElemento, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano, type DetalleSoltarTipo } from './arrastres'
 import CapaAberturas from './capas/CapaAberturas'
-import CapaCotas, { CotasElemento, CotasEnPared } from './capas/CapaCotas'
+import CapaCotas, { CotaLibre, CotasElemento, CotasEnPared } from './capas/CapaCotas'
 import CapaConflictos from './capas/CapaConflictos'
 import CapaElementos from './capas/CapaElementos'
 import CapaEstructura, { PatronRayado } from './capas/CapaEstructura'
@@ -25,8 +25,13 @@ const FACTOR_ZOOM_BOTON = 1.25
 const PX_POR_LINEA = 16
 const VISTA_INICIAL: Vista2D = { x: 0, y: 0, escala: 1 }
 
-interface Arrastre { id: number; x: number; y: number; vista: Vista2D; movido: boolean }
+/** `sobreBloqueado`: el toque empezó en un mueble bloqueado, que ya se seleccionó y deja pasar el toque para que el fondo haga pan. */
+interface Arrastre { id: number; x: number; y: number; vista: Vista2D; movido: boolean; sobreBloqueado: boolean }
 interface Pellizco { inicio: Vista2D; antes: [Punto, Punto] }
+/** La cinta métrica: el primer punto y el segundo, que sigue al puntero hasta que `fija` (segundo toque). */
+interface Medida { a: Punto; b: Punto | null; fija: boolean }
+
+const redondear = (p: Punto): Punto => ({ x: Math.round(p.x), y: Math.round(p.y) })
 
 /** Los dos primeros dedos: los del pellizco. */
 function dosToques(toques: Map<number, Punto>): [Punto, Punto] {
@@ -54,6 +59,21 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
   const [arrastrando, setArrastrando] = useState(false)
   const arrastre = useRef<Arrastre | null>(null)
   const [arrastrado, setArrastrado] = useState<string | null>(null)
+  // Cinta métrica (M-06): midiendo, los muebles no se pulsan y un toque en el fondo fija un punto; no se guarda nada.
+  const [midiendo, setMidiendo] = useState(false)
+  const [medida, setMedida] = useState<Medida | null>(null)
+  const [pasoVisto, setPasoVisto] = useState(paso)
+  if (paso !== pasoVisto) {
+    setPasoVisto(paso)
+    setMidiendo(false)
+    setMedida(null)
+  }
+  const alternarMedir = () => {
+    setMidiendo(!midiendo)
+    setMedida(null)
+  }
+  const fijarPunto = (p: Punto) =>
+    setMedida((m) => (m === null || m.fija ? { a: p, b: null, fija: false } : { ...m, b: p, fija: true }))
   // Dedos sobre el plano, en px del svg, caigan donde caigan; con dos, pellizco.
   const toques = useRef(new Map<number, Punto>())
   const pellizco = useRef<Pellizco | null>(null)
@@ -68,6 +88,18 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
     estructura: (id, ev) => pulsarEstructura(aPlano, id, ev),
     elemento: (id, ev) => pulsarElemento(aPlano, id, ev, setArrastrado),
   }
+
+  // Escape termina de medir (y usarAtajos suelta la selección, que da igual).
+  useEffect(() => {
+    if (!midiendo) return
+    const alPulsarTecla = (ev: KeyboardEvent) => {
+      if (ev.key !== 'Escape') return
+      setMidiendo(false)
+      setMedida(null)
+    }
+    window.addEventListener('keydown', alPulsarTecla)
+    return () => window.removeEventListener('keydown', alPulsarTecla)
+  }, [midiendo])
 
   const aplicar = useCallback((f: (v: Vista2D) => Vista2D) => {
     vistaActual.current = f(vistaActual.current)
@@ -182,12 +214,16 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
   // Solo llegan aquí los toques que ninguna capa ha atendido: el fondo.
   const alBajar = (ev: PointerEvent<SVGSVGElement>) => {
     if (ev.button !== 0 && ev.button !== 1) return
-    arrastre.current = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, vista: vistaActual.current, movido: false }
+    const sobreBloqueado = ev.target instanceof Element && ev.target.closest('[data-bloqueado]') !== null
+    arrastre.current = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, vista: vistaActual.current, movido: false, sobreBloqueado }
     if (typeof ev.currentTarget.setPointerCapture === 'function') ev.currentTarget.setPointerCapture(ev.pointerId)
   }
 
   const alMover = (ev: PointerEvent<SVGSVGElement>) => {
+    // Con el primer punto fijado, el segundo sigue al puntero mientras no haya un botón pulsado (eso es un pan, o un toque
+    // que fijará el punto al soltar; con el dedo no hay movimiento sin toque: se queda el punto solo).
     const a = arrastre.current
+    if (midiendo && medida !== null && !medida.fija && a === null) setMedida({ ...medida, b: redondear(aPlano(ev)) })
     if (!a || a.id !== ev.pointerId) return
     const dx = ev.clientX - a.x, dy = ev.clientY - a.y
     if (!a.movido && Math.hypot(dx, dy) < UMBRAL_ARRASTRE_PX) return
@@ -202,7 +238,11 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
     if (!a || a.id !== ev.pointerId) return
     arrastre.current = null
     setArrastrando(false)
-    if (!a.movido && !cancelado) almacen.getState().seleccionar(null)
+    if (a.movido || cancelado) return
+    // Un toque sin arrastre: midiendo fija un punto (en cm enteros); si no, suelta la selección (salvo que el toque
+    // fuera sobre un bloqueado, que ya quedó seleccionado).
+    if (midiendo) fijarPunto(redondear(aPlano(ev)))
+    else if (!a.sobreBloqueado) almacen.getState().seleccionar(null)
   }
 
   // Paso 2: un tipo arrastrado desde el catálogo se añade donde se suelta.
@@ -226,7 +266,7 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
     <div className="lienzo">
       <svg
         ref={svg}
-        className={`lienzo__svg${arrastrando ? ' lienzo__svg--arrastrando' : ''}`}
+        className={`lienzo__svg${arrastrando ? ' lienzo__svg--arrastrando' : ''}${midiendo ? ' lienzo__svg--midiendo' : ''}`}
         role="img"
         aria-label={textos.lienzo.plano}
         onPointerDownCapture={alBajarCualquiera}
@@ -242,27 +282,34 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
         {/* --escala deja el texto del plano a tamaño constante en pantalla (lienzo.css). */}
         <g ref={plano} transform={`translate(${vista.x} ${vista.y}) scale(${vista.escala})`} style={{ '--escala': vista.escala } as CSSProperties}>
           <ContextoLienzo.Provider value={contexto}>
-            <CapaPlanta documento={documento} seleccion={seleccion} alPulsarPared={paso === 1 ? pulsarPared : undefined} />
-            <CapaEstructura documento={documento} seleccion={seleccion} vigas={false} alPulsar={paso === 1 ? pulsar.estructura : undefined} />
-            <CapaAberturas documento={documento} seleccion={seleccion} alPulsar={paso === 1 ? pulsar.abertura : undefined} />
-            <CapaElementos documento={documento} conflictos={conflictos} seleccion={seleccion} alPulsar={paso === 2 ? pulsar.elemento : undefined} escala={vista.escala} />
+            {/* Midiendo, nada se pulsa (ni muebles, ni paredes, ni esquinas): el toque cae al fondo y fija un punto. */}
+            <CapaPlanta documento={documento} seleccion={seleccion} alPulsarPared={paso === 1 && !midiendo ? pulsarPared : undefined} />
+            <CapaEstructura documento={documento} seleccion={seleccion} vigas={false} alPulsar={paso === 1 && !midiendo ? pulsar.estructura : undefined} />
+            <CapaAberturas documento={documento} seleccion={seleccion} alPulsar={paso === 1 && !midiendo ? pulsar.abertura : undefined} />
+            <CapaElementos documento={documento} conflictos={conflictos} seleccion={seleccion} alPulsar={paso === 2 && !midiendo ? pulsar.elemento : undefined} escala={vista.escala} />
             {/* Las vigas van por el techo: encima de los muebles. */}
-            <CapaEstructura documento={documento} seleccion={seleccion} vigas alPulsar={paso === 1 ? pulsar.estructura : undefined} />
+            <CapaEstructura documento={documento} seleccion={seleccion} vigas alPulsar={paso === 1 && !midiendo ? pulsar.estructura : undefined} />
             <CapaConflictos conflictos={conflictos} />
             {paso === 1 && (
               <>
-                <CapaCotas documento={documento} seleccion={seleccion} escala={vista.escala} />
+                <CapaCotas documento={documento} seleccion={seleccion} escala={vista.escala} soloVer={midiendo} />
                 <CotasEnPared documento={documento} seleccion={seleccion} escala={vista.escala} />
-                <CapaTiradores documento={documento} seleccion={seleccion} escala={vista.escala} />
+                {!midiendo && <CapaTiradores documento={documento} seleccion={seleccion} escala={vista.escala} />}
               </>
             )}
             {paso === 2 && enArrastre && <CotasElemento documento={documento} elemento={enArrastre} />}
-            {paso === 2 && elegido && <TiradorGiro elemento={elegido} planta={documento.estancia.planta} escala={vista.escala} avisar={setArrastrado} />}
+            {paso === 2 && elegido && !elegido.bloqueado && !midiendo && <TiradorGiro elemento={elegido} planta={documento.estancia.planta} escala={vista.escala} avisar={setArrastrado} />}
+            {midiendo && medida && <CotaLibre a={medida.a} b={medida.b} escala={vista.escala} />}
             {children}
           </ContextoLienzo.Provider>
         </g>
       </svg>
-      <div className="lienzo__controles" role="group" aria-label={textos.lienzo.zoom}>
+      <div className="lienzo__controles" role="group" aria-label={textos.lienzo.controles}>
+        <button type="button" className="boton-icono lienzo__medir" aria-label={textos.lienzo.medir} title={textos.lienzo.medirPista}
+          aria-pressed={midiendo} onClick={alternarMedir}>
+          <Icono nombre="regla" />
+        </button>
+        <span className="lienzo__separador" aria-hidden="true" />
         <button type="button" className="boton-icono lienzo__zoom" aria-label={textos.lienzo.alejar} title={textos.lienzo.alejar}
           disabled={vista.escala <= ESCALA_MIN} onClick={() => zoomPorBoton(1 / FACTOR_ZOOM_BOTON)}>
           <Icono nombre="menos" />

@@ -21,6 +21,8 @@ export const ESTILOS_DEL_PLANO = `
   .capa-elementos__huella { stroke: #2b2622; stroke-width: 1; }
   .capa-elementos__apertura { fill: none; stroke: #6f6862; stroke-width: 1; }
   .capa-elementos__nombres .lienzo__texto { paint-order: stroke; stroke: rgb(255 255 255 / 0.85); stroke-width: calc(3px / var(--escala, 1)); stroke-linejoin: round; }
+  .capa-elementos__candado rect { fill: #2b2622; }
+  .capa-elementos__candado path { fill: none; stroke: #2b2622; stroke-width: 1.75; }
   .capa-cotas__cota line { stroke: #6f6862; stroke-width: 1; }
   .capa-cotas__cota .lienzo__texto { paint-order: stroke; stroke: #fff; stroke-width: calc(4px / var(--escala, 1)); stroke-linejoin: round; }
 `

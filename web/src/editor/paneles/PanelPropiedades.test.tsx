@@ -159,6 +159,85 @@ describe('PanelPropiedades con un elemento', () => {
   })
 })
 
+describe('PanelPropiedades: bloquear, voltear y nombre propio', () => {
+  const elemento = () => almacen.getState().documento!.elementos[0]!
+
+  it('«Bloquear» bloquea (pulsado y sin campo «Giro») y «Desbloquear» libera', async () => {
+    colocar('armario')
+    render(<PanelPropiedades />)
+    expect(screen.getByLabelText('Giro')).toBeTruthy()
+    const boton = screen.getByRole('button', { name: 'Bloquear' })
+    expect(boton).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(boton)
+    expect(elemento().bloqueado).toBe(true)
+    expect(boton).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByLabelText('Giro')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Desbloquear' }))
+    expect('bloqueado' in elemento()).toBe(false)
+    expect(screen.getByLabelText('Giro')).toBeTruthy()
+  })
+
+  it('«Voltear» cambia de lado la chaise de un sofá; un armario no lo tiene', async () => {
+    colocar('sofa')
+    render(<PanelPropiedades />)
+    await userEvent.selectOptions(screen.getByLabelText('Chaise longue'), 'izquierda')
+    await userEvent.click(screen.getByRole('button', { name: 'Voltear' }))
+    expect(elemento().variantes.chaise).toBe('derecha')
+    expect((screen.getByRole('option', { name: 'Derecha' }) as HTMLOptionElement).selected).toBe(true)
+    act(() => almacen.getState().seleccionar(null))
+    colocar('armario')
+    expect(screen.queryByRole('button', { name: 'Voltear' })).toBeNull()
+  })
+
+  it('«Voltear» en una puerta cambia la bisagra', async () => {
+    almacen.getState().cambiar((d) => ({ ...d, aberturas: [puerta] }))
+    almacen.getState().seleccionar({ tipo: 'abertura', id: 'p' })
+    render(<PanelPropiedades />)
+    await userEvent.click(screen.getByRole('button', { name: 'Voltear' }))
+    expect(almacen.getState().documento!.aberturas[0]).toMatchObject({ bisagra: 'derecha' })
+  })
+
+  it('el campo «Nombre» pone el nombre propio (con Enter o al salir), lo enseña el título y vacío lo quita', async () => {
+    colocar('armario')
+    render(<PanelPropiedades />)
+    const campo = screen.getByLabelText('Nombre') as HTMLInputElement
+    expect(campo.placeholder).toBe('Armario')
+    expect(campo.maxLength).toBe(60)
+    await userEvent.type(campo, '  Armario de Ana {Enter}')
+    expect(elemento().nombre).toBe('Armario de Ana')
+    expect(screen.getByRole('heading', { name: 'Armario de Ana' })).toBeTruthy()
+    expect(screen.getByText('Armario')).toBeTruthy()
+    await userEvent.clear(campo)
+    await userEvent.type(campo, 'De Ana')
+    await userEvent.tab()
+    expect(elemento().nombre).toBe('De Ana')
+    await userEvent.clear(campo)
+    await userEvent.tab()
+    expect('nombre' in elemento()).toBe(false)
+    expect(screen.getByRole('heading', { name: 'Armario' })).toBeTruthy()
+  })
+
+  it('con nombre propio, un mueble de tienda sigue diciendo el producto en el subtítulo', () => {
+    colocar('armario')
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      elementos: d.elementos.map((e) => ({ ...e, nombre: 'El de la entrada', origen: { tipo: 'tienda' as const, proveedor: 'IKEA', nombre: 'PAX' } })),
+    }))
+    render(<PanelPropiedades />)
+    expect(screen.getByRole('heading', { name: 'El de la entrada' })).toBeTruthy()
+    expect(screen.getByText(/PAX/)).toBeTruthy()
+  })
+
+  it('Escape en «Nombre» restaura lo que había sin tocar el diseño', async () => {
+    colocar('armario')
+    render(<PanelPropiedades />)
+    const campo = screen.getByLabelText('Nombre') as HTMLInputElement
+    await userEvent.type(campo, 'Otro{Escape}')
+    expect(campo.value).toBe('')
+    expect('nombre' in elemento()).toBe(false)
+  })
+})
+
 describe('PanelPropiedades sin selección', () => {
   it('en el paso 1 explica qué pulsar, sin atajos', () => {
     render(<PanelPropiedades />)

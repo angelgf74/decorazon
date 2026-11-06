@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { anadirElemento, catalogoBase } from '../nucleo'
+import { anadirElemento, bloquearElemento, catalogoBase } from '../nucleo'
 import { almacen, reiniciarAlmacen } from './estado/almacen'
 import { hayArrastre } from './lienzo/arrastres'
 import Lienzo from './lienzo/Lienzo'
@@ -277,6 +277,24 @@ describe('usarAtajos: un arrastre cuya pieza desaparece', () => {
     expect(hayArrastre()).toBe(true)
     fireEvent.pointerCancel(window, { pointerId: 1 })
     expect(hayArrastre()).toBe(false)
+  })
+})
+
+describe('usarAtajos con un mueble bloqueado', () => {
+  it('ni las flechas ni R lo mueven, y el historial no apunta nada', () => {
+    const r = anadirElemento(almacen.getState().documento!, catalogoBase, 'armario', { x: 200, y: 165 })
+    almacen.getState().cambiar(() => bloquearElemento(r.documento, r.id, true))
+    almacen.getState().irAPaso(2)
+    almacen.getState().seleccionar({ tipo: 'elemento', id: r.id })
+    const pasos = almacen.getState().pasado.length
+    render(<Sonda />)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.keyDown(window, { key: 'ArrowDown', shiftKey: true })
+    fireEvent.keyDown(window, { key: 'r' })
+    const e = almacen.getState().documento!.elementos[0]!
+    expect(e.posicion).toEqual({ x: 200, y: 165 })
+    expect(e.rotacion).toBe(0)
+    expect(almacen.getState().pasado).toHaveLength(pasos)
   })
 })
 

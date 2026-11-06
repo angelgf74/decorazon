@@ -1,6 +1,7 @@
 .lienzo { position: relative; width: 100%; height: 100%; overflow: hidden; }
 .lienzo__svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; cursor: grab; }
 .lienzo__svg--arrastrando { cursor: grabbing; }
+.lienzo__svg--midiendo { cursor: crosshair; }
 /* Zoom y Encuadrar, abajo a la derecha, en una sola píldora. */
 .lienzo__controles {
   position: absolute;
@@ -18,6 +19,9 @@
 }
 .lienzo__controles .boton-icono { width: 2.25rem; height: 2.25rem; min-height: 2.25rem; border-color: transparent; background: transparent; }
 .lienzo__controles .boton-icono:hover:not(:disabled) { background: var(--crema-oscura); }
+/* «Medir» pulsado, también con el ratón encima (si no, la regla de hover lo dejaba crema con el icono blanco). */
+.lienzo__controles .lienzo__medir[aria-pressed='true'],
+.lienzo__controles .lienzo__medir[aria-pressed='true']:hover:not(:disabled) { background: var(--tinta); border-color: var(--tinta); color: #fff; }
 .lienzo__separador { width: 1px; height: 1.4rem; margin: 0 0.25rem; background: var(--borde-suave); }
 
 /* Las pistas: una línea oscura abajo a la izquierda que no tapa el plano y se puede cerrar. */
@@ -29,7 +33,8 @@
   display: flex;
   align-items: center;
   gap: var(--esp-2);
-  max-width: calc(100% - 10rem);
+  /* Deja sitio a los controles de la derecha (Medir, zoom y Encuadrar: unos 11,5 rem) sin pisarlos. */
+  max-width: calc(100% - 13rem);
   padding: 0.25rem 0.25rem 0.25rem 0.9rem;
   border-radius: 999px;
   background: var(--tinta);
@@ -48,7 +53,7 @@
 @media (max-width: 767px) {
   .lienzo__zoom, .lienzo__separador { display: none; }
   /* En un móvil el plano es pequeño: solo las dos primeras pistas, que son las que importan en cada paso. */
-  .lienzo__pistas { max-width: calc(100% - 4.5rem); }
+  .lienzo__pistas { max-width: calc(100% - 7.5rem); }
   .lienzo__pistas li:nth-child(n + 3) { display: none; }
   .lienzo__pistas li:nth-child(2)::after { content: none; }
 }
@@ -82,6 +87,10 @@
   stroke-linejoin: round;
 }
 .capa-elementos__halo { fill: none; stroke: var(--terracota); stroke-width: 8; stroke-opacity: 0.5; stroke-linejoin: round; pointer-events: none; }
+/* El candado de un bloqueado: cuerpo relleno y arco de trazo, a tamaño fijo en pantalla (el grupo lleva scale(1/escala)). */
+.capa-elementos__candado { pointer-events: none; }
+.capa-elementos__candado rect { fill: var(--tinta); }
+.capa-elementos__candado path { fill: none; stroke: var(--tinta); stroke-width: 1.75; }
 
 .capa-conflictos { pointer-events: none; }
 .capa-conflictos :is(polygon, path) { fill: var(--conflicto); fill-opacity: 0.35; stroke: var(--conflicto); stroke-width: 1; }
@@ -118,3 +127,7 @@
 
 .capa-cotas--elemento, .capa-cotas--elemento .lienzo__texto { pointer-events: none; }
 .capa-cotas__pegada { stroke: var(--amarillo); stroke-width: 6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+/* La cinta métrica: en terracota, para distinguirla de las cotas del mueble. */
+.capa-cotas--libre .capa-cotas__cota line { stroke: var(--terracota); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.capa-cotas--libre .capa-cotas__cota .lienzo__texto { fill: var(--terracota); font-weight: 600; }
+.capa-cotas__punto { fill: #fff; stroke: var(--terracota); stroke-width: 2; vector-effect: non-scaling-stroke; }
