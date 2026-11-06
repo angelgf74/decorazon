@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import type { DocumentoDiseno } from '../../nucleo'
 import SinFallos from '../comunes/SinFallos'
 import { hayWebgl } from '../comunes/webgl'
@@ -22,6 +22,8 @@ interface Props {
  * que no se puede. La usan la hoja para imprimir y «Descargar imagen 3D». Se desmonta en cuanto termina.
  */
 export default function CapturaFueraDePantalla({ doc, alCapturar, alFallar }: Props) {
+  // Sin WebGL no se monta la captura: montarla pediría el fragmento con three (~1 MB) para nada.
+  const [conWebgl] = useState(hayWebgl)
   const hecho = useRef(false)
   const avisos = useRef({ alCapturar, alFallar })
   useEffect(() => {
@@ -35,14 +37,15 @@ export default function CapturaFueraDePantalla({ doc, alCapturar, alFallar }: Pr
   }
 
   useEffect(() => {
-    if (!hayWebgl()) {
+    if (!conWebgl) {
       terminar(null)
       return
     }
     const id = setTimeout(() => terminar(null), ESPERA_3D_MS)
     return () => clearTimeout(id)
-  }, [])
+  }, [conWebgl])
 
+  if (!conWebgl) return null
   return (
     <SinFallos alternativa={null} alFallar={() => terminar(null)}>
       <Suspense fallback={null}>

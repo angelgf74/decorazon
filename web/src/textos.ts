@@ -132,6 +132,7 @@ export const textos = {
     preparandoImagen: 'Preparando la imagen 3D…',
     descargarPlano: 'Descargar plano',
     descargarDiseno: 'Descargar diseño',
+    noDescargado: 'No se pudo preparar la descarga.',
   },
   importar: {
     abrir: 'Abrir un fichero',

@@ -11,6 +11,10 @@ import * as descargas from './comunes/descargar'
 import Editor from './Editor'
 
 const carga = vi.hoisted(() => ({ fallosPendientes: 0 }))
+const webgl = vi.hoisted(() => ({ hay: false }))
+vi.mock('./comunes/webgl', () => ({ hayWebgl: () => webgl.hay }))
+// La captura 3D de verdad necesita WebGL: aquí es un marcador que nunca captura.
+vi.mock('./vista3d/Captura3D', () => ({ default: () => <p>captura 3d</p> }))
 const precarga = vi.hoisted(() => ({ cancelar: vi.fn(), precargar: vi.fn() }))
 
 vi.mock('./vista3d/precargar', () => ({ precargarVista3D: precarga.precargar }))
@@ -219,5 +223,29 @@ describe('Editor: descargas del menú', () => {
     expect(await screen.findByText(textos.hoja.sin3d)).toBeInTheDocument()
     expect(descargar).not.toHaveBeenCalled()
     descargar.mockRestore()
+  })
+})
+
+describe('Editor: la captura de la imagen 3D y «Nuevo diseño»', () => {
+  it('empezar un diseño nuevo a mitad de la captura la anula: la estancia siguiente no descarga nada ni dice «Preparando…»', async () => {
+    almacen.getState().cambiarVista('2d')
+    webgl.hay = true
+    const descargar = vi.spyOn(descargas, 'descargar').mockImplementation(() => {})
+    render(<Editor />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: textos.barra.descargarImagen }))
+    expect(await screen.findByText('captura 3d')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    expect(screen.getByRole('button', { name: textos.barra.preparandoImagen })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: textos.barra.nuevoDiseno }))
+    await userEvent.click(screen.getByRole('button', { name: textos.comun.aceptar }))
+    expect(almacen.getState().documento).toBeNull()
+    act(() => almacen.getState().crear('cocina', 300, 250, 250))
+    expect(screen.queryByText('captura 3d')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    expect(screen.getByRole('button', { name: textos.barra.descargarImagen })).toBeEnabled()
+    expect(descargar).not.toHaveBeenCalled()
+    descargar.mockRestore()
+    webgl.hay = false
   })
 })

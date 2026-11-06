@@ -62,8 +62,14 @@
 - El campo de fichero va oculto tras una etiqueta con aspecto de botón y se vacía al elegir, para poder repetir el mismo fichero.
 - La captura a 390 px del diálogo de compartir con «Enviar» necesita la API con sesión: lo cubre el test con `navigator.share` simulado; se tomó la del inicio con «Abrir un fichero».
 
+## Revisión final (6 nov 2026)
+
+Arreglado tras la revisión de la rama: `react-dom/server` entraba en el fragmento principal (+64 kB gzip en todas las rutas; ahora `exportarPlano` se carga al pedir el plano, con aviso si falla); el foco del campo de fichero no se veía (el anillo va en la etiqueta, `base.css`); «Nuevo diseño» a mitad de la captura de la imagen 3D no la anulaba y la estancia siguiente descargaba una imagen que nadie pidió; sin WebGL, «Imprimir» en la vista compartida descargaba three para nada (regresión del componente nuevo); el nombre del fichero importado conservaba el « (1)» del navegador y no se recortaba a 100 caracteres (400 del servidor).
+
 ## Pendiente
 
+- Menores de la revisión: las flechas del menú se atascan en una opción desactivada; `importarDiseno` no aplica las reglas del servidor (1 MB en UTF-8, números sin exponente, sin NUL) con ficheros editados a mano; «Preparando…» no se ve porque el menú se cierra, y el fallo por tiempo usa el texto de «sin 3D»; «Enviar» dos veces seguidas avisa (`InvalidStateError`); clase muerta `inicio__abrir`, la etiqueta «Importar» no parece desactivada con `ocupado` y el aviso no se limpia antes de leer otro fichero; `rel="noopener"` sin `target` y `revokeObjectURL` a 1 s (Safari usa más); `CapturaFueraDePantalla` depende de `hoja.css`.
+- Safari/iOS y Firefox sin verificar (solo hay Chromium): `decode()` con un svg en URL de datos, canvas «tainted» y `<a download>` con URL de datos.
 - El PNG del plano sale a 2× del tamaño de la hoja (1360 px de ancho); no hay opción de tamaño.
 - «Descargar imagen 3D» en un dispositivo sin WebGL avisa con el texto de la hoja («La vista 3D no está disponible…»); no se oculta la opción de antemano.
 - `ESTILOS_DEL_PLANO` copia reglas de `lienzo.css` a mano: al cambiar el css del plano hay que revisarlo (lo dice CLAUDE.md).

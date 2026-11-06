@@ -45,3 +45,17 @@ describe('importarDiseno', () => {
     expect(await importarDiseno(new File([new Uint8Array(2 * 1024 * 1024 + 1)], 'c.json'))).toEqual({ ok: false })
   })
 })
+
+describe('importarDiseno: el nombre que sale del fichero', () => {
+  const doc = () => JSON.stringify(documentoNuevo('salon', 400, 330, 250))
+  it('quita el « (1)» que añade el navegador al descargar dos veces', async () => {
+    const r = await importarDiseno(new File([doc()], 'Cocina.decorazon (1).json'))
+    expect(r.ok && r.nombre).toBe('Cocina')
+    const r2 = await importarDiseno(new File([doc()], 'Cocina (2).json'))
+    expect(r2.ok && r2.nombre).toBe('Cocina')
+  })
+  it('se recorta a los 100 caracteres que admite el servidor, sin partir caracteres', async () => {
+    const r = await importarDiseno(new File([doc()], `${'ñ'.repeat(120)}.decorazon.json`))
+    expect(r.ok && r.nombre).toBe('ñ'.repeat(100))
+  })
+})
