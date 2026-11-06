@@ -22,6 +22,12 @@
 .editor__izquierda, .editor__derecha { padding: var(--esp-4); overflow: auto; background: var(--crema); }
 .editor__izquierda { border-right: 1px solid var(--borde-suave); }
 .editor__derecha { display: flex; flex-direction: column; gap: var(--esp-4); border-left: 1px solid var(--borde-suave); }
+.panel-propiedades { display: flex; flex-direction: column; flex: 1 1 auto; }
+/* Sin nada que enseñar, en escritorio la columna derecha desaparece y el plano gana su sitio (en móvil manda la hoja). */
+@media (min-width: 768px) {
+  .editor__cuerpo--sin-panel { grid-template-columns: 18rem 1fr; }
+  .editor__derecha--oculta { display: none; }
+}
 
 /* --- Barra superior --- */
 
@@ -200,8 +206,11 @@
 .panel__cabecera .icono { color: var(--terracota); }
 
 .panel__vacio h2 { margin: 0 0 var(--esp-1); }
-.atajos { margin-top: var(--esp-4); }
-.atajos dl { display: flex; flex-direction: column; gap: var(--esp-2); margin: 0; }
+/* Plegados al pie del panel, lejos de lo que se edita. */
+.atajos { margin-top: auto; padding-top: var(--esp-4); font-size: var(--texto-s); }
+.atajos summary { color: var(--gris); font-weight: 600; cursor: pointer; }
+.atajos summary:hover { color: var(--tinta); }
+.atajos dl { display: flex; flex-direction: column; gap: var(--esp-2); margin: var(--esp-3) 0 0; }
 /* La acción a la izquierda y las teclas a la derecha; en el DOM, primero las teclas (dt). */
 .atajos__fila { display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; gap: var(--esp-3); font-size: var(--texto-s); }
 .atajos dt { white-space: nowrap; color: var(--gris); }
@@ -310,11 +319,44 @@
   transform: translate(-50%, calc(-100% - var(--esp-6)));
 }
 
-.lista-avisos { padding: var(--esp-3); border: 1px solid var(--borde-suave); border-radius: var(--radio); background: var(--superficie); }
-.lista-avisos h2 { margin: 0 0 var(--esp-2); font-size: 1rem; }
-.lista-avisos--con-avisos { border-color: var(--peligro); }
-.lista-avisos--con-avisos h2 { color: var(--peligro); }
-.lista-avisos__bien { display: flex; align-items: center; gap: var(--esp-2); margin: 0; color: #2e7d4f; font-size: var(--texto-s); font-weight: 600; }
+/* --- Avisos: chip arriba a la izquierda del plano, con la lista colgando --- */
+
+.editor__avisos { position: absolute; top: 0.75rem; left: 0.75rem; z-index: 2; }
+.avisos { position: relative; }
+.avisos__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 2.25rem;
+  margin: 0;
+  padding: 0 0.8rem 0 0.65rem;
+  border: 1px solid var(--borde-suave);
+  border-radius: 999px;
+  background: var(--superficie);
+  box-shadow: 0 4px 16px rgb(43 38 34 / 0.1);
+  font-size: var(--texto-s);
+  font-weight: 700;
+}
+.avisos__chip .icono { width: 1.1rem; height: 1.1rem; }
+.avisos__chip--bien { color: #2e7d4f; }
+.avisos__chip--mal { color: var(--peligro); border-color: var(--conflicto); cursor: pointer; }
+/* Abierto, el chip va en rojo macizo con el texto en blanco: el hover claro no debe pisarlo. */
+.avisos__chip--mal:hover:not(:disabled, [aria-expanded='true']) { background: #fbeceb; }
+.avisos__chip--mal[aria-expanded='true'] { background: var(--peligro); border-color: var(--peligro); color: #fff; }
+.lista-avisos {
+  position: absolute;
+  top: calc(100% + var(--esp-1));
+  left: 0;
+  width: 20rem;
+  max-width: calc(100vw - 1.5rem);
+  max-height: 50vh;
+  overflow: auto;
+  padding: var(--esp-1);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: 0 8px 24px rgb(43 38 34 / 0.14);
+}
 .lista-avisos ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--esp-1); }
 .lista-avisos__aviso {
   justify-content: flex-start;
@@ -333,6 +375,7 @@
 
 @media (max-width: 1099px) {
   .editor__cuerpo { grid-template-columns: 16rem 1fr 16rem; }
+  .editor__cuerpo--sin-panel { grid-template-columns: 16rem 1fr; }
 }
 
 /* --- Móvil: los paneles pasan a hojas que se abren desde las pestañas de abajo --- */
@@ -369,7 +412,7 @@
   .editor__cuerpo { display: flex; flex-direction: column; padding-bottom: calc(3.75rem + env(safe-area-inset-bottom)); }
   .editor__lienzo { flex: 1 1 auto; min-height: 8rem; }
   /* Con una hoja abierta el plano queda pequeño: las pistas lo taparían. */
-  .editor__cuerpo:has(.hoja--abierta) :is(.lienzo__pistas, .lienzo__mostrar-pistas) { display: none; }
+  .editor__cuerpo:has(.hoja--abierta) :is(.lienzo__pistas, .lienzo__mostrar-pistas, .editor__avisos) { display: none; }
   .editor__izquierda, .editor__derecha { border: 0; }
   .editor__pestanas {
     position: fixed;
@@ -388,21 +431,6 @@
   .editor__pestanas button { position: relative; flex-direction: column; gap: 2px; min-height: 3.25rem; border: 0; background: none; font-size: var(--texto-s); }
   .editor__pestanas button[aria-expanded='true'] { background: var(--crema-oscura); color: var(--terracota); font-weight: 700; }
   .editor__pestanas .pestanas__sugerencia { padding-inline: var(--esp-2); color: var(--gris); }
-  .insignia {
-    position: absolute;
-    top: 0.3rem;
-    left: calc(50% + 0.55rem);
-    display: grid;
-    place-items: center;
-    min-width: 1.15rem;
-    height: 1.15rem;
-    padding: 0 0.3rem;
-    border-radius: 999px;
-    background: var(--peligro);
-    color: #fff;
-    font-size: 0.7rem;
-    font-weight: 700;
-  }
 
   .hoja {
     position: relative;

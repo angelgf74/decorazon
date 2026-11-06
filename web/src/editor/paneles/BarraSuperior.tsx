@@ -7,6 +7,7 @@ import { textos } from '../../textos'
 import Confirmar from '../comunes/Confirmar'
 import Icono from '../comunes/Icono'
 import type { NombreIcono } from '../comunes/iconos'
+import { useDesplegable } from '../comunes/usarDesplegable'
 import { almacen, useEditor, type EstadoGuardado } from '../estado/almacen'
 import { renombrar } from '../persistencia/sincronizacion'
 
@@ -69,44 +70,27 @@ interface Opcion {
  * tenga un sitio al que volver: la opción deja de existir al cerrarse el menú.
  */
 function MenuMas({ opciones }: { opciones: Opcion[] }) {
-  const [abierto, setAbierto] = useState(false)
-  const raiz = useRef<HTMLDivElement>(null)
-  const disparador = useRef<HTMLButtonElement>(null)
+  const { abierto, alternar, cerrar, raiz, disparador, alTeclear } = useDesplegable()
 
+  // Al abrirse, el foco va a la primera opción.
   useEffect(() => {
-    if (!abierto) return
-    raiz.current?.querySelector<HTMLElement>('.menu__opcion')?.focus()
-    const alPulsarFuera = (e: PointerEvent) => {
-      if (!raiz.current?.contains(e.target as Node)) setAbierto(false)
-    }
-    document.addEventListener('pointerdown', alPulsarFuera)
-    return () => document.removeEventListener('pointerdown', alPulsarFuera)
-  }, [abierto])
+    if (abierto) raiz.current?.querySelector<HTMLElement>('.menu__opcion')?.focus()
+  }, [abierto, raiz])
 
-  const cerrar = () => {
-    setAbierto(false)
-    disparador.current?.focus()
-  }
-
-  const alTeclear = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (!abierto) return
-    if (e.key === 'Escape') {
-      // Que Escape no suelte además la selección del plano.
-      e.stopPropagation()
-      cerrar()
-    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault()
-      const botones = [...(raiz.current?.querySelectorAll<HTMLElement>('.menu__opcion') ?? [])]
-      const i = botones.indexOf(document.activeElement as HTMLElement)
-      const paso = e.key === 'ArrowDown' ? 1 : -1
-      botones[(i + paso + botones.length) % botones.length]?.focus()
-    }
+  const alTeclearEnMenu = (e: KeyboardEvent<HTMLDivElement>) => {
+    alTeclear(e)
+    if (!abierto || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return
+    e.preventDefault()
+    const botones = [...(raiz.current?.querySelectorAll<HTMLElement>('.menu__opcion') ?? [])]
+    const i = botones.indexOf(document.activeElement as HTMLElement)
+    const paso = e.key === 'ArrowDown' ? 1 : -1
+    botones[(i + paso + botones.length) % botones.length]?.focus()
   }
 
   return (
-    <div ref={raiz} className="menu" onKeyDown={alTeclear}>
+    <div ref={raiz} className="menu" onKeyDown={alTeclearEnMenu}>
       <button ref={disparador} type="button" className="boton-icono barra__mas" aria-label={t.mas} title={t.mas}
-        aria-haspopup="true" aria-expanded={abierto} onClick={() => setAbierto((a) => !a)}>
+        aria-haspopup="true" aria-expanded={abierto} onClick={alternar}>
         <Icono nombre="puntos" />
       </button>
       {abierto && (

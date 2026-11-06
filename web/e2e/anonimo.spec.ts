@@ -1,5 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
 
+/** Los avisos cuelgan de un chip sobre el plano: se abre si hace falta antes de buscar uno. */
+async function abrirAvisos(page: Page) {
+  const chip = page.getByRole('button', { name: /^\d+ avisos?$/ })
+  if (await chip.count() > 0 && await chip.getAttribute('aria-expanded') === 'false') await chip.click()
+}
 const aviso = (page: Page, texto: string) => page.locator('.lista-avisos').getByRole('button', { name: new RegExp(texto) })
 
 /** Espera a que el guardado retrasado (500 ms) pase por "Guardando…" y termine. */
@@ -31,6 +36,7 @@ test('diseño anónimo: crear, amueblar, mover, deshacer, recargar y cambiar la 
   await page.getByRole('button', { name: /^Armario(?! de espejo| esquinero)/ }).click()
   await page.getByRole('button', { name: /^Cama/ }).click()
   await expect(page.locator('[data-elemento]')).toHaveCount(2)
+  await abrirAvisos(page)
   await expect(aviso(page, 'se solapan').first()).toBeVisible()
   await expect(page.locator('[data-zona-conflicto]').first()).toBeAttached()
 
@@ -45,14 +51,18 @@ test('diseño anónimo: crear, amueblar, mover, deshacer, recargar y cambiar la 
   await page.mouse.move(desde.x + 10, desde.y + 10, { steps: 5 })
   await page.mouse.move(hasta.x, hasta.y, { steps: 30 })
   await page.mouse.up()
+  // Puede quedar un aviso de paso estrecho: lo que no puede quedar es el solape.
+  await abrirAvisos(page)
   await expect(aviso(page, 'se solapan')).toHaveCount(0)
   await esperarGuardado(page)
   const movidas = await posicionesGuardadas(page)
 
   // El arrastre entero es un solo paso de deshacer y de rehacer.
   await page.keyboard.press('Control+z')
+  await abrirAvisos(page)
   await expect(aviso(page, 'se solapan').first()).toBeVisible()
   await page.keyboard.press('Control+y')
+  await abrirAvisos(page)
   await expect(aviso(page, 'se solapan')).toHaveCount(0)
 
   // Persiste en el navegador con la cama ya movida (el guardado se retrasa 500 ms).
@@ -61,7 +71,8 @@ test('diseño anónimo: crear, amueblar, mover, deshacer, recargar y cambiar la 
   await page.reload()
   await expect(page.locator('[data-elemento]')).toHaveCount(2)
   await expect(page.getByText('Guardado en este navegador')).toBeVisible()
-  await expect(page.locator('.lista-avisos')).toBeVisible()
+  await expect(page.locator('.avisos__chip')).toBeVisible()
+  await abrirAvisos(page)
   await expect(aviso(page, 'se solapan')).toHaveCount(0)
 
   // Estrechar la estancia no borra muebles: los deja como conflicto.
@@ -69,6 +80,7 @@ test('diseño anónimo: crear, amueblar, mover, deshacer, recargar y cambiar la 
   await page.getByLabel('Ancho', { exact: true }).fill('300')
   await page.getByLabel('Ancho', { exact: true }).press('Enter')
   await expect(page.locator('[data-elemento]')).toHaveCount(2)
+  await abrirAvisos(page)
   await expect(aviso(page, 'atraviesa la pared').first()).toBeVisible()
 })
 

@@ -84,7 +84,8 @@ test.describe('vista 3D: sombras', () => {
     await expect(lienzo).toBeVisible()
 
     // Brillo medio (9 × 9 px) en fracciones del lienzo: suelo a la sombra del armario y de la cama, y suelo libre lejos de ellos.
-    const sombra = [[0.4, 0.59], [0.75, 0.63]]
+    // Sin nada seleccionado el panel derecho no está y el lienzo es más ancho: las fracciones son de ese encuadre.
+    const sombra = [[0.4, 0.59], [0.64, 0.67]]
     const libre = [[0.43, 0.86], [0.5, 0.81]]
     await expect.poll(async () => {
       const png = await lienzo.screenshot()

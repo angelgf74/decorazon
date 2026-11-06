@@ -2,11 +2,11 @@ import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from 
 import { versionCargada } from '../recargaPorVersion'
 import BotonDeSugerencia from '../sugerencias/BotonDeSugerencia'
 import { textos } from '../textos'
-import { almacen, useEditor } from './estado/almacen'
+import { almacen, seleccionDelPaso, useEditor } from './estado/almacen'
 import HojaImpresion from './hoja/HojaImpresion'
 import BarraSuperior from './paneles/BarraSuperior'
 import NuevaEstancia from './paneles/NuevaEstancia'
-import ListaAvisos from './paneles/ListaAvisos'
+import AvisosDelPlano from './paneles/AvisosDelPlano'
 import PanelCatalogo from './paneles/PanelCatalogo'
 import PanelEstancia from './paneles/PanelEstancia'
 import PanelPropiedades from './paneles/PanelPropiedades'
@@ -14,7 +14,6 @@ import Lienzo from './lienzo/Lienzo'
 import AvisoVista3D from './comunes/AvisoVista3D'
 import Icono from './comunes/Icono'
 import SinFallos from './comunes/SinFallos'
-import { useConflictos } from './estado/conflictos'
 import { useAtajos } from './usarAtajos'
 import { precargarVista3D } from './vista3d/precargar'
 import './editor.css'
@@ -37,6 +36,8 @@ export default function Editor() {
   const paso = useEditor((e) => e.paso)
   const aviso = useEditor((e) => e.aviso)
   const vista = useEditor((e) => e.vista)
+  // En escritorio el panel derecho solo ocupa sitio cuando tiene algo que enseñar.
+  const hayPanel = useEditor((e) => seleccionDelPaso(e.seleccion, e.paso))
   const [hoja, setHoja] = useState<Hoja | null>(null)
   const [imprimiendo, setImprimiendo] = useState(false)
   // Al cerrar la hoja para imprimir, el foco vuelve a donde estaba (el botón Imprimir).
@@ -74,7 +75,7 @@ export default function Editor() {
   return (
     <div className="editor">
       <BarraSuperior alImprimir={abrirImpresion} />
-      <div className="editor__cuerpo">
+      <div className={`editor__cuerpo${hayPanel ? '' : ' editor__cuerpo--sin-panel'}`}>
         <aside className={`editor__izquierda hoja${hoja === 'izquierda' ? ' hoja--abierta' : ''}`}>
           {paso === 1 ? <PanelEstancia /> : <PanelCatalogo alEmpezarArrastre={() => setHoja(null)} />}
         </aside>
@@ -84,11 +85,11 @@ export default function Editor() {
               <Suspense fallback={textos.vista3d.cargando}><Vista3D /></Suspense>
             </SinFallos>
           ) : <Lienzo />}
+          <div className="editor__avisos"><AvisosDelPlano /></div>
           <SelectorDeVista />
         </div>
-        <aside className={`editor__derecha hoja${hoja === 'derecha' ? ' hoja--abierta' : ''}`}>
+        <aside className={`editor__derecha hoja${hoja === 'derecha' ? ' hoja--abierta' : ''}${hayPanel ? '' : ' editor__derecha--oculta'}`}>
           <PanelPropiedades />
-          <ListaAvisos />
         </aside>
       </div>
       <PestanasDeHojas paso={paso} hoja={hoja} alAlternar={alternar} />
@@ -113,7 +114,6 @@ function SelectorDeVista() {
 
 /** En móvil los paneles son hojas que suben desde abajo; estas pestañas, al alcance del pulgar, las abren. */
 function PestanasDeHojas({ paso, hoja, alAlternar }: { paso: number; hoja: Hoja | null; alAlternar(h: Hoja): void }) {
-  const avisos = useConflictos().length
   const t = textos.barra
   return (
     <nav className="editor__pestanas" aria-label={t.paneles}>
@@ -124,12 +124,6 @@ function PestanasDeHojas({ paso, hoja, alAlternar }: { paso: number; hoja: Hoja 
       <button type="button" aria-expanded={hoja === 'derecha'} onClick={() => alAlternar('derecha')}>
         <Icono nombre="propiedades" />
         <span>{t.propiedades}</span>
-        {avisos > 0 && (
-          <span className="insignia">
-            <span aria-hidden="true">{avisos}</span>
-            <span className="solo-lectores">{`, ${t.avisos(avisos)}`}</span>
-          </span>
-        )}
       </button>
       {/* En móvil no cabe en la barra de arriba: va aquí, que solo existe en móvil. */}
       <BotonDeSugerencia className="pestanas__sugerencia" title={textos.sugerencias.pista}>

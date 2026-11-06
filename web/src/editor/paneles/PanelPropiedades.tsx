@@ -236,15 +236,22 @@ const ATAJOS_ESTANCIA = [
 ]
 const ATAJOS_MUEBLES = [...ATAJOS_ESTANCIA, { teclas: ['R'], accion: t.atajo.girar }, { teclas: ['Ctrl', 'D'], accion: t.atajo.duplicar }]
 
-/** Sin nada seleccionado: qué pulsar en el plano y los atajos de teclado de este paso (los de usarAtajos.ts). */
+/** Sin nada seleccionado (en escritorio el panel se oculta; en móvil la hoja lo enseña): qué pulsar en el plano. */
 function SinSeleccion({ paso }: { paso: number }) {
-  const idAtajos = useId()
   return (
     <div className="panel__vacio">
       <h2>{t.nadaSeleccionado}</h2>
       <p className="panel__nota">{paso === 1 ? t.nada : t.nadaElemento}</p>
-      <section className="atajos" aria-labelledby={idAtajos}>
-        <h3 id={idAtajos} className="panel__titulo">{t.atajos}</h3>
+    </div>
+  )
+}
+
+/** Los atajos de teclado de este paso (los de usarAtajos.ts), plegados al pie del panel. */
+function Atajos({ paso }: { paso: number }) {
+  return (
+    <details className="atajos">
+      <summary>{t.atajos}</summary>
+      <section aria-label={t.atajos}>
         <dl>
           {(paso === 1 ? ATAJOS_ESTANCIA : ATAJOS_MUEBLES).map(({ teclas, accion }) => (
             <div key={accion} className="atajos__fila">
@@ -254,7 +261,7 @@ function SinSeleccion({ paso }: { paso: number }) {
           ))}
         </dl>
       </section>
-    </div>
+    </details>
   )
 }
 
@@ -285,6 +292,7 @@ export default function PanelPropiedades() {
   return (
     <div className="panel-propiedades">
       {contenido ?? <SinSeleccion paso={paso} />}
+      {contenido !== null && <Atajos paso={paso} />}
     </div>
   )
 }
