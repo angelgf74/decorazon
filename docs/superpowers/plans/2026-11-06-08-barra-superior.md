@@ -43,11 +43,11 @@
 
 ### Task 4: cierre
 
-- [x] `npm test` (1331), `npm run lint`, `npm run build`, `npm run e2e`: todo verde salvo `vista3d.spec.ts` "canvas con contenido", que ya fallaba en `main` por la analítica (CORS de `webanalytics-api` desde `localhost:5322`; el build de e2e es de producción y lleva `VITE_ANALITICA_SITIO`). No es de esta fase.
+- [x] `npm test` (1331), `npm run lint`, `npm run build`, `npm run e2e`.
+- [x] `vista3d.spec.ts` "canvas con contenido" fallaba ya en `main` desde la PR #38: el build de e2e es de producción, lee `VITE_ANALITICA_SITIO` de `.env.production` y el tracker nuevo falla por CORS desde `localhost:5322`. Arreglado en `playwright.config.ts`: el `webServer` arranca con `VITE_ANALITICA_SITIO` vacío y la analítica no se carga en los e2e.
 - [x] `CLAUDE.md` actualizado.
 
 ## Pendiente para la fase 2 (controles sobre el plano)
 
 - Mover 2D/3D, zoom y Encuadrar a controles flotantes del lienzo; la barra se queda sin el segmentado de vista en `.barra__centro`.
 - Pistas como una línea cerrable abajo del plano en vez del aside.
-- Arreglar el e2e de la vista 3D: que el build de e2e no cargue la analítica (sin `VITE_ANALITICA_SITIO` en modo e2e) o que el test ignore ese error.

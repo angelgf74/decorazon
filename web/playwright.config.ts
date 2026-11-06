@@ -11,5 +11,8 @@ export default defineConfig({
     command: 'npm run build && npx vite preview --port 5322 --strictPort',
     url: 'http://localhost:5322',
     reuseExistingServer: !process.env.CI,
+    // El build es de producción y leería VITE_ANALITICA_SITIO de .env.production: sin sitio, la analítica no se carga.
+    // Así los e2e no cuentan visitas de mentira ni fallan por el CORS del tracker contra localhost.
+    env: { VITE_ANALITICA_SITIO: '' },
   },
 })

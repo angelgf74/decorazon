@@ -91,6 +91,7 @@ Los tests de integración llevan `[Trait("Categoria","Integracion")]`; de ahí e
 - La barra del editor tiene tres zonas (diseño y guardado, pasos, deshacer/menú/cuenta). "Nuevo diseño", "Imprimir" y "Sugerencias" están en el menú "Más acciones" (`MenuMas` en `BarraSuperior.tsx`): solo existen en el DOM con el menú abierto, y al elegir una opción el foco vuelve al botón del menú **antes** de ejecutarla (la hoja para imprimir guarda `document.activeElement` para devolverle el foco al cerrarse). En móvil el botón de sugerencias va en las pestañas de abajo (`PestanasDeHojas`), al alcance del pulgar, y la opción del menú se oculta por CSS.
 - xUnit serializa los datos de `InlineData`: un sustituto suelto llega al test como U+FFFD. Esas cadenas se arman dentro del test.
 - jsdom trata un `<footer>` dentro de `<main>` como `contentinfo` y Chromium no: en los e2e, el pie del inicio se busca por su clase.
+- El build de los e2e es de producción y leería `VITE_ANALITICA_SITIO` de `.env.production`; el tracker falla por CORS desde `localhost` y `vista3d.spec.ts` exige consola limpia. `playwright.config.ts` arranca el `webServer` con esa variable vacía.
 
 ## Núcleo TS
 
