@@ -110,6 +110,8 @@ describe('Vista3D', () => {
     await userEvent.click(dentro)
     expect(dentro).toHaveAttribute('aria-pressed', 'true')
     expect(ocultar).toBeDisabled()
+    // Dentro las paredes se ven: el botón no dice «pulsado» aunque conserve el ajuste para la vuelta.
+    expect(ocultar).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(dentro)
     expect(dentro).toHaveAttribute('aria-pressed', 'false')
     expect(ocultar).toBeEnabled()

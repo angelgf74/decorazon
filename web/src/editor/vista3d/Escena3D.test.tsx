@@ -121,18 +121,24 @@ describe('Escena3D: encuadrar', () => {
 describe('Escena3D: desde dentro', () => {
   const redondeado = (v: Vec3 | number[]) => v.map((x) => Number(x.toFixed(6)))
 
-  it('con desdeDentro la cámara y el objetivo van a camaraDesdeDentro; los controles sin zoom ni desplazamiento y a 1 m fijo', async () => {
+  it('con desdeDentro la cámara y el objetivo van a camaraDesdeDentro; los controles sin zoom ni desplazamiento y a 1 cm fijo', async () => {
     const doc = documento()
     const r = await ReactThreeTestRenderer.create(escena(doc, true))
-    expect(controles.props['enableZoom']).not.toBe(false)
+    expect(controles.props['enableZoom']).toBe(true)
     await r.update(escena(doc, true, 0, true))
     const dentro = camaraDesdeDentro(doc)
     expect(redondeado(sonda.camara.position.toArray())).toEqual(redondeado(dentro.posicion))
     expect(redondeado(controles.instancia.target.toArray())).toEqual(redondeado(dentro.objetivo))
     expect(controles.props['enableZoom']).toBe(false)
     expect(controles.props['enablePan']).toBe(false)
-    expect(controles.props['minDistance']).toBe(1)
-    expect(controles.props['maxDistance']).toBe(1)
+    expect(controles.props['minDistance']).toBe(0.01)
+    expect(controles.props['maxDistance']).toBe(0.01)
+  })
+
+  it('montada ya desde dentro, la cámara entra igualmente', async () => {
+    const doc = documento()
+    await ReactThreeTestRenderer.create(escena(doc, true, 0, true))
+    expect(redondeado(sonda.camara.position.toArray())).toEqual(redondeado(camaraDesdeDentro(doc).posicion))
   })
 
   it('desde dentro no se oculta ninguna pared aunque ocultar esté activo; al volver fuera, sí', async () => {
@@ -141,6 +147,15 @@ describe('Escena3D: desde dentro', () => {
     expect(contarMallas(r)).toBe(esperadas(doc, []))
     await r.update(escena(doc, true, 0, false))
     expect(contarMallas(r)).toBe(esperadas(doc, [2, 3]))
+  })
+
+  it('si cambia la caja de la planta estando dentro, la cámara vuelve a la puerta de la planta nueva', async () => {
+    const doc = documento()
+    const r = await ReactThreeTestRenderer.create(escena(doc, true, 0, true))
+    const grande = documentoNuevo('salon', 600, 500, 250)
+    grande.aberturas = doc.aberturas
+    await r.update(escena(grande, true, 0, true))
+    expect(redondeado(sonda.camara.position.toArray())).toEqual(redondeado(camaraDesdeDentro(grande).posicion))
   })
 
   it('al volver fuera la cámara va a camaraInicial, y «Encuadrar» desde dentro vuelve a la puerta', async () => {
@@ -152,7 +167,10 @@ describe('Escena3D: desde dentro', () => {
     await r.update(escena(doc, true, 1, false))
     expect(redondeado(sonda.camara.position.toArray())).toEqual(redondeado(camaraInicial(doc).posicion))
     expect(redondeado(controles.instancia.target.toArray())).toEqual(redondeado(camaraInicial(doc).objetivo))
-    expect(controles.props['enableZoom']).not.toBe(false)
+    // Las props vuelven explícitas (no desaparecen): r3f pondría a 0 las que faltaran en el mismo OrbitControls.
+    expect(controles.props['enableZoom']).toBe(true)
+    expect(controles.props['enablePan']).toBe(true)
+    expect(controles.props['rotateSpeed']).toBe(1)
   })
 })
 

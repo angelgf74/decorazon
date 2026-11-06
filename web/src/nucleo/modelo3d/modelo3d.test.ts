@@ -5,7 +5,9 @@ import { elementoNuevo } from '../catalogo/elemento'
 import type { DefinicionTipo } from '../catalogo/tipos'
 import { rectangulo } from '../geometria/formas'
 import { aEscena, modeloPorVolumenes, piezasDeElemento } from './escena'
+import { contienePunto } from '../geometria/poligono'
 import { camaraAPlano, camaraDesdeDentro, camaraInicial, direccionSol, paredesQueTapan } from './camara'
+import type { Vec3 } from './tipos'
 import { PBR } from './materiales'
 import type { PiezaLocal } from './tipos'
 
@@ -91,18 +93,40 @@ describe('camaraDesdeDentro', () => {
   const salon = () => documentoNuevo('salon', 400, 330, 250)
   const puerta = (pared: number, posicion: number) => ({ id: 'p', tipo: 'puerta' as const, pared, posicion, ancho: 82, alto: 203, hoja: 'abatible' as const, bisagra: 'izquierda' as const, abreHacia: 'dentro' as const })
 
-  it('a 1,6 m de altura, 0,6 m dentro desde el centro de la primera puerta, mirando al centro a 1 m', () => {
+  /** Cabeceo de la mirada en grados (negativo, hacia abajo) y rumbo horizontal. */
+  const mirada = (c: { posicion: Vec3; objetivo: Vec3 }) => {
+    const d = c.objetivo.map((v, k) => v - c.posicion[k]!) as Vec3
+    const horizontal = Math.hypot(d[0], d[2])
+    return { cabeceo: (Math.atan2(d[1], horizontal) * 180) / Math.PI, distancia: Math.hypot(...d), rumbo: [d[0] / horizontal, d[2] / horizontal] }
+  }
+
+  it('a 1,6 m de altura, 0,6 m dentro desde el centro de la primera puerta, mirando hacia el centro con 10° hacia abajo', () => {
     const doc = salon()
     doc.aberturas = [puerta(0, 159)]
     const c = camaraDesdeDentro(doc)
     expect(c.posicion.map((v) => Number(v.toFixed(3)))).toEqual([2, 1.6, 0.6])
-    // El objetivo está a 1 m, hacia el centro (2, 1, 1,65): más z y algo más bajo.
-    const [ox, oy, oz] = c.objetivo
-    expect(Math.hypot(ox - 2, oy - 1.6, oz - 0.6)).toBeCloseTo(1)
-    expect(ox).toBeCloseTo(2)
-    expect(oz).toBeGreaterThan(0.6)
-    expect(oy).toBeLessThan(1.6)
-    expect(oy).toBeGreaterThan(1)
+    // El objetivo está a un centímetro (girar alrededor de él es girar la cabeza, no andar), rumbo al centro (2, 1,65).
+    const m = mirada(c)
+    expect(m.distancia).toBeCloseTo(0.01)
+    expect(m.cabeceo).toBeCloseTo(-10)
+    expect(m.rumbo[0]).toBeCloseTo(0)
+    expect(m.rumbo[1]).toBeCloseTo(1)
+  })
+
+  it('el cabeceo no depende del tamaño de la estancia: en una de 100 × 100 también son 10°', () => {
+    const doc = documentoNuevo('bano', 100, 100, 250)
+    const c = camaraDesdeDentro(doc)
+    expect(mirada(c).cabeceo).toBeCloseTo(-10)
+    expect(c.posicion[1]).toBe(1.6)
+  })
+
+  it('la cámara queda siempre dentro de la planta: con un ángulo agudo junto a la puerta se entra menos', () => {
+    const doc = salon()
+    doc.estancia.planta = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 0, y: 300 }]
+    doc.aberturas = [puerta(0, 310)]
+    const c = camaraDesdeDentro(doc)
+    expect(contienePunto(doc.estancia.planta, { x: c.posicion[0] * 100, y: c.posicion[2] * 100 })).toBe(true)
+    expect(c.posicion[2]).toBeGreaterThan(0)
   })
 
   it('con la puerta en la pared de abajo (de derecha a izquierda) queda 0,6 m por dentro de esa pared', () => {

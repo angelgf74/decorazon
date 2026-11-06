@@ -1,5 +1,5 @@
 export * from './tipos'
 export { PBR } from './materiales'
 export { aEscena, modeloPorVolumenes, piezasDeElemento } from './escena'
-export { camaraAPlano, camaraDesdeDentro, camaraInicial, direccionSol, paredesQueTapan } from './camara'
+export { camaraAPlano, camaraDesdeDentro, camaraInicial, direccionSol, DISTANCIA_MIRADA_M, paredesQueTapan } from './camara'
 export { escenaEstancia, type EscenaEstancia } from './estancia'

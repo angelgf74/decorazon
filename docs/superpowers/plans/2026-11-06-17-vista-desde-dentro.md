@@ -8,7 +8,7 @@
 
 **Architecture:**
 - `camaraDesdeDentro(doc)` en `nucleo/modelo3d/camara.ts`: a 1,6 m de altura, 0,6 m dentro de la estancia desde el centro de la primera puerta (`hueco(planta, pared, posicion + ancho / 2)` da el punto en la pared y `n`, la normal interior); sin puerta, desde el centro de la pared 0. Mira hacia el centro de la estancia a 1 m de altura: el objetivo es el punto a 1 m de la cámara en esa dirección.
-- `Escena3D` recibe `desdeDentro` (por defecto `false`: `Captura3D` y `Vista3DSoloVer` no cambian). Con él: `OrbitControls` sin zoom ni desplazamiento, distancia fija de 1 m (orbitar alrededor de un punto a un metro es girar la cabeza), ángulo polar más amplio (mirar al suelo y al techo) y `rotateSpeed` negativo (arrastrar a la derecha gira a la derecha, como una cámara en primera persona); las paredes nunca se ocultan. Al activarlo, la cámara va a `camaraDesdeDentro`; al desactivarlo, a `camaraInicial`; «Encuadrar» recoloca en el modo que esté. El efecto que hoy atiende `encuadres` pasa a atender también `desdeDentro`.
+- `Escena3D` recibe `desdeDentro` (por defecto `false`: `Captura3D` y `Vista3DSoloVer` no cambian). Con él: `OrbitControls` sin zoom ni desplazamiento, distancia fija de un centímetro (orbitar alrededor de un punto a un centímetro es girar la cabeza sin andar), ángulo polar más amplio (mirar arriba y abajo) y giro a la mitad de velocidad; las paredes nunca se ocultan. Al activarlo, la cámara va a `camaraDesdeDentro`; al desactivarlo, a `camaraInicial`; «Encuadrar» recoloca en el modo que esté. El efecto que hoy atiende `encuadres` pasa a atender también `desdeDentro`.
 - `Vista3D`: botón «Desde dentro» (`aria-pressed`) en la barra junto a «Ocultar paredes delante», que queda desactivado mientras se está dentro.
 - M-12: con las capturas 3D de los ejemplos (fase 4) y la captura desde dentro de este plan se decide en una línea. Si no hacen falta texturas ahora, M-12 pasa a `descartada` con el motivo (se puede reabrir).
 
@@ -45,10 +45,15 @@
 
 ## Decisiones al ejecutar (6 nov 2026)
 
-- M-12 descartada: con las capturas de los ejemplos y desde dentro (Chromium con SwiftShader; no se ha mirado en un portátil real) los materiales planos con sombras se leen bien; una textura procedimental añadiría shaders y coste en móvil. Se reabre si lo piden los usuarios.
+- M-12 queda pendiente: la decisión es de producto y la revisión objetó el razonamiento (los campos de color uniforme son el aspecto «de juguete» que la spec quiere evitar; un mapa teñido no necesita shaders propios). Angel la decide mirando la 3D en un portátil y un móvil.
 - Primera versión con `rotateSpeed` negativo: la captura girada enseñó que invertía el giro (con el objetivo delante, el sentido por defecto de OrbitControls ya es el de girar la cabeza). Queda positivo y más lento (0,5).
+
+## Revisión final (6 nov 2026)
+
+Arreglado tras la revisión de la rama: tras entrar y salir, la órbita de fuera se quedaba sin girar (y en móvil sin pellizco), porque React reutilizaba la misma instancia de OrbitControls y r3f ponía a 0 las props que desaparecían (un solo OrbitControls con todas las props explícitas); orbitar a 1 m era andar hasta 2 m y atravesar paredes (radio de 1 cm); la mirada inicial dependía del tamaño de la estancia y en una pequeña apuntaba al suelo (cabeceo fijo de 10°); la cámara podía quedar fuera de la planta en un rincón agudo (se entra lo que quepa); cambiar la planta estando dentro dejaba la cámara lejos de la puerta; los botones pulsados de la barra 3D no se distinguían; M-12 vuelve a pendiente. Tests con los OrbitControls reales y e2e que arrastra tras salir.
 
 ## Pendiente
 
+- Sentido del giro desde dentro: arrastrar a la derecha mira a la derecha (el contenido va contra el dedo); Street View y las fotos 360 arrastran la escena. Que lo decida Angel con un móvil.
 - Desde dentro no se anda: la cámara está fija en la puerta y solo gira (el plan lo pedía así).
 - La altura de los ojos (1,6 m) y la entrada (0,6 m) son fijas; en una estancia muy pequeña o con la puerta junto a un mueble, la cámara puede quedar dentro de él.

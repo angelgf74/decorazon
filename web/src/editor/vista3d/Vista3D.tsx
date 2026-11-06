@@ -31,7 +31,8 @@ export default function Vista3D() {
         <SinFallos alternativa={aviso}>
           <div className="vista3d__barra">
             <button type="button" aria-pressed={dentro} onClick={() => setDentro(!dentro)}>{t.desdeDentro}</button>
-            <button type="button" aria-pressed={ocultar} disabled={dentro} onClick={() => setOcultar(!ocultar)}>{t.ocultarParedes}</button>
+            {/* Dentro las paredes se ven: no dice «pulsado», aunque el ajuste se conserva para la vuelta. */}
+            <button type="button" aria-pressed={ocultar && !dentro} disabled={dentro} onClick={() => setOcultar(!ocultar)}>{t.ocultarParedes}</button>
             <button type="button" onClick={() => setEncuadres(encuadres + 1)}>{t.encuadrar}</button>
           </div>
           {/* Pulsar el vacío (o el suelo, para mirar) solo suelta un mueble: lo seleccionado en el paso 1 sigue. */}

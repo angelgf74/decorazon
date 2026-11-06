@@ -1,7 +1,7 @@
 import type { DocumentoDiseno, Punto } from '../modelo/documento'
-import { cajaPlanta } from '../geometria/poligono'
+import { cajaPlanta, contienePunto } from '../geometria/poligono'
 import { hueco } from '../conflictos/estancia'
-import { punto, restar, sumar, escalar } from '../geometria/vector'
+import { escalar, longitud, normalizar, punto, restar, sumar } from '../geometria/vector'
 import type { Vec3 } from './tipos'
 
 const ALTURA_OBJETIVO_M = 1
@@ -23,15 +23,20 @@ function normalExterior(planta: Punto[], pared: number): Punto {
   return { x: d.y, y: -d.x }
 }
 
-/** Altura de los ojos y cuánto se entra desde la puerta, en metros; el objetivo queda a un metro (los controles giran alrededor de él). */
+/** Altura de los ojos y cuánto se entra desde la puerta, en metros (si así se saliera de la planta, menos). */
 const ALTURA_OJOS_M = 1.6
-const ENTRADA_M = 0.6
-const DISTANCIA_MIRADA_M = 1
+const ENTRADAS_CM = [60, 30, 15, 5]
+/**
+ * El objetivo queda a un centímetro: los controles orbitan alrededor de él y con ese radio la cámara no se mueve
+ * (con un metro andaría hasta dos y atravesaría paredes). Mirada 10° hacia abajo, sea cual sea el tamaño de la estancia.
+ */
+export const DISTANCIA_MIRADA_M = 0.01
+const CABECEO_RAD = (-10 * Math.PI) / 180
 
 /**
  * La cámara como al entrar por la puerta: a la altura de los ojos, 0,6 m dentro desde el centro de la primera puerta
- * (sin puerta, desde el centro de la pared 0) y mirando hacia el centro de la estancia a 1 m de altura. El objetivo es
- * el punto a 1 m en esa dirección: orbitar alrededor de él es girar la cabeza.
+ * (sin puerta, desde el centro de la pared 0) y con el rumbo hacia el centro de la estancia, 10° hacia abajo. El objetivo
+ * es el punto a un centímetro en esa dirección: orbitar alrededor de él es girar la cabeza.
  */
 export function camaraDesdeDentro(doc: DocumentoDiseno): { posicion: Vec3; objetivo: Vec3 } {
   const { planta } = doc.estancia
@@ -40,12 +45,20 @@ export function camaraDesdeDentro(doc: DocumentoDiseno): { posicion: Vec3; objet
   const a = planta[pared]!, b = planta[(pared + 1) % planta.length]!
   const enPared = puerta ? puerta.posicion + puerta.ancho / 2 : Math.hypot(b.x - a.x, b.y - a.y) / 2
   const { cercano, n } = hueco(planta, pared, enPared)
-  const pie = sumar(cercano, escalar(n, ENTRADA_M * 100))
+  // En un rincón agudo o un paso estrecho, 60 cm se salen de la planta: se entra lo que quepa.
+  const pies = ENTRADAS_CM.map((cm) => sumar(cercano, escalar(n, cm)))
+  const pie = pies.find((p) => contienePunto(planta, p)) ?? pies[pies.length - 1]!
   const posicion: Vec3 = [pie.x / 100, ALTURA_OJOS_M, pie.y / 100]
   const c = cajaPlanta(planta)
-  const centro: Vec3 = [(c.minX + c.maxX) / 200, ALTURA_OBJETIVO_M, (c.minY + c.maxY) / 200]
-  const hacia = normalizar3([centro[0] - posicion[0], centro[1] - posicion[1], centro[2] - posicion[2]])
-  const objetivo = posicion.map((v, k) => v + hacia[k] * DISTANCIA_MIRADA_M) as Vec3
+  const centro = { x: (c.minX + c.maxX) / 2, y: (c.minY + c.maxY) / 2 }
+  // Rumbo horizontal hacia el centro; si la cámara está justo en él, hacia dentro de la pared.
+  const haciaCentro = restar(centro, pie)
+  const rumbo = longitud(haciaCentro) < 1 ? n : normalizar(haciaCentro)
+  const objetivo: Vec3 = [
+    posicion[0] + rumbo.x * Math.cos(CABECEO_RAD) * DISTANCIA_MIRADA_M,
+    posicion[1] + Math.sin(CABECEO_RAD) * DISTANCIA_MIRADA_M,
+    posicion[2] + rumbo.y * Math.cos(CABECEO_RAD) * DISTANCIA_MIRADA_M,
+  ]
   return { posicion, objetivo }
 }
 

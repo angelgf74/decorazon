@@ -6,3 +6,6 @@
 /* Abajo a la derecha, donde el plano 2D tiene su Encuadrar: el mismo sitio en las dos vistas. */
 .vista3d__barra { position: absolute; right: 0.75rem; bottom: 0.75rem; display: flex; gap: 0.5rem; z-index: 1; }
 .vista3d__barra button { box-shadow: 0 4px 16px rgb(43 38 34 / 0.1); }
+/* Lo pulsado («Desde dentro», «Ocultar paredes delante») se ve, como los chips del catálogo. */
+.vista3d__barra button[aria-pressed='true'] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.vista3d__barra button[aria-pressed='true']:hover:not(:disabled) { background: var(--tinta); }
