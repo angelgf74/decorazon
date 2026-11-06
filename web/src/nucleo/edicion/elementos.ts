@@ -126,7 +126,8 @@ function editar(doc: DocumentoDiseno, catalogo: Catalogo, id: string, cambios: C
     && (Object.keys(medidas) as (keyof Medidas)[]).every(k => medidas[k] === e.medidas[k])
     // Por los valores que se dibujan, no por el texto: un esquinero de antes no trae el campo y jsonb reordena las claves.
     && (def.medidasExtra ?? []).every((m) => valorMedidaExtra(def, editado, m.clave) === valorMedidaExtra(def, e, m.clave))
-  const paredes = mismaForma ? [] : paredesTocadas(doc, e)
+  // Un bloqueado tampoco lo mueve el imán: con medidas nuevas se queda donde está (M-05 promete que no se mueve ni gira).
+  const paredes = mismaForma || e.bloqueado ? [] : paredesTocadas(doc, e)
   if (paredes.length === 0) return reemplazar(doc, editado)
   const r = imantar(doc, catalogo, editado, { libre: rotacion % 90 !== 0, paredes })
   return reemplazar(doc, { ...editado, posicion: r.posicion, rotacion: r.rotacion })
@@ -152,7 +153,8 @@ export function cambiarTipo(doc: DocumentoDiseno, catalogo: Catalogo, id: string
     ...(e.bloqueado && { bloqueado: true }),
     ...(e.nombre !== undefined && { nombre: e.nombre }),
   }
-  return reemplazar(doc, conIman(doc, catalogo, cambiado, e.rotacion % 90 !== 0))
+  // Un bloqueado se queda donde está; los demás se vuelven a imantar con la forma nueva.
+  return reemplazar(doc, e.bloqueado ? cambiado : conIman(doc, catalogo, cambiado, e.rotacion % 90 !== 0))
 }
 
 /** Copia desplazada e imantada, con el nombre propio pero libre (se duplica para colocar la copia). Con un id inexistente, el documento sin cambios y el mismo id. */

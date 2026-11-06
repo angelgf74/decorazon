@@ -25,7 +25,8 @@ const FACTOR_ZOOM_BOTON = 1.25
 const PX_POR_LINEA = 16
 const VISTA_INICIAL: Vista2D = { x: 0, y: 0, escala: 1 }
 
-interface Arrastre { id: number; x: number; y: number; vista: Vista2D; movido: boolean }
+/** `sobreBloqueado`: el toque empezó en un mueble bloqueado, que ya se seleccionó y deja pasar el toque para que el fondo haga pan. */
+interface Arrastre { id: number; x: number; y: number; vista: Vista2D; movido: boolean; sobreBloqueado: boolean }
 interface Pellizco { inicio: Vista2D; antes: [Punto, Punto] }
 /** La cinta métrica: el primer punto y el segundo, que sigue al puntero hasta que `fija` (segundo toque). */
 interface Medida { a: Punto; b: Punto | null; fija: boolean }
@@ -213,7 +214,8 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
   // Solo llegan aquí los toques que ninguna capa ha atendido: el fondo.
   const alBajar = (ev: PointerEvent<SVGSVGElement>) => {
     if (ev.button !== 0 && ev.button !== 1) return
-    arrastre.current = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, vista: vistaActual.current, movido: false }
+    const sobreBloqueado = ev.target instanceof Element && ev.target.closest('[data-bloqueado]') !== null
+    arrastre.current = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, vista: vistaActual.current, movido: false, sobreBloqueado }
     if (typeof ev.currentTarget.setPointerCapture === 'function') ev.currentTarget.setPointerCapture(ev.pointerId)
   }
 
@@ -237,9 +239,10 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
     arrastre.current = null
     setArrastrando(false)
     if (a.movido || cancelado) return
-    // Un toque sin arrastre: midiendo fija un punto (en cm enteros); si no, suelta la selección.
+    // Un toque sin arrastre: midiendo fija un punto (en cm enteros); si no, suelta la selección (salvo que el toque
+    // fuera sobre un bloqueado, que ya quedó seleccionado).
     if (midiendo) fijarPunto(redondear(aPlano(ev)))
-    else almacen.getState().seleccionar(null)
+    else if (!a.sobreBloqueado) almacen.getState().seleccionar(null)
   }
 
   // Paso 2: un tipo arrastrado desde el catálogo se añade donde se suelta.
@@ -279,19 +282,19 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
         {/* --escala deja el texto del plano a tamaño constante en pantalla (lienzo.css). */}
         <g ref={plano} transform={`translate(${vista.x} ${vista.y}) scale(${vista.escala})`} style={{ '--escala': vista.escala } as CSSProperties}>
           <ContextoLienzo.Provider value={contexto}>
-            <CapaPlanta documento={documento} seleccion={seleccion} alPulsarPared={paso === 1 ? pulsarPared : undefined} />
-            <CapaEstructura documento={documento} seleccion={seleccion} vigas={false} alPulsar={paso === 1 ? pulsar.estructura : undefined} />
-            <CapaAberturas documento={documento} seleccion={seleccion} alPulsar={paso === 1 ? pulsar.abertura : undefined} />
-            {/* Midiendo, los muebles no se pulsan: el toque cae al fondo y fija un punto. */}
+            {/* Midiendo, nada se pulsa (ni muebles, ni paredes, ni esquinas): el toque cae al fondo y fija un punto. */}
+            <CapaPlanta documento={documento} seleccion={seleccion} alPulsarPared={paso === 1 && !midiendo ? pulsarPared : undefined} />
+            <CapaEstructura documento={documento} seleccion={seleccion} vigas={false} alPulsar={paso === 1 && !midiendo ? pulsar.estructura : undefined} />
+            <CapaAberturas documento={documento} seleccion={seleccion} alPulsar={paso === 1 && !midiendo ? pulsar.abertura : undefined} />
             <CapaElementos documento={documento} conflictos={conflictos} seleccion={seleccion} alPulsar={paso === 2 && !midiendo ? pulsar.elemento : undefined} escala={vista.escala} />
             {/* Las vigas van por el techo: encima de los muebles. */}
-            <CapaEstructura documento={documento} seleccion={seleccion} vigas alPulsar={paso === 1 ? pulsar.estructura : undefined} />
+            <CapaEstructura documento={documento} seleccion={seleccion} vigas alPulsar={paso === 1 && !midiendo ? pulsar.estructura : undefined} />
             <CapaConflictos conflictos={conflictos} />
             {paso === 1 && (
               <>
-                <CapaCotas documento={documento} seleccion={seleccion} escala={vista.escala} />
+                <CapaCotas documento={documento} seleccion={seleccion} escala={vista.escala} soloVer={midiendo} />
                 <CotasEnPared documento={documento} seleccion={seleccion} escala={vista.escala} />
-                <CapaTiradores documento={documento} seleccion={seleccion} escala={vista.escala} />
+                {!midiendo && <CapaTiradores documento={documento} seleccion={seleccion} escala={vista.escala} />}
               </>
             )}
             {paso === 2 && enArrastre && <CotasElemento documento={documento} elemento={enArrastre} />}

@@ -1,6 +1,6 @@
 import { catalogoBase, nombreDeElemento, nombreEnPlanta, rectangulo, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
 import type { Seleccion } from '../../estado/almacen'
-import { manejador, type AlPulsar } from './comun'
+import { esBotonPrincipal, manejador, type AlPulsar } from './comun'
 import { colocarNombres, type Etiqueta } from './nombres'
 import Pieza from './Pieza'
 
@@ -49,13 +49,19 @@ export default function CapaElementos({ documento, conflictos, seleccion, alPuls
     <g className="capa-elementos">
       {orden.map((e) => {
         const elegido = seleccion?.tipo === 'elemento' && seleccion.id === e.id
+        // Un bloqueado se selecciona y deja pasar el toque: así arrastrar desde él hace pan (en el móvil, una cama bloqueada
+        // sería una zona muerta) y el Lienzo sabe por `data-bloqueado` que no debe soltar la selección al levantar el dedo.
+        const alBajar = e.bloqueado && alPulsar
+          ? (ev: Parameters<AlPulsar>[1]) => { if (esBotonPrincipal(ev)) alPulsar(e.id, ev) }
+          : manejador(e.id, alPulsar)
         return (
           <g
             key={e.id}
             data-elemento={e.id}
             data-conflicto={enError.has(e.id) ? '' : undefined}
+            data-bloqueado={e.bloqueado ? '' : undefined}
             className={`capa-elementos__pieza${elegido ? ' lienzo--seleccionado' : ''}${alPulsar ? ' lienzo--pulsable' : ''}`}
-            onPointerDown={manejador(e.id, alPulsar)}
+            onPointerDown={alBajar}
           >
             <Pieza def={catalogoBase.get(e.tipo)} e={e} elegido={elegido} />
             {e.bloqueado && <Candado e={e} escala={escala} />}

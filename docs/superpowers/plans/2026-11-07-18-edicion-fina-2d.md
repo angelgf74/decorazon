@@ -78,3 +78,18 @@
 - «Voltear» vale para toda variante con `izquierda` y `derecha` (chaise, ala, rincón del esquinero y de la rinconera), no solo para las tres de la mejora: la regla general evita una lista a mano.
 - Midiendo, el segundo punto no sigue al puntero mientras hay un botón pulsado en el fondo (sería un pan o el toque que lo fijará al soltar).
 - Las cotas al arrastrar van también a los vecinos (la «otra mitad» que apuntaba M-06): `cotasAParedes` acepta `obstaculos` y `CotasElemento` pasa las huellas de los demás muebles salvo las pisables.
+
+## Revisión final (7 nov 2026)
+
+Arreglado tras la revisión de la rama: el imán movía y giraba un bloqueado al cambiar sus medidas, al vincularle un producto o al cambiarlo de tipo (`editar` y `cambiarTipo` ya no lo imantan); con nombre propio, un mueble de tienda perdía el nombre del producto en la hoja y en el panel (ahora va debajo); midiendo en el paso 1 se seleccionaban esquinas, paredes y puertas (midiendo no se pulsa nada); «Medir» pulsado perdía el icono con el ratón encima (regla de hover); y arrastrar desde un bloqueado no hacía pan (en móvil, una cama bloqueada era una zona muerta): el bloqueado se selecciona y deja pasar el toque.
+
+## Pendiente
+
+- Cinta métrica en táctil: tras un pellizco, el dedo que queda arrastra el punto provisional y la cota se queda pintada sin cerrar; seguir al puntero solo con `ev.buttons === 0`. Y no hay pista de cómo medir con el dedo (el `title` no se ve y dice «Esc»).
+- El botón «Bloquear»/«Desbloquear» cambia de etiqueta y además lleva `aria-pressed`: un lector anuncia «Desbloquear, pulsado». Elegir una de las dos.
+- Con `nombre: ''` llegado de otro cliente el subtítulo del panel ya no repite el tipo (comparar por `nombreDeElemento`), pero el `maxLength` del campo cuenta los espacios de los lados y `renombrarElemento` corta por unidades UTF-16 (puede partir un emoji en el carácter 60; hoy no se llega desde la interfaz).
+- Las cotas a los vecinos no miran la altura: un cuadro o un módulo alto encima, o las sillas bajo la mesa, cortan la cota del mueble de abajo. El imán sí lo distingue (`solapanEnAltura`): usar el mismo criterio.
+- «Voltear» sale aunque no haya lado elegido (chaise «no»): se pulsa y no pasa nada; y se oculta en 3D sin motivo (voltear no mueve ni gira).
+- El candado va en la esquina de la caja alineada con los ejes: con giro libre o huellas en L puede caer fuera de la pieza, y lo tapan las piezas que se dibujan después.
+- El Escape de la cinta no tiene las guardas de `usarAtajos` (campos, diálogos, `defaultPrevented`): cerrar un menú con Escape también termina la medida.
+- Decisiones para Angel: si el candado debe salir en la hoja impresa, el plano exportado y la vista compartida (hoy sale: es estado del editor que se cuela en lo que se entrega); y si los puntos de la cinta deben imantarse a vértices y paredes.

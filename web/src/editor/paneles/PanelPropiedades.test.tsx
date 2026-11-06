@@ -217,6 +217,17 @@ describe('PanelPropiedades: bloquear, voltear y nombre propio', () => {
     expect(screen.getByRole('heading', { name: 'Armario' })).toBeTruthy()
   })
 
+  it('con nombre propio, un mueble de tienda sigue diciendo el producto en el subtítulo', () => {
+    colocar('armario')
+    almacen.getState().cambiar((d) => ({
+      ...d,
+      elementos: d.elementos.map((e) => ({ ...e, nombre: 'El de la entrada', origen: { tipo: 'tienda' as const, proveedor: 'IKEA', nombre: 'PAX' } })),
+    }))
+    render(<PanelPropiedades />)
+    expect(screen.getByRole('heading', { name: 'El de la entrada' })).toBeTruthy()
+    expect(screen.getByText(/PAX/)).toBeTruthy()
+  })
+
   it('Escape en «Nombre» restaura lo que había sin tocar el diseño', async () => {
     colocar('armario')
     render(<PanelPropiedades />)

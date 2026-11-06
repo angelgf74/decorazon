@@ -202,9 +202,10 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
   return (
     <>
       <h2>{nombreDeElemento(def, e)}</h2>
+      {/* Con nombre propio, el subtítulo dice lo que se tapa: el producto (y su tienda) o el tipo. */}
       {e.origen.tipo === 'tienda'
-        ? <p className="panel__subtitulo">{textos.tienda.deTienda(capitalizar(def.nombre), e.origen.proveedor)}</p>
-        : e.nombre !== undefined && <p className="panel__subtitulo">{capitalizar(def.nombre)}</p>}
+        ? <p className="panel__subtitulo">{`${nombreDeElemento(def, e) !== e.origen.nombre ? `${e.origen.nombre} · ` : ''}${textos.tienda.deTienda(capitalizar(def.nombre), e.origen.proveedor)}`}</p>
+        : nombreDeElemento(def, e) !== capitalizar(def.nombre) && <p className="panel__subtitulo">{capitalizar(def.nombre)}</p>}
       <CampoTexto etiqueta={t.nombre} valor={e.nombre ?? ''} placeholder={nombrePorDefecto} maxLength={LIMITE_NOMBRE_ELEMENTO}
         alCambiar={(nombre) => almacen.getState().cambiar((d) => renombrarElemento(d, e.id, nombre))} />
       <div className="panel__rejilla">

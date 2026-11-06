@@ -347,6 +347,35 @@ describe('bloquearElemento', () => {
   })
 })
 
+describe('bloquearElemento: el imán tampoco lo mueve', () => {
+  // Armario a ras de la pared de arriba con un vecino a 10 cm por la derecha (al alcance del imán).
+  function conVecino() {
+    const doc = documentoNuevo('dormitorio', 600, 330, 250)
+    const a = elementoNuevo(catalogoBase.get('armario')!, { x: 200, y: 30 }, 'a')
+    const b = elementoNuevo(catalogoBase.get('armario')!, { x: 310, y: 30 }, 'b')
+    return bloquearElemento({ ...doc, elementos: [a, b] }, 'a', true)
+  }
+  const a = (d: DocumentoDiseno) => d.elementos.find((e) => e.id === 'a')!
+
+  it('cambiar las medidas ni lo mueve ni lo gira', () => {
+    const r = editarElemento(conVecino(), catalogoBase, 'a', { medidas: { fondo: 50, ancho: 95 } })
+    expect(a(r).medidas).toMatchObject({ fondo: 50, ancho: 95 })
+    expect(a(r).posicion).toEqual({ x: 200, y: 30 })
+    expect(a(r).rotacion).toBe(0)
+  })
+
+  it('vincular un producto con otras medidas no lo mueve', () => {
+    const pax: OrigenTienda = { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX' }
+    const r = vincularTienda(conVecino(), catalogoBase, 'a', pax, { ancho: 150, fondo: 58, alto: 201 })
+    expect(a(r).posicion).toEqual({ x: 200, y: 30 })
+  })
+
+  it('cambiar de tipo conserva la posición y el giro', () => {
+    const r = cambiarTipo(conVecino(), catalogoBase, 'a', 'comoda')
+    expect(a(r)).toMatchObject({ tipo: 'comoda', posicion: { x: 200, y: 30 }, rotacion: 0, bloqueado: true })
+  })
+})
+
 describe('renombrarElemento', () => {
   it('recorta los espacios y corta a 60 caracteres; solo espacios o vacío quita el campo', () => {
     const { documento, id } = conArmario()

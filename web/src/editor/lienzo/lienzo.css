@@ -2,7 +2,6 @@
 .lienzo__svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; cursor: grab; }
 .lienzo__svg--arrastrando { cursor: grabbing; }
 .lienzo__svg--midiendo { cursor: crosshair; }
-.lienzo__controles .lienzo__medir[aria-pressed='true'] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
 /* Zoom y Encuadrar, abajo a la derecha, en una sola píldora. */
 .lienzo__controles {
   position: absolute;
@@ -20,6 +19,9 @@
 }
 .lienzo__controles .boton-icono { width: 2.25rem; height: 2.25rem; min-height: 2.25rem; border-color: transparent; background: transparent; }
 .lienzo__controles .boton-icono:hover:not(:disabled) { background: var(--crema-oscura); }
+/* «Medir» pulsado, también con el ratón encima (si no, la regla de hover lo dejaba crema con el icono blanco). */
+.lienzo__controles .lienzo__medir[aria-pressed='true'],
+.lienzo__controles .lienzo__medir[aria-pressed='true']:hover:not(:disabled) { background: var(--tinta); border-color: var(--tinta); color: #fff; }
 .lienzo__separador { width: 1px; height: 1.4rem; margin: 0 0.25rem; background: var(--borde-suave); }
 
 /* Las pistas: una línea oscura abajo a la izquierda que no tapa el plano y se puede cerrar. */

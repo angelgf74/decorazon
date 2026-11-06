@@ -627,6 +627,21 @@ describe('Lienzo: cinta métrica', () => {
     expect(cota(container)!.textContent).toBe('')
   })
 
+  it('en el paso 1, midiendo, ni las esquinas ni las puertas se pulsan: el toque fija un punto', () => {
+    const puerta: Abertura = { id: 'p', tipo: 'puerta', pared: 0, posicion: 50, ancho: 80, alto: 210, hoja: 'abatible', bisagra: 'izquierda', abreHacia: 'dentro' }
+    almacen.getState().cambiar((d) => ({ ...d, aberturas: [puerta] }))
+    almacen.getState().irAPaso(1)
+    const { container } = render(<Lienzo />)
+    expect(container.querySelector('[data-vertice]')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Medir' }))
+    expect(container.querySelector('[data-vertice]')).toBeNull()
+    toque(container.querySelector('[data-abertura="p"] polygon')!, 90, 0)
+    expect(almacen.getState().seleccion).toBeNull()
+    expect(cota(container)).not.toBeNull()
+    fireEvent.pointerMove(svgDe(container), { pointerId: 2, clientX: 90, clientY: 330 })
+    expect(cota(container)!.textContent).toBe('330 cm')
+  })
+
   it('cambiar de paso quita la cota y deja de medir', () => {
     const { container } = render(<Lienzo />)
     fireEvent.click(screen.getByRole('button', { name: 'Medir' }))
@@ -656,6 +671,21 @@ describe('Lienzo: mueble bloqueado y cotas a los vecinos', () => {
     expect(container.querySelector('[data-cota-elemento]')).toBeNull()
     expect(almacen.getState().pasado).toHaveLength(pasos)
     expect(hayArrastre()).toBe(false)
+  })
+
+  it('arrastrar desde un bloqueado hace pan (en móvil sería una zona muerta) y un toque sin mover lo deja seleccionado', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    almacen.getState().cambiar((d) => bloquearElemento(d, 'a', true))
+    const { container } = render(<Lienzo />)
+    const huella = container.querySelector('[data-elemento="a"] polygon')!
+    fireEvent.pointerDown(huella, { pointerId: 1, button: 0, clientX: 200, clientY: 165 })
+    fireEvent.pointerMove(container.querySelector('svg')!, { pointerId: 1, clientX: 240, clientY: 165 })
+    fireEvent.pointerUp(container.querySelector('svg')!, { pointerId: 1, clientX: 240, clientY: 165 })
+    expect(container.querySelector('svg > g')!.getAttribute('transform')).toContain('translate(40 0)')
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: 'a' })
+    fireEvent.pointerDown(huella, { pointerId: 1, button: 0, clientX: 200, clientY: 165 })
+    fireEvent.pointerUp(container.querySelector('svg')!, { pointerId: 1, clientX: 200, clientY: 165 })
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: 'a' })
   })
 
   it('un mueble libre no lleva candado', () => {

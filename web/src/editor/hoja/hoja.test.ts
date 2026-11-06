@@ -52,7 +52,7 @@ describe('filasDeMuebles', () => {
     expect(filas[2]!.variantes).toEqual(['Cabecero: No'])
   })
 
-  it('con nombre propio, el tipo va aparte; sin él, o en uno de tienda (su línea ya lo dice), null', () => {
+  it('con nombre propio, el tipo va aparte; sin él, null; en uno de tienda, el nombre del producto (su línea lleva el tipo)', () => {
     const doc = documentoNuevo('dormitorio', 400, 300, 250)
     const armario = elementoNuevo(catalogoBase.get('armario')!, { x: 100, y: 50 }, 'a')
     doc.elementos = [
@@ -61,7 +61,8 @@ describe('filasDeMuebles', () => {
       { ...armario, id: 't', nombre: 'El de la entrada', origen: { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX' } },
     ]
     const filas = filasDeMuebles(doc, catalogoBase)
-    expect(filas.map((f) => [f.nombre, f.tipo])).toEqual([['Armario de Ana', 'Armario'], ['Armario', null], ['El de la entrada', null]])
+    expect(filas.map((f) => [f.nombre, f.tipo])).toEqual([['Armario de Ana', 'Armario'], ['Armario', null], ['El de la entrada', 'PAX']])
+    expect(filas[2]!.tienda?.linea).toContain('Armario')
   })
 
   it('un tipo que ya no está en el catálogo sale con su id y sus medidas', () => {
