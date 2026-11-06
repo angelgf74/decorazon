@@ -1,6 +1,8 @@
 .lienzo { position: relative; width: 100%; height: 100%; overflow: hidden; }
 .lienzo__svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; cursor: grab; }
 .lienzo__svg--arrastrando { cursor: grabbing; }
+.lienzo__svg--midiendo { cursor: crosshair; }
+.lienzo__controles .lienzo__medir[aria-pressed='true'] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
 /* Zoom y Encuadrar, abajo a la derecha, en una sola píldora. */
 .lienzo__controles {
   position: absolute;
@@ -122,3 +124,7 @@
 
 .capa-cotas--elemento, .capa-cotas--elemento .lienzo__texto { pointer-events: none; }
 .capa-cotas__pegada { stroke: var(--amarillo); stroke-width: 6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+/* La cinta métrica: en terracota, para distinguirla de las cotas del mueble. */
+.capa-cotas--libre .capa-cotas__cota line { stroke: var(--terracota); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.capa-cotas--libre .capa-cotas__cota .lienzo__texto { fill: var(--terracota); font-weight: 600; }
+.capa-cotas__punto { fill: #fff; stroke: var(--terracota); stroke-width: 2; vector-effect: non-scaling-stroke; }

@@ -560,6 +560,83 @@ describe('Lienzo: zoom con botones', () => {
   })
 })
 
+describe('Lienzo: cinta métrica', () => {
+  const svgDe = (container: HTMLElement) => container.querySelector('svg')!
+  const toque = (el: Element, x: number, y: number) => {
+    fireEvent.pointerDown(el, { pointerId: 1, button: 0, clientX: x, clientY: y })
+    fireEvent.pointerUp(el, { pointerId: 1, clientX: x, clientY: y })
+  }
+  const cota = (container: HTMLElement) => container.querySelector('[data-cota-libre]')
+
+  it('«Medir» y dos toques en el fondo acotan la distancia en cm; un tercero empieza otra', () => {
+    const { container } = render(<Lienzo />)
+    const medir = screen.getByRole('button', { name: 'Medir' })
+    expect(medir).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(medir)
+    expect(medir).toHaveAttribute('aria-pressed', 'true')
+    const svg = svgDe(container)
+    toque(svg, 100, 100)
+    expect(cota(container)).not.toBeNull()
+    expect(cota(container)!.textContent).toBe('')
+    // Entre el primer toque y el segundo, la cota sigue al puntero.
+    fireEvent.pointerMove(svg, { pointerId: 2, clientX: 250, clientY: 100 })
+    expect(cota(container)!.textContent).toBe('150 cm')
+    toque(svg, 400.4, 100)
+    expect(cota(container)!.textContent).toBe('300 cm')
+    fireEvent.pointerMove(svg, { pointerId: 2, clientX: 10, clientY: 10 })
+    expect(cota(container)!.textContent).toBe('300 cm')
+    toque(svg, 200, 200)
+    expect(container.querySelectorAll('[data-cota-libre]')).toHaveLength(1)
+    expect(cota(container)!.textContent).toBe('')
+    fireEvent.pointerMove(svg, { pointerId: 2, clientX: 230, clientY: 240 })
+    expect(cota(container)!.textContent).toBe('50 cm')
+    expect(almacen.getState().seleccion).toBeNull()
+  })
+
+  it('Escape quita la cota y suelta el botón; el botón pulsado otra vez también', () => {
+    const { container } = render(<Lienzo />)
+    const medir = screen.getByRole('button', { name: 'Medir' })
+    fireEvent.click(medir)
+    const svg = svgDe(container)
+    toque(svg, 100, 100)
+    toque(svg, 200, 100)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(cota(container)).toBeNull()
+    expect(medir).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(medir)
+    toque(svg, 100, 100)
+    fireEvent.click(medir)
+    expect(cota(container)).toBeNull()
+    expect(medir).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('midiendo, tocar un mueble no lo selecciona (fija un punto) y arrastrar el fondo sigue siendo pan', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    const { container } = render(<Lienzo />)
+    fireEvent.click(screen.getByRole('button', { name: 'Medir' }))
+    expect(container.querySelector('[data-giro]')).toBeNull()
+    const huella = container.querySelector('[data-elemento="a"] polygon')!
+    toque(huella, 200, 165)
+    expect(almacen.getState().seleccion).toBeNull()
+    expect(cota(container)).not.toBeNull()
+    const svg = svgDe(container)
+    fireEvent.pointerDown(svg, { pointerId: 3, button: 0, clientX: 50, clientY: 50 })
+    fireEvent.pointerMove(svg, { pointerId: 3, clientX: 90, clientY: 50 })
+    fireEvent.pointerUp(svg, { pointerId: 3, clientX: 90, clientY: 50 })
+    expect(svg.querySelector('g')!.getAttribute('transform')).toContain('translate(40 0)')
+    expect(cota(container)!.textContent).toBe('')
+  })
+
+  it('cambiar de paso quita la cota y deja de medir', () => {
+    const { container } = render(<Lienzo />)
+    fireEvent.click(screen.getByRole('button', { name: 'Medir' }))
+    toque(svgDe(container), 100, 100)
+    act(() => almacen.getState().irAPaso(1))
+    expect(cota(container)).toBeNull()
+    expect(screen.getByRole('button', { name: 'Medir' })).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+
 describe('Lienzo: mueble bloqueado y cotas a los vecinos', () => {
   const armario = () => almacen.getState().documento!.elementos.find((e) => e.id === 'a')!
 

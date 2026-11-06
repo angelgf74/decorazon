@@ -78,6 +78,27 @@ export function CotasElemento({ documento, elemento: e }: { documento: Documento
   )
 }
 
+/** Radio en px de pantalla de los extremos de la cinta métrica. */
+const RADIO_PUNTO_PX = 4
+
+/** La cinta métrica (M-06): un punto fijado y, si lo hay, el segundo (o el puntero) con la distancia en cm. No se guarda. */
+export function CotaLibre({ a, b, escala }: { a: Punto; b: Punto | null; escala: number }) {
+  const r = RADIO_PUNTO_PX / escala
+  const m = b && escalar(sumar(a, b), 0.5)
+  return (
+    <g data-cota-libre className="capa-cotas capa-cotas--elemento capa-cotas--libre">
+      <circle className="capa-cotas__punto" cx={a.x} cy={a.y} r={r} />
+      {b && m && (
+        <g className="capa-cotas__cota">
+          <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+          <circle className="capa-cotas__punto" cx={b.x} cy={b.y} r={r} />
+          <text className="lienzo__texto" x={m.x} y={m.y}>{`${Math.round(Math.hypot(b.x - a.x, b.y - a.y))} cm`}</text>
+        </g>
+      )}
+    </g>
+  )
+}
+
 /** Distancia en px de pantalla de la cota a la cara interior del muro. */
 const SEPARACION_EN_PARED_PX = 20
 

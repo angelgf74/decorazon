@@ -194,7 +194,7 @@ describe('PanelPropiedades: bloquear, voltear y nombre propio', () => {
     almacen.getState().seleccionar({ tipo: 'abertura', id: 'p' })
     render(<PanelPropiedades />)
     await userEvent.click(screen.getByRole('button', { name: 'Voltear' }))
-    expect(almacen.getState().documento!.aberturas[0]!.bisagra).toBe('derecha')
+    expect(almacen.getState().documento!.aberturas[0]).toMatchObject({ bisagra: 'derecha' })
   })
 
   it('el campo «Nombre» pone el nombre propio (con Enter o al salir), lo enseña el título y vacío lo quita', async () => {

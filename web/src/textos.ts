@@ -159,7 +159,9 @@ export const textos = {
   },
   lienzo: {
     encuadrar: 'Encuadrar',
-    zoom: 'Zoom',
+    controles: 'Controles del plano',
+    medir: 'Medir',
+    medirPista: 'Medir: pulsa dos puntos del plano (Esc termina)',
     acercar: 'Acercar',
     alejar: 'Alejar',
     plano: 'Plano de la estancia',
