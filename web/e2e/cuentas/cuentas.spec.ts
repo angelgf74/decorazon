@@ -113,6 +113,7 @@ test('sugerencias: con sesión no pide correo; sin ella, desde el inicio, sí', 
   await entrar(page, contrasena)
   await expect(page).toHaveURL(/\/disenos$/)
   await abrirDiseno(page)
+  await page.getByRole('button', { name: 'Más acciones' }).click()
   await page.getByRole('button', { name: 'Sugerencias' }).click()
   const conCuenta = page.getByRole('dialog', { name: 'Envíanos una sugerencia' })
   await expect(conCuenta.getByText(`Te responderemos a ${correo}.`)).toBeVisible()

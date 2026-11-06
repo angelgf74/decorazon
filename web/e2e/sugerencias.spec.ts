@@ -18,6 +18,7 @@ test('desde el editor sin cuenta: se escribe, se manda con el correo y da las gr
   })
   await crearEstancia(page)
 
+  await page.getByRole('button', { name: 'Más acciones' }).click()
   await page.getByRole('button', { name: 'Sugerencias' }).click()
   const dialogo = page.getByRole('dialog', { name: 'Envíanos una sugerencia' })
   await dialogo.getByLabel('De qué va').selectOption({ label: 'Algo que echo en falta' })
@@ -50,10 +51,12 @@ for (const ancho of [320, 360, 390]) {
   })
 }
 
-test('en escritorio está en la barra de arriba', async ({ page }) => {
+test('en escritorio está en el menú "Más acciones" de la barra de arriba, y solo ahí', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 })
   await crearEstancia(page)
 
+  await expect(page.getByRole('button', { name: 'Sugerencias' })).toHaveCount(0)
+  await page.locator('.barra').getByRole('button', { name: 'Más acciones' }).click()
   await expect(page.locator('.barra').getByRole('button', { name: 'Sugerencias' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Sugerencias' })).toHaveCount(1)
 })

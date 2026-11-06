@@ -23,47 +23,54 @@
 
 /* --- Barra superior --- */
 
+/*
+ * Tres zonas: qué diseño es y si está guardado (izquierda), en qué paso estoy (centro) y deshacer, el menú de más
+ * acciones y la cuenta (derecha). Las dos de los lados reparten el sitio a partes iguales para que el centro quede centrado.
+ */
 .barra {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--esp-2) var(--esp-4);
-  padding: var(--esp-2) var(--esp-4);
+  gap: var(--esp-3);
+  padding: var(--esp-2) var(--esp-3);
   background: var(--superficie);
   border-bottom: 1px solid var(--borde-suave);
 }
+.barra__diseno, .barra__acciones, .barra__centro, .barra__historial, .barra__cuenta { display: flex; align-items: center; gap: var(--esp-2); }
+.barra__diseno, .barra__acciones { flex: 1 1 0; min-width: 0; }
+.barra__acciones { justify-content: flex-end; }
+.barra__centro { flex: none; gap: var(--esp-3); }
+.barra__historial { gap: 0; }
 
-.barra__grupo { display: flex; gap: var(--esp-1); align-items: center; }
-.barra__deshacer { padding-left: var(--esp-4); border-left: 1px solid var(--borde-suave); }
-.barra__historial { padding-inline: 0.7rem; }
+.barra__marca { display: inline-grid; place-items: center; flex: none; width: var(--objetivo); height: var(--objetivo); border-radius: var(--radio); }
+.barra__marca:hover { background: var(--crema-oscura); }
+.barra__marca img { display: block; }
 
-.pasos { gap: var(--esp-2); }
-.pasos__paso { border-color: transparent; background: none; padding: 0.35rem 0.6rem; }
+/* Botones de la barra sin borde: el borde se reserva para los de la cuenta, que llevan a otra página. */
+.barra__plano, .barra__mas { border-color: transparent; background: transparent; }
+
+.segmentado { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--borde-suave); border-radius: 999px; background: var(--crema); }
+.segmentado button { min-height: 2.125rem; padding: 0 0.85rem; border: 0; border-radius: 999px; background: transparent; color: var(--gris); font-weight: 600; }
+.segmentado button:hover:not(:disabled, [aria-pressed='true'], [aria-current='step']) { background: var(--crema-oscura); color: var(--tinta); }
+/* Con :hover también: el hover general de base.css tiene la misma especificidad y, si no, lo aclararía. */
+.segmentado button:is([aria-pressed='true'], [aria-current='step']):is(:hover, :not(:hover)) { background: var(--tinta); color: #fff; }
+.pasos__paso { gap: var(--esp-1); }
 .pasos__numero {
   display: inline-grid;
   place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  border: 1.5px solid var(--gris);
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 1.5px solid currentColor;
   border-radius: 50%;
-  color: var(--gris);
-  font-size: var(--texto-s);
+  font-size: 0.7rem;
   font-weight: 700;
 }
-.pasos__paso[aria-current='step'] { font-weight: 700; }
-.pasos__paso[aria-current='step'] .pasos__numero { background: var(--terracota); border-color: var(--terracota); color: #fff; }
-
-.segmentado { gap: 0; border: 1px solid var(--borde); border-radius: var(--radio); overflow: hidden; }
-.segmentado button { min-width: 2.75rem; border: 0; border-radius: 0; font-weight: 600; }
-.segmentado button + button { border-left: 1px solid var(--borde); }
-.segmentado button[aria-pressed='true'] { background: var(--amarillo); }
 
 .barra__guardado {
   display: flex;
   align-items: center;
   gap: 0.45rem;
   min-width: 0;
-  margin: 0 0 0 auto;
+  margin: 0;
   color: var(--gris);
   font-size: var(--texto-s);
   white-space: nowrap;
@@ -75,16 +82,45 @@
 .barra__guardado--pendiente::before { background: #e0a100; }
 .barra__guardado--error, .barra__guardado--conflicto, .barra__guardado--sinConexion { color: var(--conflicto); font-weight: 600; }
 .barra__guardado--error::before, .barra__guardado--conflicto::before, .barra__guardado--sinConexion::before { background: var(--conflicto); }
-.barra__nombre { min-width: 6rem; max-width: 14rem; font-weight: 600; }
-.barra__nuevo, .barra__imprimir, .barra__sugerencia { padding-inline: var(--esp-2); }
-.barra__cuenta { gap: var(--esp-2); }
+/* El nombre parece un título hasta que se pasa por encima o se entra a editarlo. */
+.barra__nombre {
+  min-width: 6rem;
+  max-width: 14rem;
+  height: 2.25rem;
+  padding: 0 var(--esp-2);
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  background: transparent;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.barra__nombre:hover, .barra__nombre:focus { border-color: var(--borde-suave); background: var(--superficie); }
+
+.menu { position: relative; }
+.menu__lista {
+  position: absolute;
+  top: calc(100% + var(--esp-1));
+  right: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  min-width: 13rem;
+  padding: var(--esp-1);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: 0 8px 24px rgb(43 38 34 / 0.14);
+}
+.menu__opcion { justify-content: flex-start; padding: 0.5rem 0.75rem; border: 0; background: transparent; font-weight: 500; white-space: nowrap; }
+.menu__opcion .icono { color: var(--gris); }
+
+.avatar { display: inline-grid; place-items: center; flex: none; width: var(--objetivo); height: var(--objetivo); border-radius: 50%; color: var(--tinta); text-decoration: none; }
+.avatar:hover { background: var(--crema-oscura); }
+.avatar__inicial { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--amarillo); font-size: var(--texto-s); font-weight: 700; }
 
 /* Texto que se queda solo para lectores de pantalla cuando falta sitio: el botón conserva su nombre y su title. */
-@media (max-width: 1439px) {
-  .barra__texto--estrecha { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-}
 @media (max-width: 1279px) {
-  :is(.barra__nuevo, .barra__imprimir, .barra__sugerencia, .barra__cuenta) .barra__texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .barra__cuenta .barra__texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .barra__cuenta :is(button, .boton) { width: var(--objetivo); padding: 0; }
 }
 
@@ -300,27 +336,32 @@
 /* --- Móvil: los paneles pasan a hojas que se abren desde las pestañas de abajo --- */
 
 @media (max-width: 767px) {
+  /* Dos filas: arriba el diseño, deshacer, el menú y la cuenta; abajo los pasos y la vista. */
   .barra {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     grid-template-areas:
-      'pasos pasos pasos vista vista'
-      'deshacer guardado nuevo imprimir cuenta';
-    gap: var(--esp-2);
-    padding: var(--esp-2) var(--esp-3);
+      'diseno historial mas cuenta'
+      'centro centro centro centro';
+    /* Cada píxel cuenta a 320 px: al estado de guardado le quedan unos 90 px. */
+    gap: var(--esp-1) var(--esp-2);
+    padding: var(--esp-2);
   }
-  .pasos { grid-area: pasos; }
-  .segmentado { grid-area: vista; justify-self: end; }
-  .barra__deshacer { grid-area: deshacer; padding-left: 0; border-left: 0; }
-  /* Dos líneas en vez de cortar "Guardado en este navegador". */
-  .barra__guardado { grid-area: guardado; margin: 0; font-size: 0.75rem; line-height: 1.2; white-space: normal; }
-  .barra__nuevo { grid-area: nuevo; }
-  .barra__imprimir { grid-area: imprimir; }
-  /* En la barra no cabe sin recortar los pasos o el estado de guardado: en móvil va en las pestañas de abajo. */
-  .barra__sugerencia { display: none; }
+  .segmentado button { padding: 0 0.55rem; font-size: var(--texto-s); }
+  .pasos__numero { width: 1.2rem; height: 1.2rem; font-size: 0.65rem; }
+  /* Los hijos del grupo de acciones pasan a ser hijos de la rejilla. */
+  .barra__acciones { display: contents; }
+  .barra__diseno { grid-area: diseno; flex-wrap: wrap; }
+  .barra__marca { display: none; }
+  .barra__historial { grid-area: historial; }
+  .menu { grid-area: mas; }
   .barra__cuenta { grid-area: cuenta; gap: var(--esp-1); }
-  .barra__nombre { grid-column: 1 / -1; max-width: none; }
-  .barra__historial, .barra__nuevo, .barra__imprimir { width: var(--objetivo); padding: 0; }
+  .barra__centro { grid-area: centro; justify-content: space-between; }
+  /* Dos líneas en vez de cortar "Guardado en este navegador". */
+  .barra__guardado { flex: 1 1 4rem; font-size: 0.75rem; line-height: 1.2; white-space: normal; }
+  .barra__nombre { order: 1; flex: 1 1 100%; max-width: none; }
+  /* La sugerencia tiene su botón en las pestañas de abajo, al alcance del pulgar. */
+  .menu__sugerencia { display: none; }
 
   /* La hoja abierta ocupa su sitio debajo del plano en vez de taparlo: el plano se encoge y se vuelve a encuadrar. */
   .editor__cuerpo { display: flex; flex-direction: column; padding-bottom: calc(3.75rem + env(safe-area-inset-bottom)); }

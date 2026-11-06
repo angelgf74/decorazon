@@ -107,15 +107,17 @@ describe('Editor: pestañas de las hojas (móvil)', () => {
 })
 
 describe('Editor: hoja para imprimir', () => {
-  it('"Imprimir" abre la hoja y "Cerrar" vuelve al editor con el foco en el botón', async () => {
+  it('"Imprimir" (en el menú Más acciones) abre la hoja y "Cerrar" vuelve al editor con el foco en "Más acciones"', async () => {
     almacen.getState().cambiarVista('2d')
     render(<Editor />, { wrapper: MemoryRouter })
-    const boton = screen.getByRole('button', { name: 'Imprimir' })
-    await userEvent.click(boton)
+    const mas = screen.getByRole('button', { name: 'Más acciones' })
+    await userEvent.click(mas)
+    await userEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
     expect(screen.getByRole('dialog', { name: 'Hoja para imprimir' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
     expect(screen.queryByRole('dialog', { name: 'Hoja para imprimir' })).toBeNull()
-    expect(boton).toHaveFocus()
+    // El botón Imprimir ya no existe (el menú se cerró): el foco vuelve al que lo abrió.
+    expect(mas).toHaveFocus()
   })
 
   it('con la hoja abierta, los atajos del editor no tocan el diseño de detrás', async () => {
@@ -124,6 +126,7 @@ describe('Editor: hoja para imprimir', () => {
     almacen.getState().cambiar((d) => ({ ...d, elementos: [elementoNuevo(catalogoBase.get('cama')!, { x: 200, y: 165 }, 'c')] }))
     almacen.getState().seleccionar({ tipo: 'elemento', id: 'c' })
     render(<Editor />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
     await userEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
     await userEvent.keyboard('{Delete}')
     expect(almacen.getState().documento!.elementos).toHaveLength(1)

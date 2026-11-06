@@ -50,8 +50,46 @@ describe('BarraSuperior', () => {
     expect(b).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('con el menú cerrado, "Nuevo diseño", "Imprimir" y "Sugerencias" no están en la página', () => {
+    render(<BarraSuperior alImprimir={() => {}} />, { wrapper: MemoryRouter })
+    expect(screen.queryByRole('button', { name: 'Nuevo diseño' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Imprimir' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Sugerencias' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Más acciones' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('"Más acciones" abre el menú con Nuevo diseño, Imprimir y Sugerencias; Escape lo cierra y deja el foco en el botón', async () => {
+    render(<BarraSuperior alImprimir={() => {}} />, { wrapper: MemoryRouter })
+    const mas = screen.getByRole('button', { name: 'Más acciones' })
+    await userEvent.click(mas)
+    expect(mas).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Nuevo diseño' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Imprimir' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sugerencias' })).toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('button', { name: 'Imprimir' })).toBeNull()
+    expect(mas).toHaveFocus()
+  })
+
+  it('elegir "Imprimir" cierra el menú, devuelve el foco a "Más acciones" y avisa', async () => {
+    const alImprimir = vi.fn(() => expect(screen.getByRole('button', { name: 'Más acciones' })).toHaveFocus())
+    render(<BarraSuperior alImprimir={alImprimir} />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+    expect(alImprimir).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('button', { name: 'Imprimir' })).toBeNull()
+  })
+
+  it('pulsar fuera cierra el menú', async () => {
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: '2D' }))
+    expect(screen.queryByRole('button', { name: 'Nuevo diseño' })).toBeNull()
+  })
+
   it('"Nuevo diseño" pide confirmación y descarta', async () => {
     render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo diseño' }))
     expect(screen.getByText(/reemplaza tu diseño actual/)).toBeInTheDocument()
     expect(almacen.getState().documento).not.toBeNull()
@@ -61,6 +99,7 @@ describe('BarraSuperior', () => {
 
   it('cancelar no descarta', async () => {
     render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo diseño' }))
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     expect(almacen.getState().documento).not.toBeNull()
@@ -78,9 +117,11 @@ describe('BarraSuperior', () => {
     expect(screen.queryByRole('link', { name: 'Mis diseños' })).toBeNull()
   })
 
-  it('con sesión y sin ella ofrece enviar una sugerencia', async () => {
+  it('con sesión y sin ella ofrece enviar una sugerencia desde el menú; el diálogo sobrevive al cierre del menú', async () => {
     render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
     await userEvent.click(screen.getByRole('button', { name: 'Sugerencias' }))
+    expect(screen.queryByRole('button', { name: 'Sugerencias' })).toBeNull()
     expect(screen.getByRole('dialog', { name: 'Envíanos una sugerencia' })).toBeInTheDocument()
   })
 
@@ -124,9 +165,11 @@ describe('BarraSuperior', () => {
       expect(screen.getByRole('status')).toHaveTextContent(new RegExp(`^${texto}$`))
     })
 
-    it('no ofrece "Nuevo diseño"', () => {
-      render(<BarraSuperior />, { wrapper: MemoryRouter })
+    it('el menú no ofrece "Nuevo diseño" pero sí "Imprimir"', async () => {
+      render(<BarraSuperior alImprimir={() => {}} />, { wrapper: MemoryRouter })
+      await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
       expect(screen.queryByRole('button', { name: 'Nuevo diseño' })).toBeNull()
+      expect(screen.getByRole('button', { name: 'Imprimir' })).toBeInTheDocument()
     })
 
     it('el nombre se edita y renombra al pulsar Intro; Escape lo deja como estaba', async () => {

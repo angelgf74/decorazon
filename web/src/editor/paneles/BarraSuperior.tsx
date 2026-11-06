@@ -1,11 +1,12 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { empezarDeNuevo, subirDisenoAnonimo } from '../../cuenta/disenosLocales'
 import { useSesion } from '../../cuenta/sesion'
-import BotonDeSugerencia from '../../sugerencias/BotonDeSugerencia'
+import DialogoDeSugerencia from '../../sugerencias/DialogoDeSugerencia'
 import { textos } from '../../textos'
 import Confirmar from '../comunes/Confirmar'
 import Icono from '../comunes/Icono'
+import type { NombreIcono } from '../comunes/iconos'
 import { almacen, useEditor, type EstadoGuardado } from '../estado/almacen'
 import { renombrar } from '../persistencia/sincronizacion'
 
@@ -54,6 +55,74 @@ function NombreDelDiseno({ nombre }: { nombre: string }) {
   )
 }
 
+interface Opcion {
+  icono: NombreIcono
+  texto: string
+  title?: string
+  className?: string
+  alElegir(): void
+}
+
+/**
+ * Menú "Más acciones": lo que no es del diseño ni del paso. Al elegir una opción, el menú se cierra y el foco vuelve al
+ * botón que lo abrió ANTES de ejecutar la acción, para que quien guarde `document.activeElement` (la hoja para imprimir)
+ * tenga un sitio al que volver: la opción deja de existir al cerrarse el menú.
+ */
+function MenuMas({ opciones }: { opciones: Opcion[] }) {
+  const [abierto, setAbierto] = useState(false)
+  const raiz = useRef<HTMLDivElement>(null)
+  const disparador = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!abierto) return
+    raiz.current?.querySelector<HTMLElement>('.menu__opcion')?.focus()
+    const alPulsarFuera = (e: PointerEvent) => {
+      if (!raiz.current?.contains(e.target as Node)) setAbierto(false)
+    }
+    document.addEventListener('pointerdown', alPulsarFuera)
+    return () => document.removeEventListener('pointerdown', alPulsarFuera)
+  }, [abierto])
+
+  const cerrar = () => {
+    setAbierto(false)
+    disparador.current?.focus()
+  }
+
+  const alTeclear = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!abierto) return
+    if (e.key === 'Escape') {
+      // Que Escape no suelte además la selección del plano.
+      e.stopPropagation()
+      cerrar()
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      const botones = [...(raiz.current?.querySelectorAll<HTMLElement>('.menu__opcion') ?? [])]
+      const i = botones.indexOf(document.activeElement as HTMLElement)
+      const paso = e.key === 'ArrowDown' ? 1 : -1
+      botones[(i + paso + botones.length) % botones.length]?.focus()
+    }
+  }
+
+  return (
+    <div ref={raiz} className="menu" onKeyDown={alTeclear}>
+      <button ref={disparador} type="button" className="boton-icono barra__mas" aria-label={t.mas} title={t.mas}
+        aria-haspopup="true" aria-expanded={abierto} onClick={() => setAbierto((a) => !a)}>
+        <Icono nombre="puntos" />
+      </button>
+      {abierto && (
+        <div className="menu__lista" role="group" aria-label={t.mas}>
+          {opciones.map((o) => (
+            <button key={o.texto} type="button" className={`menu__opcion${o.className ? ` ${o.className}` : ''}`} title={o.title}
+              onClick={() => { cerrar(); o.alElegir() }}>
+              <Icono nombre={o.icono} />{o.texto}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** `alImprimir` abre la hoja para imprimir o guardar como PDF. */
 export default function BarraSuperior({ alImprimir }: { alImprimir?: () => void }) {
   const paso = useEditor((e) => e.paso)
@@ -69,6 +138,7 @@ export default function BarraSuperior({ alImprimir }: { alImprimir?: () => void 
   const haySesion = useSesion((s) => s.haySesion())
   const nombre = useSesion((s) => s.usuario?.nombre)
   const [confirmando, setConfirmando] = useState(false)
+  const [sugiriendo, setSugiriendo] = useState(false)
   const [subiendo, setSubiendo] = useState(false)
   const navegar = useNavigate()
   const puedeGuardarEnCuenta = useEditor((e) => e.origen.tipo === 'anonimo' && e.documento !== null) && haySesion
@@ -86,71 +156,75 @@ export default function BarraSuperior({ alImprimir }: { alImprimir?: () => void 
     almacen.setState({ aviso: r.error })
   }
 
+  const opciones: Opcion[] = [
+    ...(nombreDiseno === null ? [{ icono: 'nuevo', texto: t.nuevoDiseno, alElegir: () => setConfirmando(true) } satisfies Opcion] : []),
+    ...(alImprimir ? [{ icono: 'imprimir', texto: textos.hoja.imprimir, alElegir: alImprimir } satisfies Opcion] : []),
+    // En móvil la sugerencia va en las pestañas de abajo (al alcance del pulgar): aquí se oculta por CSS.
+    { icono: 'sugerencia', texto: textos.sugerencias.abrir, title: textos.sugerencias.pista, className: 'menu__sugerencia', alElegir: () => setSugiriendo(true) },
+  ]
+  const inicial = nombre?.trim().charAt(0).toUpperCase() ?? ''
+
   return (
     <header className="barra">
-      <nav className="barra__grupo pasos" aria-label={t.pasos}>
-        <button type="button" className="pasos__paso" aria-current={paso === 1 ? 'step' : undefined} onClick={() => irAPaso(1)}>
-          <span className="pasos__numero">1</span> <span className="barra__texto">{t.estancia}</span>
-        </button>
-        <button type="button" className="pasos__paso" aria-current={paso === 2 ? 'step' : undefined} onClick={() => irAPaso(2)}>
-          <span className="pasos__numero">2</span> <span className="barra__texto">{t.amueblar}</span>
-        </button>
-      </nav>
-
-      <div className="barra__grupo segmentado" role="group" aria-label={t.vista}>
-        <button type="button" aria-pressed={vista === '2d'} onClick={() => cambiarVista('2d')}>{t.vista2d}</button>
-        <button type="button" aria-pressed={vista === '3d'} onClick={() => cambiarVista('3d')}>{t.vista3d}</button>
+      <div className="barra__diseno">
+        <Link to="/" className="barra__marca" aria-label={t.inicio} title={t.inicio}>
+          <img src="/favicon.svg" alt="" width="28" height="28" />
+        </Link>
+        {nombreDiseno !== null && <NombreDelDiseno key={nombreDiseno} nombre={nombreDiseno} />}
+        <p className={`barra__guardado barra__guardado--${guardado}`} role="status">
+          {textoDeGuardado(guardado, nombreDiseno !== null)}
+        </p>
       </div>
 
-      <div className="barra__grupo barra__deshacer">
-        <button type="button" className="barra__historial" title={t.pistaDeshacer} disabled={!hayPasado} onClick={deshacer}>
-          <Icono nombre="deshacer" /><span className="barra__texto barra__texto--estrecha">{t.deshacer}</span>
-        </button>
-        <button type="button" className="barra__historial" title={t.pistaRehacer} disabled={!hayFuturo} onClick={rehacer}>
-          <Icono nombre="rehacer" /><span className="barra__texto barra__texto--estrecha">{t.rehacer}</span>
-        </button>
+      <div className="barra__centro">
+        <nav className="segmentado pasos" aria-label={t.pasos}>
+          <button type="button" className="pasos__paso" aria-current={paso === 1 ? 'step' : undefined} onClick={() => irAPaso(1)}>
+            <span className="pasos__numero">1</span> <span>{t.estancia}</span>
+          </button>
+          <button type="button" className="pasos__paso" aria-current={paso === 2 ? 'step' : undefined} onClick={() => irAPaso(2)}>
+            <span className="pasos__numero">2</span> <span>{t.amueblar}</span>
+          </button>
+        </nav>
+
+        <div className="segmentado" role="group" aria-label={t.vista}>
+          <button type="button" aria-pressed={vista === '2d'} onClick={() => cambiarVista('2d')}>{t.vista2d}</button>
+          <button type="button" aria-pressed={vista === '3d'} onClick={() => cambiarVista('3d')}>{t.vista3d}</button>
+        </div>
       </div>
 
-      {nombreDiseno !== null && <NombreDelDiseno key={nombreDiseno} nombre={nombreDiseno} />}
+      <div className="barra__acciones">
+        <div className="barra__historial">
+          <button type="button" className="boton-icono barra__plano" aria-label={t.deshacer} title={t.pistaDeshacer} disabled={!hayPasado} onClick={deshacer}>
+            <Icono nombre="deshacer" />
+          </button>
+          <button type="button" className="boton-icono barra__plano" aria-label={t.rehacer} title={t.pistaRehacer} disabled={!hayFuturo} onClick={rehacer}>
+            <Icono nombre="rehacer" />
+          </button>
+        </div>
 
-      <p className={`barra__guardado barra__guardado--${guardado}`} role="status">
-        {textoDeGuardado(guardado, nombreDiseno !== null)}
-      </p>
+        <MenuMas opciones={opciones} />
 
-      {nombreDiseno === null && (
-        <button type="button" className="enlace barra__nuevo" title={t.nuevoDiseno} onClick={() => setConfirmando(true)}>
-          <Icono nombre="nuevo" /><span className="barra__texto">{t.nuevoDiseno}</span>
-        </button>
-      )}
-
-      {alImprimir && (
-        <button type="button" className="enlace barra__imprimir" title={textos.hoja.imprimir} onClick={alImprimir}>
-          <Icono nombre="imprimir" /><span className="barra__texto">{textos.hoja.imprimir}</span>
-        </button>
-      )}
-
-      <BotonDeSugerencia className="enlace barra__sugerencia" title={textos.sugerencias.pista}>
-        <Icono nombre="sugerencia" /><span className="barra__texto">{textos.sugerencias.abrir}</span>
-      </BotonDeSugerencia>
-
-      <nav className="barra__grupo barra__cuenta" aria-label="Cuenta">
-        {haySesion ? (
-          <>
-            {puedeGuardarEnCuenta && (
-              <button type="button" title={t.guardarEnCuenta} disabled={subiendo} onClick={() => void guardarEnCuenta()}>
-                <Icono nombre="guardar" /><span className="barra__texto">{t.guardarEnCuenta}</span>
-              </button>
-            )}
-            <Link to="/disenos" className="boton" title={t.misDisenos}><Icono nombre="disenos" /><span className="barra__texto">{t.misDisenos}</span></Link>
-            <Link to="/cuenta" className="boton" title={nombre ?? t.miCuenta}><Icono nombre="cuenta" /><span className="barra__texto">{nombre ?? t.miCuenta}</span></Link>
-          </>
-        ) : (
-          <>
-            <Link to="/registro" className="boton primario" title={t.guardar}><Icono nombre="guardar" /><span className="barra__texto">{t.guardar}</span></Link>
-            <Link to="/entrar" className="boton" title={t.entrar}><Icono nombre="cuenta" /><span className="barra__texto">{t.entrar}</span></Link>
-          </>
-        )}
-      </nav>
+        <nav className="barra__cuenta" aria-label="Cuenta">
+          {haySesion ? (
+            <>
+              {puedeGuardarEnCuenta && (
+                <button type="button" className="primario" title={t.guardarEnCuenta} disabled={subiendo} onClick={() => void guardarEnCuenta()}>
+                  <Icono nombre="guardar" /><span className="barra__texto">{t.guardarEnCuenta}</span>
+                </button>
+              )}
+              <Link to="/disenos" className="boton barra__plano" title={t.misDisenos}><Icono nombre="disenos" /><span className="barra__texto">{t.misDisenos}</span></Link>
+              <Link to="/cuenta" className="avatar" aria-label={nombre ?? t.miCuenta} title={nombre ?? t.miCuenta}>
+                {inicial !== '' ? <span className="avatar__inicial" aria-hidden="true">{inicial}</span> : <Icono nombre="cuenta" />}
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/registro" className="boton primario" title={t.guardar}><Icono nombre="guardar" /><span className="barra__texto">{t.guardar}</span></Link>
+              <Link to="/entrar" className="boton barra__plano" title={t.entrar}><Icono nombre="cuenta" /><span className="barra__texto">{t.entrar}</span></Link>
+            </>
+          )}
+        </nav>
+      </div>
 
       <Confirmar
         abierto={confirmando}
@@ -159,6 +233,7 @@ export default function BarraSuperior({ alImprimir }: { alImprimir?: () => void 
         alAceptar={() => { setConfirmando(false); empezarDeNuevo() }}
         alCancelar={() => setConfirmando(false)}
       />
+      {sugiriendo && <DialogoDeSugerencia alCerrar={() => setSugiriendo(false)} />}
     </header>
   )
 }
