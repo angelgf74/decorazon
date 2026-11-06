@@ -24,26 +24,36 @@
 
 ### Task 1: tests (rojo)
 
-- [ ] `ejemplos/ejemplos.test.ts`: cada ejemplo pasa `validarDocumento`, `detectarConflictos` no da solapes ni «no abre», tiene puerta, ventana y ≥ 5 elementos, y su imagen existe en `web/public/ejemplos`.
-- [ ] `paginas/Inicio.test.tsx`: tres tarjetas con nombre y tipo; «Abrir una copia» sin diseño anónimo abre `/disenar` con ese documento; con diseño anónimo pregunta y «Cancelar» no cambia nada; con sesión aparece «Guardar en mi cuenta» y llama a `crearDiseno`.
-- [ ] `editor/GuiaInicial.test.tsx`: sin marca y con diseño anónimo nuevo se enseña «1 de 3»; «Siguiente» avanza y el anillo cambia de objetivo; «Saltar» y Escape la cierran y ponen la marca; con marca no se enseña; con un diseño del servidor no se enseña; con `localStorage` que lanza, se enseña una vez y no rompe.
-- [ ] `editor/Editor.test.tsx`: con la guía abierta no hay píldora de pistas.
-- [ ] M-18: `editor/paneles/PanelEstancia.test.tsx` + `PanelCatalogo.test.tsx`: cambiar el tipo de dormitorio a despacho conserva los muebles y «Para tu despacho» pasa a ser el primer grupo.
+- [x] `ejemplos/ejemplos.test.ts`: cada ejemplo pasa `validarDocumento`, `detectarConflictos` no da solapes ni «no abre», tiene puerta, ventana y ≥ 5 elementos, y su imagen existe en `web/public/ejemplos`.
+- [x] `paginas/Inicio.test.tsx`: tres tarjetas con nombre y tipo; «Abrir una copia» sin diseño anónimo abre `/disenar` con ese documento; con diseño anónimo pregunta y «Cancelar» no cambia nada; con sesión aparece «Guardar en mi cuenta» y llama a `crearDiseno`.
+- [x] `editor/GuiaInicial.test.tsx`: sin marca y con diseño anónimo nuevo se enseña «1 de 3»; «Siguiente» avanza y el anillo cambia de objetivo; «Saltar» y Escape la cierran y ponen la marca; con marca no se enseña; con un diseño del servidor no se enseña; con `localStorage` que lanza, se enseña una vez y no rompe.
+- [x] `editor/Editor.test.tsx`: con la guía abierta no hay píldora de pistas.
+- [x] M-18: `editor/paneles/PanelEstancia.test.tsx` + `PanelCatalogo.test.tsx`: cambiar el tipo de dormitorio a despacho conserva los muebles y «Para tu despacho» pasa a ser el primer grupo.
 
 ### Task 2: código
 
-- [ ] Los tres ejemplos (hechos en el editor y exportados; si la fase 3 ya está, con «Descargar diseño») y `ejemplos/index.ts`.
-- [ ] `Inicio.tsx` + `inicio.css`: sección de ejemplos; textos `inicio.ejemplos`, `inicio.abrirCopia`, `inicio.guardarEnCuenta`.
-- [ ] `editor/GuiaInicial.tsx` + estilos en `editor.css` (`.guia`, `.guia__objetivo` con `outline` y `box-shadow` grandes, `position: fixed` calculado con `getBoundingClientRect` y recalculado en `resize`); `Editor.tsx` la monta cuando toca; `textos.guia.*`.
-- [ ] `PestanasDeHojas` en móvil: el paso 2 señala la pestaña «Catálogo» en vez de «2 Amueblar» si es más claro.
+- [x] Los tres ejemplos (hechos en el editor y exportados; si la fase 3 ya está, con «Descargar diseño») y `ejemplos/index.ts`.
+- [x] `Inicio.tsx` + `inicio.css`: sección de ejemplos; textos `inicio.ejemplos`, `inicio.abrirCopia`, `inicio.guardarEnCuenta`.
+- [x] `editor/GuiaInicial.tsx` + estilos en `editor.css` (`.guia`, `.guia__objetivo` con `outline` y `box-shadow` grandes, `position: fixed` calculado con `getBoundingClientRect` y recalculado en `resize`); `Editor.tsx` la monta cuando toca; `textos.guia.*`.
+- [x] `PestanasDeHojas` en móvil: el paso 2 señala la pestaña «Catálogo» en vez de «2 Amueblar» si es más claro.
 
 ### Task 3: e2e y cierre
 
-- [ ] e2e nuevo `ejemplos.spec.ts`: abrir una copia del dormitorio desde el inicio, ver muebles en el plano, pasar a 3D; `guia.spec.ts` (o dentro del anterior): sin marca aparece la guía, «Saltar» y no vuelve al recargar. Los specs existentes ponen la marca en `localStorage` antes de navegar (helper en `e2e/`).
-- [ ] `npm test`, `npm run lint`, `npm run build`, `npm run e2e`; capturas a 1440 (inicio con ejemplos, guía paso 1) y 390 px.
-- [ ] `CLAUDE.md`: dónde viven los ejemplos y cómo regenerar sus imágenes; la marca de la guía y por qué los e2e la ponen.
-- [ ] `mejoras.md`: M-30, M-32 → `realizada`; M-18 → `realizada` o `descartada` con lo que diga el test. Este plan con todo marcado.
+- [x] e2e nuevo `ejemplos.spec.ts`: abrir una copia del dormitorio desde el inicio, ver muebles en el plano, pasar a 3D; `guia.spec.ts` (o dentro del anterior): sin marca aparece la guía, «Saltar» y no vuelve al recargar. Los specs existentes ponen la marca en `localStorage` antes de navegar (helper en `e2e/`).
+- [x] `npm test`, `npm run lint`, `npm run build`, `npm run e2e`; capturas a 1440 (inicio con ejemplos, guía paso 1) y 390 px.
+- [x] `CLAUDE.md`: dónde viven los ejemplos y cómo regenerar sus imágenes; la marca de la guía y por qué los e2e la ponen.
+- [x] `mejoras.md`: M-30, M-32 → `realizada`; M-18 → `realizada` o `descartada` con lo que diga el test. Este plan con todo marcado.
+
+## Decisiones al ejecutar (6 nov 2026)
+
+- Los ejemplos no son JSON hechos en el editor sino documentos construidos en `ejemplos/index.ts` con `documentoNuevo`, `elementoNuevo` y dos ayudas (`puerta`, `ventana`): deterministas, legibles en la revisión y con las medidas por defecto del catálogo; el test los valida y comprueba que no tienen conflictos.
+- Las imágenes (`public/ejemplos/*.png`, 1200 × 800) se generaron con «Descargar imagen 3D» sobre una copia de cada ejemplo (fase 3) y se revisaron a ojo.
+- La guía se dispara en el editor al pasar de «sin documento» a «documento anónimo» con una suscripción al almacén (la estancia recién creada en `NuevaEstancia`): una copia, un fichero, el diseño de ayer o uno de la cuenta ya están cargados al montar el editor y no la abren.
+- El anillo se coloca midiendo el DOM (`getBoundingClientRect`) sin pasar por el estado; con «2 Amueblar» como objetivo en todos los tamaños (la pestaña «Catálogo» del móvil queda como estaba).
+- Los e2e llevan la marca puesta con `storageState` (`e2e/estado-sin-guia.json`) en las dos configuraciones; `ejemplos.spec.ts` la quita en su `describe` de la guía.
+- M-18: el test de cambiar el tipo con muebles pasa sin tocar código (los muebles se conservan y el catálogo reordena): se cierra como realizada con esa nota.
 
 ## Pendiente
 
-- (se rellena al cerrar)
+- La guía no se adapta a la hoja móvil: en el paso 2 señala «2 Amueblar» en la barra, no la pestaña «Catálogo».
+- Las imágenes de los ejemplos pesan 70–85 kB cada una (PNG); un WebP las dejaría en un tercio.

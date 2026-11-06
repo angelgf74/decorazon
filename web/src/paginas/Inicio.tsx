@@ -5,12 +5,18 @@ import { useSesion } from '../cuenta/sesion'
 import Confirmar from '../editor/comunes/Confirmar'
 import { useEditor } from '../editor/estado/almacen'
 import { importarDiseno } from '../editor/persistencia/fichero'
+import { mensajeDeError } from '../cuenta/errores'
+import { crearDiseno } from '../disenos/servidor'
+import { EJEMPLOS, type Ejemplo } from '../ejemplos'
 import type { DocumentoDiseno } from '../nucleo'
 import BotonDeSugerencia from '../sugerencias/BotonDeSugerencia'
 import { textos } from '../textos'
 import './inicio.css'
 
 const t = textos.inicio
+
+/** Los ejemplos son constantes del módulo: cada copia es un documento propio. */
+const copiaDe = (e: Ejemplo): DocumentoDiseno => JSON.parse(JSON.stringify(e.documento)) as DocumentoDiseno
 
 export default function Inicio() {
   const hayDocumento = useEditor((e) => e.documento !== null)
@@ -23,10 +29,29 @@ export default function Inicio() {
   const [importado, setImportado] = useState<DocumentoDiseno | null>(null)
   const [avisoImportar, setAvisoImportar] = useState<string | null>(null)
   const idFichero = useId()
+  // Un ejemplo que espera a que se confirme sustituir el diseño del navegador; y el que se está guardando en la cuenta.
+  const [ejemploPendiente, setEjemploPendiente] = useState<Ejemplo | null>(null)
+  const [guardando, setGuardando] = useState(false)
+  const [avisoEjemplos, setAvisoEjemplos] = useState<string | null>(null)
 
   const abrirImportado = (doc: DocumentoDiseno) => {
     empezarAnonimoCon(doc)
     navegar('/disenar')
+  }
+  const abrirEjemplo = (e: Ejemplo) => {
+    if (sustituiriaDisenoAnonimo()) setEjemploPendiente(e)
+    else abrirImportado(copiaDe(e))
+  }
+  const guardarEjemplo = async (e: Ejemplo) => {
+    setGuardando(true)
+    setAvisoEjemplos(null)
+    try {
+      const d = await crearDiseno(e.nombre, copiaDe(e))
+      navegar(`/disenos/${d.id}`)
+    } catch (err) {
+      setAvisoEjemplos(mensajeDeError(err))
+      setGuardando(false)
+    }
   }
   const alElegirFichero = async (ev: ChangeEvent<HTMLInputElement>) => {
     const fichero = ev.target.files?.[0]
@@ -63,6 +88,27 @@ export default function Inicio() {
           <input id={idFichero} type="file" accept=".json,application/json" className="solo-lectores" onChange={(ev) => void alElegirFichero(ev)} />
           {avisoImportar && <p className="inicio__aviso" role="alert">{avisoImportar}</p>}
         </div>
+
+        <section className="inicio__ejemplos" aria-labelledby="inicio-ejemplos">
+          <h2 id="inicio-ejemplos">{t.ejemplos}</h2>
+          <p className="inicio__nota">{t.ejemplosDetalle}</p>
+          <ul className="inicio__tarjetas">
+            {EJEMPLOS.map((e) => (
+              <li key={e.id}>
+                <article className="inicio__tarjeta" aria-labelledby={`inicio-ejemplo-${e.id}`}>
+                  <img className="inicio__tarjeta-imagen" src={e.imagen} alt="" width="300" height="200" loading="lazy" />
+                  <h3 id={`inicio-ejemplo-${e.id}`}>{e.nombre}</h3>
+                  <p className="inicio__tarjeta-tipo">{textos.nuevaEstancia.tipos[e.tipo]}</p>
+                  <div className="inicio__tarjeta-acciones">
+                    <button type="button" className="primario" onClick={() => abrirEjemplo(e)}>{t.abrirCopia}</button>
+                    {haySesion && <button type="button" disabled={guardando} onClick={() => void guardarEjemplo(e)}>{t.guardarEnCuenta}</button>}
+                  </div>
+                </article>
+              </li>
+            ))}
+          </ul>
+          {avisoEjemplos && <p className="inicio__aviso" role="alert">{avisoEjemplos}</p>}
+        </section>
 
         {haySesion ? (
           <section className="inicio__cuenta" aria-labelledby="inicio-cuenta">
@@ -101,6 +147,13 @@ export default function Inicio() {
         textoAceptar={textos.compartir.sustituir}
         alAceptar={() => { if (importado) abrirImportado(importado); setImportado(null) }}
         alCancelar={() => setImportado(null)}
+      />
+      <Confirmar
+        abierto={ejemploPendiente !== null}
+        mensaje={t.sustituirEjemplo}
+        textoAceptar={textos.compartir.sustituir}
+        alAceptar={() => { if (ejemploPendiente) abrirImportado(copiaDe(ejemploPendiente)); setEjemploPendiente(null) }}
+        alCancelar={() => setEjemploPendiente(null)}
       />
     </main>
   )

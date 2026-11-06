@@ -19,7 +19,7 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   // En el CI, el informe HTML y las trazas de lo que falle se suben como artefactos.
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
-  use: { baseURL: 'http://localhost:5322', trace: 'retain-on-failure' },
+  use: { baseURL: 'http://localhost:5322', trace: 'retain-on-failure', storageState: 'e2e/estado-sin-guia.json' },
   webServer: [
     {
       command: 'dotnet run --project ../src/Decorazon.Api --no-launch-profile --urls http://localhost:5320',

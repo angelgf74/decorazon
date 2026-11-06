@@ -249,3 +249,38 @@ describe('Editor: la captura de la imagen 3D y «Nuevo diseño»', () => {
     webgl.hay = false
   })
 })
+
+describe('Editor: guía del primer uso', () => {
+  const t = textos.guia
+  beforeEach(() => {
+    localStorage.clear()
+    reiniciarAlmacen()
+  })
+
+  it('se enseña al crear una estancia nueva sin la marca, oculta las pistas y, al saltarla, vuelven las pistas', async () => {
+    render(<Editor />, { wrapper: MemoryRouter })
+    expect(screen.queryByRole('region', { name: t.titulo })).toBeNull()
+    act(() => almacen.getState().crear('dormitorio', 400, 330, 250))
+    expect(screen.getByRole('region', { name: t.titulo })).toBeInTheDocument()
+    expect(screen.queryByRole('complementary', { name: textos.lienzo.pistas.titulo })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: t.saltar }))
+    expect(screen.queryByRole('region', { name: t.titulo })).toBeNull()
+    expect(screen.getByRole('complementary', { name: textos.lienzo.pistas.titulo })).toBeInTheDocument()
+    expect(localStorage.getItem('decorazon.guia')).toBe('vista')
+  })
+
+  it('con la marca puesta no se enseña', () => {
+    localStorage.setItem('decorazon.guia', 'vista')
+    render(<Editor />, { wrapper: MemoryRouter })
+    act(() => almacen.getState().crear('dormitorio', 400, 330, 250))
+    expect(screen.queryByRole('region', { name: t.titulo })).toBeNull()
+  })
+
+  it('no se enseña con un diseño que ya estaba abierto al entrar (una copia, un fichero, el de ayer) ni con uno del servidor', () => {
+    almacen.getState().crear('salon', 400, 330, 250)
+    render(<Editor />, { wrapper: MemoryRouter })
+    expect(screen.queryByRole('region', { name: t.titulo })).toBeNull()
+    act(() => almacen.getState().abrirDelServidor('11111111-1111-1111-1111-111111111111', 1, 'Mío', almacen.getState().documento!))
+    expect(screen.queryByRole('region', { name: t.titulo })).toBeNull()
+  })
+})

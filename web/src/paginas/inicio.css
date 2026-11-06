@@ -9,7 +9,8 @@
 
 .inicio__contenido {
   width: 100%;
-  max-width: 30rem;
+  /* Con los tres ejemplos en fila hace falta más ancho que el de una columna de texto. */
+  max-width: 44rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -63,6 +64,33 @@
   font-weight: 600;
   box-shadow: 0 2px 8px rgb(185 71 58 / 0.3);
 }
+
+/* Tres ejemplos para empezar con algo hecho: tarjetas con la vista 3D, en fila donde caben. */
+.inicio__ejemplos { width: 100%; }
+.inicio__ejemplos h2 { margin: 0; font-size: 1.0625rem; }
+.inicio__tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--esp-3);
+  margin: var(--esp-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.inicio__tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  height: 100%;
+  padding: var(--esp-2);
+  border: 1px solid var(--borde-suave);
+  border-radius: 0.75rem;
+  background: var(--superficie);
+  text-align: left;
+}
+.inicio__tarjeta-imagen { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: var(--radio); background: var(--crema-oscura); }
+.inicio__tarjeta h3 { margin: var(--esp-1) 0 0; font-size: 1rem; line-height: 1.25; }
+.inicio__tarjeta-tipo { margin: 0; color: var(--gris); font-size: var(--texto-s); }
+.inicio__tarjeta-acciones { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-top: auto; padding-top: var(--esp-2); }
 
 /* La cuenta, en una tarjeta aparte: secundaria frente a empezar a diseñar. */
 .inicio__cuenta {

@@ -6,7 +6,8 @@ export default defineConfig({
   testIgnore: 'cuentas/**',
   forbidOnly: !!process.env.CI,
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  use: { baseURL: 'http://localhost:5322' },
+  // La guía del primer uso ya está vista: solo ejemplos.spec.ts la prueba, sin este estado.
+  use: { baseURL: 'http://localhost:5322', storageState: 'e2e/estado-sin-guia.json' },
   webServer: {
     command: 'npm run build && npx vite preview --port 5322 --strictPort',
     url: 'http://localhost:5322',

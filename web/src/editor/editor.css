@@ -159,6 +159,36 @@
 
 .editor__pestanas { display: none; }
 
+/* --- Guía del primer uso: tarjeta abajo en el centro y un anillo sobre lo que señala cada paso --- */
+.guia {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  z-index: 21;
+  width: min(26rem, calc(100vw - 2rem));
+  padding: var(--esp-4);
+  border: 1px solid var(--borde-suave);
+  border-radius: 0.75rem;
+  background: var(--superficie);
+  box-shadow: 0 8px 28px rgb(43 38 34 / 0.2);
+  transform: translateX(-50%);
+}
+.guia:focus { outline: none; }
+.guia__paso { margin: 0; color: var(--gris); font-size: var(--texto-s); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.guia__titulo { margin: var(--esp-1) 0 0; font-size: 1.1rem; }
+.guia__texto { margin: var(--esp-2) 0 0; line-height: 1.45; }
+.guia__botones { display: flex; justify-content: flex-end; gap: var(--esp-2); margin-top: var(--esp-3); }
+.guia__objetivo {
+  position: fixed;
+  z-index: 20;
+  border: 3px solid var(--terracota);
+  border-radius: calc(var(--radio) + 4px);
+  box-shadow: 0 0 0 6px rgb(185 71 58 / 0.25), 0 0 0 9999px rgb(43 38 34 / 0.08);
+  pointer-events: none;
+  transition: left 0.25s, top 0.25s, width 0.25s, height 0.25s;
+}
+@media (prefers-reduced-motion: reduce) { .guia__objetivo { transition: none; } }
+
 /* --- Paneles --- */
 
 .panel__seccion + .panel__seccion { margin-top: var(--esp-6); }
@@ -510,4 +540,6 @@
     transform: translateX(-50%);
   }
   .editor__aviso { bottom: calc(4.75rem + env(safe-area-inset-bottom)); }
+  /* Por encima de las pestañas de abajo. */
+  .guia { bottom: calc(4.25rem + env(safe-area-inset-bottom)); }
 }
