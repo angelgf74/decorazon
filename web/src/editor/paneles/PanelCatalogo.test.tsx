@@ -1,17 +1,20 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { contienePunto } from '../../nucleo/geometria/poligono'
 import { textos } from '../../textos'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import Lienzo from '../lienzo/Lienzo'
+import { anadirTipo } from '../estado/elementos'
+import { reiniciarCatalogoLocal } from './catalogoLocal'
 import PanelCatalogo from './PanelCatalogo'
 
 beforeEach(() => {
   reiniciarAlmacen()
-  // Favoritos y recientes viven en localStorage, que jsdom comparte entre los tests del fichero.
+  // Favoritos y recientes viven en localStorage (que jsdom comparte entre los tests del fichero) y en su respaldo en memoria.
   localStorage.clear()
+  reiniciarCatalogoLocal()
 })
 
 describe('PanelCatalogo', () => {
@@ -241,6 +244,8 @@ describe('PanelCatalogo: miniaturas, favoritos y usados hace poco', () => {
   const armario = /^Armario(?! de espejo| esquinero)/
   const region = (nombre: string) => screen.getByRole('region', { name: nombre })
   const chips = () => within(screen.getByRole('group', { name: textos.catalogo.grupos })).getAllByRole('button').map((c) => c.textContent)
+  // Los recientes se ponen al día cuando el puntero sale del panel (userEvent.click lo deja dentro).
+  const salir = () => fireEvent.pointerLeave(document.querySelector('.panel-catalogo')!)
   const estrellaDe = (grupo: string, nombre: string) =>
     within(region(grupo)).getByRole('button', { name: textos.catalogo.marcarFavorito(nombre) })
 
@@ -291,6 +296,7 @@ describe('PanelCatalogo: miniaturas, favoritos y usados hace poco', () => {
     render(<PanelCatalogo />)
     expect(screen.queryByRole('region', { name: textos.catalogo.recientes })).toBeNull()
     await userEvent.click(within(region('Otros muebles')).getByRole('button', { name: armario }))
+    salir()
     let recientes = region(textos.catalogo.recientes)
     expect(within(recientes).getByRole('button', { name: armario })).toBeInTheDocument()
     expect(chips()).toContain(textos.catalogo.recientes)
@@ -299,6 +305,7 @@ describe('PanelCatalogo: miniaturas, favoritos y usados hace poco', () => {
     for (const nombre of [/^Archivador/, /^Cama/, /^Cajonera/, /^Escritorio en L/, /^Inodoro/, /^Lavabo/]) {
       await userEvent.click(within(otros).getByRole('button', { name: nombre }))
     }
+    salir()
     recientes = region(textos.catalogo.recientes)
     const nombres = within(recientes).getAllByRole('button').filter((b) => b.classList.contains('panel-catalogo__tipo')).map((b) => b.querySelector('.panel-catalogo__nombre')!.textContent)
     expect(nombres).toHaveLength(6)
@@ -313,6 +320,7 @@ describe('PanelCatalogo: miniaturas, favoritos y usados hace poco', () => {
     await userEvent.click(within(otros).getByRole('button', { name: armario }))
     await userEvent.click(within(otros).getByRole('button', { name: /^Cama/ }))
     await userEvent.click(within(otros).getByRole('button', { name: armario }))
+    salir()
     const nombres = within(region(textos.catalogo.recientes)).getAllByRole('button').filter((b) => b.classList.contains('panel-catalogo__tipo')).map((b) => b.querySelector('.panel-catalogo__nombre')!.textContent)
     expect(nombres).toEqual(['Armario', 'Cama'])
   })
@@ -344,5 +352,77 @@ describe('PanelCatalogo: miniaturas, favoritos y usados hace poco', () => {
       getItem.mockRestore()
       setItem.mockRestore()
     }
+  })
+})
+
+describe('PanelCatalogo: lo que salió en la revisión', () => {
+  const armario = /^Armario(?! de espejo| esquinero)/
+  const region = (nombre: string) => screen.getByRole('region', { name: nombre })
+  const estrellaDe = (grupo: string, nombre: string) =>
+    within(region(grupo)).getByRole('button', { name: textos.catalogo.marcarFavorito(nombre) })
+  const salirDelPanel = () => fireEvent.pointerLeave(document.querySelector('.panel-catalogo')!)
+
+  beforeEach(() => {
+    reiniciarCatalogoLocal()
+    almacen.getState().crear('salon', 400, 330, 250)
+    almacen.getState().irAPaso(2)
+  })
+
+  it('con localStorage lleno (solo setItem lanza), la estrella y los recientes siguen funcionando en la pestaña', async () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('QuotaExceededError') })
+    try {
+      render(<PanelCatalogo />)
+      await userEvent.click(estrellaDe('Otros muebles', 'Armario'))
+      expect(estrellaDe('Otros muebles', 'Armario')).toHaveAttribute('aria-pressed', 'true')
+      expect(within(region(textos.catalogo.favoritos)).getByRole('button', { name: armario })).toBeInTheDocument()
+      await userEvent.click(within(region('Otros muebles')).getByRole('button', { name: /^Cama/ }))
+      salirDelPanel()
+      expect(within(region(textos.catalogo.recientes)).getByRole('button', { name: /^Cama/ })).toBeInTheDocument()
+    } finally {
+      setItem.mockRestore()
+    }
+  })
+
+  it('con el chip "Favoritos" pulsado, quitar el último favorito vuelve a enseñar todos los grupos sin ningún chip pulsado', async () => {
+    render(<PanelCatalogo />)
+    await userEvent.click(estrellaDe('Otros muebles', 'Armario'))
+    await userEvent.click(screen.getByRole('button', { name: textos.catalogo.favoritos }))
+    expect(screen.getAllByRole('region')).toHaveLength(1)
+    await userEvent.click(estrellaDe(textos.catalogo.favoritos, 'Armario'))
+    expect(screen.getAllByRole('region')).toHaveLength(3)
+    expect(screen.queryByText(textos.catalogo.sinResultados)).toBeNull()
+    const chips = within(screen.getByRole('group', { name: textos.catalogo.grupos })).getAllByRole('button')
+    expect(chips.every((c) => c.getAttribute('aria-pressed') === 'false')).toBe(true)
+  })
+
+  it('"Usados hace poco" no cambia mientras el puntero está en el panel: la lista no salta bajo el puntero', async () => {
+    render(<PanelCatalogo />)
+    const otros = region('Otros muebles')
+    await userEvent.click(within(otros).getByRole('button', { name: armario }))
+    expect(screen.queryByRole('region', { name: textos.catalogo.recientes })).toBeNull()
+    await userEvent.click(within(otros).getByRole('button', { name: /^Cama/ }))
+    expect(screen.queryByRole('region', { name: textos.catalogo.recientes })).toBeNull()
+    salirDelPanel()
+    const nombres = within(region(textos.catalogo.recientes)).getAllByRole('button').filter((b) => b.classList.contains('panel-catalogo__tipo')).map((b) => b.querySelector('.panel-catalogo__nombre')!.textContent)
+    expect(nombres).toEqual(['Cama', 'Armario'])
+  })
+
+  it('un cambio de recientes que llega sin el puntero en el panel (soltar en el plano) se enseña al momento', () => {
+    render(<PanelCatalogo />)
+    act(() => anadirTipo('armario', { x: 100, y: 100 }))
+    expect(within(region(textos.catalogo.recientes)).getByRole('button', { name: armario })).toBeInTheDocument()
+  })
+
+  it('al quitar un favorito desde "Favoritos", el foco va al siguiente del grupo o, si era el último, a su estrella de siempre', async () => {
+    render(<PanelCatalogo />)
+    await userEvent.click(estrellaDe('Otros muebles', 'Armario'))
+    await userEvent.click(estrellaDe('Otros muebles', 'Cama'))
+    const primera = estrellaDe(textos.catalogo.favoritos, 'Armario')
+    primera.focus()
+    await userEvent.keyboard('{Enter}')
+    expect(document.activeElement).toBe(estrellaDe(textos.catalogo.favoritos, 'Cama'))
+    await userEvent.keyboard('{Enter}')
+    expect(screen.queryByRole('region', { name: textos.catalogo.favoritos })).toBeNull()
+    expect(document.activeElement).toBe(estrellaDe('Otros muebles', 'Cama'))
   })
 })

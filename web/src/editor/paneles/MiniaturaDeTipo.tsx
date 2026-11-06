@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { cajaPlanta, elementoNuevo, huellasEnPlanta, type DefinicionTipo, type Elemento } from '../../nucleo'
 import Pieza from '../lienzo/capas/Pieza'
 
@@ -22,7 +23,7 @@ function miniatura(def: DefinicionTipo): Miniatura {
 }
 
 /** La huella del tipo con sus medidas por defecto, como se verá en el plano. Decorativa: el nombre va en la tarjeta. */
-export default function MiniaturaDeTipo({ def }: { def: DefinicionTipo }) {
+function MiniaturaDeTipo({ def }: { def: DefinicionTipo }) {
   const { e, viewBox } = miniatura(def)
   return (
     <svg className="panel-catalogo__miniatura" viewBox={viewBox} aria-hidden="true" focusable="false">
@@ -30,3 +31,6 @@ export default function MiniaturaDeTipo({ def }: { def: DefinicionTipo }) {
     </svg>
   )
 }
+
+// `def` es una referencia estable del catálogo: con memo, escribir en el buscador o pulsar una estrella no vuelve a calcular las huellas de las ~50 miniaturas.
+export default memo(MiniaturaDeTipo)

@@ -103,12 +103,33 @@ interface PropsGrupo {
   tipos: DefinicionTipo[]
   centro: Punto
   favoritos: string[]
+  /** El grupo «Favoritos»: quitar la estrella aquí hace desaparecer la tarjeta (y con ella el foco). */
+  esFavoritos?: boolean
   alPulsarAsa: AlPulsarAsa
   /** true mientras se arrastra con el dedo: entonces no empieza el arrastre de HTML5. */
   conDedo: () => boolean
 }
 
-function Grupo({ titulo, tipos, centro, favoritos, alPulsarAsa, conDedo }: PropsGrupo) {
+/**
+ * Antes de quitar un favorito desde «Favoritos»: el foco pasa a la estrella de la tarjeta siguiente del grupo; si era la
+ * última, a la estrella del mismo tipo en su grupo de siempre y, si no se enseña (chip «Favoritos» pulsado), al buscador.
+ * Si no, al desmontarse la tarjeta el foco caería en `body` y un usuario de teclado volvería al principio de la página.
+ */
+function enfocarAntesDeQuitar(estrella: HTMLButtonElement, tipo: string): void {
+  const siguiente = estrella.closest('li')?.nextElementSibling?.querySelector<HTMLElement>('.panel-catalogo__favorito')
+  if (siguiente) {
+    siguiente.focus()
+    return
+  }
+  const panel = estrella.closest('.panel-catalogo')
+  const deSiempre = [...(panel?.querySelectorAll<HTMLLIElement>('li[data-tipo]') ?? [])]
+    .filter((li) => li.dataset['tipo'] === tipo && !li.contains(estrella))
+    .map((li) => li.querySelector<HTMLElement>('.panel-catalogo__favorito'))
+    .find((b) => b !== null)
+  ;(deSiempre ?? panel?.querySelector<HTMLElement>('input[type="search"]'))?.focus()
+}
+
+function Grupo({ titulo, tipos, centro, favoritos, esFavoritos = false, alPulsarAsa, conDedo }: PropsGrupo) {
   const id = useId()
   if (tipos.length === 0) return null
   const empezarArrastre = (def: DefinicionTipo) => (ev: DragEvent<HTMLButtonElement>) => {
@@ -127,7 +148,7 @@ function Grupo({ titulo, tipos, centro, favoritos, alPulsarAsa, conDedo }: Props
           const nombre = capitalizar(def.nombre)
           const favorito = favoritos.includes(def.id)
           return (
-            <li key={def.id} className="panel-catalogo__tarjeta">
+            <li key={def.id} className="panel-catalogo__tarjeta" data-tipo={def.id}>
               {/* El clic que sigue a soltar el asa no cuenta como pulsar la tarjeta. */}
               <button type="button" draggable className="panel-catalogo__tipo" onDragStart={empezarArrastre(def)}
                 onClick={(ev) => { if (!(ev.target as Element).closest('.panel-catalogo__asa')) anadirTipo(def.id, centro) }}>
@@ -140,7 +161,11 @@ function Grupo({ titulo, tipos, centro, favoritos, alPulsarAsa, conDedo }: Props
               </button>
               {/* Hermana de la tarjeta, no dentro (un botón dentro de otro no es válido). */}
               <button type="button" className={`panel-catalogo__favorito${favorito ? ' panel-catalogo__favorito--si' : ''}`}
-                aria-pressed={favorito} aria-label={t.marcarFavorito(nombre)} onClick={() => alternarFavorito(def.id)}>
+                aria-pressed={favorito} aria-label={t.marcarFavorito(nombre)}
+                onClick={(ev) => {
+                  if (favorito && esFavoritos) enfocarAntesDeQuitar(ev.currentTarget, def.id)
+                  alternarFavorito(def.id)
+                }}>
                 <Icono nombre="estrella" />
               </button>
             </li>
@@ -160,6 +185,29 @@ const definiciones = (ids: string[]): DefinicionTipo[] => ids.map((id) => catalo
 const porNombre = (a: DefinicionTipo, b: DefinicionTipo) => a.nombre.localeCompare(b.nombre, 'es')
 
 /**
+ * Los recientes que se enseñan: los de verdad, salvo mientras el puntero está sobre el panel. Pulsar una tarjeta cambia
+ * los recientes, y si el grupo creciera o se reordenara en ese momento la lista saltaría bajo el puntero y el siguiente
+ * clic caería en otro mueble. Se ponen al día al salir el puntero (con el teclado no hace falta: el foco va con la tarjeta).
+ */
+function useRecientesQuietos(recientes: string[]): { recientes: string[]; onPointerEnter: () => void; onPointerLeave: () => void } {
+  const [vistos, setVistos] = useState(recientes)
+  const puntero = useRef(false)
+  const actuales = useRef(recientes)
+  actuales.current = recientes
+  useEffect(() => {
+    if (!puntero.current) setVistos(recientes)
+  }, [recientes])
+  return {
+    recientes: vistos,
+    onPointerEnter: () => { puntero.current = true },
+    onPointerLeave: () => {
+      puntero.current = false
+      setVistos(actuales.current)
+    },
+  }
+}
+
+/**
  * Paso 2: los tipos del catálogo; pulsar uno lo pone en el centro de la estancia y arrastrarlo (con el dedo, por su asa),
  * donde se suelte en el plano. Delante, los favoritos (por nombre) y los usados hace poco (el último, primero), solo si
  * hay alguno. `alEmpezarArrastre` avisa al empezar a arrastrar con el dedo, para cerrar la hoja.
@@ -171,7 +219,9 @@ export default function PanelCatalogo({ alEmpezarArrastre }: { alEmpezarArrastre
   const [grupoElegido, setGrupoElegido] = useState<string | null>(null)
   const idBuscar = useId()
   const { alPulsarAsa, enCurso, fantasma } = useArrastreConDedo(alEmpezarArrastre)
-  const { favoritos, recientes } = useCatalogoLocal()
+  const local = useCatalogoLocal()
+  const { recientes, onPointerEnter, onPointerLeave } = useRecientesQuietos(local.recientes)
+  const favoritos = local.favoritos
   if (!estancia) return null
   const { deLaEstancia, otros, decoracion } = catalogoDeEstancia(catalogoBase, estancia.tipo)
   const centro = puntoInterior(estancia.planta)
@@ -184,12 +234,14 @@ export default function PanelCatalogo({ alEmpezarArrastre }: { alEmpezarArrastre
     { titulo: t.decoracion, tipos: decoracion },
     { titulo: t.otros, tipos: otros },
   ].filter((g) => g.tipos.length > 0)
+  // «Favoritos» puede desaparecer con el chip pulsado (al quitar el último): entonces cuenta como ninguno, todos a la vista.
+  const elegido = todos.some((g) => g.titulo === grupoElegido) ? grupoElegido : null
   const grupos = todos
-    .filter((g) => grupoElegido === null || g.titulo === grupoElegido)
+    .filter((g) => elegido === null || g.titulo === elegido)
     .map((g) => ({ ...g, tipos: filtrar(g.tipos) }))
   const conDedo = () => enCurso.current
   return (
-    <div className="panel-catalogo">
+    <div className="panel-catalogo" onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
       <div className="panel-catalogo__buscar">
         <label htmlFor={idBuscar} className="solo-lectores">{t.buscar}</label>
         <Icono nombre="buscar" />
@@ -197,7 +249,7 @@ export default function PanelCatalogo({ alEmpezarArrastre }: { alEmpezarArrastre
       </div>
       <div className="panel-catalogo__chips" role="group" aria-label={t.grupos}>
         {todos.map((g) => (
-          <button key={g.titulo} type="button" className="chip" aria-pressed={grupoElegido === g.titulo}
+          <button key={g.titulo} type="button" className="chip" aria-pressed={elegido === g.titulo}
             onClick={() => setGrupoElegido((actual) => (actual === g.titulo ? null : g.titulo))}>
             {g.titulo}
           </button>
@@ -205,7 +257,10 @@ export default function PanelCatalogo({ alEmpezarArrastre }: { alEmpezarArrastre
       </div>
       <p className="panel__nota">{t.ayuda}</p>
       {grupos.every((g) => g.tipos.length === 0) && <p className="panel__nota" role="status">{t.sinResultados}</p>}
-      {grupos.map((g) => <Grupo key={g.titulo} titulo={g.titulo} tipos={g.tipos} centro={centro} favoritos={favoritos} alPulsarAsa={alPulsarAsa} conDedo={conDedo} />)}
+      {grupos.map((g) => (
+        <Grupo key={g.titulo} titulo={g.titulo} tipos={g.tipos} centro={centro} favoritos={favoritos} esFavoritos={g.titulo === t.favoritos}
+          alPulsarAsa={alPulsarAsa} conDedo={conDedo} />
+      ))}
       {fantasma}
     </div>
   )

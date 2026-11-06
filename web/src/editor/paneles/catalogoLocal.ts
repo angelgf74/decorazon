@@ -8,7 +8,11 @@ export const MAXIMO_RECIENTES = 6
 
 type Clave = typeof CLAVE_FAVORITOS | typeof CLAVE_RECIENTES
 
-/** Lo que `localStorage` no pudo guardar (modo privado, bloqueado o lleno): se lee cuando tampoco se puede leer de él y dura lo que la pestaña. */
+/**
+ * Lo que `localStorage` no pudo guardar (lleno, bloqueado, modo privado): manda sobre lo guardado hasta que una escritura
+ * vuelva a entrar, y dura lo que la pestaña. Con el almacenamiento lleno (las copias de los diseños pesan hasta 1 MB),
+ * `setItem` falla y `getItem` no: sin esto la estrella no haría nada.
+ */
 const memoria = new Map<Clave, string>()
 /** Último texto leído y su lista, para devolver la misma referencia mientras no cambie (lo pide `useSyncExternalStore`). */
 const ultimo = new Map<Clave, { texto: string | null; lista: string[] }>()
@@ -17,11 +21,13 @@ const oyentes = new Set<() => void>()
 const SIN_NADA: string[] = []
 
 function leer(clave: Clave): string[] {
-  let texto: string | null
-  try {
-    texto = localStorage.getItem(clave)
-  } catch {
-    texto = memoria.get(clave) ?? null
+  let texto = memoria.get(clave) ?? null
+  if (texto === null) {
+    try {
+      texto = localStorage.getItem(clave)
+    } catch {
+      texto = null
+    }
   }
   const u = ultimo.get(clave)
   if (u && u.texto === texto) return u.lista
@@ -42,6 +48,7 @@ function escribir(clave: Clave, lista: string[]): void {
   const texto = JSON.stringify(lista)
   try {
     localStorage.setItem(clave, texto)
+    memoria.delete(clave)
   } catch {
     memoria.set(clave, texto)
   }
@@ -72,4 +79,10 @@ export function useCatalogoLocal(): { favoritos: string[]; recientes: string[] }
   const favoritos = useSyncExternalStore(suscribir, leerFavoritos)
   const recientes = useSyncExternalStore(suscribir, leerRecientes)
   return { favoritos, recientes }
+}
+
+/** Olvida el respaldo en memoria y lo último leído (para los tests, como `reiniciarAlmacen`). */
+export function reiniciarCatalogoLocal(): void {
+  memoria.clear()
+  ultimo.clear()
 }
