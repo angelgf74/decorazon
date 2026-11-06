@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { catalogoBase, desplazarPoligono, elementoNuevo, longitudPared, type Abertura, type Punto } from '../../nucleo'
+import { bloquearElemento, catalogoBase, desplazarPoligono, elementoNuevo, longitudPared, type Abertura, type Punto } from '../../nucleo'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import { hayArrastre } from './arrastres'
 import Lienzo from './Lienzo'
@@ -557,5 +557,49 @@ describe('Lienzo: zoom con botones', () => {
     expect(acercar).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Alejar' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Encuadrar' })).toBeEnabled()
+  })
+})
+
+describe('Lienzo: mueble bloqueado y cotas a los vecinos', () => {
+  const armario = () => almacen.getState().documento!.elementos.find((e) => e.id === 'a')!
+
+  it('un bloqueado se selecciona, lleva candado, no tiene tirador de giro y arrastrarlo no lo mueve', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    almacen.getState().cambiar((d) => bloquearElemento(d, 'a', true))
+    const pasos = almacen.getState().pasado.length
+    const { container } = render(<Lienzo />)
+    expect(container.querySelector('[data-elemento="a"] [data-candado]')).not.toBeNull()
+    const huella = container.querySelector('[data-elemento="a"] polygon')!
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 200, clientY: 165 })
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: 'a' })
+    expect(container.querySelector('[data-giro]')).toBeNull()
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 230, clientY: 180 })
+    fireEvent.pointerUp(huella, { pointerId: 1 })
+    expect(armario().posicion).toEqual({ x: 200, y: 165 })
+    expect(container.querySelector('[data-cota-elemento]')).toBeNull()
+    expect(almacen.getState().pasado).toHaveLength(pasos)
+    expect(hayArrastre()).toBe(false)
+  })
+
+  it('un mueble libre no lleva candado', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    const { container } = render(<Lienzo />)
+    expect(container.querySelector('[data-candado]')).toBeNull()
+  })
+
+  it('al arrastrar, la cota de un lado va al vecino que está antes que la pared; una alfombra no cuenta', () => {
+    colocar('armario', 'a', { x: 100, y: 165 })
+    colocar('armario', 'b', { x: 300, y: 165 })
+    colocar('alfombra', 'f', { x: 100, y: 250 })
+    const { container } = render(<Lienzo />)
+    const huella = container.querySelector('[data-elemento="a"] polygon')!
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 100, clientY: 165 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 110, clientY: 170 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 101, clientY: 166 })
+    expect(armario().posicion).toEqual({ x: 101, y: 166 })
+    // Armario de 100 × 60 en (101, 166): 99 cm hasta el otro armario (borde en 250), 51 a la izquierda, 136 arriba y 134 abajo (la alfombra no corta).
+    const cotas = [...container.querySelectorAll('[data-cota-elemento]')].map((n) => n.textContent)
+    expect(cotas.sort()).toEqual(['134 cm', '136 cm', '51 cm', '99 cm'])
+    fireEvent.pointerUp(huella, { pointerId: 1 })
   })
 })

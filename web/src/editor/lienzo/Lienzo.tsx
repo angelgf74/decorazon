@@ -257,7 +257,7 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
               </>
             )}
             {paso === 2 && enArrastre && <CotasElemento documento={documento} elemento={enArrastre} />}
-            {paso === 2 && elegido && <TiradorGiro elemento={elegido} planta={documento.estancia.planta} escala={vista.escala} avisar={setArrastrado} />}
+            {paso === 2 && elegido && !elegido.bloqueado && <TiradorGiro elemento={elegido} planta={documento.estancia.planta} escala={vista.escala} avisar={setArrastrado} />}
             {children}
           </ContextoLienzo.Provider>
         </g>

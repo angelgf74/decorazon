@@ -1,6 +1,7 @@
 import type { PointerEvent } from 'react'
 import {
-  catalogoBase, cotasAParedes, cotasEnPared, escalar, hueco, imantar, longitudPared, rectangulo, sumar, type DocumentoDiseno, type Elemento,
+  catalogoBase, cotasAParedes, cotasEnPared, escalar, hueco, huellasEnPlanta, imantar, longitudPared, rectangulo, sumar,
+  type DocumentoDiseno, type Elemento, type Punto,
 } from '../../../nucleo'
 import { almacen, type Seleccion } from '../../estado/almacen'
 import { esBotonPrincipal } from './comun'
@@ -42,10 +43,20 @@ export default function CapaCotas({ documento, seleccion, escala, soloVer = fals
   )
 }
 
-/** Paso 2, mientras se arrastra un elemento: su distancia a las paredes y, resaltadas, las paredes a las que se pega. */
+/** Las huellas de los demás muebles, para acotar hasta ellos; lo pisable (alfombras) no corta una cota. */
+function huellasVecinas(documento: DocumentoDiseno, id: string): Punto[][] {
+  return documento.elementos.flatMap((x) => {
+    if (x.id === id) return []
+    const def = catalogoBase.get(x.tipo)
+    if (!def) return [rectangulo(x.posicion, x.medidas.ancho, x.medidas.fondo, x.rotacion)]
+    return def.pisable ? [] : huellasEnPlanta(def, x)
+  })
+}
+
+/** Paso 2, mientras se arrastra un elemento: su distancia a las paredes o al vecino que esté antes, y, resaltadas, las paredes a las que se pega. */
 export function CotasElemento({ documento, elemento: e }: { documento: DocumentoDiseno; elemento: Elemento }) {
   const { planta } = documento.estancia
-  const cotas = cotasAParedes(planta, rectangulo(e.posicion, e.medidas.ancho, e.medidas.fondo, e.rotacion))
+  const cotas = cotasAParedes(planta, rectangulo(e.posicion, e.medidas.ancho, e.medidas.fondo, e.rotacion), huellasVecinas(documento, e.id))
   const { pegadoA } = imantar(documento, catalogoBase, e, { libre: e.rotacion % 90 !== 0 })
   const paredes = pegadoA.filter((p) => p.startsWith('pared:')).map((p) => Number(p.slice('pared:'.length)))
   return (

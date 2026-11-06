@@ -82,6 +82,10 @@
   stroke-linejoin: round;
 }
 .capa-elementos__halo { fill: none; stroke: var(--terracota); stroke-width: 8; stroke-opacity: 0.5; stroke-linejoin: round; pointer-events: none; }
+/* El candado de un bloqueado: cuerpo relleno y arco de trazo, a tamaño fijo en pantalla (el grupo lleva scale(1/escala)). */
+.capa-elementos__candado { pointer-events: none; }
+.capa-elementos__candado rect { fill: var(--tinta); }
+.capa-elementos__candado path { fill: none; stroke: var(--tinta); stroke-width: 1.75; }
 
 .capa-conflictos { pointer-events: none; }
 .capa-conflictos :is(polygon, path) { fill: var(--conflicto); fill-opacity: 0.35; stroke: var(--conflicto); stroke-width: 1; }
