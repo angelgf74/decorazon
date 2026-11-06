@@ -20,6 +20,8 @@ export const TRAZADOS = {
   imprimir: ['M7 9V3h10v6', 'M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2', 'M7 14h10v7H7z'],
   buscar: ['M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14z', 'M20 20l-4-4'],
   mas: ['M12 5v14M5 12h14'],
+  // Tres puntos: el menú de más acciones.
+  puntos: ['M5 12h.01', 'M12 12h.01', 'M19 12h.01'],
   hecho: ['M5 12.5 9.5 17 19 7'],
   // Bocadillo con dos líneas de texto.
   sugerencia: ['M5 4h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z', 'M8 9h8M8 12h5'],

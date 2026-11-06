@@ -125,6 +125,8 @@ export const textos = {
     avisos: (n: number) => (n === 1 ? '1 aviso' : `${n} avisos`),
     pistaDeshacer: 'Deshacer (Ctrl+Z)',
     pistaRehacer: 'Rehacer (Ctrl+Y)',
+    mas: 'Más acciones',
+    inicio: 'Inicio',
   },
   lienzo: {
     encuadrar: 'Encuadrar',

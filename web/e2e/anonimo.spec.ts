@@ -96,6 +96,7 @@ test('hoja para imprimir: plano, lista de muebles y la vista 3D capturada en su 
   await page.getByRole('button', { name: 'Crear estancia' }).click()
   await page.getByRole('button', { name: '2 Amueblar' }).click()
   await page.getByRole('button', { name: /^Cama/ }).click()
+  await page.getByRole('button', { name: 'Más acciones' }).click()
   await page.getByRole('button', { name: 'Imprimir', exact: true }).click()
 
   const hoja = page.getByRole('dialog', { name: 'Hoja para imprimir' })
