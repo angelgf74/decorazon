@@ -29,6 +29,8 @@ export interface FilaMueble {
   alturaSuelo: string | null
   variantes: string[]
   colores: { etiqueta: string; color: string }[]
+  /** El tipo («Armario») cuando el nombre es propio y no es de tienda (su línea ya lo dice); si no, null. */
+  tipo: string | null
   /** Los datos del producto, si es de una tienda: «Armario · IKEA · ref. …», la URL y el precio con su fecha. */
   tienda: { linea: string; url?: string; precio?: string } | null
 }
@@ -41,9 +43,12 @@ export function filasDeMuebles(doc: DocumentoDiseno, catalogo: Catalogo): FilaMu
     const def = catalogo.get(e.tipo)
     const { ancho, fondo } = e.medidas
     const alto = def?.altoReal?.(e) ?? e.medidas.alto
+    const tipo = def ? capitalizar(def.nombre) : e.tipo
+    const nombre = nombreDeElemento(def, e)
     return {
       id: e.id,
-      nombre: nombreDeElemento(def, e),
+      nombre,
+      tipo: nombre !== tipo && e.origen.tipo !== 'tienda' ? tipo : null,
       medidas: `${ancho} × ${fondo} × ${alto} cm`,
       alturaSuelo: e.alturaSuelo > 0 ? t.alturaSuelo(e.alturaSuelo) : null,
       variantes: def

@@ -33,6 +33,10 @@ export const TRAZADOS = {
   descargar: ['M12 4v11', 'm7 11 5 5 5-5', 'M5 20h14'],
   estrella: ['m12 3 2.8 5.9 6.4.8-4.7 4.5 1.2 6.4L12 17.5l-5.7 3.1 1.2-6.4L2.8 9.7l6.4-.8z'],
   mover: ['M9 6h.01', 'M15 6h.01', 'M9 12h.01', 'M15 12h.01', 'M9 18h.01', 'M15 18h.01'],
+  candado: ['M5 11h14v10H5z', 'M8 11V7a4 4 0 0 1 8 0v4'],
+  candadoAbierto: ['M5 11h14v10H5z', 'M8 11V7a4 4 0 0 1 7.5-2'],
+  voltear: ['M12 3v18', 'M9 7H4v10h5', 'M15 7h5v10h-5', 'M4 7l5 10', 'M20 7l-5 10'],
+  regla: ['M3 17 17 3l4 4L7 21z', 'm7 13 2 2', 'm10 10 2 2', 'm13 7 2 2'],
 } satisfies Record<string, string[]>
 
 export type NombreIcono = keyof typeof TRAZADOS

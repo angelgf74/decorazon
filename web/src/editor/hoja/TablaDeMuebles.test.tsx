@@ -48,6 +48,15 @@ describe('TablaDeMuebles con muebles de tienda', () => {
     expect(screen.queryByRole('link')).toBeNull()
   })
 
+  it('un mueble con nombre propio lleva el tipo debajo', () => {
+    const d = documentoNuevo('dormitorio', 400, 300, 250)
+    d.elementos = [{ ...elementoNuevo(catalogoBase.get('armario')!, { x: 100, y: 50 }, 'a'), nombre: 'Armario de Ana' }]
+    render(<TablaDeMuebles doc={d} />)
+    const tabla = screen.getByRole('table')
+    expect(within(tabla).getByText('Armario de Ana')).toBeInTheDocument()
+    expect(within(tabla).getByText('Armario')).toBeInTheDocument()
+  })
+
   it('con productos de tienda sin precio, la nota de marcas pero no el total', () => {
     const d = documentoNuevo('dormitorio', 400, 300, 250)
     const armario = elementoNuevo(catalogoBase.get('armario')!, { x: 100, y: 50 }, 'a')

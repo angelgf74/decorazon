@@ -31,6 +31,7 @@ export default function TablaDeMuebles({ doc, enlaces = false }: { doc: Document
             <tr key={f.id}>
               <td>
                 <div>{f.nombre}</div>
+                {f.tipo && <div className="hoja-impresion__tienda">{f.tipo}</div>}
                 {f.tienda && (
                   <div className="hoja-impresion__tienda">
                     <div>{f.tienda.linea}</div>
