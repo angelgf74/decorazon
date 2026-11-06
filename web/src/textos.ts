@@ -220,6 +220,7 @@ export const textos = {
     ayuda: 'Pulsa un mueble para ponerlo en el centro o arrástralo al plano',
     buscar: 'Buscar mueble',
     sinResultados: 'Ningún mueble coincide',
+    grupos: 'Grupos del catálogo',
   },
   avisos: {
     titulo: 'Avisos',

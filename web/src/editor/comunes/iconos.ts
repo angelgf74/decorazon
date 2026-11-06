@@ -21,6 +21,7 @@ export const TRAZADOS = {
   buscar: ['M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14z', 'M20 20l-4-4'],
   mas: ['M12 5v14M5 12h14'],
   menos: ['M5 12h14'],
+  flecha: ['M5 12h14', 'M13 6l6 6-6 6'],
   // Triángulo de aviso.
   aviso: ['M12 3 2 20h20L12 3z', 'M12 10v4', 'M12 17h.01'],
   // Tres puntos: el menú de más acciones.

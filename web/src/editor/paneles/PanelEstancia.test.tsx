@@ -108,3 +108,12 @@ describe('PanelEstancia', () => {
     expect(elegida.className).toMatch(/selector-color__muestra--(clara|oscura)/)
   })
 })
+
+describe('PanelEstancia: siguiente paso', () => {
+  it('"Amueblar" al pie pasa al paso 2', async () => {
+    render(<PanelEstancia />)
+    expect(almacen.getState().paso).toBe(1)
+    await userEvent.click(screen.getByRole('button', { name: textos.barra.amueblar }))
+    expect(almacen.getState().paso).toBe(2)
+  })
+})
