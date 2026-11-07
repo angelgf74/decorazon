@@ -15,7 +15,7 @@ export const sofa: DefinicionTipo = {
     { clave: 'tapizado', etiqueta: 'Tapizado', material: 'tela', defecto: '#7d8a7a' },
     { clave: 'patas', etiqueta: 'Patas', material: 'madera', defecto: '#5b4636' },
   ],
-  pisable: false, bloqueaPaso: true, sobreVentana: false,
+  pisable: false, bloqueaPaso: true, conjunto: 'estar', sobreVentana: false,
   volumenes(e) {
     const chaise = valorVariante(sofa, e, 'chaise')
     if (chaise === 'no') return cajaEntera(e)

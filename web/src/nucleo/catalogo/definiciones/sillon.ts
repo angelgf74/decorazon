@@ -8,7 +8,7 @@ export const sillon: DefinicionTipo = {
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],
   zonasColor: [{ clave: 'tapizado', etiqueta: 'Tapizado', material: 'tela', defecto: '#7d8a7a' }],
-  pisable: false, bloqueaPaso: true, sobreVentana: false,
+  pisable: false, bloqueaPaso: true, conjunto: 'estar', sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d: (e) => asientoTapizado(e, 1, 'no', 'tapizado'),
   zonasApertura: () => [],

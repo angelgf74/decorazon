@@ -17,7 +17,7 @@ const mensajes = (doc: DocumentoDiseno, tipo: TipoConflicto) => de(doc, tipo).ma
 describe('detectarConflictos', () => {
   it('constantes de paso', () => {
     expect(PASO_MINIMO_CM).toBe(60)
-    expect(HUECO_IGNORADO_CM).toBe(20)
+    expect(HUECO_IGNORADO_CM).toBe(30)
   })
 
   describe('zona del conflicto', () => {
@@ -203,6 +203,29 @@ describe('detectarConflictos', () => {
     const b = base()
     b.elementos.push(elemento('cama', 75, 100, 0), elemento('armario', 210, 100, 0))
     expect(mensajes(b, 'pasoEstrecho').filter((m) => m.includes('la cama y el armario'))).toEqual([])
+  })
+
+  it('un hueco de menos de 30 cm no es un paso: no se avisa; de 30, sí', () => {
+    // Armario 100 × 60 centrado en x: solo queda cerca la pared de arriba.
+    const a = base()
+    a.elementos.push(elemento('armario', 200, 25 + 30, 0))
+    expect(mensajes(a, 'pasoEstrecho')).toEqual([])
+    const b = base()
+    b.elementos.push(elemento('armario', 200, 30 + 30, 0))
+    expect(mensajes(b, 'pasoEstrecho')).toEqual(['Paso estrecho entre el armario y la pared: 30 cm'])
+  })
+
+  it('sofá, sillón y mesa de centro se usan juntos: entre ellos no hay paso estrecho', () => {
+    // Sofá 200 × 90 en x 150..350, y 55..145; mesa de centro a 40 cm (lo recomendado) en y 185..245; sillón (80 de ancho) a 25 cm a la izquierda.
+    const doc = documentoNuevo('salon', 500, 330, 250)
+    doc.elementos.push(elemento('sofa', 250, 100, 0), elemento('mesa-centro', 250, 215, 0), elemento('sillon', 150 - 25 - 40, 100, 0))
+    expect(mensajes(doc, 'pasoEstrecho').filter((m) => !m.includes('pared'))).toEqual([])
+  })
+
+  it('el conjunto de estar no exime frente a otros muebles: sofá y armario a 40 cm sí avisan', () => {
+    const doc = documentoNuevo('salon', 400, 330, 250)
+    doc.elementos.push(elemento('sofa', 200, 100, 0), elemento('armario', 200, 215, 0))
+    expect(mensajes(doc, 'pasoEstrecho')).toContain('Paso estrecho entre el sofá y el armario: 40 cm')
   })
 
   it('paso estrecho contra la pared y una columna', () => {

@@ -209,6 +209,7 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
     const a = bloquean[i]
     for (let j = i + 1; j < bloquean.length; j++) {
       const b = bloquean[j]
+      if (a.def.conjunto !== undefined && a.def.conjunto === b.def.conjunto) continue
       let d = Infinity
       for (const v of a.volumenes) {
         for (const w of b.volumenes) {
