@@ -69,7 +69,7 @@ Lista viva de sugerencias de producto y uso. Nace el 6 de noviembre de 2026, con
 | Id | Sugerencia | Qué aporta | Mínimo que haría | Valor | Esfuerzo | Depende de | Estado | Notas |
 |---|---|---|---|---|---|---|---|---|
 | M-25 | Instalar como app | Que en el móvil quede un icono y abra a pantalla completa | Capturar `beforeinstallprompt` y ofrecer «Instalar Decorazon» en «Más acciones» (Android/Chrome); en iOS, una nota de cómo hacerlo | bajo | S | — | realizada | Realizada el 7 nov 2026, PR #51: `instalacion.ts` guarda el `beforeinstallprompt` (oyente en `main.tsx` antes de montar React) y «Instalar Decorazon» en Más acciones lo enseña; en iPhone e iPad abre una nota con los pasos (Compartir → Añadir a pantalla de inicio); nada si ya va a pantalla completa |
-| M-27 | Girar un mueble con dos dedos | Girar sin acertar el círculo pequeño con el dedo | Gesto de rotación con dos dedos sobre el mueble seleccionado, con los mismos saltos de 90° que el círculo | bajo | M | — | pendiente | El pellizco con dos dedos ya hace zoom: hay que distinguir ambos gestos por dónde empiezan |
+| M-27 | Girar un mueble con dos dedos | Girar sin acertar el círculo pequeño con el dedo | Gesto de rotación con dos dedos sobre el mueble seleccionado, con los mismos saltos de 90° que el círculo | bajo | M | — | realizada | Realizada el 7 nov 2026, PR #56: si el primer dedo cae en el mueble que **ya estaba** seleccionado (libre, paso 2, sin medir), el segundo dedo lo gira de 90° en 90° (un solo deshacer); si no, sigue siendo pellizco. La pista táctil lo dice |
 
 ## Accesibilidad y rendimiento
 

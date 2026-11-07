@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type PointerEvent, type ReactNode } from 'react'
-import { desplazarPoligono, type Punto } from '../../nucleo'
+import { catalogoBase, desplazarPoligono, moverElemento, type Punto } from '../../nucleo'
 import { textos } from '../../textos'
 import { useConflictos } from '../estado/conflictos'
 import { almacen, useEditor, type Seleccion } from '../estado/almacen'
-import { alternarSeleccion } from '../estado/elementos'
-import { anadirTipo } from '../estado/elementos'
+import { alternarSeleccion, anadirTipo } from '../estado/elementos'
 import { cortarArrastre, EVENTO_SOLTAR_TIPO, MIME_TIPO, pulsarAbertura, pulsarElemento, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano, type DetalleSoltarTipo } from './arrastres'
 import CapaAberturas from './capas/CapaAberturas'
 import CapaCotas, { CotaLibre, CotasElemento, CotasEnPared } from './capas/CapaCotas'
@@ -29,6 +28,11 @@ const VISTA_INICIAL: Vista2D = { x: 0, y: 0, escala: 1 }
 /** `sobreBloqueado`: el toque empezó en un mueble bloqueado, que ya se seleccionó y deja pasar el toque para que el fondo haga pan. */
 interface Arrastre { id: number; x: number; y: number; vista: Vista2D; movido: boolean; sobreBloqueado: boolean }
 interface Pellizco { inicio: Vista2D; antes: [Punto, Punto] }
+/** Giro con dos dedos (M-27): el mueble, su giro y posición al empezar, y el ángulo entre los dedos entonces. */
+interface GiroConDedos { id: string; giro0: number; posicion: Punto; angulo0: number }
+
+/** Ángulo, en grados, de la recta que une los dos dedos (y hacia abajo, como el plano). */
+const anguloEntre = ([a, b]: [Punto, Punto]) => (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI
 /** La cinta métrica: el primer punto y el segundo, que sigue al puntero hasta que `fija` (segundo toque). */
 interface Medida { a: Punto; b: Punto | null; fija: boolean }
 
@@ -85,6 +89,9 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
   // Dedos sobre el plano, en px del svg, caigan donde caigan; con dos, pellizco.
   const toques = useRef(new Map<number, Punto>())
   const pellizco = useRef<Pellizco | null>(null)
+  const giroConDedos = useRef<GiroConDedos | null>(null)
+  // El mueble sobre el que cayó el primer dedo: si es el seleccionado, el segundo dedo gira en lugar de hacer zoom (M-27).
+  const primerDedoSobre = useRef<string | null>(null)
   // Mientras no se mueva a mano, al cambiar el tamaño (abrir una hoja en el móvil) se vuelve a encuadrar.
   const movidaAMano = useRef(false)
   const tamano = useRef({ ancho: 0, alto: 0 })
@@ -179,7 +186,15 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
   // Un dedo que se levanta deja de contar aunque se suelte fuera del plano; con uno solo, el pellizco acaba.
   useEffect(() => {
     const quitar = (ev: globalThis.PointerEvent) => {
-      if (!toques.current.delete(ev.pointerId) || !pellizco.current) return
+      if (!toques.current.delete(ev.pointerId)) return
+      if (toques.current.size === 0) primerDedoSobre.current = null
+      if (giroConDedos.current && toques.current.size < 2) {
+        // Levantar un dedo termina el giro: un solo paso de deshacer.
+        giroConDedos.current = null
+        almacen.getState().terminarGrupo()
+        return
+      }
+      if (!pellizco.current) return
       pellizco.current = toques.current.size >= 2 ? { inicio: vistaActual.current, antes: dosToques(toques.current) } : null
     }
     window.addEventListener('pointerup', quitar, true)
@@ -198,20 +213,45 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
   // En captura: ven todos los dedos, también los que caen en una pieza.
   const alBajarCualquiera = (ev: PointerEvent<SVGSVGElement>) => {
     toques.current.set(ev.pointerId, enSvg(ev))
+    if (toques.current.size === 1) {
+      // Solo cuenta si ya estaba seleccionado ANTES de este toque (la captura corre antes de que la pieza lo seleccione):
+      // así dos dedos sobre cualquier otro mueble siguen siendo zoom.
+      const sobre = ev.target instanceof Element ? ev.target.closest('[data-elemento]')?.getAttribute('data-elemento') ?? null : null
+      const s = almacen.getState().seleccion
+      primerDedoSobre.current = s?.tipo === 'elemento' && s.id === sobre ? sobre : null
+      return
+    }
     if (toques.current.size < 2) return
     // Desde el segundo dedo no se pulsa nada: los dos primeros amplían y desplazan el plano.
     ev.stopPropagation()
-    if (pellizco.current) return
+    if (pellizco.current || giroConDedos.current) return
     for (const id of toques.current.keys()) if (id !== ev.pointerId) cortarArrastre(id)
     arrastre.current = null
     setArrastrando(false)
     if (typeof ev.currentTarget.setPointerCapture === 'function') ev.currentTarget.setPointerCapture(ev.pointerId)
+    // Si el primer dedo cayó en el mueble seleccionado (libre, paso 2, sin medir), los dos dedos lo giran; si no, pellizco.
+    const s = almacen.getState().seleccion
+    const e = s?.tipo === 'elemento' && s.id === primerDedoSobre.current && paso === 2 && !midiendo
+      ? documento?.elementos.find((x) => x.id === s.id) : undefined
+    if (e && !e.bloqueado) {
+      giroConDedos.current = { id: e.id, giro0: e.rotacion, posicion: e.posicion, angulo0: anguloEntre(dosToques(toques.current)) }
+      return
+    }
     pellizco.current = { inicio: vistaActual.current, antes: dosToques(toques.current) }
   }
 
   const alMoverCualquiera = (ev: PointerEvent<SVGSVGElement>) => {
     if (!toques.current.has(ev.pointerId)) return
     toques.current.set(ev.pointerId, enSvg(ev))
+    const g = giroConDedos.current
+    if (g) {
+      ev.stopPropagation()
+      // Como el círculo de giro: de 90° en 90° (el giro de partida cuenta, para no enderezar uno libre de golpe).
+      const giro = Math.round((g.giro0 + anguloEntre(dosToques(toques.current)) - g.angulo0) / 90) * 90
+      const normal = ((giro % 360) + 360) % 360
+      almacen.getState().cambiar((d) => moverElemento(d, catalogoBase, g.id, g.posicion, normal, false), `girar:${g.id}`)
+      return
+    }
     const p = pellizco.current
     if (!p) return
     ev.stopPropagation()
