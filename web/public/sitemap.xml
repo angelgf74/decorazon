@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Solo las páginas públicas; lo privado (cuenta, diseños, enlaces compartidos) lo cierra robots.txt. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://decorazon.angelgf.com.es/</loc></url>
+  <url><loc>https://decorazon.angelgf.com.es/disenar</loc></url>
+  <url><loc>https://decorazon.angelgf.com.es/privacidad</loc></url>
+</urlset>

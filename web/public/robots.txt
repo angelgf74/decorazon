@@ -4,3 +4,5 @@ Allow: /
 Disallow: /compartido/
 Disallow: /cuenta
 Disallow: /disenos
+
+Sitemap: https://decorazon.angelgf.com.es/sitemap.xml
