@@ -1,9 +1,9 @@
 import ReactThreeTestRenderer from '@react-three/test-renderer'
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
-import { Vector3, type Camera, type DirectionalLight } from 'three'
+import { Vector3, type Camera, type DirectionalLight, type PointLight } from 'three'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { camaraDesdeDentro, camaraInicial, documentoNuevo, escenaEstancia, type DocumentoDiseno, type Vec3 } from '../../nucleo'
+import { camaraDesdeDentro, camaraInicial, catalogoBase, documentoNuevo, elementoNuevo, escenaEstancia, lucesInteriores, type DocumentoDiseno, type Vec3 } from '../../nucleo'
 import { reiniciarAlmacen } from '../estado/almacen'
 import Escena3D from './Escena3D'
 
@@ -228,5 +228,22 @@ describe('Escena3D: entorno', () => {
     otra.aberturas.push({ id: 'v2', tipo: 'ventana', pared: 1, posicion: 50, ancho: 200, alto: 120, alturaSuelo: 90, abreHaciaDentro: false })
     await r.update(escena(otra, true))
     expect(entorno.montajes).toBe(2)
+  })
+})
+
+describe('Escena3D: luces de lámparas y ventanas (M-13)', () => {
+  it('cada luz interior es una luz puntual sin sombra, con su color y alcance', async () => {
+    const doc = documentoNuevo('salon', 400, 300, 250)
+    doc.elementos = [elementoNuevo(catalogoBase.get('lampara-pie')!, { x: 100, y: 200 }, 'l')]
+    doc.aberturas = [{ id: 'v', tipo: 'ventana', pared: 0, posicion: 100, ancho: 120, alto: 120, alturaSuelo: 90, abreHaciaDentro: true }]
+    const r = await ReactThreeTestRenderer.create(escena(doc, true))
+    const puntuales = r.scene.findAll((n) => n.type === 'PointLight').map((n) => n.instance as PointLight)
+    expect(puntuales).toHaveLength(lucesInteriores(doc).length)
+    expect(puntuales).toHaveLength(2)
+    for (const l of puntuales) {
+      expect(l.castShadow).toBe(false)
+      expect(l.distance).toBeGreaterThan(0)
+    }
+    expect(puntuales.map((l) => `#${l.color.getHexString()}`).sort()).toEqual(['#eef4ff', '#ffcf8a'])
   })
 })
