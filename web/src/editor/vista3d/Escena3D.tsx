@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Compone
 import { useThree } from '@react-three/fiber'
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei'
 import { Object3D, Vector3, type DirectionalLight } from 'three'
-import { cajaPlanta, camaraAPlano, camaraDesdeDentro, camaraInicial, direccionSol, DISTANCIA_MIRADA_M, paredesQueTapan, type DocumentoDiseno, type Vec3 } from '../../nucleo'
+import { cajaPlanta, camaraAPlano, camaraDesdeDentro, camaraInicial, direccionSol, DISTANCIA_MIRADA_M, lucesInteriores, paredesQueTapan, type DocumentoDiseno, type Vec3 } from '../../nucleo'
 import Estancia3D from './Estancia3D'
 import Mueble3D from './Mueble3D'
 import { useContextoRestaurado } from './usarContextoRestaurado'
@@ -118,6 +118,10 @@ export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false,
     <>
       {/* Relleno (ambiente y entorno) moderado frente al sol: con más, la sombra de los muebles apenas se distinguía del suelo. */}
       <ambientLight intensity={0.25} />
+      {/* M-13: luz cálida en cada lámpara de pie y de día junto a cada ventana, con tope y sin sombras (cada luz cuesta fps). */}
+      {lucesInteriores(doc).map((l, i) => (
+        <pointLight key={`${l.tipo}-${i}`} position={l.posicion} color={l.color} intensity={l.intensidad} distance={l.distancia} decay={2} castShadow={false} />
+      ))}
       <primitive object={objetivoSol} position={centro} />
       <directionalLight
         ref={luz}
