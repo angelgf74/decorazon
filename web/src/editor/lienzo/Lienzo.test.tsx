@@ -710,3 +710,25 @@ describe('Lienzo: mueble bloqueado y cotas a los vecinos', () => {
     fireEvent.pointerUp(huella, { pointerId: 1 })
   })
 })
+
+describe('Lienzo: muebles con el teclado (M-28)', () => {
+  it('el plano es un grupo con nombre (lleva botones dentro), no una imagen', () => {
+    render(<Lienzo />)
+    expect(screen.getByRole('group', { name: 'Plano de la estancia' })).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'Plano de la estancia' })).toBeNull()
+  })
+
+  it('en el paso 2, Intro sobre un mueble lo selecciona; en el paso 1 y midiendo, los muebles no son botones', () => {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    const { unmount } = render(<Lienzo />)
+    const armario = screen.getByRole('button', { name: 'Armario 100 × 60 cm' })
+    fireEvent.keyDown(armario, { key: 'Enter' })
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: 'a' })
+    fireEvent.click(screen.getByRole('button', { name: 'Medir' }))
+    expect(screen.queryByRole('button', { name: 'Armario 100 × 60 cm' })).toBeNull()
+    unmount()
+    almacen.getState().irAPaso(1)
+    render(<Lienzo />)
+    expect(screen.queryByRole('button', { name: 'Armario 100 × 60 cm' })).toBeNull()
+  })
+})

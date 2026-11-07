@@ -1,5 +1,7 @@
+import type { KeyboardEvent } from 'react'
 import { catalogoBase, nombreDeElemento, nombreEnPlanta, rectangulo, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
 import type { Seleccion } from '../../estado/almacen'
+import { textos } from '../../../textos'
 import { esBotonPrincipal, manejador, type AlPulsar } from './comun'
 import { colocarNombres, type Etiqueta } from './nombres'
 import Pieza from './Pieza'
@@ -21,8 +23,19 @@ function Candado({ e, escala }: { e: Elemento; escala: number }) {
   )
 }
 
-/** `escala`: px de pantalla por cm, para no escribir un nombre encima de otro. */
-interface Props { documento: DocumentoDiseno; conflictos: Conflicto[]; seleccion: Seleccion; alPulsar?: AlPulsar; escala?: number }
+/**
+ * `escala`: px de pantalla por cm, para no escribir un nombre encima de otro. Con `alPulsar`, cada pieza es además un botón
+ * para el teclado (Tab la alcanza, Intro o Espacio llaman a `alSeleccionar`); sin él (paso 1, midiendo, plano exportado,
+ * vista compartida) las piezas son solo dibujo.
+ */
+interface Props {
+  documento: DocumentoDiseno
+  conflictos: Conflicto[]
+  seleccion: Seleccion
+  alPulsar?: AlPulsar
+  alSeleccionar?(id: string): void
+  escala?: number
+}
 
 /** Por debajo de este ancho no se escribe el nombre. */
 const ANCHO_NOMBRE_CM = 40
@@ -40,11 +53,26 @@ function etiqueta(e: Elemento): Etiqueta | null {
   return { id: e.id, nombre, punto: def ? nombreEnPlanta(def, e) : e.posicion, altura: e.alturaSuelo }
 }
 
-export default function CapaElementos({ documento, conflictos, seleccion, alPulsar, escala = 1 }: Props) {
-  const enError = new Set(conflictos.filter((c) => c.gravedad === 'error').flatMap((c) => c.ids.slice(0, 2)))
-  // Lo pisable (alfombras) debajo del resto.
+/** Lo que oye quien recorre el plano con el teclado: nombre entero, medidas y si está bloqueada. */
+function etiquetaAccesible(e: Elemento): string {
+  const nombre = `${nombreDeElemento(catalogoBase.get(e.tipo), e)} ${e.medidas.ancho} × ${e.medidas.fondo} cm`
+  return e.bloqueado ? `${nombre}, ${textos.lienzo.bloqueada}` : nombre
+}
+
+/** Orden de pintado y de tabulación: lo pisable (alfombras) debajo del resto y, dentro de cada grupo, por posición. */
+function ordenar(elementos: Elemento[]): Elemento[] {
   const pisable = (e: Elemento) => (catalogoBase.get(e.tipo)?.pisable ? 0 : 1)
-  const orden = [...documento.elementos].sort((a, b) => pisable(a) - pisable(b))
+  return [...elementos].sort((a, b) => pisable(a) - pisable(b) || a.posicion.y - b.posicion.y || a.posicion.x - b.posicion.x)
+}
+
+export default function CapaElementos({ documento, conflictos, seleccion, alPulsar, alSeleccionar, escala = 1 }: Props) {
+  const enError = new Set(conflictos.filter((c) => c.gravedad === 'error').flatMap((c) => c.ids.slice(0, 2)))
+  const orden = ordenar(documento.elementos)
+  const alTeclear = (id: string) => (ev: KeyboardEvent<SVGGElement>) => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return
+    ev.preventDefault()
+    alSeleccionar?.(id)
+  }
   return (
     <g className="capa-elementos">
       {orden.map((e) => {
@@ -54,6 +82,7 @@ export default function CapaElementos({ documento, conflictos, seleccion, alPuls
         const alBajar = e.bloqueado && alPulsar
           ? (ev: Parameters<AlPulsar>[1]) => { if (esBotonPrincipal(ev)) alPulsar(e.id, ev) }
           : manejador(e.id, alPulsar)
+        const teclado = alPulsar ? { tabIndex: 0, role: 'button', 'aria-label': etiquetaAccesible(e), 'aria-pressed': elegido, onKeyDown: alTeclear(e.id) } : {}
         return (
           <g
             key={e.id}
@@ -62,6 +91,7 @@ export default function CapaElementos({ documento, conflictos, seleccion, alPuls
             data-bloqueado={e.bloqueado ? '' : undefined}
             className={`capa-elementos__pieza${elegido ? ' lienzo--seleccionado' : ''}${alPulsar ? ' lienzo--pulsable' : ''}`}
             onPointerDown={alBajar}
+            {...teclado}
           >
             <Pieza def={catalogoBase.get(e.tipo)} e={e} elegido={elegido} />
             {e.bloqueado && <Candado e={e} escala={escala} />}

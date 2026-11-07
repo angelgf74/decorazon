@@ -131,3 +131,8 @@
 .capa-cotas--libre .capa-cotas__cota line { stroke: var(--terracota); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .capa-cotas--libre .capa-cotas__cota .lienzo__texto { fill: var(--terracota); font-weight: 600; }
 .capa-cotas__punto { fill: #fff; stroke: var(--terracota); stroke-width: 2; vector-effect: non-scaling-stroke; }
+
+/* Una pieza con el foco del teclado (M-28): el mismo anillo doble que los botones, dibujado con trazos porque en SVG no hay box-shadow. */
+.capa-elementos__pieza:focus { outline: none; }
+.capa-elementos__pieza:focus-visible .capa-elementos__huella { stroke: var(--tinta); stroke-width: 2px; paint-order: stroke; }
+.capa-elementos__pieza:focus-visible .capa-elementos__huella:first-of-type { filter: drop-shadow(0 0 0 var(--amarillo)) drop-shadow(0 0 2px var(--amarillo)) drop-shadow(0 0 2px var(--amarillo)); }

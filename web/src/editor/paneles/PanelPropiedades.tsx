@@ -260,7 +260,13 @@ const ATAJOS_ESTANCIA = [
   { teclas: ['Supr'], accion: t.atajo.quitar },
   { teclas: ['Esc'], accion: t.atajo.soltar },
 ]
-const ATAJOS_MUEBLES = [...ATAJOS_ESTANCIA, { teclas: ['R'], accion: t.atajo.girar }, { teclas: ['Ctrl', 'D'], accion: t.atajo.duplicar }]
+const ATAJOS_MUEBLES = [
+  ...ATAJOS_ESTANCIA,
+  { teclas: ['Tab'], accion: t.atajo.recorrer },
+  { teclas: ['Intro'], accion: t.atajo.elegir },
+  { teclas: ['R'], accion: t.atajo.girar },
+  { teclas: ['Ctrl', 'D'], accion: t.atajo.duplicar },
+]
 
 /** Sin nada seleccionado (en escritorio el panel se oculta; en móvil la hoja lo enseña): qué pulsar en el plano. */
 function SinSeleccion({ paso }: { paso: number }) {
