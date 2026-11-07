@@ -11,4 +11,5 @@ export const PBR: Record<MaterialPBR, { rugosidad: number; metalicidad: number; 
   ceramica: { rugosidad: 0.2, metalicidad: 0, opacidad: 1 },
   pared: { rugosidad: 0.9, metalicidad: 0, opacidad: 1 },
   suelo: { rugosidad: 0.7, metalicidad: 0, opacidad: 1 },
+  baldosa: { rugosidad: 0.35, metalicidad: 0, opacidad: 1 },
 }

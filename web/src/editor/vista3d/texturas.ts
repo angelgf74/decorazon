@@ -6,12 +6,12 @@ import type { MaterialPBR } from '../../nucleo'
  * casi blanca que multiplica el color elegido (`map × color`), así que el color sigue siendo el del usuario.
  * Va en lineal (sin sRGB): en sRGB el 0,92 de la media pasaría a 0,83 y oscurecería todos los colores.
  */
-export type PatronTextura = 'madera' | 'tela' | 'suelo' | 'pared'
+export type PatronTextura = 'madera' | 'tela' | 'suelo' | 'baldosa' | 'pared'
 
 export const LADO_TEXTURA = 256
 
 /** Cuántos metros cubre una repetición: las coordenadas de textura van en metros (`uvsEnMetros`). */
-export const METROS_POR_MOSAICO: Record<PatronTextura, number> = { madera: 0.6, tela: 0.2, suelo: 1.6, pared: 1.5 }
+export const METROS_POR_MOSAICO: Record<PatronTextura, number> = { madera: 0.6, tela: 0.2, suelo: 1.6, baldosa: 1.2, pared: 1.5 }
 
 const N = LADO_TEXTURA
 
@@ -75,6 +75,12 @@ function luminancia(tipo: PatronTextura, x: number, y: number): number {
       if (y % alto === 0 || enTabla === 0) return 0.76
       return 0.88 + 0.08 * azar(fila, 1, 5) + veta(x, y, 7, 0.03)
     }
+    case 'baldosa': {
+      // Baldosas de 30 cm (4 × 4 por mosaico) con junta de 2 px y un tono algo distinto cada una.
+      const lado = N / 4
+      if (x % lado < 2 || y % lado < 2) return 0.78
+      return 0.92 + 0.05 * azar(Math.floor(x / lado), Math.floor(y / lado), 13) + 0.03 * (ruido(x, y, 32, 32, 17) - 0.5)
+    }
     case 'pared':
       // Pintura sobre yeso: una variación suave, casi imperceptible de lejos.
       return 0.95 + 0.06 * (fbm(x, y, 8, 8, 11) - 0.5)
@@ -93,7 +99,7 @@ export function patronDe(tipo: PatronTextura): Float32Array {
   return p.slice()
 }
 
-const CON_TEXTURA: Partial<Record<MaterialPBR, PatronTextura>> = { madera: 'madera', tela: 'tela', suelo: 'suelo', pared: 'pared' }
+const CON_TEXTURA: Partial<Record<MaterialPBR, PatronTextura>> = { madera: 'madera', tela: 'tela', suelo: 'suelo', baldosa: 'baldosa', pared: 'pared' }
 
 const texturas = new Map<PatronTextura, DataTexture>()
 

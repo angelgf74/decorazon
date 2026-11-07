@@ -2,7 +2,7 @@ import { NoColorSpace, RepeatWrapping } from 'three'
 import { describe, expect, it } from 'vitest'
 import { LADO_TEXTURA, METROS_POR_MOSAICO, patronDe, texturaDe, type PatronTextura } from './texturas'
 
-const PATRONES: PatronTextura[] = ['madera', 'tela', 'suelo', 'pared']
+const PATRONES: PatronTextura[] = ['madera', 'tela', 'suelo', 'pared', 'baldosa']
 
 const media = (a: Float32Array) => a.reduce((s, x) => s + x, 0) / a.length
 /** Diferencia media entre dos columnas (o filas) del patrón. */
@@ -44,8 +44,8 @@ describe('patronDe', () => {
 })
 
 describe('texturaDe', () => {
-  it('madera, tela, suelo y pared tienen textura repetible, en lineal y compartida', () => {
-    for (const material of ['madera', 'tela', 'suelo', 'pared'] as const) {
+  it('madera, tela, suelo, baldosa y pared tienen textura repetible, en lineal y compartida', () => {
+    for (const material of ['madera', 'tela', 'suelo', 'baldosa', 'pared'] as const) {
       const t = texturaDe(material)!
       expect(t).not.toBeNull()
       expect(t.wrapS).toBe(RepeatWrapping)
