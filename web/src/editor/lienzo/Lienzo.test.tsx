@@ -819,3 +819,54 @@ describe('Lienzo: grupo con un bloqueado (M-02, revisión)', () => {
     expect(almacen.getState().seleccion).toEqual({ tipo: 'elementos', ids: ['a', 'b'] })
   })
 })
+
+describe('Lienzo: girar con dos dedos (M-27)', () => {
+  const rotacion = () => almacen.getState().documento!.elementos.find((e) => e.id === 'a')!.rotacion
+  function montar() {
+    colocar('armario', 'a', { x: 200, y: 165 })
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a' })
+    const r = render(<Lienzo />)
+    const svg = r.container.querySelector('svg.lienzo__svg')!
+    const huella = r.container.querySelector('[data-elemento="a"] polygon.capa-elementos__huella')!
+    return { svg, huella }
+  }
+
+  it('dos dedos que empiezan sobre el mueble seleccionado lo giran de 90° en 90°, en un solo paso de deshacer', () => {
+    const { svg, huella } = montar()
+    const pasos = almacen.getState().pasado.length
+    fireEvent.pointerDown(huella, { pointerId: 1, pointerType: 'touch', clientX: 200, clientY: 165 })
+    fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', clientX: 300, clientY: 165 })
+    // Un giro pequeño no salta.
+    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 295, clientY: 190 })
+    expect(rotacion()).toBe(0)
+    // Un cuarto de vuelta, sí.
+    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 200, clientY: 265 })
+    expect(rotacion()).toBe(90)
+    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'touch' })
+    fireEvent.pointerUp(huella, { pointerId: 1, pointerType: 'touch' })
+    expect(almacen.getState().documento!.elementos.find((e) => e.id === 'a')!.posicion).toEqual({ x: 200, y: 165 })
+    expect(almacen.getState().pasado.length).toBe(pasos + 1)
+  })
+
+  it('si el primer dedo no empieza en el seleccionado, dos dedos siguen siendo pellizco (zoom) y no giran', () => {
+    const { svg } = montar()
+    const escala = () => svg.querySelector('g[transform]')!.getAttribute('transform')
+    const antes = escala()
+    fireEvent.pointerDown(svg, { pointerId: 1, pointerType: 'touch', clientX: 20, clientY: 20 })
+    fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', clientX: 120, clientY: 20 })
+    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 20, clientY: 220 })
+    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'touch' })
+    fireEvent.pointerUp(svg, { pointerId: 1, pointerType: 'touch' })
+    expect(rotacion()).toBe(0)
+    expect(escala()).not.toBe(antes)
+  })
+
+  it('un mueble bloqueado no gira con dos dedos', () => {
+    const { svg, huella } = montar()
+    almacen.getState().cambiar((d) => bloquearElemento(d, 'a', true))
+    fireEvent.pointerDown(huella, { pointerId: 1, pointerType: 'touch', clientX: 200, clientY: 165 })
+    fireEvent.pointerDown(svg, { pointerId: 2, pointerType: 'touch', clientX: 300, clientY: 165 })
+    fireEvent.pointerMove(svg, { pointerId: 2, pointerType: 'touch', clientX: 200, clientY: 265 })
+    expect(rotacion()).toBe(0)
+  })
+})

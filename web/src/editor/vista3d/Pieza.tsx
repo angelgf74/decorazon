@@ -11,7 +11,7 @@ const GROSOR_CONTORNO_PX = 2
 
 type Prisma3D = Extract<Pieza3D, { forma: 'prisma' }>
 
-export type EventosPieza = Pick<ThreeElements['mesh'], 'onClick' | 'onPointerOver' | 'onPointerOut'>
+export type EventosPieza = Pick<ThreeElements['mesh'], 'onClick' | 'onPointerOver' | 'onPointerOut' | 'onPointerDown' | 'onPointerMove' | 'onPointerUp' | 'onPointerCancel'>
 
 /** Contorno de la selección: se ve también sobre el rojo de un conflicto. */
 function Contorno() {

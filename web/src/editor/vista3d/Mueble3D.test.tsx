@@ -1,5 +1,5 @@
 import ReactThreeTestRenderer from '@react-three/test-renderer'
-import type { Color, Mesh, MeshStandardMaterial } from 'three'
+import { Ray, Vector3, type Color, type Mesh, type MeshStandardMaterial } from 'three'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { catalogoBase, piezasDeElemento, type Elemento } from '../../nucleo'
 import { elemento } from '../../nucleo/catalogo/definiciones/ayuda.test-util'
@@ -121,5 +121,39 @@ describe('Mueble3D', () => {
     await r.fireEvent(malla, 'click', { delta: 40 })
     expect(almacen.getState().paso).toBe(1)
     expect(almacen.getState().seleccion).toBeNull()
+  })
+})
+
+describe('Mueble3D: arrastrar en 3D (M-10)', () => {
+  // El rayo que baja en vertical sobre (x, z) metros: corta el suelo justo ahí.
+  const rayo = (x: number, z: number) => new Ray(new Vector3(x, 5, z), new Vector3(0, -1, 0))
+  const objetivo = { setPointerCapture() {}, releasePointerCapture() {} }
+
+  it('el mueble seleccionado sigue al puntero por el suelo, con imán, en un solo paso de deshacer', async () => {
+    montar(armario())
+    almacen.getState().irAPaso(2)
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a1' })
+    const antes = almacen.getState().documento!.elementos[0]!.posicion
+    const pasos = almacen.getState().pasado.length
+    const r = await ReactThreeTestRenderer.create(<Mueble3D elemento={almacen.getState().documento!.elementos[0]!} />)
+    const malla = r.scene.findAll((n) => n.type === 'Mesh')[0]!
+    await r.fireEvent(malla, 'onPointerDown', { ray: rayo(antes.x / 100, antes.y / 100), pointerId: 1, button: 0, target: objetivo })
+    await r.fireEvent(malla, 'onPointerMove', { ray: rayo(antes.x / 100 + 0.5, antes.y / 100 + 0.4), pointerId: 1, target: objetivo })
+    await r.fireEvent(malla, 'onPointerUp', { ray: rayo(antes.x / 100 + 0.5, antes.y / 100 + 0.4), pointerId: 1, target: objetivo })
+    const despues = almacen.getState().documento!.elementos[0]!.posicion
+    expect(despues).not.toEqual(antes)
+    expect(despues.y).toBeCloseTo(antes.y + 40, -1)
+    expect(almacen.getState().pasado.length).toBe(pasos + 1)
+  })
+
+  it('un mueble sin seleccionar no se arrastra (empezar sobre él sigue girando la cámara)', async () => {
+    montar(armario())
+    almacen.getState().irAPaso(2)
+    const antes = almacen.getState().documento!.elementos[0]!.posicion
+    const r = await ReactThreeTestRenderer.create(<Mueble3D elemento={almacen.getState().documento!.elementos[0]!} />)
+    const malla = r.scene.findAll((n) => n.type === 'Mesh')[0]!
+    await r.fireEvent(malla, 'onPointerDown', { ray: rayo(1, 1), pointerId: 1, button: 0, target: objetivo })
+    await r.fireEvent(malla, 'onPointerMove', { ray: rayo(2, 2), pointerId: 1, target: objetivo })
+    expect(almacen.getState().documento!.elementos[0]!.posicion).toEqual(antes)
   })
 })
