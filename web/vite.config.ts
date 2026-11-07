@@ -27,6 +27,8 @@ export default defineConfig({
       workbox: {
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         navigateFallback: '/index.html',
+        // Abiertos en el navegador son navegaciones: sin esto el service worker devolvería la aplicación en su lugar.
+        navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/],
       },
     }),
   ],

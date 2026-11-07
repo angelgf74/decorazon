@@ -13,6 +13,7 @@ import AnfitrionDeVistasPrevias from './disenos/vistaPrevia/AnfitrionDeVistasPre
 import Editor from './editor/Editor'
 import Inicio from './paginas/Inicio'
 import Privacidad from './paginas/Privacidad'
+import Metadatos from './Metadatos'
 
 export default function App() {
   return (
@@ -21,18 +22,18 @@ export default function App() {
       {/* Fuera de las rutas: termina las vistas previas que quedaron pendientes al salir de un editor. */}
       <AnfitrionDeVistasPrevias />
       <Routes>
-        <Route path="/" element={<Inicio />} />
-        <Route path="/disenar" element={<Editor />} />
+        <Route path="/" element={<><Metadatos pagina="inicio" /><Inicio /></>} />
+        <Route path="/disenar" element={<><Metadatos pagina="disenar" /><Editor /></>} />
         <Route path="/disenos" element={<MisDisenos />} />
         <Route path="/disenos/:id" element={<EditorDeDiseno />} />
         <Route path="/compartido/:enlace" element={<VistaCompartida />} />
-        <Route path="/entrar" element={<Entrar />} />
-        <Route path="/registro" element={<Registro />} />
-        <Route path="/registro/confirmar" element={<ConfirmarRegistro />} />
-        <Route path="/contrasena/olvido" element={<OlvidoContrasena />} />
-        <Route path="/contrasena/restablecer" element={<RestablecerContrasena />} />
-        <Route path="/cuenta" element={<MiCuenta />} />
-        <Route path="/privacidad" element={<Privacidad />} />
+        <Route path="/entrar" element={<><Metadatos pagina="entrar" /><Entrar /></>} />
+        <Route path="/registro" element={<><Metadatos pagina="registro" /><Registro /></>} />
+        <Route path="/registro/confirmar" element={<><Metadatos pagina="confirmar" /><ConfirmarRegistro /></>} />
+        <Route path="/contrasena/olvido" element={<><Metadatos pagina="olvido" /><OlvidoContrasena /></>} />
+        <Route path="/contrasena/restablecer" element={<><Metadatos pagina="restablecer" /><RestablecerContrasena /></>} />
+        <Route path="/cuenta" element={<><Metadatos pagina="cuenta" /><MiCuenta /></>} />
+        <Route path="/privacidad" element={<><Metadatos pagina="privacidad" /><Privacidad /></>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

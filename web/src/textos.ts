@@ -518,4 +518,25 @@ export const textos = {
     noRectangular: 'La estancia ya no es rectangular: cambia las paredes una a una',
     cambioNoValido: 'Ese cambio no es válido',
   },
+  /** Título y descripción de cada página para buscadores (`Metadatos.tsx`): título hasta 60 caracteres, descripción hasta 160. */
+  seo: {
+    inicio: {
+      titulo: 'Decorazon: diseña tu habitación en 2D y 3D, gratis',
+      descripcion: 'Planificador de habitaciones online: dibuja tu dormitorio, salón, cocina o baño a medida, coloca los muebles y míralo en 3D. Gratis y sin registro.',
+    },
+    disenar: {
+      titulo: 'Diseñar una habitación online en 3D | Decorazon',
+      descripcion: 'Dibuja las paredes con tus medidas, añade puertas y ventanas, amuebla desde el catálogo y comprueba que todo cabe y se abre. Sin registro.',
+    },
+    privacidad: {
+      titulo: 'Privacidad | Decorazon',
+      descripcion: 'Qué datos guarda Decorazon, para qué los usa y cómo borrarlos.',
+    },
+    entrar: { titulo: 'Entrar | Decorazon' },
+    registro: { titulo: 'Crear cuenta | Decorazon' },
+    confirmar: { titulo: 'Confirmar la cuenta | Decorazon' },
+    olvido: { titulo: 'He olvidado la contraseña | Decorazon' },
+    restablecer: { titulo: 'Elegir otra contraseña | Decorazon' },
+    cuenta: { titulo: 'Mi cuenta | Decorazon' },
+  },
 } as const
