@@ -174,3 +174,73 @@ public class VersionAnteriorTests(ApiConRelojAjustable api) : IClassFixture<ApiC
         Assert.Equal(HttpStatusCode.NotFound, (await cliente.GetAsync($"/disenos/{id}/version-anterior")).StatusCode);
     }
 }
+
+[Trait("Categoria", "Integracion")]
+public class VersionAnteriorProtegidaTests(ApiConRelojAjustable api) : IClassFixture<ApiConRelojAjustable>
+{
+    private readonly bool _relojEnHora = Poner(api);
+    private static bool Poner(ApiConRelojAjustable api) { api.Reloj.Ahora = DateTimeOffset.UtcNow; return true; }
+
+    private static string Json(string notas) =>
+        $$"""{"formato":1,"estancia":{"ancho":300,"largo":400,"notas":"{{notas}}"},"aberturas":[],"estructura":[],"elementos":[]}""";
+
+    private static async Task PutAsync(HttpClient cliente, Guid id, int version, string notas, bool copia = false)
+    {
+        var peticion = new HttpRequestMessage(HttpMethod.Put, $"/disenos/{id}") { Content = JsonContent.Create(DisenosDePrueba.Peticion(json: Json(notas))) };
+        peticion.Headers.TryAddWithoutValidation("If-Match", $"\"{version}\"");
+        if (copia) peticion.Headers.Add("X-Copia-Previa", "1");
+        Assert.Equal(HttpStatusCode.OK, (await cliente.SendAsync(peticion)).StatusCode);
+    }
+
+    private static async Task<string> NotasDeLaCopiaAsync(HttpClient cliente, Guid id) =>
+        (await cliente.GetFromJsonAsync<RespuestaDeVersionAnterior>($"/disenos/{id}/version-anterior"))!.Contenido.GetProperty("estancia").GetProperty("notas").GetString()!;
+
+    [Fact]
+    public async Task LaCopiaDeSobrescribir_NoLaPisaUnaSesionNormalEnUnaSemana_PeroSiOtraPedida()
+    {
+        var cliente = await CuentasDePrueba.ConSesionAsync(api);
+        var id = await DisenosDePrueba.CrearAsync(cliente);
+        await PutAsync(cliente, id, 1, "de otro dispositivo");
+        await PutAsync(cliente, id, 2, "mio", copia: true);
+        Assert.Equal("de otro dispositivo", await NotasDeLaCopiaAsync(cliente, id));
+
+        // Al día siguiente se edita otra vez: la copia pedida sigue (lo de otro dispositivo no se pierde).
+        api.Reloj.Adelantar(TimeSpan.FromDays(1));
+        await PutAsync(cliente, id, 3, "retoque");
+        Assert.Equal("de otro dispositivo", await NotasDeLaCopiaAsync(cliente, id));
+
+        // Otra copia pedida sí la sustituye.
+        await PutAsync(cliente, id, 4, "otra vez", copia: true);
+        Assert.Equal("retoque", await NotasDeLaCopiaAsync(cliente, id));
+    }
+
+    [Fact]
+    public async Task PasadaUnaSemana_LaCopiaPedidaYaNoEstaProtegida()
+    {
+        var cliente = await CuentasDePrueba.ConSesionAsync(api);
+        var id = await DisenosDePrueba.CrearAsync(cliente);
+        await PutAsync(cliente, id, 1, "de otro dispositivo");
+        await PutAsync(cliente, id, 2, "mio", copia: true);
+
+        api.Reloj.Adelantar(TimeSpan.FromDays(8));
+        await PutAsync(cliente, id, 3, "mucho después");
+        Assert.Equal("mio", await NotasDeLaCopiaAsync(cliente, id));
+    }
+
+    [Fact]
+    public async Task LoQueSeDejaAlRecuperar_TambienQuedaProtegido()
+    {
+        var cliente = await CuentasDePrueba.ConSesionAsync(api);
+        var id = await DisenosDePrueba.CrearAsync(cliente);
+        await PutAsync(cliente, id, 1, "ayer");
+        api.Reloj.Adelantar(TimeSpan.FromDays(1));
+        await PutAsync(cliente, id, 2, "hoy");
+        var recuperar = new HttpRequestMessage(HttpMethod.Post, $"/disenos/{id}/version-anterior/recuperar");
+        recuperar.Headers.TryAddWithoutValidation("If-Match", "\"3\"");
+        Assert.Equal(HttpStatusCode.OK, (await cliente.SendAsync(recuperar)).StatusCode);
+
+        api.Reloj.Adelantar(TimeSpan.FromDays(1));
+        await PutAsync(cliente, id, 4, "retoque tras recuperar");
+        Assert.Equal("hoy", await NotasDeLaCopiaAsync(cliente, id));
+    }
+}

@@ -102,11 +102,19 @@ namespace Decorazon.Infraestructura.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("nombre");
 
+                    b.Property<bool>("Pedida")
+                        .HasColumnType("boolean")
+                        .HasColumnName("pedida");
+
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("tipo");
+
+                    b.Property<DateTimeOffset>("Tomada")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("tomada");
 
                     b.Property<int>("Version")
                         .HasColumnType("integer")

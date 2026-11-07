@@ -123,16 +123,16 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
             .FirstOrDefaultAsync(cancelacion);
 
     // Solo rastrea, como Anadir: la copia y el diseño se guardan juntos en GuardarCambiosAsync.
-    public async Task CopiarVersionAnteriorAsync(Diseno diseno, CancellationToken cancelacion = default)
+    public async Task CopiarVersionAnteriorAsync(Diseno diseno, bool pedida, DateTimeOffset ahora, CancellationToken cancelacion = default)
     {
         var existente = await contexto.VersionesAnteriores.FindAsync([diseno.Id], cancelacion);
         if (existente is null)
         {
-            contexto.VersionesAnteriores.Add(VersionAnterior.De(diseno));
+            contexto.VersionesAnteriores.Add(VersionAnterior.De(diseno, pedida, ahora));
         }
         else
         {
-            existente.Sustituir(diseno);
+            existente.Sustituir(diseno, pedida, ahora);
         }
     }
 

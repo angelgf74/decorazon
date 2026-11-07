@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Decorazon.Infraestructura.Migrations
 {
     [DbContext(typeof(DecorazonDbContext))]
-    [Migration("20261107130719_VersionesAnteriores")]
+    [Migration("20261107131925_VersionesAnteriores")]
     partial class VersionesAnteriores
     {
         /// <inheritdoc />
@@ -105,11 +105,19 @@ namespace Decorazon.Infraestructura.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("nombre");
 
+                    b.Property<bool>("Pedida")
+                        .HasColumnType("boolean")
+                        .HasColumnName("pedida");
+
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("tipo");
+
+                    b.Property<DateTimeOffset>("Tomada")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("tomada");
 
                     b.Property<int>("Version")
                         .HasColumnType("integer")

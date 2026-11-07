@@ -27,6 +27,8 @@ export interface Apertura {
   nombrePendiente?: string
   guardado: Extract<EstadoGuardado, 'guardado' | 'pendiente' | 'sinConexion' | 'conflicto'>
   versionRemota?: number
+  /** La copia local pedía copia al sobrescribir (M-21) y aún no se subió: el próximo guardado la vuelve a pedir. */
+  copiaPrevia?: boolean
 }
 
 /** Qué abrir al entrar en un diseño: la copia local si tiene cambios sin subir; si no, la del servidor. `remoto` null = sin conexión. */
@@ -39,7 +41,7 @@ export function elegirApertura(
     if (copia === null) return null
     const nombre = copia.nombre ?? textos.disenos.nombrePorDefecto
     const conRenombrado = copia.nombrePendiente && copia.nombre !== undefined ? { nombrePendiente: copia.nombre } : {}
-    return { id, version: copia.version, nombre, documento: copia.documento, pendiente: copia.pendiente, ...conRenombrado, guardado: 'sinConexion' }
+    return { id, version: copia.version, nombre, documento: copia.documento, pendiente: copia.pendiente, ...conRenombrado, ...(copia.copiaPrevia && { copiaPrevia: true }), guardado: 'sinConexion' }
   }
   const nombreRemoto = remoto.diseno.nombre
   const mismaVersion = copia !== null && copia.version === remoto.version
@@ -61,7 +63,7 @@ export function elegirApertura(
   }
   const nombre = renombrado ?? nombreRemoto
   const conRenombrado = renombrado !== undefined ? { nombrePendiente: renombrado } : {}
-  if (copia?.pendiente) return { id, version: copia.version, nombre, documento: copia.documento, pendiente: true, ...conRenombrado, guardado: 'pendiente' }
+  if (copia?.pendiente) return { id, version: copia.version, nombre, documento: copia.documento, pendiente: true, ...conRenombrado, ...(copia.copiaPrevia && { copiaPrevia: true }), guardado: 'pendiente' }
   return {
     id, version: remoto.version, nombre, documento: remoto.diseno.contenido, pendiente: false, ...conRenombrado,
     guardado: renombrado !== undefined ? 'pendiente' : 'guardado',
@@ -150,7 +152,10 @@ export function conectarSincronizacion(
   const copiar = (t: Trabajo) => {
     // Un trabajo ya dejado no pisa la copia del mismo diseño abierto otra vez.
     if (anulado(t) || (t !== actual && actual?.id === t.id)) return
-    const ok = guardarCopiaLocal(st, t.id, { version: t.version, nombre: t.nombre, documento: t.documento, pendiente: hayCambios(t), nombrePendiente: t.nombrePendiente !== null })
+    const ok = guardarCopiaLocal(st, t.id, {
+      version: t.version, nombre: t.nombre, documento: t.documento, pendiente: hayCambios(t), nombrePendiente: t.nombrePendiente !== null,
+      ...(t.copiaPrevia && hayCambios(t) && { copiaPrevia: true as const }),
+    })
     if (!ok) fijar(t, { aviso: textos.barra.sinCopiaLocal })
   }
 
@@ -385,6 +390,7 @@ export function conectarSincronizacion(
       if (t === null || t.id !== ap.id) return
       t.sucio = ap.pendiente
       t.nombrePendiente = ap.nombrePendiente ?? null
+      t.copiaPrevia = ap.copiaPrevia === true
       t.conflicto = ap.guardado === 'conflicto'
       a.setState({ guardado: ap.guardado, versionRemota: ap.versionRemota ?? null })
       copiar(t)

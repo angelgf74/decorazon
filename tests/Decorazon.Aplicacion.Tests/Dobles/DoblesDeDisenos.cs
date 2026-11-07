@@ -45,10 +45,10 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
     public Task<VersionAnterior?> ObtenerVersionAnteriorAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
         Task.FromResult(_disenos.Any(d => d.UsuarioId == usuarioId && d.Id == id) && _copias.TryGetValue(id, out var c) ? c : null);
 
-    public Task CopiarVersionAnteriorAsync(Diseno diseno, CancellationToken cancelacion = default)
+    public Task CopiarVersionAnteriorAsync(Diseno diseno, bool pedida, DateTimeOffset ahora, CancellationToken cancelacion = default)
     {
-        if (_copias.TryGetValue(diseno.Id, out var c)) c.Sustituir(diseno);
-        else _copias[diseno.Id] = VersionAnterior.De(diseno);
+        if (_copias.TryGetValue(diseno.Id, out var c)) c.Sustituir(diseno, pedida, ahora);
+        else _copias[diseno.Id] = VersionAnterior.De(diseno, pedida, ahora);
         return Task.CompletedTask;
     }
 

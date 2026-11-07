@@ -864,3 +864,33 @@ describe('anular la sincronización al cerrar la sesión', () => {
     expect(st.getItem(`decorazon.diseno.${ID}`)).toBeNull()
   })
 })
+
+describe('sincronización: la copia pedida al sobrescribir sobrevive a un fallo (M-21)', () => {
+  it('si el PUT de sobrescribir no sale, la copia local lo apunta, al reabrir se vuelve a pedir y tras salir bien se olvida', async () => {
+    const remoto = servidorConVersion(9)
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(a.getState().guardado).toBe('conflicto')
+    servidor.guardarDiseno.mockRejectedValueOnce(new ErrorDeApi(0, 'sin red'))
+    await resolverConflicto(a, 'sobrescribir')
+    expect(servidor.guardarDiseno.mock.calls.at(-1)![3]).toEqual({ copiaPrevia: true })
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ version: 9, pendiente: true, copiaPrevia: true })
+
+    // Se cierra la pestaña (su sincronización se va) y se vuelve en otra con el mismo almacenamiento.
+    // anularSincronizacion: lo que la pestaña cerrada tenía en marcha ya no sube nada (al cerrarla de verdad, no existe).
+    anularSincronizacion(a)
+    desconectadores.splice(0).forEach((d) => d())
+    const b = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(b, { esperaMs: 2000, st }))
+    const apertura = elegirApertura(ID, leerCopiaLocal(st, ID), { diseno: disenoServidor(9), version: 9 })
+    expect(apertura).toMatchObject({ pendiente: true, guardado: 'pendiente', copiaPrevia: true })
+    abrirDiseno(b, apertura!)
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(servidor.guardarDiseno.mock.calls.at(-1)![3]).toEqual({ copiaPrevia: true })
+    expect(remoto.version).toBe(10)
+    // La copia local se escribe con un pequeño retardo (ESPERA_COPIA_MS).
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(leerCopiaLocal(st, ID)?.copiaPrevia).toBeUndefined()
+  })
+})

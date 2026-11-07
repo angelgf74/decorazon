@@ -20,6 +20,8 @@ namespace Decorazon.Infraestructura.Migrations
                     tipo = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     contenido = table.Column<string>(type: "jsonb", nullable: false),
                     fecha = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    pedida = table.Column<bool>(type: "boolean", nullable: false),
+                    tomada = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     version = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>

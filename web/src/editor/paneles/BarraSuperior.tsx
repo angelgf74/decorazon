@@ -161,6 +161,11 @@ export default function BarraSuperior({ alImprimir, alDescargarImagen, preparand
     try {
       // Un guardado en marcha subiría la versión: se espera y se recupera con la que quede abierta.
       await esperarGuardados(o.id)
+      // Un cambio hecho mientras se preguntaba aún no ha subido: recuperar lo perdería.
+      if (almacen.getState().guardado !== 'guardado') {
+        almacen.setState({ aviso: t.recuperarEspera })
+        return
+      }
       const vigente = almacen.getState().origen
       const r = await recuperarVersionAnterior(o.id, vigente.tipo === 'servidor' ? vigente.version : o.version)
       abrirDiseno(almacen, { id: o.id, version: r.version, nombre: r.diseno.nombre, documento: r.diseno.contenido, pendiente: false, guardado: 'guardado' })

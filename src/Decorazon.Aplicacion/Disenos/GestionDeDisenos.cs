@@ -131,9 +131,15 @@ public sealed class GestionDeDisenos(IRepositorioDeDisenos disenos, IReloj reloj
             return new ResultadoDeDiseno(EstadoDeDiseno.VersionDistinta, diseno);
         }
 
-        if (VersionAnterior.TocaCopiar(diseno, reloj.Ahora, copiaPedida))
+        // La copia que hay solo se lee si podría tocar sustituirla (la mayoría de guardados son seguidos y no).
+        var ahora = reloj.Ahora;
+        if (copiaPedida || ahora - diseno.FechaDeModificacion >= VersionAnterior.PausaParaCopiar)
         {
-            await disenos.CopiarVersionAnteriorAsync(diseno, cancelacion);
+            var existente = copiaPedida ? null : await disenos.ObtenerVersionAnteriorAsync(usuarioId, id, cancelacion);
+            if (VersionAnterior.TocaCopiar(diseno, existente, ahora, copiaPedida))
+            {
+                await disenos.CopiarVersionAnteriorAsync(diseno, copiaPedida, ahora, cancelacion);
+            }
         }
 
         diseno.Actualizar(conversion.Nombre!, conversion.Tipo, conversion.Contenido!, reloj.Ahora);
@@ -175,7 +181,8 @@ public sealed class GestionDeDisenos(IRepositorioDeDisenos disenos, IReloj reloj
             return new ResultadoDeDiseno(EstadoDeDiseno.VersionDistinta, diseno);
         }
 
-        await disenos.CopiarVersionAnteriorAsync(diseno, cancelacion);
+        // Lo que se deja al recuperar es trabajo de alguien: copia pedida, protegida como la de sobrescribir.
+        await disenos.CopiarVersionAnteriorAsync(diseno, pedida: true, reloj.Ahora, cancelacion);
         diseno.Actualizar(copia.Nombre, copia.Tipo, copia.Contenido, reloj.Ahora);
 
         if (!await disenos.GuardarCambiosAsync(cancelacion))

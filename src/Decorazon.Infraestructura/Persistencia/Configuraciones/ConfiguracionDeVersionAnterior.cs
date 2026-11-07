@@ -46,6 +46,14 @@ public sealed class ConfiguracionDeVersionAnterior : IEntityTypeConfiguration<Ve
             .HasColumnName("fecha")
             .IsRequired();
 
+        constructor.Property(copia => copia.Pedida)
+            .HasColumnName("pedida")
+            .IsRequired();
+
+        constructor.Property(copia => copia.Tomada)
+            .HasColumnName("tomada")
+            .IsRequired();
+
         constructor.Property(copia => copia.Version)
             .HasColumnName("version")
             .IsRequired();

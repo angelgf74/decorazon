@@ -77,5 +77,5 @@ public interface IRepositorioDeDisenos
     /// Copia el diseño tal como está ahora (antes de cambiarlo): crea su copia o sustituye la que hubiera. Solo hace
     /// seguimiento: se guarda con <see cref="GuardarCambiosAsync"/>, a la vez que el diseño.
     /// </summary>
-    Task CopiarVersionAnteriorAsync(Diseno diseno, CancellationToken cancelacion = default);
+    Task CopiarVersionAnteriorAsync(Diseno diseno, bool pedida, DateTimeOffset ahora, CancellationToken cancelacion = default);
 }

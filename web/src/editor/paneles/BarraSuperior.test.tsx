@@ -395,3 +395,32 @@ describe('BarraSuperior: «Recuperar la versión anterior» (M-21)', () => {
     expect(screen.queryByRole('button', { name: 'Recuperar la versión anterior' })).toBeNull()
   })
 })
+
+describe('BarraSuperior: recuperar no pisa cambios hechos mientras se preguntaba', () => {
+  const ID = '22222222-2222-2222-2222-222222222222'
+  const fetchCopia = vi.fn<(p: Request) => Promise<Response>>()
+  beforeEach(() => {
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: new Date(Date.now() + 86_400_000).toISOString() }))
+    reiniciarSesion()
+    almacen.getState().abrirDelServidor(ID, 3, 'Cocina', almacen.getState().documento!)
+    almacen.setState({ guardado: 'guardado' })
+    fetchCopia.mockReset()
+    sincronizacion.abrirDiseno.mockClear()
+    vi.stubGlobal('fetch', fetchCopia)
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('si al aceptar quedan cambios sin subir, no recupera y lo dice', async () => {
+    fetchCopia.mockResolvedValueOnce(respuesta(200, { nombre: 'Cocina', tipoEstancia: 'salon', fecha: '2026-11-06T18:30:00Z', version: 2, contenido: almacen.getState().documento }))
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Recuperar la versión anterior' }))
+    await screen.findByRole('dialog')
+    // Un cambio hecho entretanto: el guardado está pendiente.
+    almacen.setState({ guardado: 'pendiente' })
+    await userEvent.click(screen.getByRole('button', { name: 'Recuperar' }))
+    await vi.waitFor(() => expect(almacen.getState().aviso).toBe(textos.barra.recuperarEspera))
+    expect(fetchCopia).toHaveBeenCalledTimes(1)
+    expect(sincronizacion.abrirDiseno).not.toHaveBeenCalled()
+  })
+})
