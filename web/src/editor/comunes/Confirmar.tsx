@@ -15,9 +15,11 @@ interface Props {
   ocupado?: boolean
   /** Contenido extra bajo el mensaje, como un campo. */
   children?: ReactNode
+  /** Una nota que solo se lee: sin botón de cancelar (aceptar y Escape hacen lo mismo). */
+  soloAceptar?: boolean
 }
 
-export default function Confirmar({ abierto, mensaje, textoAceptar, textoCancelar = textos.comun.cancelar, alAceptar, alCancelar, alEscapar = alCancelar, ocupado = false, children }: Props) {
+export default function Confirmar({ abierto, mensaje, textoAceptar, textoCancelar = textos.comun.cancelar, alAceptar, alCancelar, alEscapar = alCancelar, ocupado = false, children, soloAceptar = false }: Props) {
   // El navegador puede cerrarlo aunque se anule el Escape: cuenta como Escape y, si la página lo sigue queriendo abierto, se reabre.
   const { ref, alCerrar } = useDialogoModal(abierto, () => { if (!ocupado) alEscapar() })
 
@@ -32,7 +34,7 @@ export default function Confirmar({ abierto, mensaje, textoAceptar, textoCancela
       <p>{mensaje}</p>
       {children}
       <div className="confirmar__botones">
-        <button type="button" disabled={ocupado} onClick={alCancelar}>{textoCancelar}</button>
+        {!soloAceptar && <button type="button" disabled={ocupado} onClick={alCancelar}>{textoCancelar}</button>}
         <button type="button" className="primario" disabled={ocupado} onClick={alAceptar}>{textoAceptar}</button>
       </div>
     </dialog>

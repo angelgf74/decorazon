@@ -4,6 +4,7 @@ import { empezarDeNuevo, subirDisenoAnonimo } from '../../cuenta/disenosLocales'
 import { useSesion } from '../../cuenta/sesion'
 import DialogoDeSugerencia from '../../sugerencias/DialogoDeSugerencia'
 import { textos } from '../../textos'
+import { instalar, useEstadoDeInstalacion } from '../../instalacion'
 import Confirmar from '../comunes/Confirmar'
 import Icono from '../comunes/Icono'
 import type { NombreIcono } from '../comunes/iconos'
@@ -134,6 +135,9 @@ export default function BarraSuperior({ alImprimir, alDescargarImagen, preparand
   const [confirmando, setConfirmando] = useState(false)
   const [sugiriendo, setSugiriendo] = useState(false)
   const [subiendo, setSubiendo] = useState(false)
+  // «Instalar Decorazon» solo existe si el navegador lo permite ('aviso') o hay que explicar los pasos ('ios').
+  const instalable = useEstadoDeInstalacion()
+  const [explicandoIos, setExplicandoIos] = useState(false)
   const navegar = useNavigate()
   const puedeGuardarEnCuenta = useEditor((e) => e.origen.tipo === 'anonimo' && e.documento !== null) && haySesion
 
@@ -158,6 +162,9 @@ export default function BarraSuperior({ alImprimir, alDescargarImagen, preparand
       : []),
     ...(alDescargarPlano ? [{ icono: 'descargar', texto: t.descargarPlano, alElegir: alDescargarPlano } satisfies Opcion] : []),
     ...(alDescargarDiseno ? [{ icono: 'descargar', texto: t.descargarDiseno, alElegir: alDescargarDiseno } satisfies Opcion] : []),
+    ...(instalable !== 'no'
+      ? [{ icono: 'instalar', texto: t.instalar, alElegir: () => { if (instalable === 'ios') setExplicandoIos(true); else void instalar() } } satisfies Opcion]
+      : []),
     // En móvil la sugerencia va en las pestañas de abajo (al alcance del pulgar): aquí se oculta por CSS.
     { icono: 'sugerencia', texto: textos.sugerencias.abrir, title: textos.sugerencias.pista, className: 'menu__sugerencia', alElegir: () => setSugiriendo(true) },
   ]
@@ -228,6 +235,8 @@ export default function BarraSuperior({ alImprimir, alDescargarImagen, preparand
         alCancelar={() => setConfirmando(false)}
       />
       {sugiriendo && <DialogoDeSugerencia alCerrar={() => setSugiriendo(false)} />}
+      <Confirmar abierto={explicandoIos} mensaje={t.instalarIos} textoAceptar={textos.comun.entendido} soloAceptar
+        alAceptar={() => setExplicandoIos(false)} alCancelar={() => setExplicandoIos(false)} />
     </header>
   )
 }

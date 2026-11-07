@@ -11,6 +11,9 @@ import BarraSuperior from './BarraSuperior'
 
 const sincronizacion = vi.hoisted(() => ({ renombrar: vi.fn() }))
 vi.mock('../persistencia/sincronizacion', () => sincronizacion)
+// El estado de instalación (M-25) lo fija cada test: el real depende de un evento del navegador.
+const instalacion = vi.hoisted(() => ({ estado: 'no' as 'no' | 'aviso' | 'ios', instalar: vi.fn(async () => true) }))
+vi.mock('../../instalacion', () => ({ useEstadoDeInstalacion: () => instalacion.estado, instalar: instalacion.instalar }))
 
 beforeEach(() => {
   localStorage.clear()
@@ -284,5 +287,36 @@ describe('BarraSuperior: descargas en el menú', () => {
     render(<BarraSuperior />, { wrapper: MemoryRouter })
     await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
     for (const n of nombres) expect(screen.queryByRole('button', { name: n })).toBeNull()
+  })
+})
+
+describe('BarraSuperior: «Instalar Decorazon» (M-25)', () => {
+  afterEach(() => { instalacion.estado = 'no'; instalacion.instalar.mockClear() })
+
+  it('sin aviso del navegador no hay opción de instalar', async () => {
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    expect(screen.queryByRole('button', { name: 'Instalar Decorazon' })).toBeNull()
+  })
+
+  it('con el aviso guardado, elegir «Instalar Decorazon» lo enseña', async () => {
+    instalacion.estado = 'aviso'
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Instalar Decorazon' }))
+    expect(instalacion.instalar).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('en iOS abre los pasos (Compartir → Añadir a pantalla de inicio) y «Entendido» los cierra', async () => {
+    instalacion.estado = 'ios'
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Instalar Decorazon' }))
+    expect(instalacion.instalar).not.toHaveBeenCalled()
+    const dialogo = screen.getByRole('dialog')
+    expect(dialogo).toHaveTextContent('Añadir a pantalla de inicio')
+    await userEvent.click(screen.getByRole('button', { name: 'Entendido' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
