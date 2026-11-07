@@ -19,8 +19,9 @@ function arranque() {
   return { html, js, css }
 }
 
-// Solo tiene sentido tras `npm run build`: sin dist se salta en local; en el CI (que compila antes) no se salta nunca.
-describe.skipIf(!hay('index.html') && !process.env.CI)('presupuesto de arranque en dist', () => {
+// Solo tiene sentido tras `npm run build`: sin dist se salta (npm test corre antes del build, también en el CI).
+// El paso del CI que lo lanza tras compilar pone EXIGIR_DIST=1: entonces, sin dist, falla en vez de saltarse.
+describe.skipIf(!hay('index.html') && !process.env.EXIGIR_DIST)('presupuesto de arranque en dist', () => {
   it('index.html no carga ni precarga el fragmento 3D: three solo entra al pulsar 3D', () => {
     const { html, js } = arranque()
     expect(js.length).toBeGreaterThan(0)

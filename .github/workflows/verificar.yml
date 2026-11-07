@@ -27,7 +27,7 @@ jobs:
       - run: npm test
       - run: npm run build
       # El presupuesto de arranque (pruebas-build) mide dist: solo tras compilar, y en el CI no se salta.
-      - run: npx vitest run pruebas-build
+      - run: EXIGIR_DIST=1 npx vitest run pruebas-build
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
 
