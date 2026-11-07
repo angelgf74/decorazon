@@ -23,9 +23,8 @@ describe('ejemplos del inicio', () => {
       expect(ejemplo.documento.aberturas.some((a) => a.tipo === 'ventana')).toBe(true)
       expect(ejemplo.documento.elementos.length).toBeGreaterThanOrEqual(5)
     })
-    it('no tiene errores: ni solapes ni nada que no abra (un paso estrecho se tolera)', () => {
-      const errores = detectarConflictos(ejemplo.documento, catalogoBase).filter((c) => c.gravedad === 'error')
-      expect(errores.map((c) => c.mensaje)).toEqual([])
+    it('no tiene ni errores ni avisos: es lo primero que ve quien llega, y «6 avisos» resta confianza', () => {
+      expect(detectarConflictos(ejemplo.documento, catalogoBase).map((c) => c.mensaje)).toEqual([])
     })
     it('su imagen existe en public', () => {
       expect(ejemplo.imagen).toMatch(/^\/ejemplos\/[a-z-]+\.(png|jpg|webp)$/)
