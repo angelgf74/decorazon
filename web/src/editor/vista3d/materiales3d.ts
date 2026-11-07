@@ -1,5 +1,6 @@
 import { MeshPhysicalMaterial, MeshStandardMaterial, type Material } from 'three'
 import { PBR, type MaterialPBR } from '../../nucleo'
+import { texturaDe } from './texturas'
 
 export type EstadoPieza = 'normal' | 'seleccionado' | 'conflicto'
 
@@ -24,7 +25,7 @@ export const materialesEnCache = (): number => cache.size
 
 function crear(material: MaterialPBR, color: string, estado: EstadoPieza): Material {
   const { rugosidad, metalicidad, opacidad } = PBR[material]
-  const comunes = { color, roughness: rugosidad, metalness: metalicidad }
+  const comunes = { color, roughness: rugosidad, metalness: metalicidad, map: texturaDe(material) }
   // El cristal de ventana deja ver y pasar luz cálida; la mampara deja ver, sin luz propia; el vidrio de placas y hornos es oscuro y se pinta opaco.
   const m = material === 'cristal'
     ? new MeshPhysicalMaterial({ ...comunes, transparent: true, opacity: opacidad, emissive: '#fff6e0', emissiveIntensity: 0.4 })

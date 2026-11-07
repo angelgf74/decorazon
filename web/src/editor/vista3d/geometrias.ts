@@ -22,3 +22,29 @@ export function geometriaSuelo(planta: Punto[]): BufferGeometry {
   g.rotateX(-Math.PI / 2)
   return g
 }
+
+/**
+ * Coordenadas de textura en metros (M-12): con las de three cada cara va de 0 a 1 y la veta de un tablero de 2 m
+ * saldría igual de ancha que la de un tirador. Las caras se proyectan sobre el plano de su normal dominante; en un
+ * cilindro (`cilindro`: su radio) el lateral da la vuelta en 2πr y las tapas miden su diámetro. Cambia `g` y lo devuelve.
+ */
+export function uvsEnMetros<G extends BufferGeometry>(g: G, opciones: { cilindro?: number } = {}): G {
+  const posicion = g.getAttribute('position')
+  const normal = g.getAttribute('normal')
+  const uv = g.getAttribute('uv')
+  g.computeBoundingBox()
+  const alto = g.boundingBox!.max.y - g.boundingBox!.min.y
+  for (let i = 0; i < uv.count; i++) {
+    const [nx, ny, nz] = [Math.abs(normal.getX(i)), Math.abs(normal.getY(i)), Math.abs(normal.getZ(i))]
+    const [x, y, z] = [posicion.getX(i), posicion.getY(i), posicion.getZ(i)]
+    if (opciones.cilindro !== undefined) {
+      const r = opciones.cilindro
+      if (ny < 0.5) uv.setXY(i, uv.getX(i) * 2 * Math.PI * r, uv.getY(i) * alto)
+      else uv.setXY(i, uv.getX(i) * 2 * r, uv.getY(i) * 2 * r)
+    } else if (nx >= ny && nx >= nz) uv.setXY(i, z, y)
+    else if (ny >= nz) uv.setXY(i, x, z)
+    else uv.setXY(i, x, y)
+  }
+  uv.needsUpdate = true
+  return g
+}
