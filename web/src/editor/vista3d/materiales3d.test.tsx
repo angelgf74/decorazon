@@ -56,3 +56,27 @@ describe('Pieza: sombras', () => {
     expect(materialDe('madera', '#000002')).toBe(usado)
   })
 })
+
+describe('materialDe: texturas (M-12)', () => {
+  it('la madera lleva su veta como mapa y el lacado no', () => {
+    expect((materialDe('madera', '#a0522d') as MeshPhysicalMaterial).map).not.toBeNull()
+    expect((materialDe('lacado', '#ffffff') as MeshPhysicalMaterial).map).toBeNull()
+  })
+})
+
+describe('Pieza: textura a escala (M-12)', () => {
+  it('una caja de 2 m lleva la textura en metros: la veta no se estira con el tamaño', async () => {
+    const r = await ReactThreeTestRenderer.create(
+      <Pieza pieza={{ forma: 'caja', centro: [0, 0, 0], tamano: [2, 1, 0.5], giroY: 0, material: 'madera', color: '#a0522d' }} />,
+    )
+    const geometria = (r.scene.findAll((n) => n.type === 'Mesh')[0]!.instance as unknown as { geometry: import('three').BufferGeometry }).geometry
+    const uv = geometria.getAttribute('uv')
+    let maxU = -Infinity
+    let minU = Infinity
+    for (let i = 0; i < uv.count; i++) {
+      maxU = Math.max(maxU, uv.getX(i))
+      minU = Math.min(minU, uv.getX(i))
+    }
+    expect(maxU - minU).toBeCloseTo(2)
+  })
+})
