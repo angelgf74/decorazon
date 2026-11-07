@@ -182,3 +182,18 @@ describe('Estancia3D: memoria', () => {
     expect(geometrias().some((g, k) => g !== antes[k])).toBe(true)
   })
 })
+
+describe('Estancia3D: suelo según la estancia (M-12)', () => {
+  const sueloDe = async (tipo: 'bano' | 'salon') => {
+    const doc = documentoNuevo(tipo, 300, 300, 250)
+    const r = await ReactThreeTestRenderer.create(<Estancia3D doc={doc} ocultas={new Set()} />)
+    return { doc, material: (r.scene.findAll((n) => n.type === 'Mesh')[0]!.instance as Mesh).material }
+  }
+
+  it('el baño lleva baldosa y el salón tarima, con el color del suelo', async () => {
+    const bano = await sueloDe('bano')
+    expect(bano.material).toBe(materialDe('baldosa', bano.doc.estancia.colorSuelo))
+    const salon = await sueloDe('salon')
+    expect(salon.material).toBe(materialDe('suelo', salon.doc.estancia.colorSuelo))
+  })
+})

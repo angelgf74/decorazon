@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { documentoNuevo } from '../modelo/crear'
 import type { DocumentoDiseno, Punto } from '../modelo/documento'
 import { areaConSigno, desplazarPoligono, esSimple } from '../geometria/poligono'
-import { escenaEstancia } from './estancia'
+import { escenaEstancia, materialDelSuelo } from './estancia'
 import type { Pieza3D } from './tipos'
 
 const areaHuella = (h: [number, number][]): number => Math.abs(areaConSigno(h.map(([x, y]) => ({ x, y }))))
@@ -201,5 +201,15 @@ describe('escenaEstancia: huecos', () => {
     const { huecos } = escenaEstancia(doc)
     expect(huecos.length).toBeGreaterThan(0)
     expect(huecos.every((h) => h.pared === 1)).toBe(true)
+  })
+})
+
+describe('materialDelSuelo', () => {
+  it('baño y cocina llevan baldosa; dormitorio, salón y despacho, tarima', () => {
+    expect(materialDelSuelo('bano')).toBe('baldosa')
+    expect(materialDelSuelo('cocina')).toBe('baldosa')
+    expect(materialDelSuelo('dormitorio')).toBe('suelo')
+    expect(materialDelSuelo('salon')).toBe('suelo')
+    expect(materialDelSuelo('despacho')).toBe('suelo')
   })
 })

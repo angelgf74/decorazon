@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { escenaEstancia, type DocumentoDiseno } from '../../nucleo'
+import { escenaEstancia, materialDelSuelo, type DocumentoDiseno } from '../../nucleo'
 import { geometriaSuelo } from './geometrias'
 import { materialDe } from './materiales3d'
 import Pieza, { type EventosPieza } from './Pieza'
@@ -28,7 +28,7 @@ export default function Estancia3D({ doc, ocultas }: Props) {
   useEffect(() => () => geometriaDelSuelo.dispose(), [geometriaDelSuelo])
   return (
     <group>
-      <mesh receiveShadow geometry={geometriaDelSuelo} material={materialDe('suelo', doc.estancia.colorSuelo)} />
+      <mesh receiveShadow geometry={geometriaDelSuelo} material={materialDe(materialDelSuelo(doc.estancia.tipo), doc.estancia.colorSuelo)} />
       {/* Muros y huecos no proyectan: con el sol a 45° su sombra cubría media estancia y cambiaba al ocultar paredes. */}
       {[...muros, ...huecos].map((p, k) => (ocultas.has(p.pared) ? null : <Pieza key={k} pieza={p} eventos={OCLUSOR} proyecta={false} />))}
       {estructura.map((p, k) => (p.pared !== undefined && ocultas.has(p.pared) ? null : <Pieza key={`e${k}`} pieza={p} eventos={OCLUSOR} />))}

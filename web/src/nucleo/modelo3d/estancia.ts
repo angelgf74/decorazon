@@ -1,4 +1,4 @@
-import type { Abertura, DocumentoDiseno, Punto } from '../modelo/documento'
+import type { Abertura, DocumentoDiseno, Punto, TipoEstancia } from '../modelo/documento'
 import { desplazarPoligono } from '../geometria/poligono'
 import { cruz, escalar, longitud, punto, restar, sumar } from '../geometria/vector'
 import { hueco, type Hueco } from '../conflictos/estancia'
@@ -148,4 +148,9 @@ export function escenaEstancia(doc: DocumentoDiseno): EscenaEstancia {
   })
 
   return { suelo: planta, muros, huecos, estructura }
+}
+
+/** Acabado del suelo en 3D (M-12): baldosa donde se moja (baño y cocina), tarima en el resto. Lo tiñe el color del suelo. */
+export function materialDelSuelo(tipo: TipoEstancia): 'suelo' | 'baldosa' {
+  return tipo === 'bano' || tipo === 'cocina' ? 'baldosa' : 'suelo'
 }
