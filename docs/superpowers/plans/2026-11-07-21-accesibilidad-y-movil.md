@@ -86,7 +86,12 @@
 
 ## Decisiones al ejecutar
 
-(Se rellena durante la ejecución.)
+- Task 1: los nombres del plano siguen ahora el orden de posición de las piezas (antes, el de inserción): un test existente cambió su expectativa; nada visible cambia.
+- Task 1: el foco en el SVG no usa `outline` (no se pinta en un `<g>` en todos los navegadores): trazo de tinta sobre la huella y `drop-shadow` amarillo, el mismo par del anillo doble.
+- Task 2: el test de la nota de iOS no comprueba que el foco vuelva a «Más acciones» al cerrarla: lo hace el navegador al cerrar un `<dialog>` modal y jsdom no lo imita.
+- Task 3: las miniaturas del catálogo (`.panel-catalogo__miniatura`) fijan los tokens claros igual que el plano: lo que se ve en la tarjeta es lo que se verá en el plano, también de noche.
+- Task 3: la píldora de pistas, que de día es tinta con texto claro, de noche va con `--superficie` y borde: con los tokens invertidos quedaba una píldora clara sobre el plano claro.
+- Task 3: `--amarillo` (anillo de foco) solo exige 1,2:1 sobre crema: va siempre junto al anillo de tinta, que es el que da el contraste.
 
 ## Revisión final
 
