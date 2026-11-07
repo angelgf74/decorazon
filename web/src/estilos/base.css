@@ -96,7 +96,7 @@ button.primario, .boton.primario {
   border-color: var(--primario);
   color: var(--sobre-terracota);
 }
-button.primario:hover:not(:disabled), .boton.primario:hover { background: color-mix(in srgb, var(--primario), #000 12%); }
+button.primario:hover:not(:disabled), .boton.primario:hover { background: #a33d31; background: color-mix(in srgb, var(--primario), #000 12%); }
 
 button.enlace {
   border: 0;
@@ -104,7 +104,7 @@ button.enlace {
   color: var(--terracota);
   text-decoration: underline;
 }
-button.enlace:hover:not(:disabled) { background: none; color: color-mix(in srgb, var(--terracota), #000 12%); }
+button.enlace:hover:not(:disabled) { background: none; color: #a33d31; color: color-mix(in srgb, var(--terracota), #000 12%); }
 
 button.peligro { color: var(--peligro); border-color: var(--peligro); }
 button.peligro:hover:not(:disabled) { background: var(--peligro-suave); }

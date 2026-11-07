@@ -36,8 +36,8 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['src/pruebas/preparar.ts'],
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'pruebas-build/**/*.test.ts'],
-    // Solo para leer editor.css, base.css y lienzo.css con ?raw en sus tests; el resto de CSS sigue sin procesarse.
-    css: { include: [/editor\.css/, /base\.css/, /lienzo\.css/] },
+    // Solo para leer editor.css, base.css, lienzo.css y vista3d.css con ?raw en sus tests; el resto de CSS sigue sin procesarse.
+    css: { include: [/editor\.css/, /base\.css/, /lienzo\.css/, /vista3d\.css/] },
     // Para node, fiber y test-renderer solo declaran "main" (CJS), que carga otro three con require(); su ESM usa el mismo three que la app.
     // drei, igual: su ESM, procesado por Vite, importa ese mismo fiber; su CJS traería otro, con otro contexto de Canvas.
     alias: [

@@ -37,8 +37,11 @@ export function iniciarAnalitica(sitio: string | undefined = import.meta.env.VIT
 export function evento(nombre: string, datos?: DatosDeEvento): void {
   if (typeof window === 'undefined' || !activa) return
   if (window.webanalytics) {
-    if (datos === undefined) window.webanalytics.evento(nombre)
-    else window.webanalytics.evento(nombre, datos)
+    // Contar nunca rompe a quien cuenta: un tracker que lanza se ignora.
+    try {
+      if (datos === undefined) window.webanalytics.evento(nombre)
+      else window.webanalytics.evento(nombre, datos)
+    } catch { /* nada */ }
     return
   }
   pendientes.push(datos === undefined ? { nombre } : { nombre, datos })

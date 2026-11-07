@@ -83,3 +83,13 @@ describe('instalación como app (M-25)', () => {
     expect(estadoDeInstalacion()).toBe('no')
   })
 })
+
+describe('instalar() cuando el navegador se niega', () => {
+  it('si prompt() lanza (ya se enseñó, sin gesto), devuelve false sin dejar una promesa rechazada', async () => {
+    conectarInstalacion()
+    const e = avisoDeInstalacion()
+    e.prompt = vi.fn(async () => { throw new DOMException('ya enseñado', 'InvalidStateError') })
+    window.dispatchEvent(e)
+    await expect(instalar()).resolves.toBe(false)
+  })
+})

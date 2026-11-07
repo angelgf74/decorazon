@@ -52,8 +52,8 @@ export default function Inicio() {
     setGuardando(true)
     setAvisoEjemplos(null)
     try {
-      evento('ejemplo-abierto', { ejemplo: e.nombre })
       const d = await crearDiseno(e.nombre, copiaDe(e))
+      evento('ejemplo-abierto', { ejemplo: e.nombre })
       navegar(`/disenos/${d.id}`)
     } catch (err) {
       setAvisoEjemplos(mensajeDeError(err))

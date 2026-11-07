@@ -94,3 +94,11 @@ describe('iniciarAnalitica', () => {
     expect(document.querySelectorAll('script[data-site-id]')).toHaveLength(0)
   })
 })
+
+describe('evento: un tracker que lanza no rompe a quien cuenta', () => {
+  it('se traga el error', () => {
+    iniciarAnalitica('abc')
+    window.webanalytics = { evento: () => { throw new Error('roto') } }
+    expect(() => evento('vista-3d')).not.toThrow()
+  })
+})

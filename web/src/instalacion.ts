@@ -68,9 +68,14 @@ export async function instalar(): Promise<boolean> {
   if (e === null) return false
   aviso = null
   avisar()
-  await e.prompt()
-  const { outcome } = await e.userChoice
-  return outcome === 'accepted'
+  try {
+    await e.prompt()
+    const { outcome } = await e.userChoice
+    return outcome === 'accepted'
+  } catch {
+    // Chrome lanza si el aviso ya se enseñó o falta el gesto: no se instala y no se deja una promesa rechazada.
+    return false
+  }
 }
 
 /** Solo para los tests. */

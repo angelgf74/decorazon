@@ -212,3 +212,20 @@ describe('Inicio: abrir un fichero', () => {
     expect(screen.queryByText('pantalla del editor')).toBeNull()
   })
 })
+
+describe('Inicio: el evento de ejemplo cuenta solo lo que se abre', () => {
+  const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
+  it('si «Guardar en mi cuenta» falla, no se cuenta ejemplo-abierto', async () => {
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: new Date(Date.now() + 86_400_000).toISOString() }))
+    reiniciarSesion()
+    conectarSesionConApi()
+    fetchSimulado.mockReset()
+    vi.stubGlobal('fetch', fetchSimulado)
+    fetchSimulado.mockResolvedValueOnce(respuesta(409, { mensaje: 'Has llegado al máximo de 100 diseños.' }))
+    render(<MemoryRouter><Inicio /></MemoryRouter>)
+    await userEvent.click(within(screen.getByRole('article', { name: /^Salón/ })).getByRole('button', { name: textos.inicio.guardarEnCuenta }))
+    expect(await screen.findByText(/máximo de 100/)).toBeInTheDocument()
+    expect(evento).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+})

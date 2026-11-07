@@ -124,7 +124,7 @@ export const textos = {
     rehacer: 'Rehacer',
     nuevoDiseno: 'Nuevo diseño',
     instalar: 'Instalar Decorazon',
-    instalarIos: 'En Safari, pulsa Compartir y luego «Añadir a pantalla de inicio»: Decorazon quedará como una app, a pantalla completa.',
+    instalarIos: 'Pulsa el botón Compartir del navegador y elige «Añadir a pantalla de inicio»: Decorazon quedará como una app, a pantalla completa. Si no aparece (pasa dentro de otras apps), ábrela antes en el navegador.',
     confirmarNuevo: 'Esto reemplaza tu diseño actual, que no está guardado en ninguna cuenta. ¿Seguir?',
     guardado: 'Guardado en este navegador',
     pendiente: 'Guardando…',

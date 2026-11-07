@@ -1,5 +1,5 @@
-/* El plano se ve igual de día y de noche (M-29): fondo crema y los tokens claros fijados aquí, aunque el sistema vaya en oscuro. */
-.lienzo { position: relative; width: 100%; height: 100%; overflow: hidden; background: #FFF8F0; }
+/* El plano se ve igual de día y de noche (M-29): fondo blanco (el de siempre) y los tokens claros fijados aquí, aunque el sistema vaya en oscuro. */
+.lienzo { position: relative; width: 100%; height: 100%; overflow: hidden; background: #fff; }
 /* Todo lo que pinta el plano fuera del editor también es papel claro: la hoja para imprimir, la vista compartida y el plano ampliado. */
 .lienzo__svg, .panel-catalogo__miniatura, .hoja-impresion__pagina, .compartido__plano, .plano-ampliado__plano {
   --tinta: #2b2622; --sobre-tinta: #fff; --terracota: #B9473A; --amarillo: #FFD166; --borde: #C26C57; --borde-suave: #E8D8C8; --gris: #6f6862;

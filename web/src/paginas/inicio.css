@@ -137,7 +137,7 @@
   text-underline-offset: 0.2em;
 }
 .inicio__enlace:hover,
-.inicio__pie a:hover { color: color-mix(in srgb, var(--terracota), #000 12%); }
+.inicio__pie a:hover { color: #a33d31; color: color-mix(in srgb, var(--terracota), #000 12%); }
 
 .inicio__aviso {
   width: 100%;
