@@ -361,6 +361,23 @@ describe('MisDisenos', () => {
     expect(await screen.findByText('editor')).toBeInTheDocument()
   })
 
+  it('crear en L desde el diálogo manda al servidor una planta de 6 vértices', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, []))
+    montar()
+    await userEvent.click(await screen.findByRole('button', { name: 'Nuevo diseño' }))
+    let planta: unknown[] = []
+    fetchSimulado.mockImplementationOnce(async (p) => {
+      const c = (await p.json()) as { nombre: string; tipoEstancia: string; contenido: { estancia: { planta: unknown[] } } }
+      planta = c.contenido.estancia.planta
+      return respuesta(201, { ...resumen('nuevo', c.nombre, '2026-01-01T00:00:00Z', c.tipoEstancia), contenido: c.contenido })
+    })
+    await userEvent.click(screen.getByRole('radio', { name: 'En L' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Crear estancia' }))
+    expect(await screen.findByText('editor')).toBeInTheDocument()
+    expect(planta).toHaveLength(6)
+  })
+
   it('si el navegador cierra el diálogo de nuevo diseño por su cuenta, se cierra y "Nuevo diseño" vuelve a abrirlo', async () => {
     conSesion()
     fetchSimulado.mockResolvedValueOnce(respuesta(200, []))

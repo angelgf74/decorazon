@@ -9,7 +9,7 @@ import { useDialogoModal } from '../../editor/comunes/usarDialogoModal'
 import NuevaEstancia from '../../editor/paneles/NuevaEstancia'
 import { importarDiseno } from '../../editor/persistencia/fichero'
 import { almacenamientoSeguro, borrarCopiaLocal, type CopiaListada } from '../../editor/persistencia/local'
-import { documentoNuevo, type TipoEstancia } from '../../nucleo'
+import { documentoNuevo, type FormaDePlanta, type TipoEstancia } from '../../nucleo'
 import { textos } from '../../textos'
 import { borrarDiseno, crearDiseno, duplicarDiseno, guardarDiseno, listarDisenos, obtenerDiseno, type ResumenDiseno } from '../servidor'
 import DialogoCompartir from './DialogoCompartir'
@@ -55,7 +55,7 @@ function ordenarYFiltrar(lista: ResumenDiseno[], busqueda: string, orden: Orden)
 }
 
 interface PropsDialogo {
-  alCrear(tipo: TipoEstancia, ancho: number, largo: number, alto: number): void
+  alCrear(tipo: TipoEstancia, ancho: number, largo: number, alto: number, forma: FormaDePlanta): void
   alCerrar(): void
 }
 
@@ -122,10 +122,10 @@ export default function MisDisenos() {
     setOcupado(false)
   }
 
-  const crear = (tipo: TipoEstancia, ancho: number, largo: number, alto: number) =>
+  const crear = (tipo: TipoEstancia, ancho: number, largo: number, alto: number, forma: FormaDePlanta) =>
     intentar(async () => {
       setCreando(false)
-      const d = await crearDiseno(t.nombrePorDefecto, documentoNuevo(tipo, ancho, largo, alto))
+      const d = await crearDiseno(t.nombrePorDefecto, documentoNuevo(tipo, ancho, largo, alto, forma))
       navegar(`/disenos/${d.id}`)
     })
 

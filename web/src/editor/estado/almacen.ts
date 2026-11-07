@@ -1,7 +1,7 @@
 import { useStore } from 'zustand'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import {
-  documentoNuevo, redondearNumeros, type DocumentoDiseno, type ResultadoEdicion, type TipoEstancia,
+  documentoNuevo, redondearNumeros, type DocumentoDiseno, type FormaDePlanta, type ResultadoEdicion, type TipoEstancia,
 } from '../../nucleo'
 import { almacenamientoSeguro, leerDisenoLocal } from '../persistencia/local'
 import { ORIGEN_ANONIMO, type Origen } from './origen'
@@ -27,7 +27,7 @@ export interface EstadoEditor {
   origen: Origen
   /** Versión del servidor que provocó el conflicto (412). */
   versionRemota: number | null
-  crear(tipo: TipoEstancia, ancho: number, largo: number, alto: number): void
+  crear(tipo: TipoEstancia, ancho: number, largo: number, alto: number, forma?: FormaDePlanta): void
   cargar(doc: DocumentoDiseno): void
   cambiar(f: (d: DocumentoDiseno) => DocumentoDiseno, grupo?: string): void
   intentar(f: (d: DocumentoDiseno) => ResultadoEdicion, grupo?: string): boolean
@@ -86,8 +86,8 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
     origen: ORIGEN_ANONIMO,
     versionRemota: null,
 
-    crear: (tipo, ancho, largo, alto) =>
-      set({ ...vacio(), documento: redondearNumeros(documentoNuevo(tipo, ancho, largo, alto)), paso: 1 }),
+    crear: (tipo, ancho, largo, alto, forma) =>
+      set({ ...vacio(), documento: redondearNumeros(documentoNuevo(tipo, ancho, largo, alto, forma)), paso: 1 }),
     cargar: (doc) => set({ ...vacio(), documento: doc, paso: pasoDeDocumento(doc) }),
     descartar: () => set({ ...vacio(), documento: null, paso: 1 }),
 

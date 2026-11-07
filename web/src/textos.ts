@@ -107,6 +107,12 @@ export const textos = {
     ancho: 'Ancho',
     largo: 'Largo',
     alto: 'Alto',
+    forma: 'Forma de la planta',
+    formas: { rectangulo: 'Rectángulo', ele: 'En L' },
+    entranteAncho: 'Entrante ancho',
+    entranteLargo: 'Entrante largo',
+    esquina: 'Esquina del entrante',
+    esquinas: { 'arriba-izquierda': 'Arriba a la izquierda', 'arriba-derecha': 'Arriba a la derecha', 'abajo-izquierda': 'Abajo a la izquierda', 'abajo-derecha': 'Abajo a la derecha' },
     crear: 'Crear estancia',
   },
   barra: {

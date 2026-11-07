@@ -52,3 +52,34 @@ describe('NuevaEstancia', () => {
     expect(almacen.getState().documento?.estancia.tipo).toBe('dormitorio')
   })
 })
+
+describe('NuevaEstancia: forma de la planta', () => {
+  const puntosDelDibujo = () => (document.querySelector('.nueva-estancia__dibujo polygon')!.getAttribute('points') ?? '').trim().split(/\s+/).length
+
+  it('«En L» enseña las medidas del entrante y su esquina, el dibujo pasa a 6 puntos y la estancia creada es una L', async () => {
+    render(<NuevaEstancia />)
+    expect(screen.queryByLabelText('Entrante ancho')).toBeNull()
+    expect(puntosDelDibujo()).toBe(4)
+    await userEvent.click(screen.getByRole('radio', { name: 'En L' }))
+    expect(puntosDelDibujo()).toBe(6)
+    const entrante = screen.getByLabelText('Entrante ancho')
+    await userEvent.clear(entrante)
+    await userEvent.type(entrante, '200{Enter}')
+    await userEvent.selectOptions(screen.getByLabelText('Esquina del entrante'), 'arriba-izquierda')
+    await userEvent.click(screen.getByRole('button', { name: 'Crear estancia' }))
+    const planta = almacen.getState().documento!.estancia.planta
+    expect(planta).toHaveLength(6)
+    expect(planta).toContainEqual({ x: 200, y: 110 })
+    expect(planta).not.toContainEqual({ x: 0, y: 0 })
+  })
+
+  it('«Rectángulo» vuelve a los 4 puntos', async () => {
+    render(<NuevaEstancia />)
+    await userEvent.click(screen.getByRole('radio', { name: 'En L' }))
+    await userEvent.click(screen.getByRole('radio', { name: 'Rectángulo' }))
+    expect(puntosDelDibujo()).toBe(4)
+    expect(screen.queryByLabelText('Entrante ancho')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Crear estancia' }))
+    expect(almacen.getState().documento!.estancia.planta).toHaveLength(4)
+  })
+})

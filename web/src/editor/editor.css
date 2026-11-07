@@ -142,6 +142,11 @@
 .nueva-estancia fieldset { border: 1px solid var(--borde); border-radius: var(--radio); }
 /* Cada opción va entera: el círculo no se queda al final de una línea con su nombre en la siguiente. */
 .nueva-estancia__tipo { display: inline-flex; align-items: center; gap: 0.25rem; margin-right: 1rem; white-space: nowrap; }
+/* La forma: las dos opciones a la izquierda y, al lado, la planta que saldrá (M-04). */
+.nueva-estancia__forma { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-3); }
+.nueva-estancia__forma > div { display: flex; flex-direction: column; gap: var(--esp-1); }
+.nueva-estancia__dibujo { flex: 0 0 auto; width: 6rem; height: 5rem; }
+.nueva-estancia__dibujo polygon { fill: var(--crema-oscura); stroke: var(--tinta); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
 
 .editor__aviso {
   position: fixed;
