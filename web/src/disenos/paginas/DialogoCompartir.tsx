@@ -1,3 +1,4 @@
+import { evento } from '../../analitica'
 import { useEffect, useId, useRef, useState } from 'react'
 import { mensajeDeError } from '../../cuenta/errores'
 import { useDialogoModal } from '../../editor/comunes/usarDialogoModal'
@@ -83,6 +84,7 @@ export default function DialogoCompartir({ diseno, alCambiar, alCerrar }: Props)
   const crear = () => intentar(async () => {
     await subirLaVistaPrevia()
     const nuevo = await compartirDiseno(diseno.id)
+    evento('enlace-creado')
     foco.current = 'copiar'
     alCambiar(nuevo)
   })

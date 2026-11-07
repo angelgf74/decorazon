@@ -54,6 +54,24 @@ API: `GET /disenos/{id}/vista-previa` (dueño, misma tabla `vistas_previas`) y `
 
 M-31: Lighthouse móvil sobre `/disenar` y `/`; cifras y tope anotados aquí; revisar que el service worker no precargue el fragmento 3D (`vite.config.ts`, `workbox`) si la cifra lo pide. M-34: en WebAnalytics, `POST /api/events` y `window.webanalytics.evento(nombre, datos?)` en el tracker; en Decorazon, `analitica.ts` expone `evento()` y se llama en `anadirTipo`, al entrar en 3D, al imprimir, al crear un enlace y al abrir un ejemplo; sin datos personales ni ids de diseño.
 
+Plan propio: `2026-11-07-20-medir.md`.
+
+#### Medidas de la fase 8 (7 nov 2026, Lighthouse 13.6.0, móvil simulado, `--throttling-method=simulate`)
+
+| Página | Dónde | Rendimiento | Accesibilidad | Buenas prácticas | SEO | FCP | LCP | TBT | CLS | Peso |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `/` | producción (release `a6230ed`, fase 7) | 94 | 100 | 100 | 83 | 0,9 s | 3,1 s | 0 ms | 0 | 422 kB |
+| `/disenar` | producción (release `a6230ed`) | 98 | 98 | 100 | 82 | 0,8 s | 2,4 s | 0 ms | 0 | 184 kB |
+| `/` | `vite preview` local, antes de los arreglos | 90 | — | — | — | 0,9 s | 3,6 s | 0 ms | 0 | 419 kB |
+| `/` | `vite preview` local, con los arreglos de esta fase | 92 | — | — | 100 | 0,9 s | 3,4 s | 0 ms | 0 | 419 kB |
+| `/disenar` | `vite preview` local | 100 | — | — | — | 0,9 s | 0,9 s | 0 ms | 0 | 182 kB |
+
+- Tamaños del build (sin comprimir): arranque 535 kB (`index` 425 + `jsx-runtime` 110 + runtime 1), CSS 42 kB, fragmento 3D (`Escena3D`) 1015 kB. Three solo entra al pulsar 3D: `index.html` no lo enlaza ni lo precarga, y ninguna medida lo cargó. **Tope** en `web/pruebas-build/presupuesto.test.ts`: arranque 620 kB, CSS 48 kB, 3D 1170 kB (lo medido + 15 %). Si se pasa, no se sube el tope sin mirar qué entró.
+- Lo que salió y se arregló en esta fase: faltaba `robots.txt` (nginx devolvía `index.html` y Lighthouse lo leía como robots roto), faltaba la meta `description`, y la imagen del primer ejemplo (el elemento LCP del inicio en móvil) iba con `loading="lazy"`: ahora `eager` + `fetchpriority="high"`. SEO del inicio 83 → 100 en local.
+- El LCP del inicio sigue en 3,4 s simulados: la imagen solo se pide cuando React ya ha pintado la página, y antes hay que bajar y ejecutar 167 kB (gzip) de JS. Se probó un `<link rel="preload">` de esa imagen en `index.html` y el LCP simulado empeoró de forma consistente (3,8 s en tres pasadas: la imagen compite con el JS por el ancho de banda), así que no se deja. Lo que lo bajaría de verdad es menos JS en el arranque (los 110 kB de `jsx-runtime` son React entero) o pintar el inicio sin JS; queda fuera de esta fase.
+- El service worker sigue precargando el fragmento 3D (276 kB gzip): pasa después de la carga, no cuenta en ninguna de estas cifras y es lo que hace que la 3D funcione sin conexión. Se deja.
+- Repetir: `cd web && npm run build && npx vite preview --port 5328` y `npx -y lighthouse@13.6.0 http://localhost:5328/ --form-factor=mobile --screenEmulation.mobile --throttling-method=simulate --output=json --output-path=lh.json --chrome-flags="--headless=new"`; en producción, la URL pública (pasa por Cloudflare; el `userAgent` de Lighthouse no cuenta como visita ni como evento).
+
 ### Fase 9 (plan 21): accesibilidad y móvil (M-28, M-25, M-29)
 
 M-28: en `CapaElementos`, `tabIndex=0` y `aria-label` por elemento, Enter selecciona, orden por posición; con las flechas de la fase 1 ya se mueven. M-25: `beforeinstallprompt` guardado en un módulo y opción «Instalar Decorazon» en `MenuMas` solo cuando exista; nota para iOS. M-29: `prefers-color-scheme: dark` sobre los tokens de `base.css`, sin tocar el plano ni la 3D; revisar el contraste de chips y segmentados.

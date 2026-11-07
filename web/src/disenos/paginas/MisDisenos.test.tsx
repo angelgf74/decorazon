@@ -3,12 +3,15 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { evento } from '../../analitica'
 import { CLAVE_SESION, conectarSesionConApi, reiniciarSesion, sesion } from '../../cuenta/sesion'
 import { CLAVE_DUENO_COPIAS, guardarCopiaLocal, leerCopiaLocal } from '../../editor/persistencia/local'
 import { documentoNuevo } from '../../nucleo'
 import { respuesta } from '../../pruebas/respuesta'
 import { textos } from '../../textos'
 import MisDisenos from './MisDisenos'
+
+vi.mock('../../analitica', () => ({ evento: vi.fn() }))
 
 // Sin WebGL en jsdom: el generador de la vista previa entrega una imagen al momento.
 vi.mock('../vistaPrevia/GeneradorDeVistaPrevia', () => ({
@@ -153,6 +156,8 @@ describe('MisDisenos', () => {
     expect(within(dialogo).getByRole('button', { name: 'Copiar enlace' })).toBeInTheDocument()
     expect(rutas()).toContain('PUT /disenos/b/enlace')
     expect(within(fila).getByText('Compartido')).toBeInTheDocument()
+    // Se cuenta el enlace creado, sin el id del diseño ni el enlace.
+    expect(evento).toHaveBeenCalledExactlyOnceWith('enlace-creado')
     // El botón pulsado desaparece: el foco pasa a «Copiar enlace» en vez de perderse.
     expect(document.activeElement).toBe(within(dialogo).getByRole('button', { name: 'Copiar enlace' }))
   })
@@ -359,6 +364,8 @@ describe('MisDisenos', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'Salón' }))
     await userEvent.click(screen.getByRole('button', { name: 'Crear estancia' }))
     expect(await screen.findByText('editor')).toBeInTheDocument()
+    // También aquí se cuenta la estancia creada: si no, solo contarían las anónimas.
+    expect(evento).toHaveBeenCalledExactlyOnceWith('estancia-creada', { tipo: 'salon', forma: 'rectangulo' })
   })
 
   it('crear en L desde el diálogo manda al servidor una planta de 6 vértices', async () => {

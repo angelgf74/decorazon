@@ -1,3 +1,4 @@
+import { evento } from '../analitica'
 import { useId, useState, type ChangeEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { empezarAnonimoCon, empezarDeNuevo, sustituiriaDisenoAnonimo } from '../cuenta/disenosLocales'
@@ -38,14 +39,20 @@ export default function Inicio() {
     empezarAnonimoCon(doc)
     navegar('/disenar')
   }
+  // Se cuenta qué ejemplo se abre, por su nombre: nunca el documento.
+  const abrirCopia = (e: Ejemplo) => {
+    evento('ejemplo-abierto', { ejemplo: e.nombre })
+    abrirImportado(copiaDe(e))
+  }
   const abrirEjemplo = (e: Ejemplo) => {
     if (sustituiriaDisenoAnonimo()) setEjemploPendiente(e)
-    else abrirImportado(copiaDe(e))
+    else abrirCopia(e)
   }
   const guardarEjemplo = async (e: Ejemplo) => {
     setGuardando(true)
     setAvisoEjemplos(null)
     try {
+      evento('ejemplo-abierto', { ejemplo: e.nombre })
       const d = await crearDiseno(e.nombre, copiaDe(e))
       navegar(`/disenos/${d.id}`)
     } catch (err) {
@@ -93,10 +100,11 @@ export default function Inicio() {
           <h2 id="inicio-ejemplos">{t.ejemplos}</h2>
           <p className="inicio__nota">{t.ejemplosDetalle}</p>
           <ul className="inicio__tarjetas">
-            {EJEMPLOS.map((e) => (
+            {EJEMPLOS.map((e, i) => (
               <li key={e.id}>
                 <article className="inicio__tarjeta" aria-labelledby={`inicio-ejemplo-${e.id}`}>
-                  <img className="inicio__tarjeta-imagen" src={e.imagen} alt="" width="300" height="200" loading="lazy" />
+                  {/* La primera imagen es lo más grande de la primera pantalla en móvil (LCP): al momento y con prioridad. */}
+                  <img className="inicio__tarjeta-imagen" src={e.imagen} alt="" width="300" height="200" loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : undefined} />
                   <h3 id={`inicio-ejemplo-${e.id}`}>{e.nombre}</h3>
                   <p className="inicio__tarjeta-tipo">{textos.nuevaEstancia.tipos[e.tipo]}</p>
                   <div className="inicio__tarjeta-acciones">
@@ -152,7 +160,7 @@ export default function Inicio() {
         abierto={ejemploPendiente !== null}
         mensaje={t.sustituirEjemplo}
         textoAceptar={textos.compartir.sustituir}
-        alAceptar={() => { if (ejemploPendiente) abrirImportado(copiaDe(ejemploPendiente)); setEjemploPendiente(null) }}
+        alAceptar={() => { if (ejemploPendiente) abrirCopia(ejemploPendiente); setEjemploPendiente(null) }}
         alCancelar={() => setEjemploPendiente(null)}
       />
     </main>
