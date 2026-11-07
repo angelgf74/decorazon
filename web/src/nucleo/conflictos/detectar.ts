@@ -1,7 +1,7 @@
 import type { DocumentoDiseno, Elemento } from '../modelo/documento'
 import type { Catalogo, DefinicionTipo, ZonaApertura } from '../catalogo/tipos'
 import { distanciaConvexos, interseccionConvexos, penetracion } from '../geometria/convexo'
-import { areaConSigno, cajaPlanta, distanciaSegmentos } from '../geometria/poligono'
+import { areaConSigno, cajaPlanta, distanciaSegmentos, type Caja } from '../geometria/poligono'
 import { penetracion3D, solapeZ, type Prisma } from '../geometria/prisma'
 import type { Punto } from '../geometria/vector'
 import { cantidadMostrada, redondearAbajo, TOLERANCIA_CM } from '../geometria/tolerancia'
@@ -209,16 +209,21 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
   // Se considera lleno si un tercero toca los dos lados (a menos del hueco ignorado de cada uno); si solo toca uno, el
   // resto sigue siendo estrecho y se avisa.
   const cerca = (d: number) => d < HUECO_IGNORADO_CM - 1e-6
-  const distancias = new Map<string, number>()
-  const distanciaPiezas = (x: number, y: number): number => {
-    const clave = x < y ? `${x}|${y}` : `${y}|${x}`
+  // Con muchos muebles juntos casi todos los pares son estrechos y esto sería cúbico: la caja envolvente de cada pieza
+  // descarta sin calcular la distancia exacta lo que ya está a un hueco ignorado o más (la caja nunca está más lejos).
+  const cajas = bloquean.map((b) => cajaPlanta(b.volumenes.flatMap((v) => v.huella)))
+  const lejosCajas = (a: Caja, b: Caja) => Math.max(b.minX - a.maxX, a.minX - b.maxX, b.minY - a.maxY, a.minY - b.maxY) >= HUECO_IGNORADO_CM
+  const distancias = new Map<number, number>()
+  const tocan = (x: number, y: number): boolean => {
+    if (lejosCajas(cajas[x], cajas[y])) return false
+    const clave = Math.min(x, y) * bloquean.length + Math.max(x, y)
     let d = distancias.get(clave)
     if (d === undefined) {
       d = Infinity
       for (const v of bloquean[x].volumenes) for (const w of bloquean[y].volumenes) d = Math.min(d, distanciaConvexos(v.huella, w.huella))
       distancias.set(clave, d)
     }
-    return d
+    return cerca(d)
   }
   const distanciaATramo = (x: number, s1: Punto, s2: Punto): number => {
     let d = Infinity
@@ -227,8 +232,9 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
     }
     return d
   }
-  const llenoEntre = (i: number, j: number) => bloquean.some((_, k) => k !== i && k !== j && cerca(distanciaPiezas(i, k)) && cerca(distanciaPiezas(j, k)))
-  const llenoHastaLaPared = (i: number, s1: Punto, s2: Punto) => bloquean.some((_, k) => k !== i && cerca(distanciaPiezas(i, k)) && cerca(distanciaATramo(k, s1, s2)))
+  const tocaTramo = (x: number, s1: Punto, s2: Punto) => !lejosCajas(cajas[x], cajaPlanta([s1, s2])) && cerca(distanciaATramo(x, s1, s2))
+  const llenoEntre = (i: number, j: number) => bloquean.some((_, k) => k !== i && k !== j && tocan(i, k) && tocan(j, k))
+  const llenoHastaLaPared = (i: number, s1: Punto, s2: Punto) => bloquean.some((_, k) => k !== i && tocan(i, k) && tocaTramo(k, s1, s2))
   for (let i = 0; i < bloquean.length; i++) {
     const a = bloquean[i]
     for (let j = i + 1; j < bloquean.length; j++) {
