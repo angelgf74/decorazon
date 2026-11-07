@@ -26,6 +26,8 @@ jobs:
       - run: npm run api:tipos && git diff --exit-code src/api/esquema.d.ts
       - run: npm test
       - run: npm run build
+      # El presupuesto de arranque (pruebas-build) mide dist: solo tras compilar, y en el CI no se salta.
+      - run: npx vitest run pruebas-build
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
 

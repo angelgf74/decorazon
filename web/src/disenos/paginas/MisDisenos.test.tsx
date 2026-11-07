@@ -364,6 +364,8 @@ describe('MisDisenos', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'Salón' }))
     await userEvent.click(screen.getByRole('button', { name: 'Crear estancia' }))
     expect(await screen.findByText('editor')).toBeInTheDocument()
+    // También aquí se cuenta la estancia creada: si no, solo contarían las anónimas.
+    expect(evento).toHaveBeenCalledExactlyOnceWith('estancia-creada', { tipo: 'salon', forma: 'rectangulo' })
   })
 
   it('crear en L desde el diálogo manda al servidor una planta de 6 vértices', async () => {

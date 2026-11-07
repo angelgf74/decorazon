@@ -1,3 +1,4 @@
+import { evento } from '../../analitica'
 import { useCallback, useEffect, useId, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { ErrorDeApi } from '../../api/cliente'
@@ -126,6 +127,7 @@ export default function MisDisenos() {
     intentar(async () => {
       setCreando(false)
       const d = await crearDiseno(t.nombrePorDefecto, documentoNuevo(tipo, ancho, largo, alto, forma))
+      evento('estancia-creada', { tipo, forma: forma.forma })
       navegar(`/disenos/${d.id}`)
     })
 

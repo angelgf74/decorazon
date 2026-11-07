@@ -11,6 +11,7 @@ const secciones = [
   [t.paraQueTitulo, t.paraQue],
   [t.correoTitulo, t.correo],
   [t.sugerenciasTitulo, t.sugerencias],
+  [t.medimosTitulo, t.medimos],
   [t.anonimoTitulo, t.anonimo],
   [t.borrarTitulo, t.borrar],
 ] as const
