@@ -13,7 +13,7 @@ import EntradaColor from '../comunes/EntradaColor'
 import { etiquetaValor } from '../comunes/variantes'
 import Icono from '../comunes/Icono'
 import { almacen, useEditor } from '../estado/almacen'
-import { borrar, borrarSeleccion, duplicar } from '../estado/elementos'
+import { borrar, borrarSeleccion, duplicar, grupoConBloqueado } from '../estado/elementos'
 import ProductoDeTienda from './ProductoDeTienda'
 
 const t = textos.propiedades
@@ -188,6 +188,7 @@ function CampoColor({ zona, valor, alCambiar }: { zona: ZonaColor; valor: string
 /** En 3D solo se selecciona, edita y borra: girar y duplicar son del 2D. */
 function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemento; en3d: boolean }) {
   const def = catalogoBase.get(e.tipo)
+  const variosActivo = useEditor((x) => x.variosActivo)
   if (!def) return null
   const editar = (cambios: CambiosElemento, grupo?: string) =>
     almacen.getState().cambiar((d) => editarElemento(d, catalogoBase, e.id, cambios), grupo)
@@ -248,9 +249,10 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
         )}
         {!en3d && <button type="button" onClick={() => duplicar(e.id)}>{t.duplicar}</button>}
         {/* En el móvil no hay Mayúsculas: este modo hace que cada toque en un mueble lo añada o lo quite (M-02). */}
-        {!en3d && <button type="button" onClick={() => almacen.getState().activarVarios(true)}>{t.seleccionarVarios}</button>}
+        {!en3d && <button type="button" aria-pressed={variosActivo} onClick={() => almacen.getState().activarVarios(!variosActivo)}>{t.seleccionarVarios}</button>}
         <button type="button" className="peligro" onClick={() => borrar(e.id)}>{t.borrar}</button>
       </div>
+      {variosActivo && <p className="panel__nota">{t.variosNota}</p>}
     </>
   )
 }
@@ -348,7 +350,7 @@ function Grupo({ doc, ids }: { doc: DocumentoDiseno; ids: string[] }) {
       <ul className="panel__lista-grupo">
         {muebles.map((e) => <li key={e.id}>{nombreDeElemento(catalogoBase.get(e.tipo), e)}</li>)}
       </ul>
-      <p className="panel__nota">{t.grupoNota}</p>
+      <p className="panel__nota">{grupoConBloqueado(ids) ? t.grupoBloqueado : t.grupoNota}</p>
       <div className="panel__acciones">
         {variosActivo && <button type="button" onClick={() => almacen.getState().activarVarios(false)}>{t.terminarVarios}</button>}
         <button type="button" className="peligro" onClick={borrarSeleccion}>{t.borrarGrupo(muebles.length)}</button>

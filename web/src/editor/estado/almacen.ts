@@ -84,7 +84,7 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
   // Sin localStorage, el diseño anónimo que había al abrir uno del servidor solo queda aquí.
   let anonimoEnMemoria: DocumentoDiseno | null = null
 
-  return createStore<EstadoEditor>()((set, get) => ({
+  const tienda = createStore<EstadoEditor>()((set, get) => ({
     documento: null,
     paso: 1,
     vista: '2d',
@@ -191,6 +191,12 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
       })
     },
   }))
+  // «Seleccionar varios» (M-02) solo tiene sentido con algo seleccionado y en 2D: se apaga en cuanto no queda selección
+  // (también al deshacer, borrar o cambiar de diseño) o se pasa a 3D. Un solo sitio para todos los cambios de estado.
+  tienda.subscribe((e) => {
+    if (e.variosActivo && (e.seleccion === null || e.vista === '3d')) tienda.setState({ variosActivo: false })
+  })
+  return tienda
 }
 
 export const almacen = crearAlmacen()

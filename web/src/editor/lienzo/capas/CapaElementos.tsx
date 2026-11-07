@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react'
+import { useRef, type KeyboardEvent } from 'react'
 import { catalogoBase, nombreDeElemento, nombreEnPlanta, rectangulo, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
 import type { Seleccion } from '../../estado/almacen'
 import { textos } from '../../../textos'
@@ -36,7 +36,7 @@ interface Props {
   alPulsar?: AlPulsar
   alSeleccionar?(id: string): void
   /** Mayús+Intro sobre una pieza con el foco: la añade a la selección o la quita (M-02). */
-  alAlternar?(id: string): void
+  alAlternar?(id: string, previa: Seleccion): void
   escala?: number
 }
 
@@ -85,11 +85,17 @@ export default function CapaElementos({ documento, conflictos, seleccion, alPuls
   // A mitad de un arrastre con el puntero no se cambia la selección: el arrastre sigue con su pieza.
   const seleccionar = (id: string) => { if (!hayArrastre()) alSeleccionar?.(id) }
   // Con varios seleccionados, recorrer con Tab no deshace el grupo: el foco solo se mueve (Intro sí elige una sola).
-  const alEnfocar = (id: string) => { if (seleccion?.tipo !== 'elementos') seleccionar(id) }
+  // La selección de antes de que el foco eligiera la pieza: Mayús+Intro alterna sobre ella (si no, quitaría lo que el foco
+  // acaba de seleccionar y con el teclado no se podría formar un grupo).
+  const previa = useRef<Seleccion>(seleccion)
+  const alEnfocar = (id: string) => {
+    previa.current = seleccion
+    if (seleccion?.tipo !== 'elementos') seleccionar(id)
+  }
   const alTeclear = (id: string) => (ev: KeyboardEvent<SVGPolygonElement>) => {
     if (ev.key !== 'Enter' && ev.key !== ' ') return
     ev.preventDefault()
-    if (ev.shiftKey && ev.key === 'Enter') alAlternar?.(id)
+    if (ev.shiftKey && ev.key === 'Enter') alAlternar?.(id, previa.current)
     else seleccionar(id)
   }
   return (

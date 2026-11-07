@@ -58,11 +58,17 @@ export function seleccionarTodos(): void {
   seleccionar(seleccionDe(documento?.elementos.map((e) => e.id) ?? []))
 }
 
-/** Mueve todos los seleccionados (dx, dy) cm, sin imán: el imán movería cada uno por su lado y deformaría el conjunto. */
+/** Si algún mueble de la selección está bloqueado: entonces el grupo no se mueve (moverse solo los demás deformaría el conjunto). */
+export function grupoConBloqueado(ids: string[]): boolean {
+  const doc = almacen.getState().documento
+  return ids.some((id) => doc?.elementos.find((e) => e.id === id)?.bloqueado === true)
+}
+
+/** Mueve todos los seleccionados (dx, dy) cm, sin imán: el imán movería cada uno por su lado y deformaría el conjunto. Con un bloqueado dentro, nada. */
 export function desplazarSeleccion(dx: number, dy: number, grupo?: string): void {
   const { seleccion, cambiar } = almacen.getState()
   const ids = idsSeleccionados(seleccion)
-  if (ids.length === 0) return
+  if (ids.length === 0 || grupoConBloqueado(ids)) return
   cambiar((d) => ids.reduce((doc, id) => desplazarElemento(doc, id, dx, dy), d), grupo)
 }
 

@@ -156,7 +156,30 @@ describe('CapaElementos: teclado con varios seleccionados (M-02)', () => {
     fireEvent.focus(asa('c'))
     expect(alSeleccionar).not.toHaveBeenCalled()
     fireEvent.keyDown(asa('c'), { key: 'Enter', shiftKey: true })
-    expect(alAlternar).toHaveBeenCalledWith('c')
+    expect(alAlternar).toHaveBeenCalledWith('c', { tipo: 'elementos', ids: ['a', 'b'] })
     expect(alSeleccionar).not.toHaveBeenCalled()
+  })
+})
+
+describe('CapaElementos: formar un grupo con el teclado (M-02, revisión)', () => {
+  it('Mayús+Intro alterna sobre la selección que había antes de que el foco eligiera la pieza', () => {
+    const doc = documentoNuevo('dormitorio', 400, 330, 250)
+    doc.elementos = [
+      elementoNuevo(catalogoBase.get('mesita')!, { x: 60, y: 100 }, 'a'),
+      elementoNuevo(catalogoBase.get('mesita')!, { x: 160, y: 100 }, 'b'),
+    ]
+    const alSeleccionar = vi.fn()
+    const alAlternar = vi.fn()
+    const { container, rerender } = render(<svg><CapaElementos documento={doc} conflictos={[]} seleccion={{ tipo: 'elemento', id: 'a' }}
+      alPulsar={() => {}} alSeleccionar={alSeleccionar} alAlternar={alAlternar} /></svg>)
+    const asa = (id: string) => container.querySelector(`[data-foco="${id}"]`)!
+    // Tab llega a B: B queda seleccionada (como siempre)…
+    fireEvent.focus(asa('b'))
+    expect(alSeleccionar).toHaveBeenCalledWith('b')
+    rerender(<svg><CapaElementos documento={doc} conflictos={[]} seleccion={{ tipo: 'elemento', id: 'b' }}
+      alPulsar={() => {}} alSeleccionar={alSeleccionar} alAlternar={alAlternar} /></svg>)
+    // …y Mayús+Intro la añade a lo que había antes (A), no la quita.
+    fireEvent.keyDown(asa('b'), { key: 'Enter', shiftKey: true })
+    expect(alAlternar).toHaveBeenCalledWith('b', { tipo: 'elemento', id: 'a' })
   })
 })

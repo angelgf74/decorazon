@@ -801,3 +801,21 @@ describe('Lienzo: varios muebles (M-02)', () => {
     expect(almacen.getState().seleccion).toEqual({ tipo: 'elementos', ids: ['a', 'b'] })
   })
 })
+
+describe('Lienzo: grupo con un bloqueado (M-02, revisión)', () => {
+  it('un grupo con un bloqueado no se arrastra, ni desde el bloqueado ni desde otro', () => {
+    colocar('mesita', 'a', { x: 100, y: 100 })
+    colocar('mesita', 'b', { x: 250, y: 200 })
+    almacen.getState().cambiar((d) => bloquearElemento(d, 'a', true))
+    almacen.getState().seleccionar({ tipo: 'elementos', ids: ['a', 'b'] })
+    const { container } = render(<Lienzo />)
+    for (const id of ['a', 'b']) {
+      const huella = container.querySelector(`[data-elemento="${id}"] polygon.capa-elementos__huella`)!
+      fireEvent.pointerDown(huella, { pointerId: 1, clientX: 250, clientY: 200 })
+      fireEvent.pointerMove(huella, { pointerId: 1, clientX: 270, clientY: 210 })
+      fireEvent.pointerUp(huella, { pointerId: 1 })
+    }
+    expect(almacen.getState().documento!.elementos.map((e) => e.posicion)).toEqual([{ x: 100, y: 100 }, { x: 250, y: 200 }])
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elementos', ids: ['a', 'b'] })
+  })
+})

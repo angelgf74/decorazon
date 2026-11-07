@@ -237,6 +237,8 @@ export const textos = {
     },
     duplicar: 'Duplicar',
     seleccionarVarios: 'Seleccionar varios',
+    variosNota: 'Toca otros muebles en el plano para añadirlos o quitarlos. Pulsa otra vez «Seleccionar varios» o toca el fondo para terminar.',
+    grupoBloqueado: 'Hay un mueble bloqueado en la selección: el grupo no se mueve. Desbloquéalo o quítalo del grupo con Mayúsculas+clic.',
     terminarVarios: 'Terminar de seleccionar',
     grupo: (n: number) => `${n} muebles seleccionados`,
     grupoNota: 'Arrástralos o muévelos con las flechas todos a la vez (sin imán). Toca uno con Mayúsculas para quitarlo del grupo.',

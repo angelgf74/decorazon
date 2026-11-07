@@ -4,7 +4,7 @@ import {
   type DocumentoDiseno, type Punto, type ResultadoEdicion,
 } from '../../nucleo'
 import { almacen } from '../estado/almacen'
-import { alternarSeleccion } from '../estado/elementos'
+import { alternarSeleccion, grupoConBloqueado } from '../estado/elementos'
 
 /** Px que hay que mover el puntero para que un toque sobre una pieza pase a ser un arrastre. */
 export const UMBRAL_ARRASTRE_PX = 3
@@ -152,6 +152,8 @@ export function pulsarElemento(aPlano: APlano, id: string, ev: PointerEventReact
     return
   }
   if (seleccion?.tipo === 'elementos' && seleccion.ids.includes(id) && documento) {
+    // Con un bloqueado dentro, el grupo no se mueve: desde el bloqueado el toque pasa (pan), desde otro no hace nada.
+    if (grupoConBloqueado(seleccion.ids)) return
     arrastrarGrupo(aPlano, documento, seleccion.ids, id, ev, avisar)
     return
   }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { desplazarPoligono, type Punto } from '../../nucleo'
 import { textos } from '../../textos'
 import { useConflictos } from '../estado/conflictos'
-import { almacen, useEditor } from '../estado/almacen'
+import { almacen, useEditor, type Seleccion } from '../estado/almacen'
 import { alternarSeleccion } from '../estado/elementos'
 import { anadirTipo } from '../estado/elementos'
 import { cortarArrastre, EVENTO_SOLTAR_TIPO, MIME_TIPO, pulsarAbertura, pulsarElemento, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano, type DetalleSoltarTipo } from './arrastres'
@@ -43,6 +43,11 @@ function dosToques(toques: Map<number, Punto>): [Punto, Punto] {
 const pulsarPared = (indice: number) => almacen.getState().seleccionar({ tipo: 'pared', indice })
 /** Intro o Espacio sobre un mueble con el foco (M-28): se selecciona sin arrastre. */
 const seleccionarElemento = (id: string) => almacen.getState().seleccionar({ tipo: 'elemento', id })
+/** Mayús+Intro: vuelve a la selección de antes del foco y alterna la pieza en ella (M-02). */
+const alternarDesde = (id: string, previa: Seleccion) => {
+  almacen.getState().seleccionar(previa)
+  alternarSeleccion(id)
+}
 
 /**
  * Plano 2D en SVG. Todo se dibuja en cm dentro del `<g>` transformado. En el paso 1 lleva las cotas y los tiradores de la estancia;
@@ -290,7 +295,7 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
             <CapaEstructura documento={documento} seleccion={seleccion} vigas={false} alPulsar={paso === 1 && !midiendo ? pulsar.estructura : undefined} />
             <CapaAberturas documento={documento} seleccion={seleccion} alPulsar={paso === 1 && !midiendo ? pulsar.abertura : undefined} />
             <CapaElementos documento={documento} conflictos={conflictos} seleccion={seleccion} alPulsar={paso === 2 && !midiendo ? pulsar.elemento : undefined}
-              alSeleccionar={paso === 2 && !midiendo ? seleccionarElemento : undefined} alAlternar={paso === 2 && !midiendo ? alternarSeleccion : undefined}
+              alSeleccionar={paso === 2 && !midiendo ? seleccionarElemento : undefined} alAlternar={paso === 2 && !midiendo ? alternarDesde : undefined}
               escala={vista.escala} />
             {/* Las vigas van por el techo: encima de los muebles. */}
             <CapaEstructura documento={documento} seleccion={seleccion} vigas alPulsar={paso === 1 && !midiendo ? pulsar.estructura : undefined} />

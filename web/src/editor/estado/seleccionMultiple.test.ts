@@ -42,17 +42,27 @@ describe('selección de varios muebles (M-02)', () => {
     expect(almacen.getState().seleccion).toBeNull()
   })
 
-  it('mover el grupo desplaza todos a la vez, sin imán, en un solo paso de deshacer; un bloqueado no se mueve', () => {
+  it('mover el grupo desplaza todos a la vez, sin imán, en un solo paso de deshacer; con un bloqueado dentro, el grupo no se mueve (no se deforma)', () => {
     almacen.getState().cambiar((d) => bloquearElemento(d, 's2', true))
     seleccionarTodos()
     const pasos = almacen.getState().pasado.length
     desplazarSeleccion(3, 1, 'teclado:grupo')
     desplazarSeleccion(3, 1, 'teclado:grupo')
     almacen.getState().terminarGrupo()
-    expect(pos('mesa')).toEqual({ x: 256, y: 202 })
-    expect(pos('s1')).toEqual({ x: 256, y: 152 })
+    // Con s2 bloqueado nada se mueve (antes se movían los demás y el conjunto se deformaba).
+    expect(pos('mesa')).toEqual({ x: 250, y: 200 })
+    expect(pos('s1')).toEqual({ x: 250, y: 150 })
     expect(pos('s2')).toEqual({ x: 250, y: 250 })
-    expect(almacen.getState().pasado.length).toBe(pasos + 1)
+    expect(almacen.getState().pasado.length).toBe(pasos)
+    // Sin bloqueados, todos se mueven en un solo paso.
+    almacen.getState().cambiar((d) => bloquearElemento(d, 's2', false))
+    const pasos2 = almacen.getState().pasado.length
+    desplazarSeleccion(3, 1, 'teclado:grupo')
+    desplazarSeleccion(3, 1, 'teclado:grupo')
+    almacen.getState().terminarGrupo()
+    expect(pos('mesa')).toEqual({ x: 256, y: 202 })
+    expect(pos('s2')).toEqual({ x: 256, y: 252 })
+    expect(almacen.getState().pasado.length).toBe(pasos2 + 1)
   })
 
   it('borrar el grupo quita todos en un solo deshacer y suelta la selección', () => {
@@ -73,5 +83,20 @@ describe('selección de varios muebles (M-02)', () => {
     almacen.getState().cambiar((d) => ({ ...d, elementos: [] }))
     seleccionarTodos()
     expect(almacen.getState().seleccion).toBeNull()
+  })
+})
+
+describe('modo «Seleccionar varios» (M-02, revisión)', () => {
+  it('se apaga solo en cuanto no queda selección (también al deshacer) o se pasa a 3D', () => {
+    alternarSeleccion('mesa')
+    almacen.getState().activarVarios(true)
+    almacen.getState().cambiar((d) => ({ ...d, elementos: d.elementos.filter((e) => e.id !== 'mesa') }))
+    expect(almacen.getState().seleccion).toBeNull()
+    expect(almacen.getState().variosActivo).toBe(false)
+
+    alternarSeleccion('s1')
+    almacen.getState().activarVarios(true)
+    almacen.getState().cambiarVista('3d')
+    expect(almacen.getState().variosActivo).toBe(false)
   })
 })
