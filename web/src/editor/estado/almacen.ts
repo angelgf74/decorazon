@@ -12,6 +12,8 @@ export type Vista = '2d' | '3d'
 export type Seleccion =
   | { tipo: 'elemento' | 'abertura' | 'estructura'; id: string }
   | { tipo: 'vertice' | 'pared'; indice: number }
+  /** Varios muebles a la vez (M-02): siempre dos o más; con uno es 'elemento'. */
+  | { tipo: 'elementos'; ids: string[] }
   | null
 export type EstadoGuardado = 'guardado' | 'pendiente' | 'error' | 'sinConexion' | 'conflicto'
 
@@ -28,6 +30,9 @@ export interface EstadoEditor {
   origen: Origen
   /** Versión del servidor que provocó el conflicto (412). */
   versionRemota: number | null
+  /** «Seleccionar varios» del móvil (M-02): cada toque en un mueble lo añade o lo quita, como Mayúsculas+clic. */
+  variosActivo: boolean
+  activarVarios(activo: boolean): void
   crear(tipo: TipoEstancia, ancho: number, largo: number, alto: number, forma?: FormaDePlanta): void
   cargar(doc: DocumentoDiseno): void
   cambiar(f: (d: DocumentoDiseno) => DocumentoDiseno, grupo?: string): void
@@ -58,15 +63,20 @@ function seleccionValida(s: Seleccion, doc: DocumentoDiseno | null): Seleccion {
       return doc.estructura.some((x) => x.id === s.id) ? s : null
     case 'elemento':
       return doc.elementos.some((x) => x.id === s.id) ? s : null
+    case 'elementos': {
+      const ids = s.ids.filter((id, i) => s.ids.indexOf(id) === i && doc.elementos.some((x) => x.id === id))
+      if (ids.length === 0) return null
+      return ids.length === 1 ? { tipo: 'elemento', id: ids[0]! } : ids.length === s.ids.length ? s : { tipo: 'elementos', ids }
+    }
   }
 }
 
 /** Paso en el que se edita lo seleccionado: los elementos en el 2; la estancia en el 1. */
-const pasoDe = (s: NonNullable<Seleccion>): Paso => (s.tipo === 'elemento' ? 2 : 1)
+const pasoDe = (s: NonNullable<Seleccion>): Paso => (s.tipo === 'elemento' || s.tipo === 'elementos' ? 2 : 1)
 /** Si lo seleccionado es de este paso: pared, esquina, abertura o estructura en el 1; elemento en el 2. */
 export const seleccionDelPaso = (s: Seleccion | null, paso: Paso): boolean => s !== null && pasoDe(s) === paso
 
-const vacio = () => ({ pasado: [], futuro: [], grupo: null, seleccion: null, aviso: null })
+const vacio = () => ({ pasado: [], futuro: [], grupo: null, seleccion: null, aviso: null, variosActivo: false })
 
 const pasoDeDocumento = (doc: DocumentoDiseno | null): Paso => (doc !== null && doc.elementos.length > 0 ? 2 : 1)
 
@@ -74,7 +84,7 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
   // Sin localStorage, el diseño anónimo que había al abrir uno del servidor solo queda aquí.
   let anonimoEnMemoria: DocumentoDiseno | null = null
 
-  return createStore<EstadoEditor>()((set, get) => ({
+  const tienda = createStore<EstadoEditor>()((set, get) => ({
     documento: null,
     paso: 1,
     vista: '2d',
@@ -86,6 +96,7 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
     guardado: 'guardado',
     origen: ORIGEN_ANONIMO,
     versionRemota: null,
+    variosActivo: false,
 
     crear: (tipo, ancho, largo, alto, forma) => {
       set({ ...vacio(), documento: redondearNumeros(documentoNuevo(tipo, ancho, largo, alto, forma)), paso: 1 })
@@ -151,8 +162,10 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
       })
     },
 
-    seleccionar: (s) => set({ seleccion: seleccionValida(s, get().documento) }),
-    irAPaso: (paso) => set((e) => ({ paso, seleccion: e.seleccion !== null && pasoDe(e.seleccion) !== paso ? null : e.seleccion })),
+    // Soltar la selección (tocar el fondo, Escape) también termina el modo «Seleccionar varios».
+    seleccionar: (s) => set({ seleccion: seleccionValida(s, get().documento), ...(s === null && { variosActivo: false }) }),
+    activarVarios: (variosActivo) => set({ variosActivo }),
+    irAPaso: (paso) => set((e) => ({ paso, seleccion: e.seleccion !== null && pasoDe(e.seleccion) !== paso ? null : e.seleccion, variosActivo: paso === 2 && e.variosActivo })),
     cambiarVista: (vista) => {
       const entra = vista === '3d' && get().vista !== '3d'
       set({ vista })
@@ -178,6 +191,12 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
       })
     },
   }))
+  // «Seleccionar varios» (M-02) solo tiene sentido con algo seleccionado y en 2D: se apaga en cuanto no queda selección
+  // (también al deshacer, borrar o cambiar de diseño) o se pasa a 3D. Un solo sitio para todos los cambios de estado.
+  tienda.subscribe((e) => {
+    if (e.variosActivo && (e.seleccion === null || e.vista === '3d')) tienda.setState({ variosActivo: false })
+  })
+  return tienda
 }
 
 export const almacen = crearAlmacen()

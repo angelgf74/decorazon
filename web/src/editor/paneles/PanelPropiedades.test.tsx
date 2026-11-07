@@ -2,7 +2,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { anadirElemento, catalogoBase, longitudPared, type Abertura } from '../../nucleo'
+import { anadirElemento, bloquearElemento, catalogoBase, longitudPared, type Abertura } from '../../nucleo'
 import { textos } from '../../textos'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import PanelPropiedades from './PanelPropiedades'
@@ -295,5 +295,72 @@ describe('PanelPropiedades: atajos del teclado para recorrer el plano (M-28)', (
     const region = screen.getByRole('region', { name: textos.propiedades.atajos })
     expect(within(region).getByText('Recorrer los muebles del plano (cada uno se selecciona al llegar)')).toBeInTheDocument()
     expect(within(region).getByText('Tab')).toBeInTheDocument()
+  })
+})
+
+describe('PanelPropiedades: varios muebles (M-02)', () => {
+  const ids = () => almacen.getState().documento!.elementos.map((e) => e.id)
+  beforeEach(() => {
+    almacen.getState().irAPaso(2)
+    almacen.getState().cambiar((d) => anadirElemento(anadirElemento(d, catalogoBase, 'mesa', { x: 200, y: 165 }).documento, catalogoBase, 'silla', { x: 200, y: 110 }).documento)
+  })
+
+  it('con dos seleccionados dice cuántos y cuáles; «Borrar los 2» los quita juntos', async () => {
+    almacen.getState().seleccionar({ tipo: 'elementos', ids: ids() })
+    render(<PanelPropiedades />)
+    expect(screen.getByRole('heading', { name: '2 muebles seleccionados' })).toBeInTheDocument()
+    expect(screen.getByText('Mesa')).toBeInTheDocument()
+    expect(screen.getByText('Silla')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Borrar los 2' }))
+    expect(almacen.getState().documento!.elementos).toHaveLength(0)
+  })
+
+  it('«Seleccionar varios» (para el móvil) activa el modo; en el grupo, «Terminar» lo quita sin soltar la selección', async () => {
+    almacen.getState().seleccionar({ tipo: 'elemento', id: ids()[0]! })
+    const { unmount } = render(<PanelPropiedades />)
+    await userEvent.click(screen.getByRole('button', { name: 'Seleccionar varios' }))
+    expect(almacen.getState().variosActivo).toBe(true)
+    unmount()
+    almacen.getState().seleccionar({ tipo: 'elementos', ids: ids() })
+    render(<PanelPropiedades />)
+    await userEvent.click(screen.getByRole('button', { name: 'Terminar de seleccionar' }))
+    expect(almacen.getState().variosActivo).toBe(false)
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elementos', ids: ids() })
+  })
+
+  it('los atajos dicen cómo añadir con Mayúsculas+clic y Ctrl+A', async () => {
+    almacen.getState().seleccionar({ tipo: 'elementos', ids: ids() })
+    render(<PanelPropiedades />)
+    await userEvent.click(screen.getByText(textos.propiedades.atajos))
+    const region = screen.getByRole('region', { name: textos.propiedades.atajos })
+    expect(within(region).getByText('Añadir o quitar de la selección')).toBeInTheDocument()
+    expect(within(region).getByText('Seleccionar todos los muebles')).toBeInTheDocument()
+  })
+})
+
+describe('PanelPropiedades: el modo y los bloqueados se ven (M-02, revisión)', () => {
+  const ids = () => almacen.getState().documento!.elementos.map((e) => e.id)
+  beforeEach(() => {
+    almacen.getState().irAPaso(2)
+    almacen.getState().cambiar((d) => anadirElemento(anadirElemento(d, catalogoBase, 'mesa', { x: 200, y: 165 }).documento, catalogoBase, 'silla', { x: 200, y: 110 }).documento)
+  })
+
+  it('con un mueble, «Seleccionar varios» es un interruptor: pulsado dice qué hacer y se puede apagar', async () => {
+    almacen.getState().seleccionar({ tipo: 'elemento', id: ids()[0]! })
+    render(<PanelPropiedades />)
+    const boton = screen.getByRole('button', { name: 'Seleccionar varios' })
+    expect(boton).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(boton)
+    expect(boton).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText(textos.propiedades.variosNota)).toBeInTheDocument()
+    await userEvent.click(boton)
+    expect(almacen.getState().variosActivo).toBe(false)
+  })
+
+  it('un grupo con un bloqueado avisa de que no se mueve', () => {
+    almacen.getState().cambiar((d) => bloquearElemento(d, ids()[0]!, true))
+    almacen.getState().seleccionar({ tipo: 'elementos', ids: ids() })
+    render(<PanelPropiedades />)
+    expect(screen.getByText(textos.propiedades.grupoBloqueado)).toBeInTheDocument()
   })
 })

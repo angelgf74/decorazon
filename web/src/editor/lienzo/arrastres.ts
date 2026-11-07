@@ -1,9 +1,10 @@
 import type { PointerEvent as PointerEventReact } from 'react'
 import {
-  catalogoBase, editarAbertura, editarEstructura, hueco, longitudPared, moverElemento, restar, sumar,
+  catalogoBase, desplazarElemento, editarAbertura, editarEstructura, hueco, longitudPared, moverElemento, restar, sumar,
   type DocumentoDiseno, type Punto, type ResultadoEdicion,
 } from '../../nucleo'
 import { almacen } from '../estado/almacen'
+import { alternarSeleccion, grupoConBloqueado } from '../estado/elementos'
 
 /** Px que hay que mover el puntero para que un toque sobre una pieza pase a ser un arrastre. */
 export const UMBRAL_ARRASTRE_PX = 3
@@ -139,9 +140,23 @@ export function pulsarEstructura(aPlano: APlano, id: string, ev: PointerEventRea
 /** Avisa de qué elemento se está arrastrando (null al soltar), para dibujar sus cotas. */
 export type AlArrastrarElemento = (id: string | null) => void
 
-/** Paso 2: pulsar un elemento lo selecciona y empieza a moverlo; el imán actúa en cada movimiento. */
+/**
+ * Paso 2: pulsar un elemento lo selecciona y empieza a moverlo; el imán actúa en cada movimiento. Con Mayúsculas o Ctrl
+ * (o el modo «Seleccionar varios» del móvil) lo añade a la selección o lo quita, sin arrastrar (M-02). Si es uno de un
+ * grupo seleccionado, arrastra el grupo entero sin imán: el imán movería cada mueble por su lado y deformaría el conjunto.
+ */
 export function pulsarElemento(aPlano: APlano, id: string, ev: PointerEventReact<Element>, avisar: AlArrastrarElemento): void {
-  const { documento, seleccionar } = almacen.getState()
+  const { documento, seleccionar, seleccion, variosActivo } = almacen.getState()
+  if (ev.shiftKey || ev.ctrlKey || ev.metaKey || variosActivo) {
+    alternarSeleccion(id)
+    return
+  }
+  if (seleccion?.tipo === 'elementos' && seleccion.ids.includes(id) && documento) {
+    // Con un bloqueado dentro, el grupo no se mueve: desde el bloqueado el toque pasa (pan), desde otro no hace nada.
+    if (grupoConBloqueado(seleccion.ids)) return
+    arrastrarGrupo(aPlano, documento, seleccion.ids, id, ev, avisar)
+    return
+  }
   seleccionar({ tipo: 'elemento', id })
   const e = documento?.elementos.find((x) => x.id === id)
   // Un bloqueado se selecciona y nada más (M-05): sin arrastre, el toque no mueve ni enseña cotas.
@@ -174,5 +189,20 @@ export function girarElemento(aPlano: APlano, id: string, ev: PointerEventReact<
     const libre = m.shiftKey
     const giro = libre ? Math.round(angulo) : Math.round(angulo / 90) * 90
     almacen.getState().cambiar((d) => moverElemento(d, catalogoBase, id, e.posicion, ((giro % 360) + 360) % 360, libre), `girar:${id}`)
+  }, () => avisar(null))
+}
+
+/** El grupo sigue al puntero: cada mueble se coloca en su posición de partida más lo desplazado, en un solo paso de deshacer. */
+function arrastrarGrupo(aPlano: APlano, documento: DocumentoDiseno, ids: string[], id: string, ev: PointerEventReact<Element>, avisar: AlArrastrarElemento): void {
+  const partida = new Map(documento.elementos.filter((e) => ids.includes(e.id)).map((e) => [e.id, e.posicion]))
+  const p0 = aPlano(ev)
+  arrastrar(ev, (m) => {
+    avisar(id)
+    const delta = redondear(restar(aPlano(m), p0))
+    almacen.getState().cambiar((d) => ids.reduce((doc, gid) => {
+      const desde = partida.get(gid)
+      const ahora = doc.elementos.find((e) => e.id === gid)?.posicion
+      return desde && ahora ? desplazarElemento(doc, gid, desde.x + delta.x - ahora.x, desde.y + delta.y - ahora.y) : doc
+    }, d), 'mover:grupo')
   }, () => avisar(null))
 }

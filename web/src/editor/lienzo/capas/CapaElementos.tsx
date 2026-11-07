@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react'
+import { useRef, type KeyboardEvent } from 'react'
 import { catalogoBase, nombreDeElemento, nombreEnPlanta, rectangulo, type Conflicto, type DocumentoDiseno, type Elemento } from '../../../nucleo'
 import type { Seleccion } from '../../estado/almacen'
 import { textos } from '../../../textos'
@@ -35,6 +35,8 @@ interface Props {
   seleccion: Seleccion
   alPulsar?: AlPulsar
   alSeleccionar?(id: string): void
+  /** Mayús+Intro sobre una pieza con el foco: la añade a la selección o la quita (M-02). */
+  alAlternar?(id: string, previa: Seleccion): void
   escala?: number
 }
 
@@ -73,18 +75,28 @@ function ordenDeTabulacion(elementos: Elemento[]): Elemento[] {
   return [...elementos].sort((a, b) => pisable(a) - pisable(b) || a.posicion.y - b.posicion.y || a.posicion.x - b.posicion.x)
 }
 
-export default function CapaElementos({ documento, conflictos, seleccion, alPulsar, alSeleccionar, escala = 1 }: Props) {
+export default function CapaElementos({ documento, conflictos, seleccion, alPulsar, alSeleccionar, alAlternar, escala = 1 }: Props) {
   const enError = new Set(conflictos.filter((c) => c.gravedad === 'error').flatMap((c) => c.ids.slice(0, 2)))
   // Lo pisable (alfombras) debajo del resto; lo demás, en el orden en que se añadió (el último, encima).
   const orden = [...documento.elementos].sort((a, b) => pisable(a) - pisable(b))
-  const elegido = (e: Elemento) => seleccion?.tipo === 'elemento' && seleccion.id === e.id
+  // Con varios seleccionados (M-02), todos llevan halo.
+  const elegido = (e: Elemento) => (seleccion?.tipo === 'elemento' && seleccion.id === e.id) || (seleccion?.tipo === 'elementos' && seleccion.ids.includes(e.id))
   // Tab selecciona lo que alcanza (así Supr, R y las flechas actúan sobre lo que se ve con el foco); Intro y Espacio, por si acaso.
   // A mitad de un arrastre con el puntero no se cambia la selección: el arrastre sigue con su pieza.
   const seleccionar = (id: string) => { if (!hayArrastre()) alSeleccionar?.(id) }
+  // Con varios seleccionados, recorrer con Tab no deshace el grupo: el foco solo se mueve (Intro sí elige una sola).
+  // La selección de antes de que el foco eligiera la pieza: Mayús+Intro alterna sobre ella (si no, quitaría lo que el foco
+  // acaba de seleccionar y con el teclado no se podría formar un grupo).
+  const previa = useRef<Seleccion>(seleccion)
+  const alEnfocar = (id: string) => {
+    previa.current = seleccion
+    if (seleccion?.tipo !== 'elementos') seleccionar(id)
+  }
   const alTeclear = (id: string) => (ev: KeyboardEvent<SVGPolygonElement>) => {
     if (ev.key !== 'Enter' && ev.key !== ' ') return
     ev.preventDefault()
-    seleccionar(id)
+    if (ev.shiftKey && ev.key === 'Enter') alAlternar?.(id, previa.current)
+    else seleccionar(id)
   }
   return (
     <g className="capa-elementos">
@@ -127,7 +139,7 @@ export default function CapaElementos({ documento, conflictos, seleccion, alPuls
               role="button"
               aria-label={etiquetaAccesible(e)}
               aria-current={elegido(e) ? 'true' : undefined}
-              onFocus={() => seleccionar(e.id)}
+              onFocus={() => alEnfocar(e.id)}
               onKeyDown={alTeclear(e.id)}
             />
           ))}

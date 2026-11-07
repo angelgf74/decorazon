@@ -495,3 +495,46 @@ describe('usarAtajos en la vista 3D', () => {
     expect(almacen.getState().seleccion).toBeNull()
   })
 })
+
+describe('atajos con varios muebles seleccionados (M-02)', () => {
+  const pos = (id: string) => almacen.getState().documento!.elementos.find((e) => e.id === id)?.posicion
+  beforeEach(() => {
+    almacen.getState().irAPaso(2)
+    almacen.getState().cambiar((d) => {
+      const a = anadirElemento(d, catalogoBase, 'mesa', { x: 200, y: 150 })
+      const b = anadirElemento(a.documento, catalogoBase, 'silla', { x: 200, y: 100 })
+      return b.documento
+    })
+  })
+  const ids = () => almacen.getState().documento!.elementos.map((e) => e.id)
+
+  it('Ctrl+A selecciona todos los muebles en el paso 2 (y no el texto de la página)', () => {
+    render(<Sonda />)
+    const ev = fireEvent.keyDown(window, { key: 'a', ctrlKey: true })
+    expect(ev).toBe(false)
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elementos', ids: ids() })
+  })
+
+  it('las flechas mueven todo el grupo sin imán; Supr lo borra entero; Escape suelta', () => {
+    render(<Sonda />)
+    almacen.getState().seleccionar({ tipo: 'elementos', ids: ids() })
+    const antes = ids().map(pos)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.keyDown(window, { key: 'ArrowDown', shiftKey: true })
+    expect(ids().map(pos)).toEqual(antes.map((p) => ({ x: p!.x + 1, y: p!.y + 10 })))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(almacen.getState().seleccion).toBeNull()
+    almacen.getState().seleccionar({ tipo: 'elementos', ids: ids() })
+    fireEvent.keyDown(window, { key: 'Delete' })
+    expect(almacen.getState().documento!.elementos).toHaveLength(0)
+  })
+
+  it('R y Ctrl+D no hacen nada con un grupo (sin girar ni duplicar en grupo)', () => {
+    render(<Sonda />)
+    almacen.getState().seleccionar({ tipo: 'elementos', ids: ids() })
+    const doc = almacen.getState().documento
+    fireEvent.keyDown(window, { key: 'r' })
+    fireEvent.keyDown(window, { key: 'd', ctrlKey: true })
+    expect(almacen.getState().documento).toBe(doc)
+  })
+})

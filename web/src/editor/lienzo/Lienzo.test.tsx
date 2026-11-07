@@ -750,3 +750,72 @@ describe('Lienzo: el arrastre no reordena el DOM (M-28, revisión)', () => {
     expect(orden()).toEqual(['a', 'b'])
   })
 })
+
+describe('Lienzo: varios muebles (M-02)', () => {
+  const pos = (id: string) => almacen.getState().documento!.elementos.find((e) => e.id === id)!.posicion
+
+  it('Mayúsculas+clic añade y quita sin arrastrar; todos los elegidos llevan halo', () => {
+    colocar('mesita', 'a', { x: 100, y: 100 })
+    colocar('mesita', 'b', { x: 250, y: 200 })
+    const { container } = render(<Lienzo />)
+    const huella = (id: string) => container.querySelector(`[data-elemento="${id}"] polygon.capa-elementos__huella`)!
+    fireEvent.pointerDown(huella('a'), { pointerId: 1, clientX: 100, clientY: 100 })
+    fireEvent.pointerUp(huella('a'), { pointerId: 1 })
+    fireEvent.pointerDown(huella('b'), { pointerId: 2, clientX: 250, clientY: 200, shiftKey: true })
+    expect(hayArrastre()).toBe(false)
+    fireEvent.pointerUp(huella('b'), { pointerId: 2 })
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elementos', ids: ['a', 'b'] })
+    expect(container.querySelectorAll('.capa-elementos__halo').length).toBeGreaterThanOrEqual(2)
+    fireEvent.pointerDown(huella('a'), { pointerId: 3, clientX: 100, clientY: 100, ctrlKey: true })
+    fireEvent.pointerUp(huella('a'), { pointerId: 3 })
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elemento', id: 'b' })
+  })
+
+  it('arrastrar uno del grupo mueve todos lo mismo, sin imán, en un solo paso de deshacer; el tirador de giro no sale', () => {
+    colocar('mesita', 'a', { x: 100, y: 100 })
+    colocar('mesita', 'b', { x: 250, y: 200 })
+    almacen.getState().seleccionar({ tipo: 'elementos', ids: ['a', 'b'] })
+    const { container } = render(<Lienzo />)
+    expect(container.querySelector('.capa-tiradores__giro')).toBeNull()
+    const pasos = almacen.getState().pasado.length
+    const huella = container.querySelector('[data-elemento="b"] polygon.capa-elementos__huella')!
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 250, clientY: 200 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 260, clientY: 205 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 263, clientY: 207 })
+    fireEvent.pointerUp(huella, { pointerId: 1 })
+    expect(pos('a')).toEqual({ x: 113, y: 107 })
+    expect(pos('b')).toEqual({ x: 263, y: 207 })
+    expect(almacen.getState().pasado.length).toBe(pasos + 1)
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elementos', ids: ['a', 'b'] })
+  })
+
+  it('en el modo «Seleccionar varios» (móvil) un toque añade o quita, sin teclas', () => {
+    colocar('mesita', 'a', { x: 100, y: 100 })
+    colocar('mesita', 'b', { x: 250, y: 200 })
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a' })
+    almacen.getState().activarVarios(true)
+    const { container } = render(<Lienzo />)
+    const huella = container.querySelector('[data-elemento="b"] polygon.capa-elementos__huella')!
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 250, clientY: 200 })
+    fireEvent.pointerUp(huella, { pointerId: 1 })
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elementos', ids: ['a', 'b'] })
+  })
+})
+
+describe('Lienzo: grupo con un bloqueado (M-02, revisión)', () => {
+  it('un grupo con un bloqueado no se arrastra, ni desde el bloqueado ni desde otro', () => {
+    colocar('mesita', 'a', { x: 100, y: 100 })
+    colocar('mesita', 'b', { x: 250, y: 200 })
+    almacen.getState().cambiar((d) => bloquearElemento(d, 'a', true))
+    almacen.getState().seleccionar({ tipo: 'elementos', ids: ['a', 'b'] })
+    const { container } = render(<Lienzo />)
+    for (const id of ['a', 'b']) {
+      const huella = container.querySelector(`[data-elemento="${id}"] polygon.capa-elementos__huella`)!
+      fireEvent.pointerDown(huella, { pointerId: 1, clientX: 250, clientY: 200 })
+      fireEvent.pointerMove(huella, { pointerId: 1, clientX: 270, clientY: 210 })
+      fireEvent.pointerUp(huella, { pointerId: 1 })
+    }
+    expect(almacen.getState().documento!.elementos.map((e) => e.posicion)).toEqual([{ x: 100, y: 100 }, { x: 250, y: 200 }])
+    expect(almacen.getState().seleccion).toEqual({ tipo: 'elementos', ids: ['a', 'b'] })
+  })
+})
