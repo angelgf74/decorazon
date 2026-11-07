@@ -34,31 +34,39 @@
 
 ### Task 1: API (rojo → verde)
 
-- [ ] `tests/Decorazon.Aplicacion.Tests` (dobles de `DoblesDeDisenos.cs`): `ObtenerVistaPreviaDelDuenoAsync` devuelve la imagen al dueño, null a otro usuario y null sin imagen; `ListarAsync` da `FechaDeVistaPrevia` solo en los que la tienen.
-- [ ] `tests/Decorazon.Api.Tests/VistaPreviaTests.cs`: `GET /disenos/{id}/vista-previa` con sesión del dueño da 200 `image/jpeg` con los bytes subidos, `Cache-Control` `private` y `nosniff`; otro usuario 404; sin imagen 404; sin sesión 401. `GET /disenos` lleva `fechaDeVistaPrevia` tras subir la imagen y null antes. `OpenApiTests`: la ruta nueva pide bearer.
-- [ ] Código: `ResumenDeDiseno` (dominio), `IRepositorioDeDisenos`, `RepositorioDeDisenosEf` (proyección y consulta del dueño), `CompartirDisenos`, `CompartirEndpoints` (`GET` con `WithName("leerVistaPreviaDelDueno")`, `Produces(200, "image/jpeg")`, 404), `ContratosDeDisenos` y `DisenosEndpoints.ListarAsync`, dobles.
-- [ ] `dotnet build Decorazon.slnx -warnaserror`, `dotnet test Decorazon.slnx`, `cd web && npm run api:tipos`; `openapi.json` y `esquema.d.ts` cambiados. Commit `feat(api): vista previa del dueño y su fecha en el listado`.
+- [x] `tests/Decorazon.Aplicacion.Tests` (dobles de `DoblesDeDisenos.cs`): `ObtenerVistaPreviaDelDuenoAsync` devuelve la imagen al dueño, null a otro usuario y null sin imagen; `ListarAsync` da `FechaDeVistaPrevia` solo en los que la tienen.
+- [x] `tests/Decorazon.Api.Tests/VistaPreviaTests.cs`: `GET /disenos/{id}/vista-previa` con sesión del dueño da 200 `image/jpeg` con los bytes subidos, `Cache-Control` `private` y `nosniff`; otro usuario 404; sin imagen 404; sin sesión 401. `GET /disenos` lleva `fechaDeVistaPrevia` tras subir la imagen y null antes. `OpenApiTests`: la ruta nueva pide bearer.
+- [x] Código: `ResumenDeDiseno` (dominio), `IRepositorioDeDisenos`, `RepositorioDeDisenosEf` (proyección y consulta del dueño), `CompartirDisenos`, `CompartirEndpoints` (`GET` con `WithName("leerVistaPreviaDelDueno")`, `Produces(200, "image/jpeg")`, 404), `ContratosDeDisenos` y `DisenosEndpoints.ListarAsync`, dobles.
+- [x] `dotnet build Decorazon.slnx -warnaserror`, `dotnet test Decorazon.slnx`, `cd web && npm run api:tipos`; `openapi.json` y `esquema.d.ts` cambiados. Commit `feat(api): vista previa del dueño y su fecha en el listado`.
 
 ### Task 2: la imagen de todos los diseños y la miniatura en Mis diseños
 
-- [ ] `vistaPrevia.test.tsx`: el test «un diseño que no se comparte no rehace nada» pasa a «un diseño que no se comparte también rehace y sube la imagen al guardar»; desaparece el caso «abierto sin conexión… lo pregunta». `EditorDeDiseno.test.tsx`: no pide `GET /disenos/{id}` al guardar para saber si se comparte.
-- [ ] `servidor.test.ts`: `obtenerVistaPrevia` pide `GET /disenos/{id}/vista-previa` y devuelve un `Blob`.
-- [ ] `MiniaturaDeDiseno.test.tsx`: con `fecha` pide la imagen una vez (dos montajes con el mismo `id:fecha`, una petición) y pinta `<img>`; sin `fecha`, el hueco sin petición; si la petición falla, el hueco.
-- [ ] `MisDisenos.test.tsx`: cada fila con `fechaDeVistaPrevia` lleva `img.disenos__miniatura`, y sin ella el hueco; «Buscar» con «salon» deja solo «Salón de casa» y vacío los deja todos; «Ordenar por» nombre ordena «Antiguo» antes que «Reciente» y por tipo agrupa.
-- [ ] Código: `RefrescoDeVistaPrevia.tsx` y `EditorDeDiseno.tsx` (sin `compartido`), `servidor.ts`, `MiniaturaDeDiseno.tsx`, `MisDisenos.tsx`, `disenos.css`, textos (`disenos.buscar`, `disenos.ordenar`, `disenos.orden.{fecha,nombre,tipo}`, `disenos.sinMiniatura`).
-- [ ] Commit `feat(web): miniatura, buscador y orden en Mis diseños; vista previa de todos los diseños`.
+- [x] `vistaPrevia.test.tsx`: el test «un diseño que no se comparte no rehace nada» pasa a «un diseño que no se comparte también rehace y sube la imagen al guardar»; desaparece el caso «abierto sin conexión… lo pregunta». `EditorDeDiseno.test.tsx`: no pide `GET /disenos/{id}` al guardar para saber si se comparte.
+- [x] `servidor.test.ts`: `obtenerVistaPrevia` pide `GET /disenos/{id}/vista-previa` y devuelve un `Blob`.
+- [x] `MiniaturaDeDiseno.test.tsx`: con `fecha` pide la imagen una vez (dos montajes con el mismo `id:fecha`, una petición) y pinta `<img>`; sin `fecha`, el hueco sin petición; si la petición falla, el hueco.
+- [x] `MisDisenos.test.tsx`: cada fila con `fechaDeVistaPrevia` lleva `img.disenos__miniatura`, y sin ella el hueco; «Buscar» con «salon» deja solo «Salón de casa» y vacío los deja todos; «Ordenar por» nombre ordena «Antiguo» antes que «Reciente» y por tipo agrupa.
+- [x] Código: `RefrescoDeVistaPrevia.tsx` y `EditorDeDiseno.tsx` (sin `compartido`), `servidor.ts`, `MiniaturaDeDiseno.tsx`, `MisDisenos.tsx`, `disenos.css`, textos (`disenos.buscar`, `disenos.ordenar`, `disenos.orden.{fecha,nombre,tipo}`, `disenos.sinMiniatura`).
+- [x] Commit `feat(web): miniatura, buscador y orden en Mis diseños; vista previa de todos los diseños`.
 
 ### Task 3: plantillas de planta
 
-- [ ] `crear.test.ts`: `plantaDeForma(400, 330, { forma: 'ele', entranteAncho: 150, entranteLargo: 100, esquina: 'abajo-derecha' })` da 6 vértices horarios `[(0,0),(400,0),(400,230),(250,230),(250,330),(0,330)]`; cada esquina recorta la suya; un entrante de 390 en 400 se recorta a 350; `documentoNuevo(..., ele)` valida y `esSimple`; sin forma, el rectángulo de siempre.
-- [ ] `NuevaEstancia.test.tsx`: elegir «En L» enseña los campos del entrante y crea una planta de 6 vértices; el dibujo (`svg`) cambia de 4 a 6 puntos; «Rectángulo» vuelve a 4. `almacen.test` (donde esté `crear`): `crear` con forma.
-- [ ] `MisDisenos.test.tsx`: crear desde el diálogo con L manda al servidor una planta de 6 vértices.
-- [ ] Código: `crear.ts` (y export en `nucleo/index.ts`), `almacen.ts` (`crear(tipo, ancho, largo, alto, forma?)`), `NuevaEstancia.tsx`, `MisDisenos.tsx` (`DialogoNuevo`), `editor.css` o `nueva-estancia` CSS para el dibujo, textos (`nuevaEstancia.forma`, `formas.{rectangulo,ele}`, `entranteAncho`, `entranteLargo`, `esquina`, `esquinas.*`).
-- [ ] Commit `feat(web): estancia en L desde «Nueva estancia»`.
+- [x] `crear.test.ts`: `plantaDeForma(400, 330, { forma: 'ele', entranteAncho: 150, entranteLargo: 100, esquina: 'abajo-derecha' })` da 6 vértices horarios `[(0,0),(400,0),(400,230),(250,230),(250,330),(0,330)]`; cada esquina recorta la suya; un entrante de 390 en 400 se recorta a 350; `documentoNuevo(..., ele)` valida y `esSimple`; sin forma, el rectángulo de siempre.
+- [x] `NuevaEstancia.test.tsx`: elegir «En L» enseña los campos del entrante y crea una planta de 6 vértices; el dibujo (`svg`) cambia de 4 a 6 puntos; «Rectángulo» vuelve a 4. `almacen.test` (donde esté `crear`): `crear` con forma.
+- [x] `MisDisenos.test.tsx`: crear desde el diálogo con L manda al servidor una planta de 6 vértices.
+- [x] Código: `crear.ts` (y export en `nucleo/index.ts`), `almacen.ts` (`crear(tipo, ancho, largo, alto, forma?)`), `NuevaEstancia.tsx`, `MisDisenos.tsx` (`DialogoNuevo`), `editor.css` o `nueva-estancia` CSS para el dibujo, textos (`nuevaEstancia.forma`, `formas.{rectangulo,ele}`, `entranteAncho`, `entranteLargo`, `esquina`, `esquinas.*`).
+- [x] Commit `feat(web): estancia en L desde «Nueva estancia»`.
 
 ### Task 4: cierre
 
-- [ ] `e2e/cuentas/cuentas.spec.ts`: tras guardar en el editor y volver a Mis diseños, la fila lleva `img.disenos__miniatura` (con `expect.poll`, 20 s: la imagen se sube en segundo plano); `anonimo.spec.ts` o `ejemplos.spec.ts`: crear una estancia en L y ver 6 cotas.
-- [ ] `dotnet build`, `dotnet test`, `npm test`, `lint`, `build`, `e2e`, `e2e:cuentas`; capturas de Mis diseños con miniaturas (1440 y 390) y de «Nueva estancia» en L.
-- [ ] `CLAUDE.md`: el endpoint nuevo, la fecha en el resumen, la vista previa de todos los diseños y las plantillas, en una frase cada uno.
-- [ ] `mejoras.md`: M-19 y M-04 → `realizada` con fecha y PR. Este plan con todo marcado.
+- [x] `e2e/cuentas/cuentas.spec.ts`: tras guardar en el editor y volver a Mis diseños, la fila lleva `img.disenos__miniatura` (con `expect.poll`, 20 s: la imagen se sube en segundo plano); `anonimo.spec.ts` o `ejemplos.spec.ts`: crear una estancia en L y ver 6 cotas.
+- [x] `dotnet build`, `dotnet test`, `npm test`, `lint`, `build`, `e2e`, `e2e:cuentas`; capturas de Mis diseños con miniaturas (1440 y 390) y de «Nueva estancia» en L.
+- [x] `CLAUDE.md`: el endpoint nuevo, la fecha en el resumen, la vista previa de todos los diseños y las plantillas, en una frase cada uno.
+- [x] `mejoras.md`: M-19 y M-04 → `realizada` con fecha y PR. Este plan con todo marcado.
+
+## Decisiones al ejecutar (7 nov 2026)
+
+- `RefrescoDeVistaPrevia` pierde la prop `compartido` y la pregunta al servidor: la imagen se rehace para todos los diseños, así que ya no hace falta saber si se comparte. `EditorDeDiseno` deja de guardar `compartido` en la carga.
+- La caché de miniaturas (object URL por `id:fecha`) vive en `paginas/miniaturas.ts`, aparte del componente, por la regla de oxlint de exportar solo componentes.
+- `FormaDePlanta` usa la clave `forma` (`'rectangulo' | 'ele'`) y `plantaDeForma` recorta el entrante a `[50, medida − 50]` en vez de rechazarlo: un valor absurdo da una L válida, nunca un error.
+- Las cuatro esquinas se escriben a mano (seis vértices cada una) en el sentido del rectángulo; el test comprueba que el área con signo tiene el mismo signo en las cuatro.
+- En jsdom el `Blob` no es el de Node: los tests que simulan la imagen devuelven `new Response('jpeg', …)`, no un `Blob`, que `Response` convertiría en «[object Blob]».
