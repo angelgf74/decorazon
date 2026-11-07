@@ -107,6 +107,17 @@ describe('Inicio: ejemplos', () => {
     expect(screen.queryByRole('button', { name: textos.inicio.guardarEnCuenta })).toBeNull()
   })
 
+  it('la imagen del primer ejemplo es lo más grande de la primera pantalla en móvil: carga al momento y con prioridad; las otras, perezosas', () => {
+    montar()
+    const imagenes = EJEMPLOS.map((e) => tarjeta(new RegExp(`^${e.nombre}`)).querySelector('img')!)
+    expect(imagenes[0]).toHaveAttribute('loading', 'eager')
+    expect(imagenes[0]).toHaveAttribute('fetchpriority', 'high')
+    for (const img of imagenes.slice(1)) {
+      expect(img).toHaveAttribute('loading', 'lazy')
+      expect(img).not.toHaveAttribute('fetchpriority')
+    }
+  })
+
   it('«Abrir una copia» sin diseño en el navegador abre el editor con ese diseño, como anónimo', async () => {
     montar()
     await userEvent.click(within(tarjeta(/^Dormitorio/)).getByRole('button', { name: textos.inicio.abrirCopia }))

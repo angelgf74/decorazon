@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+# Un diseño compartido lleva su enlace secreto en la ruta; cuenta y diseños piden sesión.
+Disallow: /compartido/
+Disallow: /cuenta
+Disallow: /disenos

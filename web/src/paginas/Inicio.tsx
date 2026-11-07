@@ -100,10 +100,11 @@ export default function Inicio() {
           <h2 id="inicio-ejemplos">{t.ejemplos}</h2>
           <p className="inicio__nota">{t.ejemplosDetalle}</p>
           <ul className="inicio__tarjetas">
-            {EJEMPLOS.map((e) => (
+            {EJEMPLOS.map((e, i) => (
               <li key={e.id}>
                 <article className="inicio__tarjeta" aria-labelledby={`inicio-ejemplo-${e.id}`}>
-                  <img className="inicio__tarjeta-imagen" src={e.imagen} alt="" width="300" height="200" loading="lazy" />
+                  {/* La primera imagen es lo más grande de la primera pantalla en móvil (LCP): al momento y con prioridad. */}
+                  <img className="inicio__tarjeta-imagen" src={e.imagen} alt="" width="300" height="200" loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : undefined} />
                   <h3 id={`inicio-ejemplo-${e.id}`}>{e.nombre}</h3>
                   <p className="inicio__tarjeta-tipo">{textos.nuevaEstancia.tipos[e.tipo]}</p>
                   <div className="inicio__tarjeta-acciones">
