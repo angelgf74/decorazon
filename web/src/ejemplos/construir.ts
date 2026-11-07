@@ -1,10 +1,11 @@
 import { catalogoBase, documentoNuevo, elementoNuevo, type DocumentoDiseno, type Elemento, type Puerta, type TipoEstancia, type Ventana } from '../nucleo'
 
-/** Un mueble del catálogo con sus medidas por defecto, centrado en (x, y); giro 0 = frente hacia abajo (como al soltarlo). */
-export function mueble(tipo: string, id: string, x: number, y: number, rotacion = 0): Elemento {
+/** Un mueble del catálogo con sus medidas por defecto (o las que se den), centrado en (x, y); giro 0 = frente hacia abajo (como al soltarlo). */
+export function mueble(tipo: string, id: string, x: number, y: number, rotacion = 0, medidas: Partial<Elemento['medidas']> = {}): Elemento {
   const def = catalogoBase.get(tipo)
   if (!def) throw new Error(`El ejemplo usa un tipo que no existe: ${tipo}`)
-  return { ...elementoNuevo(def, { x, y }, id), rotacion }
+  const e = elementoNuevo(def, { x, y }, id)
+  return { ...e, rotacion, medidas: { ...e.medidas, ...medidas } }
 }
 
 /** Puerta abatible de 80 × 210 que abre hacia dentro; `posicion` desde el inicio de la pared (las paredes van en sentido horario). */
