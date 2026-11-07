@@ -135,3 +135,19 @@ describe('servidor de diseños', () => {
     expect(direccionCompartida('tok_1')).toBe(`${location.origin}/compartido/tok_1`)
   })
 })
+
+describe('guardarDiseno: copia antes de sobrescribir (M-21)', () => {
+  it('con copiaPrevia manda X-Copia-Previa: 1; sin ella, no', async () => {
+    const llamadas: Request[] = []
+    vi.stubGlobal('fetch', vi.fn(async (p: Request) => {
+      llamadas.push(p)
+      return new Response(JSON.stringify({ id: 'd', nombre: 'n', tipoEstancia: 'salon', fechaDeCreacion: 'x', fechaDeModificacion: 'x', version: 2, contenido: {}, enlace: null }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    }))
+    const doc = documentoNuevo('salon', 400, 300, 250)
+    await guardarDiseno('d', 1, { nombre: 'n', doc })
+    await guardarDiseno('d', 1, { nombre: 'n', doc }, { copiaPrevia: true })
+    expect(llamadas[0]!.headers.get('X-Copia-Previa')).toBeNull()
+    expect(llamadas[1]!.headers.get('X-Copia-Previa')).toBe('1')
+    vi.unstubAllGlobals()
+  })
+})

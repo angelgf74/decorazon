@@ -106,6 +106,8 @@ export interface CopiaLocal {
   nombrePendiente?: boolean
   documento: DocumentoDiseno
   pendiente: boolean
+  /** El próximo guardado pide a la API una copia de lo que pisa (M-21): se eligió «Sobrescribir» y aún no se subió. */
+  copiaPrevia?: true
 }
 
 export function leerCopiaLocal(st: Storage | null, id: string): CopiaLocal | null {
@@ -115,12 +117,15 @@ export function leerCopiaLocal(st: Storage | null, id: string): CopiaLocal | nul
     if (crudo === null) return null
     const dato: unknown = JSON.parse(crudo)
     if (typeof dato !== 'object' || dato === null) return null
-    const { version, nombre, nombrePendiente, documento, pendiente } = dato as Record<string, unknown>
+    const { version, nombre, nombrePendiente, documento, pendiente, copiaPrevia } = dato as Record<string, unknown>
     if (typeof version !== 'number' || typeof pendiente !== 'boolean') return null
     const r = validarDocumento(documento)
     if (!r.valido) return null
     // Sin la marca (copias antiguas) queda sin definir: elegirApertura lo deduce del nombre.
-    return { version, ...(typeof nombre === 'string' && { nombre }), ...(typeof nombrePendiente === 'boolean' && { nombrePendiente }), documento: r.documento, pendiente }
+    return {
+      version, ...(typeof nombre === 'string' && { nombre }), ...(typeof nombrePendiente === 'boolean' && { nombrePendiente }), documento: r.documento, pendiente,
+      ...(copiaPrevia === true && pendiente && { copiaPrevia: true as const }),
+    }
   } catch {
     return null
   }

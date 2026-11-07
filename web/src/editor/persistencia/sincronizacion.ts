@@ -27,6 +27,8 @@ export interface Apertura {
   nombrePendiente?: string
   guardado: Extract<EstadoGuardado, 'guardado' | 'pendiente' | 'sinConexion' | 'conflicto'>
   versionRemota?: number
+  /** La copia local pedía copia al sobrescribir (M-21) y aún no se subió: el próximo guardado la vuelve a pedir. */
+  copiaPrevia?: boolean
 }
 
 /** Qué abrir al entrar en un diseño: la copia local si tiene cambios sin subir; si no, la del servidor. `remoto` null = sin conexión. */
@@ -39,7 +41,7 @@ export function elegirApertura(
     if (copia === null) return null
     const nombre = copia.nombre ?? textos.disenos.nombrePorDefecto
     const conRenombrado = copia.nombrePendiente && copia.nombre !== undefined ? { nombrePendiente: copia.nombre } : {}
-    return { id, version: copia.version, nombre, documento: copia.documento, pendiente: copia.pendiente, ...conRenombrado, guardado: 'sinConexion' }
+    return { id, version: copia.version, nombre, documento: copia.documento, pendiente: copia.pendiente, ...conRenombrado, ...(copia.copiaPrevia && { copiaPrevia: true }), guardado: 'sinConexion' }
   }
   const nombreRemoto = remoto.diseno.nombre
   const mismaVersion = copia !== null && copia.version === remoto.version
@@ -61,7 +63,7 @@ export function elegirApertura(
   }
   const nombre = renombrado ?? nombreRemoto
   const conRenombrado = renombrado !== undefined ? { nombrePendiente: renombrado } : {}
-  if (copia?.pendiente) return { id, version: copia.version, nombre, documento: copia.documento, pendiente: true, ...conRenombrado, guardado: 'pendiente' }
+  if (copia?.pendiente) return { id, version: copia.version, nombre, documento: copia.documento, pendiente: true, ...conRenombrado, ...(copia.copiaPrevia && { copiaPrevia: true }), guardado: 'pendiente' }
   return {
     id, version: remoto.version, nombre, documento: remoto.diseno.contenido, pendiente: false, ...conRenombrado,
     guardado: renombrado !== undefined ? 'pendiente' : 'guardado',
@@ -100,6 +102,8 @@ interface Trabajo {
   nombrePendiente: string | null
   enVuelo: boolean
   conflicto: boolean
+  /** El próximo guardado pide a la API copiar lo que pisa (M-21): se acaba de elegir sobrescribir tras un conflicto. */
+  copiaPrevia?: boolean
   /** Ya no existe en el servidor y tiene cambios: no se sube más; decide el usuario (guardarlo como nuevo o descartarlo). */
   perdido: boolean
   /** El servidor respondió 429: hasta que un reintento salga bien, editar no lanza PUT (los sube el reintento). */
@@ -148,7 +152,10 @@ export function conectarSincronizacion(
   const copiar = (t: Trabajo) => {
     // Un trabajo ya dejado no pisa la copia del mismo diseño abierto otra vez.
     if (anulado(t) || (t !== actual && actual?.id === t.id)) return
-    const ok = guardarCopiaLocal(st, t.id, { version: t.version, nombre: t.nombre, documento: t.documento, pendiente: hayCambios(t), nombrePendiente: t.nombrePendiente !== null })
+    const ok = guardarCopiaLocal(st, t.id, {
+      version: t.version, nombre: t.nombre, documento: t.documento, pendiente: hayCambios(t), nombrePendiente: t.nombrePendiente !== null,
+      ...(t.copiaPrevia && hayCambios(t) && { copiaPrevia: true as const }),
+    })
     if (!ok) fijar(t, { aviso: textos.barra.sinCopiaLocal })
   }
 
@@ -214,7 +221,9 @@ export function conectarSincronizacion(
     t.nombrePendiente = null
     fijar(t, { guardado: 'pendiente' })
     try {
-      const r = await guardarDiseno(t.id, t.version, { nombre: t.nombre, doc: t.documento })
+      const datos = { nombre: t.nombre, doc: t.documento }
+      const r = await (t.copiaPrevia ? guardarDiseno(t.id, t.version, datos, { copiaPrevia: true }) : guardarDiseno(t.id, t.version, datos))
+      t.copiaPrevia = false
       t.enVuelo = false
       t.limitado = false
       t.version = r.version
@@ -381,6 +390,7 @@ export function conectarSincronizacion(
       if (t === null || t.id !== ap.id) return
       t.sucio = ap.pendiente
       t.nombrePendiente = ap.nombrePendiente ?? null
+      t.copiaPrevia = ap.copiaPrevia === true
       t.conflicto = ap.guardado === 'conflicto'
       a.setState({ guardado: ap.guardado, versionRemota: ap.versionRemota ?? null })
       copiar(t)
@@ -410,6 +420,7 @@ export function conectarSincronizacion(
         t.version = remota
         if (nombreRemoto !== null) t.nombre = nombreRemoto
         t.conflicto = false
+        t.copiaPrevia = true
         t.sucio = true
         fijarOrigen(t)
         fijar(t, { versionRemota: null })

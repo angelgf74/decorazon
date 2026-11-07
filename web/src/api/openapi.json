@@ -1027,6 +1027,159 @@
         ]
       }
     },
+    "/disenos/{id}/version-anterior": {
+      "get": {
+        "tags": [
+          "Disenos"
+        ],
+        "operationId": "leerVersionAnterior",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeVersionAnterior"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/disenos/{id}/version-anterior/recuperar": {
+      "post": {
+        "tags": [
+          "Disenos"
+        ],
+        "operationId": "recuperarVersionAnterior",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Versión del diseño que se editó, entre comillas: \"3\".",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Versión del diseño, entre comillas: \"3\".",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Location": {
+                "description": "Ruta del diseño creado.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeDiseno"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "headers": {
+              "ETag": {
+                "description": "Versión del diseño, entre comillas: \"3\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeVersionDistinta"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/disenos/{id}/enlace": {
       "put": {
         "tags": [
@@ -1253,6 +1406,7 @@
   },
   "components": {
     "schemas": {
+      "JsonElement": { },
       "PeticionDeBaja": {
         "required": [
           "contrasena"
@@ -1604,6 +1758,35 @@
           },
           "baseDeDatos": {
             "type": "boolean"
+          }
+        }
+      },
+      "RespuestaDeVersionAnterior": {
+        "required": [
+          "nombre",
+          "tipoEstancia",
+          "fecha",
+          "version",
+          "contenido"
+        ],
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "tipoEstancia": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contenido": {
+            "$ref": "#/components/schemas/JsonElement"
           }
         }
       },

@@ -232,6 +232,9 @@ describe('sincronización con el servidor', () => {
     expect(servidor.guardarDiseno).toHaveBeenCalledTimes(2)
     expect(servidor.guardarDiseno.mock.calls[1]![1]).toBe(9)
     expect(servidor.guardarDiseno.mock.calls[1]![2].doc.estancia.alto).toBe(265)
+    // M-21: sobrescribir pide a la API una copia de lo que pisa; el guardado normal, no.
+    expect(servidor.guardarDiseno.mock.calls[0]![3]).toBeUndefined()
+    expect(servidor.guardarDiseno.mock.calls[1]![3]).toEqual({ copiaPrevia: true })
     expect(remoto.version).toBe(10)
     expect(version(a)).toBe(10)
     expect(a.getState().guardado).toBe('guardado')
@@ -291,7 +294,7 @@ describe('sincronización con el servidor', () => {
     await vi.advanceTimersByTimeAsync(0)
     expect(b.getState().guardado).toBe('conflicto')
     await resolverConflicto(b, 'sobrescribir')
-    expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 9, expect.objectContaining({ nombre: 'Mi salón' }))
+    expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 9, expect.objectContaining({ nombre: 'Mi salón' }), { copiaPrevia: true })
     expect(remoto.nombre).toBe('Mi salón')
     expect(b.getState().origen).toMatchObject({ nombre: 'Mi salón', version: 10 })
   })
@@ -800,7 +803,7 @@ describe('elegirApertura', () => {
     await resolverConflicto(a, eleccion)
     const o = a.getState().origen
     expect(o.tipo === 'servidor' && o.nombre).toBe(nombre)
-    if (eleccion === 'sobrescribir') expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Local' }))
+    if (eleccion === 'sobrescribir') expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Local' }), { copiaPrevia: true })
   })
 
   it('misma versión con otro nombre y la marca a false (la pestaña se cerró con el renombrado en vuelo): el renombrado no se pierde', () => {
@@ -820,7 +823,7 @@ describe('elegirApertura', () => {
     desconectadores.push(conectarSincronizacion(a, { esperaMs: 2000, st: falso() }))
     abrirDiseno(a, elegirApertura(ID, { ...copia(4, true), nombre: 'Cocina vieja', nombrePendiente: false }, remoto(6))!)
     await resolverConflicto(a, 'sobrescribir')
-    expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Cocina' }))
+    expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Cocina' }), { copiaPrevia: true })
   })
 
   it('sin conexión: la copia local', () => {
@@ -859,5 +862,35 @@ describe('anular la sincronización al cerrar la sesión', () => {
     await vi.advanceTimersByTimeAsync(60_000)
     expect(servidor.guardarDiseno).not.toHaveBeenCalled()
     expect(st.getItem(`decorazon.diseno.${ID}`)).toBeNull()
+  })
+})
+
+describe('sincronización: la copia pedida al sobrescribir sobrevive a un fallo (M-21)', () => {
+  it('si el PUT de sobrescribir no sale, la copia local lo apunta, al reabrir se vuelve a pedir y tras salir bien se olvida', async () => {
+    const remoto = servidorConVersion(9)
+    const { a, st } = preparar(4)
+    a.getState().cambiar(alto(260))
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(a.getState().guardado).toBe('conflicto')
+    servidor.guardarDiseno.mockRejectedValueOnce(new ErrorDeApi(0, 'sin red'))
+    await resolverConflicto(a, 'sobrescribir')
+    expect(servidor.guardarDiseno.mock.calls.at(-1)![3]).toEqual({ copiaPrevia: true })
+    expect(leerCopiaLocal(st, ID)).toMatchObject({ version: 9, pendiente: true, copiaPrevia: true })
+
+    // Se cierra la pestaña (su sincronización se va) y se vuelve en otra con el mismo almacenamiento.
+    // anularSincronizacion: lo que la pestaña cerrada tenía en marcha ya no sube nada (al cerrarla de verdad, no existe).
+    anularSincronizacion(a)
+    desconectadores.splice(0).forEach((d) => d())
+    const b = crearAlmacen()
+    desconectadores.push(conectarSincronizacion(b, { esperaMs: 2000, st }))
+    const apertura = elegirApertura(ID, leerCopiaLocal(st, ID), { diseno: disenoServidor(9), version: 9 })
+    expect(apertura).toMatchObject({ pendiente: true, guardado: 'pendiente', copiaPrevia: true })
+    abrirDiseno(b, apertura!)
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(servidor.guardarDiseno.mock.calls.at(-1)![3]).toEqual({ copiaPrevia: true })
+    expect(remoto.version).toBe(10)
+    // La copia local se escribe con un pequeño retardo (ESPERA_COPIA_MS).
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(leerCopiaLocal(st, ID)?.copiaPrevia).toBeUndefined()
   })
 })

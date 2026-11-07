@@ -98,7 +98,7 @@ public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDat
                 "borrarDiseno", "borrarMiCuenta", "cambiarContrasena", "confirmarRegistro", "consultarSalud",
                 "crearDiseno", "duplicarDiseno", "iniciarSesion", "listarDisenos", "obtenerDiseno",
                 "obtenerMiCuenta", "restablecerContrasena", "solicitarOlvidoDeContrasena", "solicitarRegistro",
-                "actualizarDiseno", "compartirDiseno", "dejarDeCompartirDiseno", "leerDisenoCompartido", "subirVistaPrevia", "leerVistaPrevia", "leerVistaPreviaDelDueno", "leerTarjeta",
+                "actualizarDiseno", "compartirDiseno", "dejarDeCompartirDiseno", "leerDisenoCompartido", "subirVistaPrevia", "leerVistaPrevia", "leerVistaPreviaDelDueno", "leerTarjeta", "leerVersionAnterior", "recuperarVersionAnterior",
                 "enviarSugerencia"
             }.Order(),
             ids.Order());

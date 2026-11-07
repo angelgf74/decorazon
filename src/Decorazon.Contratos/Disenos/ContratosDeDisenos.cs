@@ -78,3 +78,14 @@ public sealed record RespuestaDeDisenoCompartido(
 /// </summary>
 /// <param name="Version">La versión actual, para que el cliente decida cómo reconciliar.</param>
 public sealed record RespuestaDeVersionDistinta(string Mensaje, int Version);
+
+/// <summary>
+/// <c>GET /disenos/{id}/version-anterior</c>: la copia del diseño de antes de sobrescribirlo (M-21). <c>Fecha</c> es cuándo
+/// se guardó esa versión y <c>Version</c> la que tenía entonces.
+/// </summary>
+public sealed record RespuestaDeVersionAnterior(
+    string Nombre,
+    string TipoEstancia,
+    DateTimeOffset Fecha,
+    int Version,
+    JsonElement Contenido);
