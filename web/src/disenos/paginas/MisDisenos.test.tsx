@@ -80,6 +80,56 @@ describe('MisDisenos', () => {
     expect(within(filas[1]!).getByText('Dormitorio')).toBeInTheDocument()
   })
 
+  it('cada diseño con vista previa lleva su miniatura; sin ella, el hueco', async () => {
+    conSesion()
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:miniatura'), revokeObjectURL: vi.fn() }))
+    fetchSimulado.mockImplementation(async (p) => {
+      const ruta = `${p.method} ${new URL(p.url).pathname}`
+      if (ruta === 'GET /disenos') return respuesta(200, [{ ...RECIENTE, fechaDeVistaPrevia: '2026-11-07T10:00:00Z' }, ANTIGUO])
+      if (ruta === 'GET /disenos/b/vista-previa') return new Response('jpeg', { status: 200, headers: { 'Content-Type': 'image/jpeg' } })
+      return respuesta(404, { mensaje: 'no' })
+    })
+    montar()
+    const filas = await screen.findAllByRole('listitem')
+    await vi.waitFor(() => expect(filas[0]!.querySelector('.disenos__miniatura img')).not.toBeNull())
+    expect(filas[1]!.querySelector('.disenos__miniatura img')).toBeNull()
+    expect(filas[1]!.querySelector('.disenos__miniatura')).not.toBeNull()
+    expect(rutas().filter((r) => r.endsWith('/vista-previa'))).toEqual(['GET /disenos/b/vista-previa'])
+  })
+
+  it('«Buscar» filtra por nombre sin distinguir mayúsculas ni tildes; vacío, los deja todos', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [resumen('c', 'Salón de casa', '2025-02-01T10:00:00Z'), ANTIGUO]))
+    montar()
+    expect(await screen.findAllByRole('listitem')).toHaveLength(2)
+    const buscar = screen.getByRole('searchbox', { name: 'Buscar' })
+    await userEvent.type(buscar, 'SALON')
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getByText('Salón de casa')).toBeInTheDocument()
+    await userEvent.clear(buscar)
+    await userEvent.type(buscar, 'ántig')
+    expect(screen.getByText('Antiguo')).toBeInTheDocument()
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    await userEvent.clear(buscar)
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('«Ordenar por» nombre o tipo cambia el orden; fecha vuelve al de siempre', async () => {
+    conSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, [ANTIGUO, RECIENTE, resumen('z', 'Ático', '2025-06-01T10:00:00Z', 'bano')]))
+    montar()
+    await screen.findAllByRole('listitem')
+    const nombres = () => screen.getAllByRole('listitem').map((li) => within(li).getByRole('strong').textContent)
+    expect(nombres()).toEqual(['Reciente', 'Ático', 'Antiguo'])
+    const orden = screen.getByRole('combobox', { name: 'Ordenar por' })
+    await userEvent.selectOptions(orden, 'nombre')
+    expect(nombres()).toEqual(['Antiguo', 'Ático', 'Reciente'])
+    await userEvent.selectOptions(orden, 'tipo')
+    expect(nombres()).toEqual(['Ático', 'Antiguo', 'Reciente'])
+    await userEvent.selectOptions(orden, 'fecha')
+    expect(nombres()).toEqual(['Reciente', 'Ático', 'Antiguo'])
+  })
+
   it('un diseño compartido lleva la marca «Compartido»', async () => {
     conSesion()
     fetchSimulado.mockResolvedValueOnce(respuesta(200, [{ ...RECIENTE, enlace: 'tok' }, ANTIGUO]))

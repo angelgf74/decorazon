@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { textos } from '../../textos'
 import DialogoCompartir from './DialogoCompartir'
 
-const DISENO = { id: 'b', nombre: 'Salón', tipoEstancia: 'salon', fechaDeCreacion: 'x', fechaDeModificacion: 'x', version: 1, enlace: 'tok_1' }
+const DISENO = { id: 'b', nombre: 'Salón', tipoEstancia: 'salon', fechaDeCreacion: 'x', fechaDeModificacion: 'x', version: 1, enlace: 'tok_1', fechaDeVistaPrevia: null }
 
 afterEach(() => vi.unstubAllGlobals())
 

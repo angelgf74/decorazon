@@ -25,6 +25,26 @@
   border-radius: 0.6rem;
   background: #fff;
 }
+/* Buscador y orden, en una línea sobre la lista. */
+.disenos__filtros { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2) var(--esp-3); }
+.disenos__filtros label { font-size: var(--texto-s); font-weight: 600; }
+.disenos__buscar { flex: 1 1 12rem; min-width: 0; font: inherit; padding: 0.4rem 0.6rem; border: 1px solid var(--gris); border-radius: 0.4rem; }
+/* La miniatura: la vista 3D del diseño (1200 × 630) recortada a 3:2, o el icono sobre crema. */
+.disenos__miniatura {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 6rem;
+  height: 4rem;
+  overflow: hidden;
+  border-radius: 0.4rem;
+  background: var(--crema);
+  color: var(--gris);
+}
+.disenos__miniatura img { width: 100%; height: 100%; object-fit: cover; }
+.disenos__miniatura .icono { width: 1.5rem; height: 1.5rem; }
+.disenos__fila .disenos__datos { flex: 1 1 10rem; }
 .disenos__datos { display: flex; flex-direction: column; gap: 0.15rem; }
 .disenos__datos span { color: var(--gris); font-size: 0.9rem; }
 .disenos__acciones, .disenos__renombrar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.4rem; }
