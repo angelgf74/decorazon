@@ -320,3 +320,17 @@ describe('BarraSuperior: «Instalar Decorazon» (M-25)', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
+
+describe('BarraSuperior: los pasos de iOS no dan por hecho Safari', () => {
+  it('hablan del botón Compartir del navegador y de «Añadir a pantalla de inicio»', async () => {
+    instalacion.estado = 'ios'
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Instalar Decorazon' }))
+    const dialogo = screen.getByRole('dialog')
+    expect(dialogo).not.toHaveTextContent('Safari')
+    expect(dialogo).toHaveTextContent('Compartir')
+    expect(dialogo).toHaveTextContent('Añadir a pantalla de inicio')
+    instalacion.estado = 'no'
+  })
+})

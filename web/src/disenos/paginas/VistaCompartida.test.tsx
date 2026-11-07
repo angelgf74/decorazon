@@ -246,3 +246,11 @@ describe('VistaCompartida: imprimir', () => {
     expect(boton).toHaveFocus()
   })
 })
+
+describe('VistaCompartida: buscadores', () => {
+  it('pide a los buscadores que no la indexen (robots.txt no basta si el enlace se publica fuera)', async () => {
+    montar()
+    await screen.findByRole('heading', { level: 1 })
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'noindex')
+  })
+})

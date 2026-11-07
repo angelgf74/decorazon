@@ -1,9 +1,10 @@
-import { existsSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const dist = new URL('../dist/', import.meta.url)
 const hay = (f: string) => existsSync(new URL(f, dist))
-const kB = (f: string) => statSync(new URL(f, dist)).size / 1024
+// kB de 1000, como las cifras del índice de mejoras.
+const kB = (f: string) => statSync(new URL(f, dist)).size / 1000
 
 // Medido el 7 nov 2026 (fase 8, plan 20): arranque 535 kB (index 425 + jsx-runtime 110 + runtime 1), CSS 42 kB,
 // fragmento 3D 1015 kB. Tope: lo medido + 15 %. Si se pasa, no es «subir el tope»: es mirar qué entró en el arranque.
@@ -43,8 +44,8 @@ describe.skipIf(!hay('index.html') && !process.env.EXIGIR_DIST)('presupuesto de 
   })
 
   it(`el fragmento 3D pesa como mucho ${PRESUPUESTO_3D_KB} kB`, () => {
-    const html = readFileSync(new URL('sw.js', dist), 'utf8')
-    const fragmento = html.match(/assets\/Escena3D-[^"']+\.js/)?.[0]
+    // Por los ficheros de dist, no por sw.js: si un día no se precarga la 3D, el test no debe fallar por eso.
+    const fragmento = readdirSync(new URL('assets/', dist)).map((f) => `assets/${f}`).find((f) => /^assets\/Escena3D-.*\.js$/.test(f))
     expect(fragmento).toBeDefined()
     expect(kB(fragmento!)).toBeLessThanOrEqual(PRESUPUESTO_3D_KB)
   })

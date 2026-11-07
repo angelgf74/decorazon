@@ -41,3 +41,15 @@ describe('eventos de uso del editor', () => {
     expect(evento).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('eventos de uso: la analítica nunca rompe el editor', () => {
+  it('se cuenta después de cambiar el estado: si contar fallara, la estancia y la vista ya han cambiado', () => {
+    vi.mocked(evento).mockImplementation(() => { throw new Error('tracker roto') })
+    // evento() no lanza nunca (se traga lo del tracker); aun así, si lanzara, se cuenta después de cambiar el estado.
+    try { almacen.getState().crear('cocina', 400, 300, 250) } catch { /* el estado ya cambió */ }
+    expect(almacen.getState().documento?.estancia.tipo).toBe('cocina')
+    try { almacen.getState().cambiarVista('3d') } catch { /* el estado ya cambió */ }
+    expect(almacen.getState().vista).toBe('3d')
+    vi.mocked(evento).mockReset()
+  })
+})

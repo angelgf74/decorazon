@@ -113,6 +113,7 @@ export default function VistaCompartida() {
   if (estado.tipo !== 'listo') {
     return (
       <main className="compartido compartido--mensaje">
+        <meta name="robots" content="noindex" />
         {estado.tipo === 'noFunciona' ? (
           <>
             <h1>{t.noFunciona}</h1>
@@ -161,6 +162,8 @@ export default function VistaCompartida() {
 
   return (
     <main className="compartido">
+      {/* robots.txt no basta si el enlace se publica fuera: la página pide que no la indexen (React la sube al <head>). */}
+      <meta name="robots" content="noindex" />
       <header className="compartido__portada">
         <Link to="/" className="compartido__marca"><img src="/favicon.svg" alt="" width="28" height="28" />Decorazon</Link>
         <h1>{diseno.nombre}</h1>

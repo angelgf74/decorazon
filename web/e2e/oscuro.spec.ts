@@ -23,8 +23,8 @@ test('con el sistema en oscuro, la interfaz es oscura, el texto claro y el plano
   await page.getByRole('link', { name: 'Empezar a diseñar' }).click()
   await page.getByRole('button', { name: 'Crear estancia' }).click()
   await expect(page.locator('.lienzo__svg')).toBeVisible()
-  // El plano: fondo crema de siempre y muros de tinta oscura.
-  expect(await fondo(page, '.lienzo')).toBe('rgb(255, 248, 240)')
+  // El plano: fondo blanco de siempre y muros de tinta oscura.
+  expect(await fondo(page, '.lienzo')).toBe('rgb(255, 255, 255)')
   expect(luz(await page.locator('.capa-planta__muros').first().evaluate((n) => getComputedStyle(n).fill))).toBeLessThan(0.3)
   // La barra y el panel, oscuros.
   expect(luz(await fondo(page, '.barra'))).toBeLessThan(0.2)

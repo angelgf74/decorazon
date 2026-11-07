@@ -269,7 +269,7 @@
   height: 1.85rem;
   min-height: 0;
   padding: 0;
-  border: 1px solid rgb(43 38 34 / 0.3);
+  border: 1px solid var(--gris);
   border-radius: 50%;
 }
 .selector-color__muestra[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--crema), 0 0 0 4px var(--tinta); }
@@ -281,7 +281,7 @@
   width: 0.45rem;
   height: 0.8rem;
   margin: auto;
-  border: solid var(--tinta);
+  border: solid #2b2622;
   border-width: 0 2px 2px 0;
   transform: translateY(-1px) rotate(45deg);
 }
@@ -434,7 +434,8 @@
 .avisos__chip--mal { color: var(--peligro); border-color: var(--conflicto); cursor: pointer; }
 /* Abierto, el chip va en rojo macizo con el texto en blanco: el hover claro no debe pisarlo. */
 .avisos__chip--mal:hover:not(:disabled, [aria-expanded='true']) { background: var(--peligro-suave); }
-.avisos__chip--mal[aria-expanded='true'] { background: var(--peligro); border-color: var(--peligro); color: var(--sobre-peligro); }
+.avisos__chip--mal[aria-expanded='true'],
+.avisos__chip--mal[aria-expanded='true']:hover:not(:disabled) { background: var(--peligro); border-color: var(--peligro); color: var(--sobre-peligro); }
 .lista-avisos {
   position: absolute;
   top: calc(100% + var(--esp-1));
