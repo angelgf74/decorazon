@@ -16,7 +16,7 @@
 /* El plano y la vista 3D atienden sus propios gestos: ningún pellizco que empiece aquí amplía la página. */
 .editor__lienzo { position: relative; min-width: 0; min-height: 0; background: var(--superficie); touch-action: none; }
 /* 2D/3D flota arriba a la derecha del plano, en las dos vistas. */
-.editor__vista { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 2; background: var(--superficie); box-shadow: 0 4px 16px rgb(43 38 34 / 0.1); }
+.editor__vista { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 2; background: var(--superficie); box-shadow: 0 4px 16px rgb(var(--sombra) / 0.1); }
 /* Aquí y no en vista3d.css: se usa también cuando el fragmento 3D no llega a cargarse. */
 .vista3d__aviso { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; height: 100%; padding: 1rem; text-align: center; }
 .editor__izquierda, .editor__derecha { padding: var(--esp-4); overflow: auto; background: var(--crema); }
@@ -64,7 +64,7 @@
 .segmentado button { min-height: 2.125rem; padding: 0 0.85rem; border: 0; border-radius: 999px; background: transparent; color: var(--gris); font-weight: 600; }
 .segmentado button:hover:not(:disabled, [aria-pressed='true'], [aria-current='step']) { background: var(--crema-oscura); color: var(--tinta); }
 /* Con :hover también: el hover general de base.css tiene la misma especificidad y, si no, lo aclararía. */
-.segmentado button:is([aria-pressed='true'], [aria-current='step']):is(:hover, :not(:hover)) { background: var(--tinta); color: #fff; }
+.segmentado button:is([aria-pressed='true'], [aria-current='step']):is(:hover, :not(:hover)) { background: var(--tinta); color: var(--sobre-tinta); }
 .pasos__paso { gap: var(--esp-1); }
 .pasos__numero {
   display: inline-grid;
@@ -90,7 +90,7 @@
   text-overflow: ellipsis;
 }
 /* El punto repite el estado en color; el texto lo dice igualmente. */
-.barra__guardado::before { content: ''; flex: none; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: #2e7d4f; }
+.barra__guardado::before { content: ''; flex: none; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--bien); }
 .barra__guardado--pendiente::before { background: #e0a100; }
 .barra__guardado--error, .barra__guardado--conflicto, .barra__guardado--sinConexion { color: var(--conflicto); font-weight: 600; }
 .barra__guardado--error::before, .barra__guardado--conflicto::before, .barra__guardado--sinConexion::before { background: var(--conflicto); }
@@ -121,7 +121,7 @@
   border: 1px solid var(--borde-suave);
   border-radius: var(--radio);
   background: var(--superficie);
-  box-shadow: 0 8px 24px rgb(43 38 34 / 0.14);
+  box-shadow: 0 8px 24px rgb(var(--sombra) / 0.14);
 }
 .menu__opcion { justify-content: flex-start; padding: 0.5rem 0.75rem; border: 0; background: transparent; font-weight: 500; white-space: nowrap; }
 .menu__opcion .icono { color: var(--gris); }
@@ -158,7 +158,7 @@
   padding: 0.6rem 1rem;
   border-radius: var(--radio);
   background: var(--tinta);
-  color: #fff;
+  color: var(--sobre-tinta);
   z-index: 20;
 }
 
@@ -175,7 +175,7 @@
   border: 1px solid var(--borde-suave);
   border-radius: 0.75rem;
   background: var(--superficie);
-  box-shadow: 0 8px 28px rgb(43 38 34 / 0.2);
+  box-shadow: 0 8px 28px rgb(var(--sombra) / 0.2);
   transform: translateX(-50%);
 }
 .guia:focus { outline: none; }
@@ -192,7 +192,7 @@
   z-index: 20;
   border: 3px solid var(--terracota);
   border-radius: calc(var(--radio) + 4px);
-  box-shadow: 0 0 0 6px rgb(185 71 58 / 0.25), 0 0 0 9999px rgb(43 38 34 / 0.08);
+  box-shadow: 0 0 0 6px rgb(185 71 58 / 0.25), 0 0 0 9999px rgb(var(--sombra) / 0.08);
   pointer-events: none;
   transition: left 0.25s, top 0.25s, width 0.25s, height 0.25s;
 }
@@ -326,7 +326,7 @@
   font-size: var(--texto-s);
   font-weight: 600;
 }
-.chip[aria-pressed='true'] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.chip[aria-pressed='true'] { background: var(--tinta); border-color: var(--tinta); color: var(--sobre-tinta); }
 .chip[aria-pressed='true']:hover:not(:disabled) { background: var(--tinta); }
 
 .panel-catalogo__grupo { margin-top: var(--esp-4); }
@@ -344,7 +344,7 @@
   border-color: var(--borde-suave);
   text-align: left;
 }
-.panel-catalogo__tipo:hover:not(:disabled) { border-color: var(--borde); box-shadow: 0 2px 8px rgb(43 38 34 / 0.08); }
+.panel-catalogo__tipo:hover:not(:disabled) { border-color: var(--borde); box-shadow: 0 2px 8px rgb(var(--sombra) / 0.08); }
 .panel-catalogo__nombre { font-size: var(--texto-m); font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
 .panel-catalogo__tipo small { color: var(--gris); font-size: var(--texto-s); white-space: nowrap; }
 @media (pointer: fine) { .panel-catalogo__tipo { cursor: grab; } }
@@ -402,7 +402,7 @@
   border: 1px solid var(--borde);
   border-radius: var(--radio);
   background: var(--superficie);
-  box-shadow: 0 6px 20px rgb(43 38 34 / 0.18);
+  box-shadow: 0 6px 20px rgb(var(--sombra) / 0.18);
   font-size: var(--texto-m);
   font-weight: 600;
   white-space: nowrap;
@@ -425,16 +425,16 @@
   border: 1px solid var(--borde-suave);
   border-radius: 999px;
   background: var(--superficie);
-  box-shadow: 0 4px 16px rgb(43 38 34 / 0.1);
+  box-shadow: 0 4px 16px rgb(var(--sombra) / 0.1);
   font-size: var(--texto-s);
   font-weight: 700;
 }
 .avisos__chip .icono { width: 1.1rem; height: 1.1rem; }
-.avisos__chip--bien { color: #2e7d4f; }
+.avisos__chip--bien { color: var(--bien); }
 .avisos__chip--mal { color: var(--peligro); border-color: var(--conflicto); cursor: pointer; }
 /* Abierto, el chip va en rojo macizo con el texto en blanco: el hover claro no debe pisarlo. */
-.avisos__chip--mal:hover:not(:disabled, [aria-expanded='true']) { background: #fbeceb; }
-.avisos__chip--mal[aria-expanded='true'] { background: var(--peligro); border-color: var(--peligro); color: #fff; }
+.avisos__chip--mal:hover:not(:disabled, [aria-expanded='true']) { background: var(--peligro-suave); }
+.avisos__chip--mal[aria-expanded='true'] { background: var(--peligro); border-color: var(--peligro); color: var(--sobre-terracota); }
 .lista-avisos {
   position: absolute;
   top: calc(100% + var(--esp-1));
@@ -447,7 +447,7 @@
   border: 1px solid var(--borde-suave);
   border-radius: var(--radio);
   background: var(--superficie);
-  box-shadow: 0 8px 24px rgb(43 38 34 / 0.14);
+  box-shadow: 0 8px 24px rgb(var(--sombra) / 0.14);
 }
 .lista-avisos ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--esp-1); }
 .lista-avisos__aviso {
@@ -532,7 +532,7 @@
     padding-top: var(--esp-6);
     border-top: 1px solid var(--borde-suave);
     border-radius: 1rem 1rem 0 0;
-    box-shadow: 0 -6px 20px rgb(43 38 34 / 0.12);
+    box-shadow: 0 -6px 20px rgb(var(--sombra) / 0.12);
     overscroll-behavior: contain;
   }
   .hoja:not(.hoja--abierta) { display: none; }

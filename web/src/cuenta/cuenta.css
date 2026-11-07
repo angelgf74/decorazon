@@ -15,7 +15,7 @@
   padding: 1.5rem;
   border: 1px solid var(--salmon);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--superficie);
 }
 
 .cuenta__tarjeta h1 { margin: 0; color: var(--terracota); font-size: 1.6rem; }
