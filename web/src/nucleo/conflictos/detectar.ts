@@ -205,6 +205,30 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
     && q.volumenes.some((w) => w.zMin >= techo(p) - TOLERANCIA_CM && p.volumenes.some((v) => penetracion(v.huella, w.huella) > TOLERANCIA_CM)))
   const bloquean = piezas.filter((p) => p.def.bloqueaPaso && !bajoTablero(p))
   const estrecho = (d: number) => d >= HUECO_IGNORADO_CM - 1e-6 && d < PASO_MINIMO_CM
+  // Un hueco que llena otro mueble no es un paso: un módulo de 50 entre otros dos, o entre el frigorífico y la pared.
+  // Se considera lleno si un tercero toca los dos lados (a menos del hueco ignorado de cada uno); si solo toca uno, el
+  // resto sigue siendo estrecho y se avisa.
+  const cerca = (d: number) => d < HUECO_IGNORADO_CM - 1e-6
+  const distancias = new Map<string, number>()
+  const distanciaPiezas = (x: number, y: number): number => {
+    const clave = x < y ? `${x}|${y}` : `${y}|${x}`
+    let d = distancias.get(clave)
+    if (d === undefined) {
+      d = Infinity
+      for (const v of bloquean[x].volumenes) for (const w of bloquean[y].volumenes) d = Math.min(d, distanciaConvexos(v.huella, w.huella))
+      distancias.set(clave, d)
+    }
+    return d
+  }
+  const distanciaATramo = (x: number, s1: Punto, s2: Punto): number => {
+    let d = Infinity
+    for (const v of bloquean[x].volumenes) {
+      for (let k = 0; k < v.huella.length; k++) d = Math.min(d, distanciaSegmentos(s1, s2, v.huella[k], v.huella[(k + 1) % v.huella.length]))
+    }
+    return d
+  }
+  const llenoEntre = (i: number, j: number) => bloquean.some((_, k) => k !== i && k !== j && cerca(distanciaPiezas(i, k)) && cerca(distanciaPiezas(j, k)))
+  const llenoHastaLaPared = (i: number, s1: Punto, s2: Punto) => bloquean.some((_, k) => k !== i && cerca(distanciaPiezas(i, k)) && cerca(distanciaATramo(k, s1, s2)))
   for (let i = 0; i < bloquean.length; i++) {
     const a = bloquean[i]
     for (let j = i + 1; j < bloquean.length; j++) {
@@ -218,7 +242,7 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
           d = Math.min(d, distanciaConvexos(v.huella, w.huella))
         }
       }
-      if (estrecho(d)) {
+      if (estrecho(d) && !llenoEntre(i, j)) {
         const p = redondearAbajo(d)
         conflictos.push({ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: [a.e.id, b.e.id], cantidadCm: p, mensaje: mensajePasoEstrecho(a.ref, b.ref, p) })
       }
@@ -235,11 +259,8 @@ export function detectarConflictos(doc: DocumentoDiseno, catalogo: Catalogo): Co
     // Cada tramo de pared por separado; el id 'pared:<índice>' los distingue.
     for (let tramo = 0; tramo < planta.length; tramo++) {
       const s1 = planta[tramo], s2 = planta[(tramo + 1) % planta.length]
-      let dp = Infinity
-      for (const v of a.volumenes) {
-        for (let k = 0; k < v.huella.length; k++) dp = Math.min(dp, distanciaSegmentos(s1, s2, v.huella[k], v.huella[(k + 1) % v.huella.length]))
-      }
-      if (estrecho(dp)) {
+      const dp = distanciaATramo(i, s1, s2)
+      if (estrecho(dp) && !llenoHastaLaPared(i, s1, s2)) {
         const p = redondearAbajo(dp)
         conflictos.push({ tipo: 'pasoEstrecho', gravedad: 'aviso', ids: [a.e.id, `pared:${tramo}`], cantidadCm: p, mensaje: mensajePasoEstrecho(a.ref, PARED, p) })
       }

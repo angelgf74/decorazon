@@ -228,6 +228,34 @@ describe('detectarConflictos', () => {
     expect(mensajes(doc, 'pasoEstrecho')).toContain('Paso estrecho entre el sofá y el armario: 40 cm')
   })
 
+  describe('un hueco que llena otro mueble no es un paso', () => {
+    const cocina = () => documentoNuevo('cocina', 400, 300, 250)
+    // Módulos bajos de fondo 60 contra la pared de arriba (y 0..60).
+    const modulo = (x: number, ancho: number, id: string) => elemento('modulo-bajo', x + ancho / 2, 30, 0, { ancho }, {}, id)
+
+    it('tres módulos seguidos con uno de 50 en medio: los de los lados no avisan entre sí', () => {
+      const doc = cocina()
+      doc.elementos.push(modulo(100, 60, 'm1'), modulo(160, 50, 'm2'), modulo(210, 60, 'm3'))
+      expect(mensajes(doc, 'pasoEstrecho')).toEqual([])
+    })
+
+    it('un módulo de 50 entre el frigorífico y la pared: no avisa', () => {
+      const doc = cocina()
+      doc.elementos.push(modulo(0, 50, 'm1'), elemento('frigorifico', 50 + 30, 33, 0, {}, {}, 'f1'))
+      expect(mensajes(doc, 'pasoEstrecho')).toEqual([])
+    })
+
+    it('si lo de en medio no toca los dos lados, el hueco sigue siendo estrecho', () => {
+      // m1 en 100..160 y m3 en 210..270: 50 libres; m2 (20 de ancho) pegado solo a m1, deja 30 hasta m3.
+      const doc = cocina()
+      doc.elementos.push(modulo(100, 60, 'm1'), modulo(160, 20, 'm2'), modulo(210, 60, 'm3'))
+      expect(mensajes(doc, 'pasoEstrecho')).toEqual(expect.arrayContaining([
+        'Paso estrecho entre el módulo bajo y el módulo bajo: 50 cm',
+        'Paso estrecho entre el módulo bajo y el módulo bajo: 30 cm',
+      ]))
+    })
+  })
+
   it('paso estrecho contra la pared y una columna', () => {
     const a = base()
     a.elementos.push(elemento('armario', 200, 165, 0))
