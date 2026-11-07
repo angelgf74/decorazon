@@ -555,3 +555,11 @@
   .guia--arriba { top: 6.5rem; bottom: auto; }
   .editor:has(.guia:not(.guia--arriba)) .editor__aviso { top: 6.5rem; bottom: auto; }
 }
+
+/* Mis productos de tienda (M-17): una fila por producto, «Usar» a lo ancho y la × para quitarlo. */
+.mis-productos { margin-top: var(--esp-3); }
+.mis-productos__lista { display: flex; flex-direction: column; gap: var(--esp-1); margin: 0; padding: 0; list-style: none; }
+.mis-productos__producto { display: flex; gap: var(--esp-1); }
+.mis-productos__producto > button:first-child { flex: 1; flex-direction: column; align-items: flex-start; gap: 0; min-width: 0; text-align: left; }
+.mis-productos__producto > button:first-child span { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.mis-productos__producto small { color: var(--gris); font-size: var(--texto-s); }

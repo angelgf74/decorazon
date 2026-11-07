@@ -57,6 +57,9 @@ export const textos = {
   },
   tienda: {
     esDeTienda: 'Es de una tienda',
+    misProductos: 'Mis productos',
+    usarProducto: (nombre: string, proveedor: string) => `Usar ${nombre} de ${proveedor}`,
+    olvidarProducto: (nombre: string, proveedor: string) => `Quitar ${nombre} de ${proveedor} de mis productos`,
     titulo: 'Producto de tienda',
     deTienda: (tipo: string, proveedor: string) => `${tipo} de ${proveedor}`,
     campos: {
