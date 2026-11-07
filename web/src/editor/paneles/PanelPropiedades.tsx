@@ -13,7 +13,7 @@ import EntradaColor from '../comunes/EntradaColor'
 import { etiquetaValor } from '../comunes/variantes'
 import Icono from '../comunes/Icono'
 import { almacen, useEditor } from '../estado/almacen'
-import { borrar, duplicar } from '../estado/elementos'
+import { borrar, borrarSeleccion, duplicar } from '../estado/elementos'
 import ProductoDeTienda from './ProductoDeTienda'
 
 const t = textos.propiedades
@@ -247,6 +247,8 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
           </button>
         )}
         {!en3d && <button type="button" onClick={() => duplicar(e.id)}>{t.duplicar}</button>}
+        {/* En el móvil no hay Mayúsculas: este modo hace que cada toque en un mueble lo añada o lo quite (M-02). */}
+        {!en3d && <button type="button" onClick={() => almacen.getState().activarVarios(true)}>{t.seleccionarVarios}</button>}
         <button type="button" className="peligro" onClick={() => borrar(e.id)}>{t.borrar}</button>
       </div>
     </>
@@ -260,11 +262,16 @@ const ATAJOS_ESTANCIA = [
   { teclas: ['Supr'], accion: t.atajo.quitar },
   { teclas: ['Esc'], accion: t.atajo.soltar },
 ]
+const ATAJOS_GRUPO = [
+  { teclas: ['Mayús', 'clic'], accion: t.atajo.anadirASeleccion },
+  { teclas: ['Ctrl', 'A'], accion: t.atajo.todos },
+]
 const ATAJOS_MUEBLES = [
   ...ATAJOS_ESTANCIA,
   { teclas: ['Tab'], accion: t.atajo.recorrer },
   { teclas: ['R'], accion: t.atajo.girar },
   { teclas: ['Ctrl', 'D'], accion: t.atajo.duplicar },
+  ...ATAJOS_GRUPO,
 ]
 
 /** Sin nada seleccionado (en escritorio el panel se oculta; en móvil la hoja lo enseña): qué pulsar en el plano. */
@@ -315,6 +322,8 @@ export default function PanelPropiedades() {
       const e = doc.estructura.find((x) => x.id === seleccion.id)
       if (e) contenido = <><PropiedadesEstructura key={e.id} doc={doc} e={e} /><BotonQuitar id={e.id} /></>
     }
+  } else if (paso === 2 && seleccion?.tipo === 'elementos') {
+    contenido = <Grupo doc={doc} ids={seleccion.ids} />
   } else if (paso === 2 && seleccion?.tipo === 'elemento') {
     const e = doc.elementos.find((x) => x.id === seleccion.id)
     if (e) contenido = <PropiedadesElemento key={e.id} doc={doc} e={e} en3d={en3d} />
@@ -325,5 +334,25 @@ export default function PanelPropiedades() {
       {contenido ?? <SinSeleccion paso={paso} />}
       {contenido !== null && <Atajos paso={paso} />}
     </div>
+  )
+}
+
+/** Varios muebles seleccionados (M-02): cuántos y cuáles, borrarlos juntos y terminar el modo del móvil. Sin girar ni duplicar en grupo. */
+function Grupo({ doc, ids }: { doc: DocumentoDiseno; ids: string[] }) {
+  const variosActivo = useEditor((e) => e.variosActivo)
+  const idTitulo = useId()
+  const muebles = ids.map((id) => doc.elementos.find((e) => e.id === id)).filter((e) => e !== undefined)
+  return (
+    <section aria-labelledby={idTitulo}>
+      <h2 id={idTitulo} className="panel__titulo">{t.grupo(muebles.length)}</h2>
+      <ul className="panel__lista-grupo">
+        {muebles.map((e) => <li key={e.id}>{nombreDeElemento(catalogoBase.get(e.tipo), e)}</li>)}
+      </ul>
+      <p className="panel__nota">{t.grupoNota}</p>
+      <div className="panel__acciones">
+        {variosActivo && <button type="button" onClick={() => almacen.getState().activarVarios(false)}>{t.terminarVarios}</button>}
+        <button type="button" className="peligro" onClick={borrarSeleccion}>{t.borrarGrupo(muebles.length)}</button>
+      </div>
+    </section>
   )
 }

@@ -41,3 +41,35 @@ test('arrastrar una mesita hacia abajo pasando por encima de otra llega hasta do
 
   await expect.poll(async () => (await posicionesGuardadas(page))!.find((e) => e.id === arriba.id)!.y).toBeGreaterThan(abajo.y + 80)
 })
+
+// M-02: Mayúsculas+clic añade a la selección y arrastrar uno del grupo mueve los dos lo mismo.
+test('dos mesitas seleccionadas con Mayúsculas se arrastran juntas', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Empezar a diseñar' }).click()
+  await page.getByRole('radio', { name: 'Dormitorio' }).check()
+  await page.getByRole('button', { name: 'Crear estancia' }).click()
+  await page.getByRole('button', { name: '2 Amueblar' }).click()
+  await page.locator('.panel-catalogo').getByRole('button', { name: /^Mesita/ }).click()
+  await page.locator('.panel-catalogo').getByRole('button', { name: /^Mesita/ }).click()
+  for (let i = 0; i < 8; i++) await page.keyboard.press('Shift+ArrowUp')
+  await expect.poll(() => posicionesGuardadas(page)).toHaveLength(2)
+  const antes = (await posicionesGuardadas(page))!
+  const [a, b] = antes.map((e) => page.locator(`[data-elemento="${e.id}"] polygon.capa-elementos__huella`).first())
+  await a!.click()
+  await b!.click({ modifiers: ['Shift'] })
+  await expect(page.getByRole('heading', { name: '2 muebles seleccionados' })).toBeVisible()
+
+  const caja = (await b!.boundingBox())!
+  const desde = { x: caja.x + caja.width / 2, y: caja.y + caja.height / 2 }
+  await page.mouse.move(desde.x, desde.y)
+  await page.mouse.down()
+  await page.mouse.move(desde.x + 5, desde.y + 5, { steps: 3 })
+  await page.mouse.move(desde.x + 80, desde.y + 40, { steps: 20 })
+  await page.mouse.up()
+
+  await expect.poll(async () => {
+    const despues = (await posicionesGuardadas(page))!
+    const d = despues.map((e, i) => ({ dx: e.x - antes[i]!.x, dy: e.y - antes[i]!.y }))
+    return d[0]!.dx > 10 && d[0]!.dx === d[1]!.dx && d[0]!.dy === d[1]!.dy
+  }).toBe(true)
+})

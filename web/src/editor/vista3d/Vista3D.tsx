@@ -14,7 +14,7 @@ export default function Vista3D() {
   const doc = useEditor((e) => e.documento)
   const anularMueble = () => {
     const e = almacen.getState()
-    if (e.seleccion?.tipo === 'elemento') e.seleccionar(null)
+    if (e.seleccion?.tipo === 'elemento' || e.seleccion?.tipo === 'elementos') e.seleccionar(null)
   }
   const [conWebgl] = useState(hayWebgl)
   const [ocultar, setOcultar] = useState(true)

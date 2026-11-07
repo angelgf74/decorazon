@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { desplazarElemento, editarAbertura, editarEstructura, moverVertice, quitarDeEstancia, quitarVertice } from '../nucleo'
 import { almacen } from './estado/almacen'
-import { borrar, duplicar, girar90 } from './estado/elementos'
+import { borrar, borrarSeleccion, desplazarSeleccion, duplicar, girar90, seleccionarTodos } from './estado/elementos'
 import { hayArrastre, posicionEnPared } from './lienzo/arrastres'
 
 const FLECHAS: Record<string, { dx: number; dy: number }> = {
@@ -27,6 +27,11 @@ function mover(dx: number, dy: number): boolean {
   // En 3D no se mueve nada (§4.2), tampoco lo del paso 1 que siguiera seleccionado.
   if (s === null || doc === null || e0.vista === '3d') return false
   if (e0.paso === 2) {
+    // Un grupo (M-02) se mueve entero, sin imán, en un solo paso por tecla sostenida.
+    if (s.tipo === 'elementos') {
+      desplazarSeleccion(dx, dy, 'teclado:grupo')
+      return true
+    }
     if (s.tipo !== 'elemento') return false
     e0.cambiar((d) => desplazarElemento(d, s.id, dx, dy), `teclado:${s.id}`)
     return true
@@ -89,8 +94,18 @@ export function useAtajos(): void {
       } else if (mando && (tecla === 'y' || (tecla === 'z' && e.shiftKey))) {
         e.preventDefault()
         e0.rehacer()
+      } else if (mando && tecla === 'a' && !e.shiftKey && e0.paso === 2 && e0.vista !== '3d') {
+        // Ctrl+A en el plano: todos los muebles (M-02), no el texto de la página.
+        e.preventDefault()
+        seleccionarTodos()
       } else if (e.key === 'Escape') {
         e0.seleccionar(null)
+      } else if (e0.paso === 2 && e0.seleccion?.tipo === 'elementos') {
+        // Un grupo solo se borra: sin girar ni duplicar en grupo en esta versión.
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault()
+          borrarSeleccion()
+        } else if (tecla === 'd' && mando) e.preventDefault()
       } else if (e0.paso === 2 && e0.seleccion?.tipo === 'elemento') {
         const id = e0.seleccion.id
         // Mover y girar (R, Ctrl+D) solo se hace en 2D (§4.2).

@@ -16,7 +16,7 @@ function cursor(valor: string) {
 function Mueble3D({ elemento, sinResaltes = false }: { elemento: Elemento; sinResaltes?: boolean }) {
   const { id } = elemento
   const conflictos = useConflictos()
-  const seleccionado = useEditor((e) => e.seleccion?.tipo === 'elemento' && e.seleccion.id === id)
+  const seleccionado = useEditor((e) => (e.seleccion?.tipo === 'elemento' && e.seleccion.id === id) || (e.seleccion?.tipo === 'elementos' && e.seleccion.ids.includes(id)))
   const piezas = useMemo(() => {
     const def = catalogoBase.get(elemento.tipo)
     return def ? piezasDeElemento(elemento, def) : []

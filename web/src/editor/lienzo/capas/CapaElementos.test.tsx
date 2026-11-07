@@ -137,3 +137,26 @@ describe('CapaElementos: con el teclado (M-28)', () => {
     expect(container.querySelector('.capa-elementos__foco')).toBeNull()
   })
 })
+
+describe('CapaElementos: teclado con varios seleccionados (M-02)', () => {
+  it('con un grupo, el foco no lo deshace; Mayús+Intro añade o quita la pieza con el foco', () => {
+    const doc = documentoNuevo('dormitorio', 400, 330, 250)
+    doc.elementos = [
+      elementoNuevo(catalogoBase.get('mesita')!, { x: 60, y: 100 }, 'a'),
+      elementoNuevo(catalogoBase.get('mesita')!, { x: 160, y: 100 }, 'b'),
+      elementoNuevo(catalogoBase.get('mesita')!, { x: 260, y: 100 }, 'c'),
+    ]
+    const alSeleccionar = vi.fn()
+    const alAlternar = vi.fn()
+    const { container } = render(<svg><CapaElementos documento={doc} conflictos={[]} seleccion={{ tipo: 'elementos', ids: ['a', 'b'] }}
+      alPulsar={() => {}} alSeleccionar={alSeleccionar} alAlternar={alAlternar} /></svg>)
+    const asa = (id: string) => container.querySelector(`[data-foco="${id}"]`)!
+    expect(asa('a')).toHaveAttribute('aria-current', 'true')
+    expect(asa('b')).toHaveAttribute('aria-current', 'true')
+    fireEvent.focus(asa('c'))
+    expect(alSeleccionar).not.toHaveBeenCalled()
+    fireEvent.keyDown(asa('c'), { key: 'Enter', shiftKey: true })
+    expect(alAlternar).toHaveBeenCalledWith('c')
+    expect(alSeleccionar).not.toHaveBeenCalled()
+  })
+})

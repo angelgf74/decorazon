@@ -3,6 +3,7 @@ import { desplazarPoligono, type Punto } from '../../nucleo'
 import { textos } from '../../textos'
 import { useConflictos } from '../estado/conflictos'
 import { almacen, useEditor } from '../estado/almacen'
+import { alternarSeleccion } from '../estado/elementos'
 import { anadirTipo } from '../estado/elementos'
 import { cortarArrastre, EVENTO_SOLTAR_TIPO, MIME_TIPO, pulsarAbertura, pulsarElemento, pulsarEstructura, UMBRAL_ARRASTRE_PX, type APlano, type DetalleSoltarTipo } from './arrastres'
 import CapaAberturas from './capas/CapaAberturas'
@@ -289,7 +290,8 @@ export default function Lienzo({ children, sinPistas = false }: { children?: Rea
             <CapaEstructura documento={documento} seleccion={seleccion} vigas={false} alPulsar={paso === 1 && !midiendo ? pulsar.estructura : undefined} />
             <CapaAberturas documento={documento} seleccion={seleccion} alPulsar={paso === 1 && !midiendo ? pulsar.abertura : undefined} />
             <CapaElementos documento={documento} conflictos={conflictos} seleccion={seleccion} alPulsar={paso === 2 && !midiendo ? pulsar.elemento : undefined}
-              alSeleccionar={paso === 2 && !midiendo ? seleccionarElemento : undefined} escala={vista.escala} />
+              alSeleccionar={paso === 2 && !midiendo ? seleccionarElemento : undefined} alAlternar={paso === 2 && !midiendo ? alternarSeleccion : undefined}
+              escala={vista.escala} />
             {/* Las vigas van por el techo: encima de los muebles. */}
             <CapaEstructura documento={documento} seleccion={seleccion} vigas alPulsar={paso === 1 && !midiendo ? pulsar.estructura : undefined} />
             <CapaConflictos conflictos={conflictos} />
