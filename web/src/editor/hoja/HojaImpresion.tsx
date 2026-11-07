@@ -1,3 +1,4 @@
+import { evento } from '../../analitica'
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { cajaPlanta, superficie, type DocumentoDiseno } from '../../nucleo'
@@ -51,7 +52,7 @@ export default function HojaImpresion({ doc: docDado, nombre: nombreDado, alCerr
     <div ref={dialogo} className="hoja-impresion" role="dialog" aria-modal="true" aria-labelledby={idTitulo} tabIndex={-1}>
       <div className="hoja-impresion__barra">
         <p id={idTitulo} className="hoja-impresion__titulo">{t.titulo}</p>
-        <button type="button" className="primario" disabled={estado3d.tipo === 'preparando'} aria-busy={estado3d.tipo === 'preparando'} onClick={() => window.print()}>
+        <button type="button" className="primario" disabled={estado3d.tipo === 'preparando'} aria-busy={estado3d.tipo === 'preparando'} onClick={() => { evento('hoja-impresa'); window.print() }}>
           <Icono nombre="imprimir" />{t.imprimirOPdf}
         </button>
         <button type="button" onClick={alCerrar}><Icono nombre="cerrar" />{t.cerrar}</button>

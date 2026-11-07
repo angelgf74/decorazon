@@ -2,11 +2,15 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { evento } from '../../analitica'
 import { catalogoBase, elementoNuevo } from '../../nucleo'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import HojaImpresion from './HojaImpresion'
 
+vi.mock('../../analitica', () => ({ evento: vi.fn() }))
+
 beforeEach(() => {
+  vi.mocked(evento).mockClear()
   reiniciarAlmacen()
   almacen.getState().crear('cocina', 400, 300, 250)
   almacen.getState().cambiar((d) => ({
@@ -51,8 +55,11 @@ describe('HojaImpresion', () => {
     const pagina3d = screen.getByRole('heading', { level: 2, name: 'Vista 3D' }).closest('.hoja-impresion__pagina')!
     expect(pagina3d).toHaveClass('hoja-impresion__pagina--3d')
     expect(within(pagina3d as HTMLElement).getByText('La vista 3D no está disponible en este dispositivo.')).toBeInTheDocument()
+    vi.mocked(evento).mockClear()
     await userEvent.click(screen.getByRole('button', { name: 'Imprimir o guardar PDF' }))
     expect(imprimir).toHaveBeenCalledOnce()
+    // Se cuenta la hoja impresa, sin nada del diseño.
+    expect(evento).toHaveBeenCalledExactlyOnceWith('hoja-impresa')
   })
 
   it('sin muebles lo dice en lugar de una tabla vacía', () => {

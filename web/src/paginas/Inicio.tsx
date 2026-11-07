@@ -1,3 +1,4 @@
+import { evento } from '../analitica'
 import { useId, useState, type ChangeEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { empezarAnonimoCon, empezarDeNuevo, sustituiriaDisenoAnonimo } from '../cuenta/disenosLocales'
@@ -38,14 +39,20 @@ export default function Inicio() {
     empezarAnonimoCon(doc)
     navegar('/disenar')
   }
+  // Se cuenta qué ejemplo se abre, por su nombre: nunca el documento.
+  const abrirCopia = (e: Ejemplo) => {
+    evento('ejemplo-abierto', { ejemplo: e.nombre })
+    abrirImportado(copiaDe(e))
+  }
   const abrirEjemplo = (e: Ejemplo) => {
     if (sustituiriaDisenoAnonimo()) setEjemploPendiente(e)
-    else abrirImportado(copiaDe(e))
+    else abrirCopia(e)
   }
   const guardarEjemplo = async (e: Ejemplo) => {
     setGuardando(true)
     setAvisoEjemplos(null)
     try {
+      evento('ejemplo-abierto', { ejemplo: e.nombre })
       const d = await crearDiseno(e.nombre, copiaDe(e))
       navegar(`/disenos/${d.id}`)
     } catch (err) {
@@ -152,7 +159,7 @@ export default function Inicio() {
         abierto={ejemploPendiente !== null}
         mensaje={t.sustituirEjemplo}
         textoAceptar={textos.compartir.sustituir}
-        alAceptar={() => { if (ejemploPendiente) abrirImportado(copiaDe(ejemploPendiente)); setEjemploPendiente(null) }}
+        alAceptar={() => { if (ejemploPendiente) abrirCopia(ejemploPendiente); setEjemploPendiente(null) }}
         alCancelar={() => setEjemploPendiente(null)}
       />
     </main>

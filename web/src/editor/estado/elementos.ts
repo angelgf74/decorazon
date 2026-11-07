@@ -1,4 +1,5 @@
 import { anadirElemento, catalogoBase, duplicarElemento, moverElemento, quitarElemento, type Punto } from '../../nucleo'
+import { evento } from '../../analitica'
 import { anotarReciente } from '../paneles/catalogoLocal'
 import { almacen } from './almacen'
 
@@ -10,6 +11,7 @@ export function anadirTipo(tipo: string, posicion: Punto): void {
   cambiar(() => r.documento)
   seleccionar({ tipo: 'elemento', id: r.id })
   anotarReciente(tipo)
+  evento('mueble-anadido', { tipo })
 }
 
 /** Duplica el elemento y deja seleccionada la copia. */

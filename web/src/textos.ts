@@ -465,7 +465,7 @@ export const textos = {
     sugerencias:
       'Si nos envías una sugerencia, su texto, de qué va y tu correo (el de tu cuenta o el que escribas) llegan a nuestro buzón de sugerencias, también en angelgf.com.es, solo para leerla y responderte. Decorazon no la guarda.',
     anonimoTitulo: 'Sin cuenta',
-    anonimo: 'El diseño que haces sin cuenta vive solo en tu navegador: no se envía a ningún sitio.',
+    anonimo: 'El diseño que haces sin cuenta vive solo en tu navegador: no se envía a ningún sitio. Medimos de forma anónima cuántas visitas hay y qué partes se usan (por ejemplo, cuántas veces se abre la vista 3D): sin cuenta, sin diseño y sin nada que te identifique.',
     borrarTitulo: 'Borrar tu cuenta',
     borrar: 'Si borras tu cuenta, se borra todo lo que guardamos de ti, diseños incluidos.',
     contactoTitulo: 'Contacto',

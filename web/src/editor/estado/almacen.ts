@@ -3,6 +3,7 @@ import { createStore, type StoreApi } from 'zustand/vanilla'
 import {
   documentoNuevo, redondearNumeros, type DocumentoDiseno, type FormaDePlanta, type ResultadoEdicion, type TipoEstancia,
 } from '../../nucleo'
+import { evento } from '../../analitica'
 import { almacenamientoSeguro, leerDisenoLocal } from '../persistencia/local'
 import { ORIGEN_ANONIMO, type Origen } from './origen'
 
@@ -86,8 +87,10 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
     origen: ORIGEN_ANONIMO,
     versionRemota: null,
 
-    crear: (tipo, ancho, largo, alto, forma) =>
-      set({ ...vacio(), documento: redondearNumeros(documentoNuevo(tipo, ancho, largo, alto, forma)), paso: 1 }),
+    crear: (tipo, ancho, largo, alto, forma) => {
+      evento('estancia-creada', { tipo, forma: forma?.forma ?? 'rectangulo' })
+      set({ ...vacio(), documento: redondearNumeros(documentoNuevo(tipo, ancho, largo, alto, forma)), paso: 1 })
+    },
     cargar: (doc) => set({ ...vacio(), documento: doc, paso: pasoDeDocumento(doc) }),
     descartar: () => set({ ...vacio(), documento: null, paso: 1 }),
 
@@ -150,7 +153,10 @@ export function crearAlmacen(): StoreApi<EstadoEditor> {
 
     seleccionar: (s) => set({ seleccion: seleccionValida(s, get().documento) }),
     irAPaso: (paso) => set((e) => ({ paso, seleccion: e.seleccion !== null && pasoDe(e.seleccion) !== paso ? null : e.seleccion })),
-    cambiarVista: (vista) => set({ vista }),
+    cambiarVista: (vista) => {
+      if (vista === '3d' && get().vista !== '3d') evento('vista-3d')
+      set({ vista })
+    },
     marcarGuardado: (guardado) => set({ guardado }),
 
     abrirDelServidor: (id, version, nombre, doc) => {

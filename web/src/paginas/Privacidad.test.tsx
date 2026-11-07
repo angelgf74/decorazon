@@ -12,3 +12,11 @@ describe('Privacidad', () => {
     expect(screen.getByText(/buzón de sugerencias/)).toHaveTextContent('Decorazon no la guarda')
   })
 })
+
+describe('Privacidad: lo que se mide', () => {
+  it('dice que la medida de uso es anónima, sin cuenta ni diseño', () => {
+    render(<Privacidad />, { wrapper: MemoryRouter })
+
+    expect(screen.getByText(/Medimos de forma anónima/)).toHaveTextContent('sin cuenta, sin diseño y sin nada que te identifique')
+  })
+})

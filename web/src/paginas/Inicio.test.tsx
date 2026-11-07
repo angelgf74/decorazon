@@ -10,6 +10,9 @@ import { almacen, reiniciarAlmacen } from '../editor/estado/almacen'
 import { catalogoBase, documentoNuevo, elementoNuevo } from '../nucleo'
 import { textos } from '../textos'
 import Inicio from './Inicio'
+import { evento } from '../analitica'
+
+vi.mock('../analitica', () => ({ evento: vi.fn() }))
 
 function montar() {
   render(
@@ -26,6 +29,7 @@ beforeEach(() => {
   localStorage.clear()
   reiniciarSesion()
   reiniciarAlmacen()
+  vi.mocked(evento).mockClear()
 })
 
 describe('Inicio', () => {
@@ -111,6 +115,8 @@ describe('Inicio: ejemplos', () => {
     expect(documento!.estancia.tipo).toBe('dormitorio')
     expect(documento!.elementos.length).toBeGreaterThanOrEqual(5)
     expect(origen.tipo).toBe('anonimo')
+    // Se cuenta qué ejemplo se abre, por su nombre: nunca el documento.
+    expect(evento).toHaveBeenCalledExactlyOnceWith('ejemplo-abierto', { ejemplo: 'Dormitorio de matrimonio' })
   })
 
   it('con un diseño con algo dentro pregunta antes; «Cancelar» no cambia nada y «Sustituir» lo abre', async () => {
