@@ -6,6 +6,7 @@ import { anadirElemento, catalogoBase, vincularTienda, type OrigenTienda } from 
 import { textos } from '../../textos'
 import { hoy } from '../comunes/formatos'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
+import { guardarProducto, leerProductos, reiniciarMisProductos } from './misProductos'
 import PanelPropiedades from './PanelPropiedades'
 
 const t = textos.tienda
@@ -401,5 +402,49 @@ describe('medidas extra del armario esquinero', () => {
     expect(elEsquinero().origen).toEqual({ tipo: 'generico' })
     // Con un ala de 30, el hueco llega como mucho a 20 (los cuerpos tienen que seguir unidos): se avisa, no se recorta.
     expect(within(formulario).getByLabelText(t.campoExtra('Hueco: ancho'))).toHaveAccessibleDescription(t.errores.medida(0, 20))
+  })
+})
+
+describe('ProductoDeTienda: mis productos (M-17)', () => {
+  beforeEach(() => {
+    localStorage.removeItem('decorazon.tienda.productos')
+    reiniciarMisProductos()
+  })
+
+  it('guardar el formulario apunta el producto en mis productos', async () => {
+    render(<PanelPropiedades />)
+    await userEvent.click(screen.getByRole('button', { name: t.esDeTienda }))
+    await rellenar(t.campos.proveedor, 'IKEA')
+    await rellenar(t.campos.nombre, 'PAX')
+    await userEvent.click(screen.getByRole('button', { name: t.guardar }))
+    expect(leerProductos()).toMatchObject([{ tipo: 'armario', origen: { proveedor: 'IKEA', nombre: 'PAX' } }])
+  })
+
+  it('un mueble genérico del mismo tipo ofrece los guardados; «Usar» lo vincula con sus medidas en un solo paso de deshacer', async () => {
+    guardarProducto({ tipo: 'armario', origen: { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX', precio: 179, fechaPrecio: '2026-11-07' }, medidas: { ancho: 150, fondo: 58, alto: 236 } })
+    render(<PanelPropiedades />)
+    const lista = screen.getByRole('list', { name: t.misProductos })
+    const pasos = almacen.getState().pasado.length
+    await userEvent.click(within(lista).getByRole('button', { name: t.usarProducto('PAX', 'IKEA') }))
+    expect(elemento().origen).toMatchObject({ tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX', precio: 179 })
+    expect(elemento().medidas).toEqual({ ancho: 150, fondo: 58, alto: 236 })
+    expect(almacen.getState().pasado.length).toBe(pasos + 1)
+    // Ya vinculado, se ve su ficha y el foco no cae en la página.
+    expect(screen.getByRole('button', { name: t.editar })).toHaveFocus()
+  })
+
+  it('los de otro tipo no se ofrecen, y sin guardados no hay lista', () => {
+    guardarProducto({ tipo: 'cama', origen: { tipo: 'tienda', proveedor: 'IKEA', nombre: 'MALM' }, medidas: { ancho: 160, fondo: 209, alto: 38 } })
+    render(<PanelPropiedades />)
+    expect(screen.queryByRole('list', { name: t.misProductos })).toBeNull()
+  })
+
+  it('«Quitar» lo borra de mis productos sin tocar el mueble', async () => {
+    guardarProducto({ tipo: 'armario', origen: { tipo: 'tienda', proveedor: 'IKEA', nombre: 'PAX' }, medidas: { ancho: 100, fondo: 58, alto: 201 } })
+    render(<PanelPropiedades />)
+    await userEvent.click(screen.getByRole('button', { name: t.olvidarProducto('PAX', 'IKEA') }))
+    expect(leerProductos()).toEqual([])
+    expect(elemento().origen.tipo).toBe('generico')
+    expect(screen.queryByRole('list', { name: t.misProductos })).toBeNull()
   })
 })

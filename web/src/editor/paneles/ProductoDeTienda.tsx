@@ -7,6 +7,7 @@ import {
 import { textos } from '../../textos'
 import { formatoFecha, formatoPrecio, hoy, leerPrecio } from '../comunes/formatos'
 import { almacen } from '../estado/almacen'
+import { guardarProducto, olvidarProducto, useMisProductos, type ProductoGuardado } from './misProductos'
 
 const t = textos.tienda
 
@@ -274,6 +275,9 @@ function Formulario({ e, def, alTerminar }: { e: Elemento; def: DefinicionTipo; 
       const vinculado = vincularTienda(d, catalogoBase, e.id, r.origen, r.medidas, rx.medidasExtra)
       return zona && color ? editarElemento(vinculado, catalogoBase, e.id, { colores: { [zona.clave]: color } }) : vinculado
     })
+    // Queda en mis productos para usarlo en otro mueble u otro diseño (M-17). El tipo es el del mueble ahora (pudo cambiar).
+    const tipo = almacen.getState().documento?.elementos.find((x) => x.id === e.id)?.tipo ?? e.tipo
+    guardarProducto({ tipo, origen: r.origen, medidas: r.medidas, ...(def.medidasExtra?.length && { medidasExtra: rx.medidasExtra }) })
     alTerminar()
   }
 
@@ -404,8 +408,41 @@ export default function ProductoDeTienda({ e, def }: { e: Elemento; def: Definic
     return <Ficha e={e} def={def} origen={e.origen} enfocar={enfocar} alEditar={() => setEditando(true)} alDesvincular={desvincular} />
   }
   return (
-    <div className="panel__acciones">
-      <button type="button" autoFocus={enfocar} onClick={() => setEditando(true)}>{t.esDeTienda}</button>
-    </div>
+    <>
+      <div className="panel__acciones">
+        <button type="button" autoFocus={enfocar} onClick={() => setEditando(true)}>{t.esDeTienda}</button>
+      </div>
+      <MisProductos e={e} alUsar={() => setEnfocar(true)} />
+    </>
+  )
+}
+
+/** Los productos ya tecleados de este tipo (M-17): «Usar» vincula el mueble con uno de ellos, medidas incluidas, en un solo paso. */
+function MisProductos({ e, alUsar }: { e: Elemento; alUsar(): void }) {
+  const productos = useMisProductos().filter((p) => p.tipo === e.tipo)
+  const idTitulo = useId()
+  if (productos.length === 0) return null
+  const usar = (p: ProductoGuardado) => {
+    // La ficha que sale después lleva el foco a «Editar producto»: el botón pulsado desaparece y no cae en la página.
+    alUsar()
+    almacen.getState().cambiar((d) => vincularTienda(d, catalogoBase, e.id, p.origen, p.medidas, p.medidasExtra))
+    guardarProducto(p)
+  }
+  return (
+    <section className="mis-productos" aria-labelledby={idTitulo}>
+      <h3 id={idTitulo} className="panel__titulo">{t.misProductos}</h3>
+      <ul className="mis-productos__lista" aria-labelledby={idTitulo}>
+        {productos.map((p) => (
+          <li key={`${p.origen.proveedor}|${p.origen.nombre}|${p.origen.referencia ?? ''}`} className="mis-productos__producto">
+            <button type="button" onClick={() => usar(p)} aria-label={t.usarProducto(p.origen.nombre, p.origen.proveedor)}>
+              <span>{p.origen.nombre}</span>
+              <small>{`${p.origen.proveedor} · ${p.medidas.ancho} × ${p.medidas.fondo} cm${p.origen.precio !== undefined ? ` · ${formatoPrecio(p.origen.precio)}` : ''}`}</small>
+            </button>
+            <button type="button" className="boton-icono enlace" aria-label={t.olvidarProducto(p.origen.nombre, p.origen.proveedor)}
+              title={t.olvidarProducto(p.origen.nombre, p.origen.proveedor)} onClick={() => olvidarProducto(p)}>×</button>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
