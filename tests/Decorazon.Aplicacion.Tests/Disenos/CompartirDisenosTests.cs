@@ -62,6 +62,22 @@ public class CompartirDisenosTests
         Assert.Null(await CasoDeUso.ObtenerCompartidoAsync(enlace!));
     }
 
+    [Fact]
+    public async Task LaVistaPreviaDelDueno_SoloLaVeElDueno_YSoloSiLaHay()
+    {
+        var diseno = UnDiseno();
+        byte[] imagen = [0xFF, 0xD8, 0xFF, 1, 2, 3];
+
+        Assert.Null(await CasoDeUso.ObtenerVistaPreviaDelDuenoAsync(_usuario, diseno.Id));
+        Assert.Equal(ResultadoDeVistaPrevia.Guardada, await CasoDeUso.GuardarVistaPreviaAsync(_usuario, diseno.Id, imagen));
+
+        var vista = await CasoDeUso.ObtenerVistaPreviaDelDuenoAsync(_usuario, diseno.Id);
+        Assert.Equal(imagen, vista?.Imagen);
+        Assert.Equal(Ahora, vista?.Fecha);
+        Assert.Null(await CasoDeUso.ObtenerVistaPreviaDelDuenoAsync(Guid.NewGuid(), diseno.Id));
+        Assert.Null(await CasoDeUso.ObtenerVistaPreviaDelDuenoAsync(_usuario, Guid.NewGuid()));
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("con espacio")]

@@ -30,6 +30,10 @@ public sealed class PeticionDeDiseno
 
 /// <summary>Un diseño en el listado de <c>GET /disenos</c>, sin el contenido.</summary>
 /// <param name="Enlace">El token con que se comparte, o null si no se comparte.</param>
+/// <param name="FechaDeVistaPrevia">
+/// Cuándo se subió su vista previa (<c>GET /disenos/{id}/vista-previa</c>), o null si no tiene. Sirve para pedir la
+/// imagen con una dirección distinta cuando cambia.
+/// </param>
 public sealed record RespuestaDeResumenDeDiseno(
     Guid Id,
     string Nombre,
@@ -37,7 +41,8 @@ public sealed record RespuestaDeResumenDeDiseno(
     DateTimeOffset FechaDeCreacion,
     DateTimeOffset FechaDeModificacion,
     int Version,
-    string? Enlace);
+    string? Enlace,
+    DateTimeOffset? FechaDeVistaPrevia);
 
 /// <summary>Un diseño completo. Su <see cref="Version"/> es la misma que la cabecera <c>ETag</c>.</summary>
 /// <param name="Enlace">El token con que se comparte, o null si no se comparte.</param>

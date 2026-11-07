@@ -55,6 +55,44 @@ public class VistaPreviaTests(ApiConPostgresFixture api) : IClassFixture<ApiConP
     }
 
     [Fact]
+    public async Task ElDueno_LeeSuVistaPreviaConSesion_AunqueNoSeComparta()
+    {
+        var dueno = await CuentasDePrueba.ConSesionAsync(api);
+        var id = await DisenosDePrueba.CrearAsync(dueno);
+        var imagen = Jpeg();
+
+        var sinImagen = (await dueno.GetFromJsonAsync<RespuestaDeResumenDeDiseno[]>("/disenos"))!;
+        Assert.Null(Assert.Single(sinImagen).FechaDeVistaPrevia);
+        Assert.Equal(HttpStatusCode.NotFound, (await dueno.GetAsync($"/disenos/{id}/vista-previa")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await SubirAsync(dueno, id, imagen)).StatusCode);
+
+        var respuesta = await dueno.GetAsync($"/disenos/{id}/vista-previa");
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Equal("image/jpeg", respuesta.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(imagen, await respuesta.Content.ReadAsByteArrayAsync());
+        // Sin guardar en ninguna caché: la dirección no cambia al rehacer la imagen (la web pide por id) y es privada.
+        Assert.True(respuesta.Headers.CacheControl?.Private);
+        Assert.True(respuesta.Headers.CacheControl?.NoStore);
+        Assert.Equal("nosniff", respuesta.Headers.GetValues("X-Content-Type-Options").Single());
+
+        var conImagen = (await dueno.GetFromJsonAsync<RespuestaDeResumenDeDiseno[]>("/disenos"))!;
+        Assert.NotNull(Assert.Single(conImagen).FechaDeVistaPrevia);
+    }
+
+    [Fact]
+    public async Task LaVistaPreviaDelDueno_NoLaVeOtroUsuario_NiNadieSinSesion()
+    {
+        var dueno = await CuentasDePrueba.ConSesionAsync(api);
+        var otro = await CuentasDePrueba.ConSesionAsync(api);
+        var id = await DisenosDePrueba.CrearAsync(dueno);
+        await SubirAsync(dueno, id, Jpeg());
+
+        Assert.Equal(HttpStatusCode.NotFound, (await otro.GetAsync($"/disenos/{id}/vista-previa")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await api.CreateClient().GetAsync($"/disenos/{id}/vista-previa")).StatusCode);
+    }
+
+    [Fact]
     public async Task SinImagenSubida_LaImagenDa404()
     {
         var dueno = await CuentasDePrueba.ConSesionAsync(api);

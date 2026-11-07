@@ -43,6 +43,13 @@ public static class CompartirEndpoints
             .Produces(StatusCodes.Status204NoContent)
             .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound);
 
+        dueno.MapGet("/{id:guid}/vista-previa", LeerVistaPreviaDelDuenoAsync)
+            .WithName("leerVistaPreviaDelDueno")
+            .RequireRateLimiting(LimitesDePeticiones.Tarjetas)
+            .Produces(StatusCodes.Status200OK, contentType: "image/jpeg")
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests);
+
         dueno.MapPut("/{id:guid}/vista-previa", SubirVistaPreviaAsync)
             .WithName("subirVistaPrevia")
             .RequireRateLimiting(LimitesDePeticiones.Escrituras)
@@ -187,6 +194,35 @@ public static class CompartirEndpoints
             ResultadoDeVistaPrevia.NoValida => noValida,
             _ => NoEncontrado()
         };
+    }
+
+    /// <summary>
+    /// La miniatura de «Mis diseños»: la vista previa de un diseño propio, se comparta o no. Privada (va con sesión) y
+    /// sin guardar en ninguna caché: la dirección es la misma cuando la imagen se rehace (la web pide por id y guarda
+    /// la respuesta en memoria por fecha del listado), y una imagen privada no debe quedar en el disco de un ordenador compartido.
+    /// </summary>
+    private static async Task<IResult> LeerVistaPreviaDelDuenoAsync(
+        Guid id,
+        ClaimsPrincipal usuario,
+        HttpResponse respuesta,
+        CompartirDisenos casoDeUso,
+        CancellationToken cancelacion)
+    {
+        if (!usuario.TryObtenerId(out var usuarioId))
+        {
+            return Results.Unauthorized();
+        }
+
+        respuesta.Headers.XContentTypeOptions = "nosniff";
+        var vista = await casoDeUso.ObtenerVistaPreviaDelDuenoAsync(usuarioId, id, cancelacion);
+        if (vista is null)
+        {
+            respuesta.Headers.CacheControl = "no-store";
+            return NoEncontrado();
+        }
+
+        respuesta.Headers.CacheControl = "private, no-store";
+        return Results.File(vista.Imagen, "image/jpeg");
     }
 
     /// <summary>

@@ -9,10 +9,11 @@ import { useDialogoModal } from '../../editor/comunes/usarDialogoModal'
 import NuevaEstancia from '../../editor/paneles/NuevaEstancia'
 import { importarDiseno } from '../../editor/persistencia/fichero'
 import { almacenamientoSeguro, borrarCopiaLocal, type CopiaListada } from '../../editor/persistencia/local'
-import { documentoNuevo, type TipoEstancia } from '../../nucleo'
+import { documentoNuevo, type FormaDePlanta, type TipoEstancia } from '../../nucleo'
 import { textos } from '../../textos'
 import { borrarDiseno, crearDiseno, duplicarDiseno, guardarDiseno, listarDisenos, obtenerDiseno, type ResumenDiseno } from '../servidor'
 import DialogoCompartir from './DialogoCompartir'
+import MiniaturaDeDiseno from './MiniaturaDeDiseno'
 import '../disenos.css'
 
 const t = textos.disenos
@@ -38,8 +39,23 @@ function porFechaDescendente(lista: ResumenDiseno[]): ResumenDiseno[] {
   return [...lista].sort((a, b) => Number(valida(b)) - Number(valida(a)) || instante(b) - instante(a))
 }
 
+type Orden = 'fecha' | 'nombre' | 'tipo'
+const ORDENES: Orden[] = ['fecha', 'nombre', 'tipo']
+
+/** Sin tildes ni mayúsculas: «Salón» se encuentra con «salon». */
+const simplificar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
+/** Lo que se enseña: la lista por fecha, filtrada por el nombre y, si se pide, por nombre o por tipo (dentro de cada tipo, por fecha). */
+function ordenarYFiltrar(lista: ResumenDiseno[], busqueda: string, orden: Orden): ResumenDiseno[] {
+  const texto = simplificar(busqueda.trim())
+  const filtrada = texto === '' ? lista : lista.filter((d) => simplificar(d.nombre).includes(texto))
+  if (orden === 'nombre') return [...filtrada].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+  if (orden === 'tipo') return [...filtrada].sort((a, b) => tipoEnTexto(a.tipoEstancia).localeCompare(tipoEnTexto(b.tipoEstancia), 'es'))
+  return filtrada
+}
+
 interface PropsDialogo {
-  alCrear(tipo: TipoEstancia, ancho: number, largo: number, alto: number): void
+  alCrear(tipo: TipoEstancia, ancho: number, largo: number, alto: number, forma: FormaDePlanta): void
   alCerrar(): void
 }
 
@@ -67,7 +83,11 @@ export default function MisDisenos() {
   const [borrando, setBorrando] = useState<ResumenDiseno | null>(null)
   const [compartiendo, setCompartiendo] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
+  const [busqueda, setBusqueda] = useState('')
+  const [orden, setOrden] = useState<Orden>('fecha')
   const idFichero = useId()
+  const idBuscar = useId()
+  const idOrden = useId()
 
   const recargar = useCallback(async () => {
     try {
@@ -102,10 +122,10 @@ export default function MisDisenos() {
     setOcupado(false)
   }
 
-  const crear = (tipo: TipoEstancia, ancho: number, largo: number, alto: number) =>
+  const crear = (tipo: TipoEstancia, ancho: number, largo: number, alto: number, forma: FormaDePlanta) =>
     intentar(async () => {
       setCreando(false)
-      const d = await crearDiseno(t.nombrePorDefecto, documentoNuevo(tipo, ancho, largo, alto))
+      const d = await crearDiseno(t.nombrePorDefecto, documentoNuevo(tipo, ancho, largo, alto, forma))
       navegar(`/disenos/${d.id}`)
     })
 
@@ -202,9 +222,19 @@ export default function MisDisenos() {
       ) : lista.length === 0 ? (
         <p className="disenos__vacio">{t.vacio}</p>
       ) : (
+        <>
+        <div className="disenos__filtros">
+          <label htmlFor={idBuscar} className="solo-lectores">{t.buscar}</label>
+          <input id={idBuscar} type="search" className="disenos__buscar" placeholder={t.buscar} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+          <label htmlFor={idOrden}>{t.ordenar}</label>
+          <select id={idOrden} value={orden} onChange={(e) => setOrden(e.target.value as Orden)}>
+            {ORDENES.map((o) => <option key={o} value={o}>{t.orden[o]}</option>)}
+          </select>
+        </div>
         <ul className="disenos__lista">
-          {lista.map((d) => (
+          {ordenarYFiltrar(lista, busqueda, orden).map((d) => (
             <li key={d.id} className="disenos__fila">
+              <MiniaturaDeDiseno id={d.id} fecha={d.fechaDeVistaPrevia} />
               {editando?.id === d.id ? (
                 <form className="disenos__renombrar" onSubmit={(e) => renombrar(e, d)}>
                   <label>
@@ -239,6 +269,7 @@ export default function MisDisenos() {
             </li>
           ))}
         </ul>
+        </>
       )}
       {(() => {
         const d = lista?.find((x) => x.id === compartiendo)

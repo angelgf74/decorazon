@@ -39,6 +39,7 @@ public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDat
         Assert.True(PideBearer(rutas.GetProperty("/disenos/{id}/enlace").GetProperty("delete")));
         Assert.False(PideBearer(rutas.GetProperty("/compartidos/{enlace}").GetProperty("get")));
         Assert.True(PideBearer(rutas.GetProperty("/disenos/{id}/vista-previa").GetProperty("put")));
+        Assert.True(PideBearer(rutas.GetProperty("/disenos/{id}/vista-previa").GetProperty("get")));
         Assert.False(PideBearer(rutas.GetProperty("/compartidos/{enlace}/imagen").GetProperty("get")));
         Assert.False(PideBearer(rutas.GetProperty("/compartidos/{enlace}/tarjeta").GetProperty("get")));
         Assert.False(PideBearer(rutas.GetProperty("/cuentas/contrasena/olvido").GetProperty("post")));
@@ -97,7 +98,7 @@ public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDat
                 "borrarDiseno", "borrarMiCuenta", "cambiarContrasena", "confirmarRegistro", "consultarSalud",
                 "crearDiseno", "duplicarDiseno", "iniciarSesion", "listarDisenos", "obtenerDiseno",
                 "obtenerMiCuenta", "restablecerContrasena", "solicitarOlvidoDeContrasena", "solicitarRegistro",
-                "actualizarDiseno", "compartirDiseno", "dejarDeCompartirDiseno", "leerDisenoCompartido", "subirVistaPrevia", "leerVistaPrevia", "leerTarjeta",
+                "actualizarDiseno", "compartirDiseno", "dejarDeCompartirDiseno", "leerDisenoCompartido", "subirVistaPrevia", "leerVistaPrevia", "leerVistaPreviaDelDueno", "leerTarjeta",
                 "enviarSugerencia"
             }.Order(),
             ids.Order());

@@ -116,7 +116,8 @@ public static class DisenosEndpoints
             diseno.FechaDeCreacion,
             diseno.FechaDeModificacion,
             diseno.Version,
-            diseno.EnlaceCompartido)));
+            diseno.EnlaceCompartido,
+            diseno.FechaDeVistaPrevia)));
     }
 
     private static async Task<IResult> CrearAsync(

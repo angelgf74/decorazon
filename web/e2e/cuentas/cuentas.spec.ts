@@ -104,10 +104,18 @@ test('lo movido se guarda solo en el servidor y sigue ahí al recargar', async (
   await abrirDiseno(page)
   const antes = await centroDelArmario(page)
 
+  // El guardado rehace la vista previa en segundo plano (la 3D con SwiftShader) y la sube: es la miniatura de Mis diseños.
+  const subida = page.waitForResponse((r) => r.request().method() === 'PUT' && r.url().endsWith('/vista-previa'), { timeout: 30_000 })
   await moverArmario(page, 0.8, 0.8)
   await esperarGuardadoEnServidor(page)
   const movido = await centroDelArmario(page)
   expect(Math.hypot(movido.x - antes.x, movido.y - antes.y)).toBeGreaterThan(100)
+  expect((await subida).status()).toBe(204)
+  await page.goto('/disenos')
+  const fila = page.locator('.disenos__fila').filter({ hasText: 'Mi primer diseño' })
+  await expect(fila.locator('.disenos__miniatura img')).toBeVisible({ timeout: 15_000 })
+  await fila.getByRole('button', { name: 'Abrir' }).click()
+  await expect(page).toHaveURL(/\/disenos\/[0-9a-f-]+$/)
 
   await page.reload()
   await expect(indicador(page)).toHaveText('Guardado')

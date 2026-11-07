@@ -1,5 +1,5 @@
 export * from './modelo/documento'
-export { documentoNuevo } from './modelo/crear'
+export { documentoNuevo, plantaDeForma, ESQUINAS, MARGEN_ENTRANTE_CM, type Esquina, type FormaDePlanta } from './modelo/crear'
 export { validarDocumento, type ResultadoValidacion } from './modelo/validar'
 export { catalogoBase } from './catalogo/catalogoBase'
 export { elementoNuevo, ajustarMedidas, catalogoDeEstancia, huellasEnPlanta, nombreDeElemento, nombreEnPlanta, sePuedeVoltear } from './catalogo/elemento'

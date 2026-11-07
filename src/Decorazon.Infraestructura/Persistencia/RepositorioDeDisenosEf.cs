@@ -18,7 +18,7 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
             diseno => diseno.UsuarioId == usuarioId && diseno.Id == id,
             cancelacion);
 
-    // Proyección: el SELECT no incluye la columna jsonb del contenido.
+    // Proyección: el SELECT no incluye la columna jsonb del contenido ni la imagen de la vista previa (solo su fecha, por subconsulta).
     public async Task<IReadOnlyList<ResumenDeDiseno>> ListarResumenesAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
         await contexto.Disenos
             .AsNoTracking()
@@ -31,7 +31,11 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
                 diseno.FechaDeCreacion,
                 diseno.FechaDeModificacion,
                 diseno.Version,
-                diseno.EnlaceCompartido))
+                diseno.EnlaceCompartido,
+                contexto.VistasPrevias
+                    .Where(vista => vista.DisenoId == diseno.Id)
+                    .Select(vista => (DateTimeOffset?)vista.Fecha)
+                    .FirstOrDefault()))
             .ToListAsync(cancelacion);
 
     public Task<int> ContarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
@@ -102,6 +106,12 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
         contexto.VistasPrevias
             .AsNoTracking()
             .Where(vista => contexto.Disenos.Any(diseno => diseno.Id == vista.DisenoId && diseno.EnlaceCompartido == enlace))
+            .FirstOrDefaultAsync(cancelacion);
+
+    public Task<VistaPrevia?> ObtenerVistaPreviaDelDuenoAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
+        contexto.VistasPrevias
+            .AsNoTracking()
+            .Where(vista => vista.DisenoId == id && contexto.Disenos.Any(diseno => diseno.Id == id && diseno.UsuarioId == usuarioId))
             .FirstOrDefaultAsync(cancelacion);
 
     // Solo rastrea: lo guarda GuardarCambiosAsync o el guardado de otro repositorio

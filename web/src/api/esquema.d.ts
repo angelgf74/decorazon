@@ -267,7 +267,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["leerVistaPreviaDelDueno"];
         put: operations["subirVistaPrevia"];
         post?: never;
         delete?: never;
@@ -367,6 +367,8 @@ export interface components {
             /** Format: int32 */
             version: number;
             enlace: null | string;
+            /** Format: date-time */
+            fechaDeVistaPrevia: null | string;
         };
         RespuestaDeSalud: {
             estado: string;
@@ -1259,6 +1261,44 @@ export interface operations {
         responses: {
             /** @description No Content */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeMensaje"];
+                };
+            };
+        };
+    };
+    leerVistaPreviaDelDueno: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

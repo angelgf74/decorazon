@@ -5,6 +5,8 @@ import { almacen, reiniciarAlmacen } from '../../editor/estado/almacen'
 import { documentoNuevo } from '../../nucleo'
 import { respuesta } from '../../pruebas/respuesta'
 import { apuntarVistaPrevia, ESPERA_ENTRE_VISTAS_MS, olvidarVistasPreviasEnMemoria, tocaRehacer } from './frecuencia'
+import AnfitrionDeVistasPrevias from './AnfitrionDeVistasPrevias'
+import { vaciarColaDeVistasPrevias } from './colaDeVistasPrevias'
 import RefrescoDeVistaPrevia from './RefrescoDeVistaPrevia'
 
 // Sin WebGL en jsdom: el generador se sustituye por uno que entrega, al momento, una imagen con el alto del documento.
@@ -30,6 +32,7 @@ function guardado(version: number, alto = 250) {
 beforeEach(() => {
   localStorage.clear()
   olvidarVistasPreviasEnMemoria()
+  vaciarColaDeVistasPrevias()
   fetchSimulado.mockReset()
   fetchSimulado.mockResolvedValue(respuesta(204))
   vi.stubGlobal('fetch', fetchSimulado)
@@ -58,8 +61,8 @@ describe('frecuencia de la vista previa', () => {
 })
 
 describe('RefrescoDeVistaPrevia', () => {
-  it('abrirlo no cuenta como guardar; el primer guardado de un diseño compartido rehace y sube la imagen', async () => {
-    render(<RefrescoDeVistaPrevia id="d1" compartido />)
+  it('abrirlo no cuenta como guardar; el primer guardado rehace y sube la imagen', async () => {
+    render(<RefrescoDeVistaPrevia id="d1" />)
     await tick()
     expect(subidas()).toHaveLength(0)
     guardado(2)
@@ -69,7 +72,7 @@ describe('RefrescoDeVistaPrevia', () => {
 
   it('los guardados dentro de los 5 minutos se juntan en una imagen con lo último, al vencer la espera', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
-    render(<RefrescoDeVistaPrevia id="d1" compartido />)
+    render(<RefrescoDeVistaPrevia id="d1" />)
     guardado(2, 250)
     await vi.waitFor(() => expect(subidas()).toHaveLength(1))
     guardado(3, 260)
@@ -83,28 +86,53 @@ describe('RefrescoDeVistaPrevia', () => {
 
   it('sin almacenamiento no entra en bucle: una imagen por guardado y espera', async () => {
     vi.stubGlobal('localStorage', undefined)
-    render(<RefrescoDeVistaPrevia id="d1" compartido />)
+    render(<RefrescoDeVistaPrevia id="d1" />)
     guardado(2)
     await vi.waitFor(() => expect(subidas()).toHaveLength(1))
     await tick(50)
     expect(subidas()).toHaveLength(1)
   })
 
-  it('un diseño que no se comparte no rehace nada al guardar', async () => {
-    render(<RefrescoDeVistaPrevia id="d1" compartido={false} />)
-    guardado(2)
-    await tick()
-    expect(subidas()).toHaveLength(0)
-  })
-
-  it('abierto sin conexión (no se sabe si se comparte), el primer guardado lo pregunta y, si se comparte, sube', async () => {
-    const doc = documentoNuevo('cocina', 400, 300, 250)
-    fetchSimulado.mockImplementation(async (p) => (p.method === 'GET'
-      ? respuesta(200, { id: 'd1', nombre: 'Cocina', tipoEstancia: 'cocina', fechaDeCreacion: 'x', fechaDeModificacion: 'x', version: 2, contenido: doc, enlace: 'tok' })
-      : respuesta(204)))
-    render(<RefrescoDeVistaPrevia id="d1" compartido={null} />)
+  it('un diseño que no se comparte también rehace y sube la imagen al guardar (es la miniatura de Mis diseños), sin preguntar nada', async () => {
+    render(<RefrescoDeVistaPrevia id="d1" />)
     guardado(2)
     await vi.waitFor(() => expect(subidas()).toHaveLength(1))
-    expect(fetchSimulado.mock.calls.filter(([p]) => p.method === 'GET')).toHaveLength(1)
+    expect(fetchSimulado.mock.calls.filter(([p]) => p.method === 'GET')).toHaveLength(0)
+  })
+
+  it('al salir del editor con un guardado que esperaba su turno, el anfitrión hace una última imagen con lo último guardado', async () => {
+    const r = render(<><RefrescoDeVistaPrevia id="d1" /><AnfitrionDeVistasPrevias /></>)
+    guardado(2, 250)
+    await vi.waitFor(() => expect(subidas()).toHaveLength(1))
+    guardado(3, 260)
+    guardado(4, 270)
+    await tick()
+    expect(subidas()).toHaveLength(1)
+    r.unmount()
+    // El anfitrión vive fuera de la ruta: se vuelve a montar solo, como en App.
+    render(<AnfitrionDeVistasPrevias />)
+    await vi.waitFor(() => expect(subidas()).toHaveLength(2))
+    expect(await subidas()[1]![0].text()).toBe('alto=270')
+  })
+
+  it('salir del editor sin nada pendiente no sube nada más', async () => {
+    const r = render(<><RefrescoDeVistaPrevia id="d1" /><AnfitrionDeVistasPrevias /></>)
+    guardado(2)
+    await vi.waitFor(() => expect(subidas()).toHaveLength(1))
+    r.unmount()
+    render(<AnfitrionDeVistasPrevias />)
+    await tick(50)
+    expect(subidas()).toHaveLength(1)
+  })
+
+  it('si la subida falla no se enseña nada y el siguiente guardado tras la espera lo vuelve a intentar', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    fetchSimulado.mockResolvedValue(respuesta(500, { mensaje: 'falla' }))
+    render(<RefrescoDeVistaPrevia id="d1" />)
+    guardado(2)
+    await vi.waitFor(() => expect(subidas()).toHaveLength(1))
+    guardado(3)
+    await act(async () => { await vi.advanceTimersByTimeAsync(ESPERA_ENTRE_VISTAS_MS) })
+    await vi.waitFor(() => expect(subidas()).toHaveLength(2))
   })
 })

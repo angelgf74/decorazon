@@ -88,6 +88,11 @@ export async function subirVistaPrevia(id: string, imagen: Blob): Promise<void> 
   }))
 }
 
+/** La vista previa de un diseño propio (la miniatura de Mis diseños), como imagen. Sin ella o con un diseño ajeno, ErrorDeApi 404. */
+export async function obtenerVistaPrevia(id: string): Promise<Blob> {
+  return exigir(await api.GET('/disenos/{id}/vista-previa', { params: { path: { id } }, parseAs: 'blob' })) as Blob
+}
+
 export async function borrarDiseno(id: string): Promise<void> {
   exigir(await api.DELETE('/disenos/{id}', { params: { path: { id } } }))
 }

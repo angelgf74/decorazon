@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { documentoNuevo } from '../nucleo'
 import { respuesta } from '../pruebas/respuesta'
-import { compartirDiseno, crearDiseno, dejarDeCompartir, direccionCompartida, guardarDiseno, obtenerCompartido, obtenerDiseno, subirVistaPrevia } from './servidor'
+import { compartirDiseno, crearDiseno, dejarDeCompartir, direccionCompartida, guardarDiseno, obtenerCompartido, obtenerDiseno, obtenerVistaPrevia, subirVistaPrevia } from './servidor'
 
 const fetchSimulado = vi.fn<(peticion: Request) => Promise<Response>>()
 const ID = '11111111-1111-1111-1111-111111111111'
@@ -116,6 +116,19 @@ describe('servidor de diseños', () => {
     expect(new URL(peticion.url).pathname).toBe(`/disenos/${ID}/vista-previa`)
     expect(peticion.headers.get('Content-Type')).toBe('image/jpeg')
     expect(await peticion.text()).toBe('jpeg')
+  })
+
+  it('obtenerVistaPrevia pide la imagen del dueño con GET y la devuelve como Blob', async () => {
+    // El cuerpo va como texto: el Blob de jsdom no es el de Node y Response lo convertiría en «[object Blob]».
+    fetchSimulado.mockResolvedValueOnce(new Response('jpeg', { status: 200, headers: { 'Content-Type': 'image/jpeg' } }))
+    const imagen = await obtenerVistaPrevia(ID)
+    expect(imagen).toBeInstanceOf(Blob)
+    expect(await imagen.text()).toBe('jpeg')
+    const peticion = fetchSimulado.mock.calls[0]![0]
+    expect(peticion.method).toBe('GET')
+    expect(new URL(peticion.url).pathname).toBe(`/disenos/${ID}/vista-previa`)
+    fetchSimulado.mockResolvedValueOnce(respuesta(404, { mensaje: 'no' }))
+    await expect(obtenerVistaPrevia(ID)).rejects.toThrow()
   })
 
   it('direccionCompartida compone la dirección pública del enlace en esta web', () => {
