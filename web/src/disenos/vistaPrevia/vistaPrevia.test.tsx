@@ -5,6 +5,8 @@ import { almacen, reiniciarAlmacen } from '../../editor/estado/almacen'
 import { documentoNuevo } from '../../nucleo'
 import { respuesta } from '../../pruebas/respuesta'
 import { apuntarVistaPrevia, ESPERA_ENTRE_VISTAS_MS, olvidarVistasPreviasEnMemoria, tocaRehacer } from './frecuencia'
+import AnfitrionDeVistasPrevias from './AnfitrionDeVistasPrevias'
+import { vaciarColaDeVistasPrevias } from './colaDeVistasPrevias'
 import RefrescoDeVistaPrevia from './RefrescoDeVistaPrevia'
 
 // Sin WebGL en jsdom: el generador se sustituye por uno que entrega, al momento, una imagen con el alto del documento.
@@ -30,6 +32,7 @@ function guardado(version: number, alto = 250) {
 beforeEach(() => {
   localStorage.clear()
   olvidarVistasPreviasEnMemoria()
+  vaciarColaDeVistasPrevias()
   fetchSimulado.mockReset()
   fetchSimulado.mockResolvedValue(respuesta(204))
   vi.stubGlobal('fetch', fetchSimulado)
@@ -95,6 +98,31 @@ describe('RefrescoDeVistaPrevia', () => {
     guardado(2)
     await vi.waitFor(() => expect(subidas()).toHaveLength(1))
     expect(fetchSimulado.mock.calls.filter(([p]) => p.method === 'GET')).toHaveLength(0)
+  })
+
+  it('al salir del editor con un guardado que esperaba su turno, el anfitrión hace una última imagen con lo último guardado', async () => {
+    const r = render(<><RefrescoDeVistaPrevia id="d1" /><AnfitrionDeVistasPrevias /></>)
+    guardado(2, 250)
+    await vi.waitFor(() => expect(subidas()).toHaveLength(1))
+    guardado(3, 260)
+    guardado(4, 270)
+    await tick()
+    expect(subidas()).toHaveLength(1)
+    r.unmount()
+    // El anfitrión vive fuera de la ruta: se vuelve a montar solo, como en App.
+    render(<AnfitrionDeVistasPrevias />)
+    await vi.waitFor(() => expect(subidas()).toHaveLength(2))
+    expect(await subidas()[1]![0].text()).toBe('alto=270')
+  })
+
+  it('salir del editor sin nada pendiente no sube nada más', async () => {
+    const r = render(<><RefrescoDeVistaPrevia id="d1" /><AnfitrionDeVistasPrevias /></>)
+    guardado(2)
+    await vi.waitFor(() => expect(subidas()).toHaveLength(1))
+    r.unmount()
+    render(<AnfitrionDeVistasPrevias />)
+    await tick(50)
+    expect(subidas()).toHaveLength(1)
   })
 
   it('si la subida falla no se enseña nada y el siguiente guardado tras la espera lo vuelve a intentar', async () => {

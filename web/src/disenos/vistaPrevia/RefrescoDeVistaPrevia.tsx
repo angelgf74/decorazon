@@ -2,35 +2,51 @@ import { useEffect, useRef, useState } from 'react'
 import { almacen, useEditor } from '../../editor/estado/almacen'
 import type { DocumentoDiseno } from '../../nucleo'
 import { subirVistaPrevia } from '../servidor'
+import { encolarVistaPrevia } from './colaDeVistasPrevias'
 import { apuntarVistaPrevia, msHastaRehacer } from './frecuencia'
 import GeneradorDeVistaPrevia from './GeneradorDeVistaPrevia'
 
 /**
  * En el editor de un diseño de la cuenta: los guardados rehacen su imagen (la miniatura de «Mis diseños» y, si se
  * comparte, la tarjeta de su enlace), en segundo plano y como mucho una vez cada 5 minutos. Los que caen dentro de la
- * espera se juntan en una al vencer, con lo último guardado. Un fallo no se enseña: queda la imagen anterior.
+ * espera se juntan en una al vencer, con lo último guardado; si se sale del editor antes, esa última imagen la hace el
+ * anfitrión de App (`AnfitrionDeVistasPrevias`), para que la miniatura no se quede con un estado intermedio. Un fallo
+ * no se enseña: queda la imagen anterior.
  */
 export default function RefrescoDeVistaPrevia({ id }: { id: string }) {
   const version = useEditor((e) => (e.origen.tipo === 'servidor' && e.origen.id === id ? e.origen.version : null))
   // La última versión ya tratada: al empezar, la de apertura (abrir no es guardar).
   const tratada = useRef(version)
+  // Lo último guardado que aún espera su turno (por la espera o porque otra imagen está en marcha).
+  const pendiente = useRef<DocumentoDiseno | null>(null)
   const [despertador, setDespertador] = useState(0)
   const [doc, setDoc] = useState<DocumentoDiseno | null>(null)
 
   useEffect(() => {
-    if (version === null || version === tratada.current || doc !== null) return
+    if (version === null || version === tratada.current) return
     const espera = msHastaRehacer(id)
-    if (espera > 0) {
+    if (doc !== null || espera > 0) {
+      pendiente.current = almacen.getState().documento
+      if (doc !== null) return
       // Dentro de la espera: se vuelve a mirar al vencer, con lo que se haya guardado para entonces.
       const temporizador = setTimeout(() => setDespertador((n) => n + 1), espera)
       return () => clearTimeout(temporizador)
     }
     tratada.current = version
+    pendiente.current = null
     apuntarVistaPrevia(id)
     // La imagen sale del documento recién guardado.
     // oxlint-disable-next-line react/set-state-in-effect
     setDoc(almacen.getState().documento)
   }, [id, version, doc, despertador])
+
+  // Al salir del editor con algo pendiente, la última imagen la hace el anfitrión con lo último guardado.
+  useEffect(() => () => {
+    if (pendiente.current !== null) {
+      encolarVistaPrevia(id, pendiente.current)
+      pendiente.current = null
+    }
+  }, [id])
 
   if (doc === null) return null
   return (

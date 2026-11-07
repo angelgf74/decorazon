@@ -9,6 +9,7 @@ import RestablecerContrasena from './cuenta/paginas/RestablecerContrasena'
 import EditorDeDiseno from './disenos/paginas/EditorDeDiseno'
 import MisDisenos from './disenos/paginas/MisDisenos'
 import VistaCompartida from './disenos/paginas/VistaCompartida'
+import AnfitrionDeVistasPrevias from './disenos/vistaPrevia/AnfitrionDeVistasPrevias'
 import Editor from './editor/Editor'
 import Inicio from './paginas/Inicio'
 import Privacidad from './paginas/Privacidad'
@@ -17,6 +18,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <NavegacionDeSesion />
+      {/* Fuera de las rutas: termina las vistas previas que quedaron pendientes al salir de un editor. */}
+      <AnfitrionDeVistasPrevias />
       <Routes>
         <Route path="/" element={<Inicio />} />
         <Route path="/disenar" element={<Editor />} />

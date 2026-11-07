@@ -70,3 +70,22 @@
 - `FormaDePlanta` usa la clave `forma` (`'rectangulo' | 'ele'`) y `plantaDeForma` recorta el entrante a `[50, medida − 50]` en vez de rechazarlo: un valor absurdo da una L válida, nunca un error.
 - Las cuatro esquinas se escriben a mano (seis vértices cada una) en el sentido del rectángulo; el test comprueba que el área con signo tiene el mismo signo en las cuatro.
 - En jsdom el `Blob` no es el de Node: los tests que simulan la imagen devuelven `new Response('jpeg', …)`, no un `Blob`, que `Response` convertiría en «[object Blob]».
+
+## Revisión final (7 nov 2026)
+
+Arreglado tras la revisión de la rama: la miniatura salía vieja tras editar y volver antes de 5 minutos (la fecha solo iba en la caché de memoria y el endpoint respondía `max-age=300`: ahora `private, no-store`, comprobado por el revisor en Chromium); la espera «en cabeza» dejaba la miniatura con un estado intermedio si se salía del editor con un guardado esperando (ahora `RefrescoDeVistaPrevia` lo encola y `AnfitrionDeVistasPrevias`, en `App`, hace la última imagen); un fallo de la miniatura (429, un corte) quedaba guardado en la caché de la página hasta recargar; y el campo del entrante enseñaba un valor mayor del que se creaba al bajar el ancho o el largo.
+
+## Pendiente
+
+- El límite de peticiones del endpoint del dueño es el cubo de tarjetas, por IP; con sesión lo coherente es por usuario.
+- Cada fila descarga el JPEG de 1200 × 630 (hasta 300 KB) para una caja de 96 × 64, y todas a la vez al montar: pedir solo lo visible o guardar una miniatura pequeña aparte.
+- Los object URL no se liberan ni se vacían al cerrar sesión (`olvidarMiniaturas` con `revokeObjectURL` en `cerrarSesion`).
+- El entrante por defecto es 133 × 110 fijo, no un tercio de las medidas puestas: inicializarlo al elegir «En L».
+- Buscar sin resultados deja la lista vacía sin mensaje; el orden por nombre no es `numeric` («Diseño 10» antes que «Diseño 2»); los combinantes de la expresión regular van como bytes literales (`/\p{M}/gu` sería más robusto).
+- Duplicar un diseño no copia su vista previa; importar tampoco la tiene hasta el primer guardado.
+- `apuntarVistaPrevia` se llama antes de tener la imagen: si se sale mientras carga three, no sube nada y aun así hay 5 minutos de espera.
+- `plantaDeForma` con NaN devuelve vértices NaN (no se llega desde la interfaz).
+- El dibujo de la forma con una estancia muy alargada (2000 × 100) queda en una franja de pocos píxeles.
+- Huecos de test: borrar un diseño con imagen (404 y sin fecha en el listado), `validarDocumento` del caso recortado, una fecha nueva que vuelve a pedir la imagen, orden por tipo con dos del mismo tipo, `almacen.crear` con forma.
+- El e2e de la L exige el texto «ya no es rectangular», que en una L recién creada sobra.
+- Coste sin medir: cada sesión de edición monta un contexto WebGL para la captura, también en móviles.

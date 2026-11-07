@@ -197,8 +197,9 @@ public static class CompartirEndpoints
     }
 
     /// <summary>
-    /// La miniatura de «Mis diseños»: la vista previa de un diseño propio, se comparta o no. Privada (va con sesión);
-    /// la web pone la fecha del listado en la dirección, así que una imagen nueva se pide con otra dirección.
+    /// La miniatura de «Mis diseños»: la vista previa de un diseño propio, se comparta o no. Privada (va con sesión) y
+    /// sin guardar en ninguna caché: la dirección es la misma cuando la imagen se rehace (la web pide por id y guarda
+    /// la respuesta en memoria por fecha del listado), y una imagen privada no debe quedar en el disco de un ordenador compartido.
     /// </summary>
     private static async Task<IResult> LeerVistaPreviaDelDuenoAsync(
         Guid id,
@@ -220,7 +221,7 @@ public static class CompartirEndpoints
             return NoEncontrado();
         }
 
-        respuesta.Headers.CacheControl = "private, max-age=300";
+        respuesta.Headers.CacheControl = "private, no-store";
         return Results.File(vista.Imagen, "image/jpeg");
     }
 

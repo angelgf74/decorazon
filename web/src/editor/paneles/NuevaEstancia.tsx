@@ -71,8 +71,9 @@ export default function NuevaEstancia({ alCrear }: Props) {
         </div>
         {enEle && (
           <>
-            <CampoNumero etiqueta={t.entranteAncho} valor={entranteAncho} min={50} max={Math.max(50, ancho - 50)} unidad="cm" alCambiar={setEntranteAncho} />
-            <CampoNumero etiqueta={t.entranteLargo} valor={entranteLargo} min={50} max={Math.max(50, largo - 50)} unidad="cm" alCambiar={setEntranteLargo} />
+            {/* Si el ancho o el largo bajan por debajo del entrante, el campo enseña lo que se creará (plantaDeForma lo recorta igual). */}
+            <CampoNumero etiqueta={t.entranteAncho} valor={Math.min(entranteAncho, Math.max(50, ancho - 50))} min={50} max={Math.max(50, ancho - 50)} unidad="cm" alCambiar={setEntranteAncho} />
+            <CampoNumero etiqueta={t.entranteLargo} valor={Math.min(entranteLargo, Math.max(50, largo - 50))} min={50} max={Math.max(50, largo - 50)} unidad="cm" alCambiar={setEntranteLargo} />
             <div className="panel__campo">
               <label htmlFor={idEsquina}>{t.esquina}</label>
               <select id={idEsquina} value={esquina} onChange={(e) => setEsquina(e.target.value as Esquina)}>

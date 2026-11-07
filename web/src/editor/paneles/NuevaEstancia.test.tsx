@@ -82,4 +82,17 @@ describe('NuevaEstancia: forma de la planta', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Crear estancia' }))
     expect(almacen.getState().documento!.estancia.planta).toHaveLength(4)
   })
+
+  it('si el ancho baja por debajo del entrante, el campo enseña lo que se va a crear', async () => {
+    render(<NuevaEstancia />)
+    await userEvent.click(screen.getByRole('radio', { name: 'En L' }))
+    expect((screen.getByLabelText('Entrante ancho') as HTMLInputElement).value).toBe('133')
+    const ancho = screen.getByLabelText('Ancho')
+    await userEvent.clear(ancho)
+    await userEvent.type(ancho, '150{Enter}')
+    expect((screen.getByLabelText('Entrante ancho') as HTMLInputElement).value).toBe('100')
+    await userEvent.click(screen.getByRole('button', { name: 'Crear estancia' }))
+    const planta = almacen.getState().documento!.estancia.planta
+    expect(planta).toContainEqual({ x: 50, y: 220 })
+  })
 })

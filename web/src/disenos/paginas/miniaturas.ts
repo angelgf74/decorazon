@@ -12,7 +12,11 @@ export function urlDeMiniatura(id: string, fecha: string): Promise<string | null
   const clave = `${id}:${fecha}`
   let p = pedidas.get(clave)
   if (!p) {
-    p = obtenerVistaPrevia(id).then((imagen) => URL.createObjectURL(imagen), () => null)
+    // Un fallo (429, un corte…) no se recuerda: la próxima vez que se monte la fila se vuelve a pedir.
+    p = obtenerVistaPrevia(id).then((imagen) => URL.createObjectURL(imagen), () => {
+      pedidas.delete(clave)
+      return null
+    })
     pedidas.set(clave, p)
   }
   return p

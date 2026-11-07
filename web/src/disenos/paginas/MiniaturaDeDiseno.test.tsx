@@ -36,12 +36,17 @@ describe('MiniaturaDeDiseno', () => {
     expect(fetchSimulado).not.toHaveBeenCalled()
   })
 
-  it('si la petición falla, el hueco', async () => {
-    fetchSimulado.mockResolvedValue(new Response(JSON.stringify({ mensaje: 'no' }), { status: 404, headers: { 'Content-Type': 'application/json' } }))
-    const { container } = render(<MiniaturaDeDiseno id="d1" fecha="2026-11-07T10:00:00Z" />)
+  it('si la petición falla, el hueco; y el fallo no se recuerda: la siguiente vez se vuelve a pedir', async () => {
+    fetchSimulado.mockResolvedValueOnce(new Response(JSON.stringify({ mensaje: 'no' }), { status: 429, headers: { 'Content-Type': 'application/json' } }))
+    const primera = render(<MiniaturaDeDiseno id="d1" fecha="2026-11-07T10:00:00Z" />)
     await vi.waitFor(() => expect(fetchSimulado).toHaveBeenCalledTimes(1))
     await new Promise((r) => setTimeout(r, 10))
-    expect(container.querySelector('img')).toBeNull()
-    expect(container.querySelector('.disenos__miniatura')).not.toBeNull()
+    expect(primera.container.querySelector('img')).toBeNull()
+    expect(primera.container.querySelector('.disenos__miniatura')).not.toBeNull()
+    primera.unmount()
+    fetchSimulado.mockImplementation(async () => jpeg())
+    const segunda = render(<MiniaturaDeDiseno id="d1" fecha="2026-11-07T10:00:00Z" />)
+    await vi.waitFor(() => expect(segunda.container.querySelector('img')).not.toBeNull())
+    expect(fetchSimulado).toHaveBeenCalledTimes(2)
   })
 })

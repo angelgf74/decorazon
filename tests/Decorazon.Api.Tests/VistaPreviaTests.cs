@@ -71,7 +71,9 @@ public class VistaPreviaTests(ApiConPostgresFixture api) : IClassFixture<ApiConP
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         Assert.Equal("image/jpeg", respuesta.Content.Headers.ContentType?.MediaType);
         Assert.Equal(imagen, await respuesta.Content.ReadAsByteArrayAsync());
+        // Sin guardar en ninguna caché: la dirección no cambia al rehacer la imagen (la web pide por id) y es privada.
         Assert.True(respuesta.Headers.CacheControl?.Private);
+        Assert.True(respuesta.Headers.CacheControl?.NoStore);
         Assert.Equal("nosniff", respuesta.Headers.GetValues("X-Content-Type-Options").Single());
 
         var conImagen = (await dueno.GetFromJsonAsync<RespuestaDeResumenDeDiseno[]>("/disenos"))!;
