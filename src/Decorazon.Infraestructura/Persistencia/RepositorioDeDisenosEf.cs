@@ -11,6 +11,8 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
 
     private const string ClavePrimariaDeVistas = "pk_vistas_previas";
 
+    private const string ClavePrimariaDeCopias = "pk_versiones_anteriores";
+
     // Usuario e id en la misma consulta: un diseño ajeno nunca llega a cargarse,
     // así no hay camino por el que un fallo posterior lo devuelva por error.
     public Task<Diseno?> ObtenerAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
@@ -114,6 +116,26 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
             .Where(vista => vista.DisenoId == id && contexto.Disenos.Any(diseno => diseno.Id == id && diseno.UsuarioId == usuarioId))
             .FirstOrDefaultAsync(cancelacion);
 
+    public Task<VersionAnterior?> ObtenerVersionAnteriorAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
+        contexto.VersionesAnteriores
+            .AsNoTracking()
+            .Where(copia => copia.DisenoId == id && contexto.Disenos.Any(diseno => diseno.Id == id && diseno.UsuarioId == usuarioId))
+            .FirstOrDefaultAsync(cancelacion);
+
+    // Solo rastrea, como Anadir: la copia y el diseño se guardan juntos en GuardarCambiosAsync.
+    public async Task CopiarVersionAnteriorAsync(Diseno diseno, CancellationToken cancelacion = default)
+    {
+        var existente = await contexto.VersionesAnteriores.FindAsync([diseno.Id], cancelacion);
+        if (existente is null)
+        {
+            contexto.VersionesAnteriores.Add(VersionAnterior.De(diseno));
+        }
+        else
+        {
+            existente.Sustituir(diseno);
+        }
+    }
+
     // Solo rastrea: lo guarda GuardarCambiosAsync o el guardado de otro repositorio
     // que comparta el contexto (así el alta con diseño es una sola transacción).
     public void Anadir(Diseno diseno) => contexto.Disenos.Add(diseno);
@@ -136,7 +158,9 @@ public sealed class RepositorioDeDisenosEf(DecorazonDbContext contexto) : IRepos
         }
         catch (Exception excepcion) when (
             excepcion is DbUpdateConcurrencyException
-            || (excepcion is DbUpdateException actualizacion && ErroresDePostgres.EsClaveForaneaViolada(actualizacion)))
+            || (excepcion is DbUpdateException actualizacion && ErroresDePostgres.EsClaveForaneaViolada(actualizacion))
+            // Dos guardados del mismo diseño que crean su primera copia a la vez: uno pierde, como con la versión.
+            || (excepcion is DbUpdateException copia && ErroresDePostgres.EsUnicidadViolada(copia, ClavePrimariaDeCopias)))
         {
             // Concurrencia: el UPDATE o DELETE no encontró la versión leída (otro guardó o
             // borró entretanto). Clave foránea: la cuenta se borró entre contar y guardar.

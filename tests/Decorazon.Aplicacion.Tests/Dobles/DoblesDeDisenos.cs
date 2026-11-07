@@ -40,6 +40,17 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
     }
 
     private readonly Dictionary<Guid, VistaPrevia> _vistas = [];
+    private readonly Dictionary<Guid, VersionAnterior> _copias = [];
+
+    public Task<VersionAnterior?> ObtenerVersionAnteriorAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
+        Task.FromResult(_disenos.Any(d => d.UsuarioId == usuarioId && d.Id == id) && _copias.TryGetValue(id, out var c) ? c : null);
+
+    public Task CopiarVersionAnteriorAsync(Diseno diseno, CancellationToken cancelacion = default)
+    {
+        if (_copias.TryGetValue(diseno.Id, out var c)) c.Sustituir(diseno);
+        else _copias[diseno.Id] = VersionAnterior.De(diseno);
+        return Task.CompletedTask;
+    }
 
     public Task<bool> GuardarVistaPreviaAsync(Guid usuarioId, Guid id, byte[] imagen, DateTimeOffset fecha, CancellationToken cancelacion = default)
     {

@@ -81,6 +81,43 @@ namespace Decorazon.Infraestructura.Migrations
                     b.ToTable("disenos", (string)null);
                 });
 
+            modelBuilder.Entity("Decorazon.Dominio.Disenos.VersionAnterior", b =>
+                {
+                    b.Property<Guid>("DisenoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("diseno_id");
+
+                    b.Property<string>("Contenido")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("contenido");
+
+                    b.Property<DateTimeOffset>("Fecha")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("nombre");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("tipo");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("DisenoId")
+                        .HasName("pk_versiones_anteriores");
+
+                    b.ToTable("versiones_anteriores", (string)null);
+                });
+
             modelBuilder.Entity("Decorazon.Dominio.Disenos.VistaPrevia", b =>
                 {
                     b.Property<Guid>("DisenoId")
@@ -263,6 +300,16 @@ namespace Decorazon.Infraestructura.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_disenos_usuarios_usuario_id");
+                });
+
+            modelBuilder.Entity("Decorazon.Dominio.Disenos.VersionAnterior", b =>
+                {
+                    b.HasOne("Decorazon.Dominio.Disenos.Diseno", null)
+                        .WithOne()
+                        .HasForeignKey("Decorazon.Dominio.Disenos.VersionAnterior", "DisenoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_versiones_anteriores_disenos_diseno_id");
                 });
 
             modelBuilder.Entity("Decorazon.Dominio.Disenos.VistaPrevia", b =>

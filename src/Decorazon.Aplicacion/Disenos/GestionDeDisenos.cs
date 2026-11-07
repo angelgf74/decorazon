@@ -103,7 +103,16 @@ public sealed class GestionDeDisenos(IRepositorioDeDisenos disenos, IReloj reloj
     }
 
     public async Task<ResultadoDeDiseno> ActualizarAsync(
-        Guid usuarioId, Guid id, int versionEsperada, PeticionDeDiseno peticion, CancellationToken cancelacion = default)
+        Guid usuarioId, Guid id, int versionEsperada, PeticionDeDiseno peticion, CancellationToken cancelacion = default) =>
+        await ActualizarAsync(usuarioId, id, versionEsperada, peticion, copiaPedida: false, cancelacion);
+
+    /// <summary>
+    /// Como el otro, y antes de cambiarlo copia el diseño (M-21) si lo pide quien guarda (<paramref name="copiaPedida"/>:
+    /// la web al sobrescribir tras un conflicto) o si el último guardado tiene al menos <see cref="VersionAnterior.PausaParaCopiar"/>.
+    /// La copia y el diseño se guardan juntos.
+    /// </summary>
+    public async Task<ResultadoDeDiseno> ActualizarAsync(
+        Guid usuarioId, Guid id, int versionEsperada, PeticionDeDiseno peticion, bool copiaPedida, CancellationToken cancelacion = default)
     {
         var diseno = await disenos.ObtenerAsync(usuarioId, id, cancelacion);
         if (diseno is null)
@@ -122,12 +131,55 @@ public sealed class GestionDeDisenos(IRepositorioDeDisenos disenos, IReloj reloj
             return new ResultadoDeDiseno(EstadoDeDiseno.VersionDistinta, diseno);
         }
 
+        if (VersionAnterior.TocaCopiar(diseno, reloj.Ahora, copiaPedida))
+        {
+            await disenos.CopiarVersionAnteriorAsync(diseno, cancelacion);
+        }
+
         diseno.Actualizar(conversion.Nombre!, conversion.Tipo, conversion.Contenido!, reloj.Ahora);
 
         if (!await disenos.GuardarCambiosAsync(cancelacion))
         {
             // Otro guardado o borrado se coló entre la lectura y la escritura. Se relee para
             // responder igual que si hubiera llegado antes: 412 con el actual, o 404.
+            var actual = await disenos.ObtenerAsync(usuarioId, id, cancelacion);
+            return actual is null
+                ? new ResultadoDeDiseno(EstadoDeDiseno.NoEncontrado)
+                : new ResultadoDeDiseno(EstadoDeDiseno.VersionDistinta, actual);
+        }
+
+        return new ResultadoDeDiseno(EstadoDeDiseno.Correcto, diseno);
+    }
+
+    /// <summary>La copia de antes de sobrescribir (M-21); null si el diseño no es suyo o no tiene.</summary>
+    public Task<VersionAnterior?> ObtenerVersionAnteriorAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
+        disenos.ObtenerVersionAnteriorAsync(usuarioId, id, cancelacion);
+
+    /// <summary>
+    /// Vuelve a la copia: el diseño toma su nombre, tipo y contenido (versión nueva), y lo que había pasa a ser la copia,
+    /// así que recuperar se deshace recuperando otra vez. NoEncontrado si no hay diseño o copia; VersionDistinta si el
+    /// diseño cambió desde <paramref name="versionEsperada"/>.
+    /// </summary>
+    public async Task<ResultadoDeDiseno> RecuperarVersionAnteriorAsync(
+        Guid usuarioId, Guid id, int versionEsperada, CancellationToken cancelacion = default)
+    {
+        var diseno = await disenos.ObtenerAsync(usuarioId, id, cancelacion);
+        var copia = diseno is null ? null : await disenos.ObtenerVersionAnteriorAsync(usuarioId, id, cancelacion);
+        if (diseno is null || copia is null)
+        {
+            return new ResultadoDeDiseno(EstadoDeDiseno.NoEncontrado);
+        }
+
+        if (diseno.Version != versionEsperada)
+        {
+            return new ResultadoDeDiseno(EstadoDeDiseno.VersionDistinta, diseno);
+        }
+
+        await disenos.CopiarVersionAnteriorAsync(diseno, cancelacion);
+        diseno.Actualizar(copia.Nombre, copia.Tipo, copia.Contenido, reloj.Ahora);
+
+        if (!await disenos.GuardarCambiosAsync(cancelacion))
+        {
             var actual = await disenos.ObtenerAsync(usuarioId, id, cancelacion);
             return actual is null
                 ? new ResultadoDeDiseno(EstadoDeDiseno.NoEncontrado)

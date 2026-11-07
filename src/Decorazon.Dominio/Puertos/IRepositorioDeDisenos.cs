@@ -69,4 +69,13 @@ public interface IRepositorioDeDisenos
     /// olvida lo rastreado antes de lanzarla.
     /// </exception>
     Task<bool> GuardarCambiosAsync(CancellationToken cancelacion = default);
+
+    /// <summary>La copia de antes de sobrescribir (M-21) de un diseño del usuario; null si no es suyo o no tiene.</summary>
+    Task<VersionAnterior?> ObtenerVersionAnteriorAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default);
+
+    /// <summary>
+    /// Copia el diseño tal como está ahora (antes de cambiarlo): crea su copia o sustituye la que hubiera. Solo hace
+    /// seguimiento: se guarda con <see cref="GuardarCambiosAsync"/>, a la vez que el diseño.
+    /// </summary>
+    Task CopiarVersionAnteriorAsync(Diseno diseno, CancellationToken cancelacion = default);
 }

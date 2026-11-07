@@ -80,6 +80,23 @@ public static class DisenosEndpoints
             .Produces<RespuestaDeMensaje>(StatusCodes.Status409Conflict)
             .ConETag();
 
+        // M-21: la copia de antes de sobrescribir y volver a ella.
+        grupo.MapGet("/{id:guid}/version-anterior", LeerVersionAnteriorAsync)
+            .WithName("leerVersionAnterior")
+            .Produces<RespuestaDeVersionAnterior>()
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound);
+
+        grupo.MapPost("/{id:guid}/version-anterior/recuperar", RecuperarVersionAnteriorAsync)
+            .WithName("recuperarVersionAnterior")
+            .RequireRateLimiting(LimitesDePeticiones.Escrituras)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status429TooManyRequests)
+            .Produces<RespuestaDeDiseno>()
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status404NotFound)
+            .Produces<RespuestaDeVersionDistinta>(StatusCodes.Status412PreconditionFailed)
+            .Produces<RespuestaDeMensaje>(StatusCodes.Status428PreconditionRequired)
+            .ConIfMatch()
+            .ConETag();
+
         grupo.MapDelete("/{id:guid}", BorrarAsync)
             .WithName("borrarDiseno")
             .RequireRateLimiting(LimitesDePeticiones.Escrituras)
@@ -194,7 +211,9 @@ public static class DisenosEndpoints
                 statusCode: StatusCodes.Status428PreconditionRequired);
         }
 
-        var resultado = await casoDeUso.ActualizarAsync(usuarioId, id, versionEsperada, ACasoDeUso(peticion), cancelacion);
+        // La web pide la copia (M-21) al sobrescribir tras un conflicto: lo que se pisa puede ser de hace un momento.
+        var copiaPedida = peticionHttp.Headers[CabeceraCopiaPrevia].ToString() == "1";
+        var resultado = await casoDeUso.ActualizarAsync(usuarioId, id, versionEsperada, ACasoDeUso(peticion), copiaPedida, cancelacion);
 
         switch (resultado.Estado)
         {
@@ -205,6 +224,69 @@ public static class DisenosEndpoints
             case EstadoDeDiseno.VersionDistinta:
                 // La versión actual va en el cuerpo y en el ETag: el cliente decide
                 // si recarga o sobrescribe a sabiendas con ella.
+                PonerETag(respuesta, resultado.Diseno!);
+                return Results.Json(
+                    new RespuestaDeVersionDistinta(MensajeDeVersionDistinta, resultado.Diseno!.Version),
+                    statusCode: StatusCodes.Status412PreconditionFailed);
+
+            default:
+                return Rechazo(resultado);
+        }
+    }
+
+    /// <summary>Con <c>1</c>, el PUT copia el diseño antes de cambiarlo aunque el último guardado sea reciente (M-21).</summary>
+    public const string CabeceraCopiaPrevia = "X-Copia-Previa";
+
+    private static async Task<IResult> LeerVersionAnteriorAsync(
+        Guid id,
+        ClaimsPrincipal usuario,
+        GestionDeDisenos casoDeUso,
+        CancellationToken cancelacion)
+    {
+        if (!usuario.TryObtenerId(out var usuarioId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var copia = await casoDeUso.ObtenerVersionAnteriorAsync(usuarioId, id, cancelacion);
+        if (copia is null)
+        {
+            return NoEncontrado();
+        }
+
+        using var documento = JsonDocument.Parse(copia.Contenido.Json);
+        return Results.Ok(new RespuestaDeVersionAnterior(
+            copia.Nombre.Valor, TiposDeEstancia.ATexto(copia.Tipo), copia.Fecha, copia.Version, documento.RootElement.Clone()));
+    }
+
+    private static async Task<IResult> RecuperarVersionAnteriorAsync(
+        Guid id,
+        HttpRequest peticionHttp,
+        ClaimsPrincipal usuario,
+        HttpResponse respuesta,
+        GestionDeDisenos casoDeUso,
+        CancellationToken cancelacion)
+    {
+        if (!usuario.TryObtenerId(out var usuarioId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!TryLeerIfMatch(peticionHttp, out var versionEsperada))
+        {
+            return Results.Json(
+                new RespuestaDeMensaje("Falta la cabecera If-Match con la versión del diseño que tienes abierto."),
+                statusCode: StatusCodes.Status428PreconditionRequired);
+        }
+
+        var resultado = await casoDeUso.RecuperarVersionAnteriorAsync(usuarioId, id, versionEsperada, cancelacion);
+        switch (resultado.Estado)
+        {
+            case EstadoDeDiseno.Correcto:
+                PonerETag(respuesta, resultado.Diseno!);
+                return Results.Ok(Detalle(resultado.Diseno!));
+
+            case EstadoDeDiseno.VersionDistinta:
                 PonerETag(respuesta, resultado.Diseno!);
                 return Results.Json(
                     new RespuestaDeVersionDistinta(MensajeDeVersionDistinta, resultado.Diseno!.Version),
