@@ -1,8 +1,15 @@
 name: Verificar
 
 on:
+  # En las ramas basta el pull_request: con push sin filtro, cada commit de una rama con PR pasaba el CI dos veces.
   push:
+    branches: [main]
   pull_request:
+
+# Un commit nuevo cancela la ejecución anterior del mismo PR; en main se terminan todas.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
