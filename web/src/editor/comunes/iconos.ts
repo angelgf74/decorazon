@@ -31,6 +31,7 @@ export const TRAZADOS = {
   sugerencia: ['M5 4h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z', 'M8 9h8M8 12h5'],
   // Asa de arrastre: dos columnas de tres puntos.
   descargar: ['M12 4v11', 'm7 11 5 5 5-5', 'M5 20h14'],
+  instalar: ['M12 3v10', 'm8 9 4 4 4-4', 'M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5'],
   estrella: ['m12 3 2.8 5.9 6.4.8-4.7 4.5 1.2 6.4L12 17.5l-5.7 3.1 1.2-6.4L2.8 9.7l6.4-.8z'],
   mover: ['M9 6h.01', 'M15 6h.01', 'M9 12h.01', 'M15 12h.01', 'M9 18h.01', 'M15 18h.01'],
   candado: ['M5 11h14v10H5z', 'M8 11V7a4 4 0 0 1 8 0v4'],

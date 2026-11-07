@@ -23,7 +23,7 @@
   padding: 0.75rem 1rem;
   border: 1px solid var(--salmon);
   border-radius: 0.6rem;
-  background: #fff;
+  background: var(--superficie);
 }
 /* Buscador y orden, en una línea sobre la lista. */
 .disenos__filtros { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2) var(--esp-3); }

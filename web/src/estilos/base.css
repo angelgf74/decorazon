@@ -2,18 +2,28 @@
   --crema: #FFF8F0;
   --crema-oscura: #F6EADB;
   --terracota: #B9473A;
+  /* Fondo de los botones primarios: de día, la terracota; de noche, una terracota más oscura que la del texto (el blanco encima necesita 4,5:1). */
+  --primario: #B9473A;
+  --sobre-terracota: #fff;
   --salmon: #E9806A;
   --amarillo: #FFD166;
   --conflicto: #D62828;
   --aviso: #E0A100;
   --peligro: #B3261E;
+  --peligro-suave: #fbeceb;
+  --sobre-peligro: #fff;
+  --bien: #2e7d4f;
   --tinta: #2b2622;
+  /* Texto sobre un fondo de tinta (chips y segmentados pulsados, pistas). */
+  --sobre-tinta: #fff;
   --gris: #6f6862;
   --superficie: #fff;
   /* Bordes de controles: 3,8:1 sobre blanco y 3,6:1 sobre crema (WCAG 1.4.11 pide 3:1). */
   --borde: #C26C57;
   /* Solo separadores decorativos, que no necesitan contraste. */
   --borde-suave: #E8D8C8;
+  /* Las sombras son tinta translúcida: `rgb(var(--sombra) / 0.1)`. De noche, negro. */
+  --sombra: 43 38 34;
   --esp-1: 0.25rem;
   --esp-2: 0.5rem;
   --esp-3: 0.75rem;
@@ -26,6 +36,33 @@
   --objetivo: 2.5rem;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--tinta);
+  color-scheme: light;
+}
+
+/*
+ * Modo oscuro (M-29): sigue al sistema. Solo cambian los tokens; el plano (`.lienzo__svg` fija los claros en lienzo.css),
+ * la 3D y la hoja para imprimir se ven igual de día y de noche. Los pares de contraste los vigila contraste.test.ts.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --crema: #1c1916;
+    --crema-oscura: #2a2521;
+    --superficie: #242019;
+    --tinta: #f1eae1;
+    --sobre-tinta: #1c1916;
+    --gris: #b4aa9f;
+    --terracota: #e4836d;
+    --primario: #b9473a;
+    --borde: #d98a74;
+    --borde-suave: #3c342d;
+    --peligro: #f28b7f;
+    --peligro-suave: #3a2522;
+    --sobre-peligro: #1c1916;
+    --conflicto: #ff8a7a;
+    --bien: #7fd09a;
+    --sombra: 0 0 0;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -55,11 +92,11 @@ button:hover:not(:disabled), .boton:hover { background: var(--crema-oscura); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 button.primario, .boton.primario {
-  background: var(--terracota);
-  border-color: var(--terracota);
-  color: #fff;
+  background: var(--primario);
+  border-color: var(--primario);
+  color: var(--sobre-terracota);
 }
-button.primario:hover:not(:disabled), .boton.primario:hover { background: #a33d31; }
+button.primario:hover:not(:disabled), .boton.primario:hover { background: color-mix(in srgb, var(--primario), #000 12%); }
 
 button.enlace {
   border: 0;
@@ -67,10 +104,10 @@ button.enlace {
   color: var(--terracota);
   text-decoration: underline;
 }
-button.enlace:hover:not(:disabled) { background: none; color: #a33d31; }
+button.enlace:hover:not(:disabled) { background: none; color: color-mix(in srgb, var(--terracota), #000 12%); }
 
 button.peligro { color: var(--peligro); border-color: var(--peligro); }
-button.peligro:hover:not(:disabled) { background: #fbeceb; }
+button.peligro:hover:not(:disabled) { background: var(--peligro-suave); }
 
 .icono { width: 1.25em; height: 1.25em; flex: none; }
 
@@ -119,7 +156,7 @@ kbd {
   white-space: nowrap;
 }
 
-.confirmar { border: 1px solid var(--borde); border-radius: 0.75rem; max-width: 28rem; }
+.confirmar { border: 1px solid var(--borde); border-radius: 0.75rem; max-width: 28rem; background: var(--superficie); color: var(--tinta); }
 .confirmar::backdrop { background: rgb(43 38 34 / 0.4); }
 .confirmar__botones { display: flex; justify-content: flex-end; gap: 0.5rem; }
 

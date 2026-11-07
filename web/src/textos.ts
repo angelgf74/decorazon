@@ -123,6 +123,8 @@ export const textos = {
     deshacer: 'Deshacer',
     rehacer: 'Rehacer',
     nuevoDiseno: 'Nuevo diseño',
+    instalar: 'Instalar Decorazon',
+    instalarIos: 'En Safari, pulsa Compartir y luego «Añadir a pantalla de inicio»: Decorazon quedará como una app, a pantalla completa.',
     confirmarNuevo: 'Esto reemplaza tu diseño actual, que no está guardado en ninguna cuenta. ¿Seguir?',
     guardado: 'Guardado en este navegador',
     pendiente: 'Guardando…',
@@ -171,6 +173,8 @@ export const textos = {
     acercar: 'Acercar',
     alejar: 'Alejar',
     plano: 'Plano de la estancia',
+    bloqueado: 'bloqueado',
+    bloqueada: 'bloqueada',
     canto: 'canto',
     partir: 'Partir esta pared',
     girar: 'Arrastra para girar; con Mayúsculas, sin saltos de 90°',
@@ -217,6 +221,7 @@ export const textos = {
       quitar: 'Quitar lo seleccionado',
       soltar: 'Soltar la selección',
       mover: 'Mover 1 cm (Mayús: 10 cm)',
+      recorrer: 'Recorrer los muebles del plano (cada uno se selecciona al llegar)',
       girar: 'Girar 90°',
       duplicar: 'Duplicar',
     },
@@ -358,6 +363,7 @@ export const textos = {
   comun: {
     aceptar: 'Aceptar',
     cancelar: 'Cancelar',
+    entendido: 'Entendido',
   },
   sugerencias: {
     abrir: 'Sugerencias',
