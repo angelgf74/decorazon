@@ -47,7 +47,7 @@ export const sofaRinconera: DefinicionTipo = {
     { clave: 'tapizado', etiqueta: 'Tapizado', material: 'tela', defecto: '#7d8a7a' },
     { clave: 'patas', etiqueta: 'Patas', material: 'madera', defecto: '#5b4636' },
   ],
-  pisable: false, bloqueaPaso: true, sobreVentana: false,
+  pisable: false, bloqueaPaso: true, conjunto: 'estar', sobreVentana: false,
   volumenes: (e) => lados(e).map(([x0, y0, x1, y1]) => cajaMundo(e, x0, y0, x1, y1, 0, e.medidas.alto)),
   planta: (e) => [contornoL(e).map((p) => aMundo(e, p))],
   // En el centro del lado largo: `e.posicion` cae en el hueco de la L.

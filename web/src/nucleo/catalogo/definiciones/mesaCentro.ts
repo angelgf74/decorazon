@@ -8,7 +8,7 @@ export const mesaCentro: DefinicionTipo = {
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],
   zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#a98462' }],
-  pisable: false, bloqueaPaso: true, sobreVentana: false,
+  pisable: false, bloqueaPaso: true, conjunto: 'estar', sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d: (e) => mesaConPatas(e, 'tablero', 'tablero'),
   zonasApertura: () => [],

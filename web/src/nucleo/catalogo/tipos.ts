@@ -53,6 +53,8 @@ export interface DefinicionTipo {
   pisable: boolean
   /** Cuenta para el paso estrecho. */
   bloqueaPaso: boolean
+  /** Muebles que se usan juntos: entre dos del mismo conjunto no hay paso estrecho (sofá y mesa de centro van a 40 cm a propósito). */
+  conjunto?: 'estar'
   /** Cortina: no "tapa" ventanas. */
   sobreVentana: boolean
   /** Volúmenes en coordenadas del mundo. */
