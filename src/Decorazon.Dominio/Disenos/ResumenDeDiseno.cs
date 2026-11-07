@@ -5,6 +5,7 @@ namespace Decorazon.Dominio.Disenos;
 /// 1 MB por diseño y un usuario puede tener cien: el listado no lo necesita, así
 /// que ni siquiera se lee de la base de datos.
 /// </summary>
+/// <param name="FechaDeVistaPrevia">Cuándo se subió su vista previa, o null si no tiene (la imagen no viaja en el listado).</param>
 public sealed record ResumenDeDiseno(
     Guid Id,
     NombreDeDiseno Nombre,
@@ -12,4 +13,5 @@ public sealed record ResumenDeDiseno(
     DateTimeOffset FechaDeCreacion,
     DateTimeOffset FechaDeModificacion,
     int Version,
-    string? EnlaceCompartido);
+    string? EnlaceCompartido,
+    DateTimeOffset? FechaDeVistaPrevia = null);

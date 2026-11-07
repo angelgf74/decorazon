@@ -53,6 +53,10 @@ public sealed class CompartirDisenos(IRepositorioDeDisenos disenos, IGeneradorDe
             ? disenos.ObtenerVistaPreviaAsync(enlace, cancelacion)
             : Task.FromResult<VistaPrevia?>(null);
 
+    /// <summary>La vista previa de un diseño propio, se comparta o no (la miniatura de «Mis diseños»); null si no la hay o el diseño no es suyo.</summary>
+    public Task<VistaPrevia?> ObtenerVistaPreviaDelDuenoAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default) =>
+        disenos.ObtenerVistaPreviaDelDuenoAsync(usuarioId, id, cancelacion);
+
     /// <summary>Un enlace con forma imposible (vacío, largo, caracteres fuera de base64url) ni se busca.</summary>
     public Task<Diseno?> ObtenerCompartidoAsync(string enlace, CancellationToken cancelacion = default) =>
         TieneFormaDeEnlace(enlace)

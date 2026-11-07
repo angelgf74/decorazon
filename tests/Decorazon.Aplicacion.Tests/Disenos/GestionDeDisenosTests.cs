@@ -375,4 +375,18 @@ public class GestionDeDisenosTests
         Assert.Same(propio, await CasoDeUso.ObtenerAsync(_usuario, propio.Id));
         Assert.Null(await CasoDeUso.ObtenerAsync(_usuario, ajeno.Id));
     }
+
+    [Fact]
+    public async Task Listar_DiceCuandoSeHizoLaVistaPrevia_YNadaSinElla()
+    {
+        var con = await CrearUnoAsync(nombre: "Con imagen");
+        var sin = await CrearUnoAsync(nombre: "Sin imagen");
+        var fecha = new DateTimeOffset(2026, 1, 2, 12, 0, 0, TimeSpan.Zero);
+        Assert.True(await _disenos.GuardarVistaPreviaAsync(_usuario, con.Id, [0xFF, 0xD8, 0xFF, 0], fecha));
+
+        var lista = await CasoDeUso.ListarAsync(_usuario);
+
+        Assert.Equal(fecha, lista.Single(resumen => resumen.Id == con.Id).FechaDeVistaPrevia);
+        Assert.Null(lista.Single(resumen => resumen.Id == sin.Id).FechaDeVistaPrevia);
+    }
 }

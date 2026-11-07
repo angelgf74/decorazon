@@ -22,7 +22,8 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
             _disenos.Where(diseno => diseno.UsuarioId == usuarioId)
                 .OrderByDescending(diseno => diseno.FechaDeModificacion)
                 .Select(diseno => new ResumenDeDiseno(
-                    diseno.Id, diseno.Nombre, diseno.Tipo, diseno.FechaDeCreacion, diseno.FechaDeModificacion, diseno.Version, diseno.EnlaceCompartido))
+                    diseno.Id, diseno.Nombre, diseno.Tipo, diseno.FechaDeCreacion, diseno.FechaDeModificacion, diseno.Version, diseno.EnlaceCompartido,
+                    _vistas.TryGetValue(diseno.Id, out var vista) ? vista.Fecha : null))
                 .ToList());
 
     public Task<int> ContarAsync(Guid usuarioId, CancellationToken cancelacion = default) =>
@@ -52,6 +53,12 @@ public sealed class RepositorioDeDisenosEnMemoria : IRepositorioDeDisenos
     {
         var diseno = _disenos.FirstOrDefault(d => d.EnlaceCompartido == enlace);
         return Task.FromResult(diseno is not null && _vistas.TryGetValue(diseno.Id, out var vista) ? vista : null);
+    }
+
+    public Task<VistaPrevia?> ObtenerVistaPreviaDelDuenoAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default)
+    {
+        var esSuyo = _disenos.Any(d => d.UsuarioId == usuarioId && d.Id == id);
+        return Task.FromResult(esSuyo && _vistas.TryGetValue(id, out var vista) ? vista : null);
     }
 
     public Task<bool> DejarDeCompartirAsync(Guid usuarioId, Guid id, CancellationToken cancelacion = default)

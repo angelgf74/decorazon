@@ -1131,6 +1131,53 @@
       }
     },
     "/disenos/{id}/vista-previa": {
+      "get": {
+        "tags": [
+          "Disenos"
+        ],
+        "operationId": "leerVistaPreviaDelDueno",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeMensaje"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
       "put": {
         "tags": [
           "Disenos"
@@ -1503,7 +1550,8 @@
           "fechaDeCreacion",
           "fechaDeModificacion",
           "version",
-          "enlace"
+          "enlace",
+          "fechaDeVistaPrevia"
         ],
         "type": "object",
         "properties": {
@@ -1534,6 +1582,13 @@
               "null",
               "string"
             ]
+          },
+          "fechaDeVistaPrevia": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
