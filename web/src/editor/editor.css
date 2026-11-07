@@ -434,7 +434,7 @@
 .avisos__chip--mal { color: var(--peligro); border-color: var(--conflicto); cursor: pointer; }
 /* Abierto, el chip va en rojo macizo con el texto en blanco: el hover claro no debe pisarlo. */
 .avisos__chip--mal:hover:not(:disabled, [aria-expanded='true']) { background: var(--peligro-suave); }
-.avisos__chip--mal[aria-expanded='true'] { background: var(--peligro); border-color: var(--peligro); color: var(--sobre-terracota); }
+.avisos__chip--mal[aria-expanded='true'] { background: var(--peligro); border-color: var(--peligro); color: var(--sobre-peligro); }
 .lista-avisos {
   position: absolute;
   top: calc(100% + var(--esp-1));

@@ -95,8 +95,24 @@
 
 ## Revisión final
 
-(Se rellena al cerrar.)
+Revisor (agente, opus), con reproducciones en Chromium. Arreglado en el mismo PR, con test RED→GREEN:
+
+- **Crítico:** ordenar los `<g>` de las piezas por posición reordenaba el DOM en mitad de un arrastre y el navegador soltaba la captura del puntero: arrastrar un mueble por encima de otro se cortaba. Además el apilado cambiaba (una placa sobre un módulo bajo quedaba tapada) y los diseños guardados se veían distintos. Ahora las piezas se pintan como siempre (alfombras debajo, luego el orden de inserción) y el teclado va por una capa aparte de **asas de foco** (`.capa-elementos__foco`: la caja de cada pieza, sin relleno ni puntero, ordenada por posición). `e2e/arrastre.spec.ts` arrastra una mesita cruzando a otra (falla con el código anterior: se quedaba en y 166 en vez de pasar de 245) y `Lienzo.test` comprueba que mover no reordena el DOM.
+- **Crítico:** la hoja para imprimir, la vista compartida y el plano ampliado heredaban los tokens oscuros: texto crema sobre papel blanco y muros claros. `.hoja-impresion__pagina`, `.compartido__plano` y `.plano-ampliado__plano` fijan ahora los tokens claros como el plano; `oscuro.spec.ts` abre la hoja y comprueba el color del texto y el `fill` de los muros.
+- **Importante:** Supr, R, Ctrl+D y las flechas actuaban sobre la seleccionada, no sobre la que tenía el foco: ahora recibir el foco (Tab) selecciona; Intro y Espacio siguen valiendo. El atajo del panel lo dice. A mitad de un arrastre, ni el foco ni Intro cambian la selección.
+- **Importante:** contraste en oscuro: el chip de avisos abierto (blanco sobre `--peligro` claro, 2,4:1) y los textos de error (`--conflicto` sin redefinir, 3,5:1). Tokens `--sobre-peligro` y `--conflicto` oscuro, y los tres pares en `contraste.test.ts`.
+- De paso: «bloqueado/bloqueada» con el género del tipo, `aria-current` en vez de `aria-pressed` (no es un interruptor) y los nombres del plano ocultos al lector (ya los da el asa).
 
 ## Pendiente
 
-(Se rellena al cerrar.)
+Menores del revisor, sin arreglar en esta fase:
+
+- `instalar()` sin try/catch: si `prompt()` lanza (`NotAllowedError`), queda una promesa rechazada en consola.
+- El texto de los pasos de iOS dice «En Safari…»: en Chrome de iOS (que también añade a la pantalla de inicio) y en navegadores integrados (Instagram, Gmail) no es exacto.
+- Contrastes menores en oscuro: `.vista3d__preparando` (gris sobre `#f4efe8` fijo, 2:1), la marca ✓ del selector de color (tinta clara sobre muestras claras) y el borde de las muestras (`rgb(43 38 34 / 0.3)`, invisible sobre el panel oscuro).
+- `color-mix()` sin respaldo para Safari < 16.2 (el hover del botón primario cae en el hover genérico).
+- El fondo del plano pasa de blanco a crema también de día (`.lienzo { background: #FFF8F0 }`); pequeño, pero no estaba documentado.
+- Una parada de Tab por mueble (con 30 muebles, 30 Tabs hasta el panel): un «roving tabindex» sería más cómodo.
+- Una pieza enfocada fuera de la parte visible del plano no desplaza el plano hasta ella.
+- El manifiesto de la PWA sigue con colores claros: la pantalla de arranque al instalar es clara también de noche.
+- Ya existía: con el chip de avisos abierto, el `button:hover` genérico gana a `.avisos__chip--mal[aria-expanded='true']` y deja texto blanco sobre crema al pasar el ratón.

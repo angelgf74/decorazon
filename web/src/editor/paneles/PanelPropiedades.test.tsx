@@ -286,16 +286,14 @@ describe('PanelPropiedades: atajos de teclado al pie, plegados', () => {
 })
 
 describe('PanelPropiedades: atajos del teclado para recorrer el plano (M-28)', () => {
-  it('con un mueble seleccionado, los atajos dicen que Tab recorre los muebles e Intro elige el que tiene el foco', async () => {
+  it('con un mueble seleccionado, los atajos dicen que Tab recorre los muebles y selecciona el que tiene el foco', async () => {
     almacen.getState().irAPaso(2)
     almacen.getState().cambiar((d) => anadirElemento(d, catalogoBase, 'cama', { x: 200, y: 165 }).documento)
     almacen.getState().seleccionar({ tipo: 'elemento', id: almacen.getState().documento!.elementos[0]!.id })
     render(<PanelPropiedades />)
     await userEvent.click(screen.getByText(textos.propiedades.atajos))
     const region = screen.getByRole('region', { name: textos.propiedades.atajos })
-    expect(within(region).getByText('Recorrer los muebles del plano')).toBeInTheDocument()
-    expect(within(region).getByText('Seleccionar el mueble con el foco')).toBeInTheDocument()
+    expect(within(region).getByText('Recorrer los muebles del plano (cada uno se selecciona al llegar)')).toBeInTheDocument()
     expect(within(region).getByText('Tab')).toBeInTheDocument()
-    expect(within(region).getByText('Intro')).toBeInTheDocument()
   })
 })

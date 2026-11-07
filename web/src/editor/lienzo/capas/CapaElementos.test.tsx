@@ -14,8 +14,7 @@ describe('CapaElementos', () => {
     const { container } = render(<svg><CapaElementos documento={doc} conflictos={[]} seleccion={null} /></svg>)
     const capa = container.querySelector('.capa-elementos')!
     const nombres = [...capa.querySelectorAll('text')]
-    // Las piezas (y sus nombres) van en orden de posición: el reposapiés (y = 60) antes que el escritorio (y = 100).
-    expect(nombres.map((t) => t.textContent)).toEqual(['Reposapiés', 'Escritorio en L'])
+    expect(nombres.map((t) => t.textContent)).toEqual(['Escritorio en L', 'Reposapiés'])
     const ultimaHuella = [...capa.querySelectorAll('.capa-elementos__huella')].at(-1)!
     for (const t of nombres) expect(ultimaHuella.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     // El de la L, en el centro del tablero principal (160×140: y de 30 a 90); el reposapiés cae en el mismo sitio, así
@@ -84,37 +83,57 @@ describe('CapaElementos: con el teclado (M-28)', () => {
     ]
     return doc
   }
+  const montar = (doc = docConMuebles(), extra: Partial<Parameters<typeof CapaElementos>[0]> = {}) =>
+    render(<svg><CapaElementos documento={doc} conflictos={[]} seleccion={null} alPulsar={() => {}} alSeleccionar={() => {}} {...extra} /></svg>)
 
-  it('cada pieza es un botón con nombre y medidas, en orden de posición (arriba-abajo, izquierda-derecha) y las alfombras primero', () => {
-    const { getAllByRole } = render(<svg><CapaElementos documento={docConMuebles()} conflictos={[]} seleccion={null} alPulsar={() => {}} alSeleccionar={() => {}} /></svg>)
-    const botones = getAllByRole('button')
-    expect(botones.map((b) => b.getAttribute('data-elemento'))).toEqual(['alfombra', 'mesita-izquierda', 'armario-derecha', 'cama-abajo'])
-    for (const b of botones) expect(b).toHaveAttribute('tabindex', '0')
-    expect(botones[3]).toHaveAttribute('aria-label', 'Cama 150 × 200 cm')
-    expect(botones[3]).toHaveAttribute('aria-pressed', 'false')
+  it('las piezas se pintan en el orden de siempre (alfombras debajo, luego el de inserción): el DOM no se reordena al moverlas', () => {
+    const { container } = montar()
+    expect([...container.querySelectorAll('[data-elemento]')].map((g) => g.getAttribute('data-elemento'))).toEqual(['alfombra', 'armario-derecha', 'cama-abajo', 'mesita-izquierda'])
+    // Lo que se pinta no es botón: las asas de foco van aparte.
+    for (const g of container.querySelectorAll('[data-elemento]')) expect(g).not.toHaveAttribute('tabindex')
   })
 
-  it('Intro y Espacio seleccionan la pieza con el foco; otra tecla, no', () => {
+  it('las asas de foco son botones aparte, en orden de posición (arriba-abajo, izquierda-derecha), con las alfombras primero y sin puntero', () => {
+    const { getAllByRole } = montar()
+    const asas = getAllByRole('button')
+    expect(asas.map((b) => b.getAttribute('data-foco'))).toEqual(['alfombra', 'mesita-izquierda', 'armario-derecha', 'cama-abajo'])
+    for (const b of asas) {
+      expect(b).toHaveAttribute('tabindex', '0')
+      expect(b).toHaveClass('capa-elementos__foco')
+    }
+    expect(asas[3]).toHaveAttribute('aria-label', 'Cama 150 × 200 cm')
+    expect(asas[3]).not.toHaveAttribute('aria-current')
+  })
+
+  it('recibir el foco (Tab) selecciona la pieza; Intro y Espacio también; otra tecla, no', () => {
     const alSeleccionar = vi.fn()
-    const { getByRole } = render(<svg><CapaElementos documento={docConMuebles()} conflictos={[]} seleccion={null} alPulsar={() => {}} alSeleccionar={alSeleccionar} /></svg>)
+    const { getByRole } = montar(docConMuebles(), { alSeleccionar })
     const cama = getByRole('button', { name: 'Cama 150 × 200 cm' })
+    fireEvent.focus(cama)
     fireEvent.keyDown(cama, { key: 'Enter' })
     fireEvent.keyDown(cama, { key: ' ' })
     fireEvent.keyDown(cama, { key: 'r' })
-    expect(alSeleccionar.mock.calls).toEqual([['cama-abajo'], ['cama-abajo']])
+    expect(alSeleccionar.mock.calls).toEqual([['cama-abajo'], ['cama-abajo'], ['cama-abajo']])
   })
 
-  it('la seleccionada lleva aria-pressed y una bloqueada lo dice en el nombre', () => {
+  it('la seleccionada lleva aria-current y una bloqueada lo dice con su género', () => {
     const doc = docConMuebles()
+    doc.elementos[0] = { ...doc.elementos[0]!, bloqueado: true }
     doc.elementos[1] = { ...doc.elementos[1]!, bloqueado: true }
-    const { getByRole } = render(<svg><CapaElementos documento={doc} conflictos={[]} seleccion={{ tipo: 'elemento', id: 'cama-abajo' }} alPulsar={() => {}} alSeleccionar={() => {}} /></svg>)
-    const cama = getByRole('button', { name: 'Cama 150 × 200 cm, bloqueada' })
-    expect(cama).toHaveAttribute('aria-pressed', 'true')
+    const { getByRole } = montar(doc, { seleccion: { tipo: 'elemento', id: 'cama-abajo' } })
+    expect(getByRole('button', { name: 'Cama 150 × 200 cm, bloqueada' })).toHaveAttribute('aria-current', 'true')
+    expect(getByRole('button', { name: 'Armario 100 × 60 cm, bloqueado' })).not.toHaveAttribute('aria-current')
   })
 
-  it('sin alPulsar (paso 1, midiendo, plano exportado) no hay botones ni tabindex', () => {
+  it('los nombres del plano no se leen dos veces: el grupo va oculto al lector', () => {
+    const { container } = montar()
+    expect(container.querySelector('.capa-elementos__nombres')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('sin alPulsar (paso 1, midiendo, plano exportado) no hay asas ni tabindex', () => {
     const { queryAllByRole, container } = render(<svg><CapaElementos documento={docConMuebles()} conflictos={[]} seleccion={null} /></svg>)
     expect(queryAllByRole('button')).toHaveLength(0)
     expect(container.querySelector('[tabindex]')).toBeNull()
+    expect(container.querySelector('.capa-elementos__foco')).toBeNull()
   })
 })

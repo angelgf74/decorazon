@@ -263,7 +263,6 @@ const ATAJOS_ESTANCIA = [
 const ATAJOS_MUEBLES = [
   ...ATAJOS_ESTANCIA,
   { teclas: ['Tab'], accion: t.atajo.recorrer },
-  { teclas: ['Intro'], accion: t.atajo.elegir },
   { teclas: ['R'], accion: t.atajo.girar },
   { teclas: ['Ctrl', 'D'], accion: t.atajo.duplicar },
 ]

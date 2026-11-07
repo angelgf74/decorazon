@@ -28,6 +28,7 @@ const PARES: [string, string, number][] = [
   ['sobre-terracota', 'primario', 4.5], ['sobre-tinta', 'tinta', 4.5],
   ['bien', 'crema', 4.5], ['bien', 'superficie', 4.5], ['peligro', 'crema', 4.5], ['peligro', 'superficie', 4.5],
   ['borde', 'crema', 3], ['borde', 'superficie', 3], ['amarillo', 'crema', 1.2],
+  ['sobre-peligro', 'peligro', 4.5], ['conflicto', 'crema', 4.5], ['conflicto', 'superficie', 4.5],
 ]
 
 describe.each([['claro', claro], ['oscuro', oscuro]] as const)('contraste del esquema %s', (_nombre, t) => {

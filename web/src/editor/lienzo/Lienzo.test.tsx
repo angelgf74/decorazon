@@ -732,3 +732,21 @@ describe('Lienzo: muebles con el teclado (M-28)', () => {
     expect(screen.queryByRole('button', { name: 'Armario 100 × 60 cm' })).toBeNull()
   })
 })
+
+describe('Lienzo: el arrastre no reordena el DOM (M-28, revisión)', () => {
+  it('mover una pieza por debajo de otra deja los <g data-elemento> en el mismo orden', () => {
+    colocar('mesita', 'a', { x: 200, y: 100 })
+    colocar('mesita', 'b', { x: 200, y: 200 })
+    const { container } = render(<Lienzo />)
+    const orden = () => [...container.querySelectorAll('[data-elemento]')].map((g) => g.getAttribute('data-elemento'))
+    expect(orden()).toEqual(['a', 'b'])
+    const huella = container.querySelector('[data-elemento="a"] polygon')!
+    fireEvent.pointerDown(huella, { pointerId: 1, clientX: 200, clientY: 100 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 205, clientY: 110 })
+    fireEvent.pointerMove(huella, { pointerId: 1, clientX: 200, clientY: 300 })
+    expect(almacen.getState().documento!.elementos.find((e) => e.id === 'a')!.posicion.y).toBeGreaterThan(200)
+    expect(orden()).toEqual(['a', 'b'])
+    fireEvent.pointerUp(huella, { pointerId: 1 })
+    expect(orden()).toEqual(['a', 'b'])
+  })
+})

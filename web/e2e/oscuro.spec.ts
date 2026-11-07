@@ -31,6 +31,18 @@ test('con el sistema en oscuro, la interfaz es oscura, el texto claro y el plano
   await page.getByRole('button', { name: '2 Amueblar' }).click()
   await page.screenshot({ path: 'test-results/oscuro-editor-1440.png' })
 
+  // La hoja para imprimir es papel: texto oscuro sobre blanco y muros de tinta oscura, también de noche.
+  await page.getByRole('button', { name: 'Más acciones' }).click()
+  await page.getByRole('button', { name: 'Imprimir', exact: true }).click()
+  const pagina = page.locator('.hoja-impresion__pagina').first()
+  await expect(pagina).toBeVisible()
+  expect(await pagina.evaluate((n) => getComputedStyle(n).backgroundColor)).toBe('rgb(255, 255, 255)')
+  expect(luz(await pagina.evaluate((n) => getComputedStyle(n).color))).toBeLessThan(0.3)
+  expect(luz(await page.locator('.hoja-impresion__pagina .capa-planta__muros').first().evaluate((n) => getComputedStyle(n).fill))).toBeLessThan(0.3)
+  await page.screenshot({ path: 'test-results/oscuro-hoja-1440.png' })
+  await page.keyboard.press('Escape')
+  await expect(pagina).toBeHidden()
+
   await page.setViewportSize({ width: 390, height: 844 })
   await page.screenshot({ path: 'test-results/oscuro-editor-390.png' })
   expect(errores).toEqual([])

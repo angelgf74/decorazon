@@ -1,6 +1,11 @@
 /* El plano se ve igual de día y de noche (M-29): fondo crema y los tokens claros fijados aquí, aunque el sistema vaya en oscuro. */
 .lienzo { position: relative; width: 100%; height: 100%; overflow: hidden; background: #FFF8F0; }
-.lienzo__svg, .panel-catalogo__miniatura { --tinta: #2b2622; --terracota: #B9473A; --amarillo: #FFD166; --borde: #C26C57; --gris: #6f6862; --crema: #FFF8F0; --crema-oscura: #F6EADB; --superficie: #fff; color-scheme: light; }
+/* Todo lo que pinta el plano fuera del editor también es papel claro: la hoja para imprimir, la vista compartida y el plano ampliado. */
+.lienzo__svg, .panel-catalogo__miniatura, .hoja-impresion__pagina, .compartido__plano, .plano-ampliado__plano {
+  --tinta: #2b2622; --sobre-tinta: #fff; --terracota: #B9473A; --amarillo: #FFD166; --borde: #C26C57; --borde-suave: #E8D8C8; --gris: #6f6862;
+  --crema: #FFF8F0; --crema-oscura: #F6EADB; --superficie: #fff; --conflicto: #D62828; --aviso: #E0A100; --peligro: #B3261E; --bien: #2e7d4f; --sombra: 43 38 34;
+  color-scheme: light;
+}
 .lienzo__svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; cursor: grab; }
 .lienzo__svg--arrastrando { cursor: grabbing; }
 .lienzo__svg--midiendo { cursor: crosshair; }
@@ -134,10 +139,6 @@
 .capa-cotas--libre .capa-cotas__cota .lienzo__texto { fill: var(--terracota); font-weight: 600; }
 .capa-cotas__punto { fill: #fff; stroke: var(--terracota); stroke-width: 2; vector-effect: non-scaling-stroke; }
 
-/* Una pieza con el foco del teclado (M-28): el mismo anillo doble que los botones, dibujado con trazos porque en SVG no hay box-shadow. */
-.capa-elementos__pieza:focus { outline: none; }
-.capa-elementos__pieza:focus-visible .capa-elementos__huella { stroke: var(--tinta); stroke-width: 2px; paint-order: stroke; }
-.capa-elementos__pieza:focus-visible .capa-elementos__huella:first-of-type { filter: drop-shadow(0 0 0 var(--amarillo)) drop-shadow(0 0 2px var(--amarillo)) drop-shadow(0 0 2px var(--amarillo)); }
 
 /* De noche la píldora de pistas va sobre el plano claro: oscura con texto claro, como el resto de la interfaz. */
 @media (prefers-color-scheme: dark) {
@@ -145,3 +146,10 @@
   .lienzo__pistas .boton-icono { color: var(--tinta); }
   .lienzo__pistas .boton-icono:hover { background: var(--crema-oscura); }
 }
+
+/*
+ * Asas de foco (M-28): la caja de cada pieza, sin relleno y sin puntero (el arrastre sigue en la pieza). El anillo lo da
+ * base.css ([tabindex]:focus-visible → outline de tinta sobre la caja) y aquí se añade el brillo amarillo del anillo doble.
+ */
+.capa-elementos__foco { fill: none; stroke: none; pointer-events: none; }
+.capa-elementos__foco:focus-visible { stroke: var(--amarillo); stroke-width: 4px; vector-effect: non-scaling-stroke; }

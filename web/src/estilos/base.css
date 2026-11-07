@@ -11,6 +11,7 @@
   --aviso: #E0A100;
   --peligro: #B3261E;
   --peligro-suave: #fbeceb;
+  --sobre-peligro: #fff;
   --bien: #2e7d4f;
   --tinta: #2b2622;
   /* Texto sobre un fondo de tinta (chips y segmentados pulsados, pistas). */
@@ -57,6 +58,8 @@
     --borde-suave: #3c342d;
     --peligro: #f28b7f;
     --peligro-suave: #3a2522;
+    --sobre-peligro: #1c1916;
+    --conflicto: #ff8a7a;
     --bien: #7fd09a;
     --sombra: 0 0 0;
   }
