@@ -44,9 +44,15 @@ export async function guardarDiseno(
   id: string,
   version: number,
   diseno: { nombre: string; doc: DocumentoDiseno },
+  /** copiaPrevia: la API copia lo que se pisa aunque el último guardado sea reciente (M-21; al sobrescribir tras un conflicto). */
+  opciones?: { copiaPrevia?: boolean },
 ): Promise<DisenoGuardado> {
   const body = { nombre: diseno.nombre, tipoEstancia: diseno.doc.estancia.tipo, contenido: contenidoParaEnviar(diseno.doc) }
-  const r = await api.PUT('/disenos/{id}', { params: { path: { id }, header: { 'If-Match': `"${version}"` } }, body })
+  const r = await api.PUT('/disenos/{id}', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    body,
+    ...(opciones?.copiaPrevia && { headers: { 'X-Copia-Previa': '1' } }),
+  })
   const { contenido: _enviado, ...guardado } = exigir(r)
   return guardado
 }
@@ -95,4 +101,18 @@ export async function obtenerVistaPrevia(id: string): Promise<Blob> {
 
 export async function borrarDiseno(id: string): Promise<void> {
   exigir(await api.DELETE('/disenos/{id}', { params: { path: { id } } }))
+}
+
+/** La copia de antes de sobrescribir (M-21): cuándo se guardó y qué versión era. null si el diseño aún no tiene. */
+export async function obtenerVersionAnterior(id: string): Promise<{ fecha: string; version: number } | null> {
+  const r = await api.GET('/disenos/{id}/version-anterior', { params: { path: { id } } })
+  if (r.response.status === 404) return null
+  const { fecha, version } = exigir(r)
+  return { fecha, version }
+}
+
+/** Vuelve a la copia; lo que había pasa a ser la copia. `version`: la que se tiene abierta (If-Match). */
+export async function recuperarVersionAnterior(id: string, version: number): Promise<{ diseno: DisenoServidor; version: number }> {
+  const r = exigir(await api.POST('/disenos/{id}/version-anterior/recuperar', { params: { path: { id }, header: { 'If-Match': `"${version}"` } } }))
+  return { diseno: validar(r), version: r.version }
 }

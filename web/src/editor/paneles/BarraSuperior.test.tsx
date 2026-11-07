@@ -7,9 +7,10 @@ import { CLAVE_SESION, reiniciarSesion, sesion } from '../../cuenta/sesion'
 import { almacen, reiniciarAlmacen } from '../estado/almacen'
 import { respuesta } from '../../pruebas/respuesta'
 import { CLAVE_DISENO, guardarDisenoLocal } from '../persistencia/local'
+import { textos } from '../../textos'
 import BarraSuperior from './BarraSuperior'
 
-const sincronizacion = vi.hoisted(() => ({ renombrar: vi.fn() }))
+const sincronizacion = vi.hoisted(() => ({ renombrar: vi.fn(), abrirDiseno: vi.fn(), esperarGuardados: vi.fn(async () => {}) }))
 vi.mock('../persistencia/sincronizacion', () => sincronizacion)
 // El estado de instalación (M-25) lo fija cada test: el real depende de un evento del navegador.
 const instalacion = vi.hoisted(() => ({ estado: 'no' as 'no' | 'aviso' | 'ios', instalar: vi.fn(async () => true) }))
@@ -332,5 +333,65 @@ describe('BarraSuperior: los pasos de iOS no dan por hecho Safari', () => {
     expect(dialogo).toHaveTextContent('Compartir')
     expect(dialogo).toHaveTextContent('Añadir a pantalla de inicio')
     instalacion.estado = 'no'
+  })
+})
+
+describe('BarraSuperior: «Recuperar la versión anterior» (M-21)', () => {
+  const ID = '11111111-1111-1111-1111-111111111111'
+  const doc = () => almacen.getState().documento!
+  const fetchCopia = vi.fn<(p: Request) => Promise<Response>>()
+
+  beforeEach(() => {
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: new Date(Date.now() + 86_400_000).toISOString() }))
+    reiniciarSesion()
+    almacen.getState().abrirDelServidor(ID, 3, 'Cocina', doc())
+    almacen.setState({ guardado: 'guardado' })
+    fetchCopia.mockReset()
+    sincronizacion.abrirDiseno.mockClear()
+    sincronizacion.esperarGuardados.mockClear()
+    vi.stubGlobal('fetch', fetchCopia)
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  const abrirOpcion = async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Recuperar la versión anterior' }))
+  }
+
+  it('pregunta con la fecha de la copia y, al aceptar, la recupera con la versión abierta y abre lo recuperado', async () => {
+    fetchCopia.mockResolvedValueOnce(respuesta(200, { nombre: 'Cocina', tipoEstancia: 'salon', fecha: '2026-11-06T18:30:00Z', version: 2, contenido: doc() }))
+    fetchCopia.mockResolvedValueOnce(respuesta(200, { id: ID, nombre: 'Cocina', tipoEstancia: 'salon', fechaDeCreacion: 'x', fechaDeModificacion: 'x', version: 4, contenido: doc(), enlace: null }))
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await abrirOpcion()
+    const dialogo = await screen.findByRole('dialog')
+    expect(dialogo).toHaveTextContent('6 nov 2026')
+    await userEvent.click(screen.getByRole('button', { name: 'Recuperar' }))
+    await vi.waitFor(() => expect(sincronizacion.abrirDiseno).toHaveBeenCalledOnce())
+    expect(sincronizacion.esperarGuardados).toHaveBeenCalledWith(ID)
+    const post = fetchCopia.mock.calls[1]![0]
+    expect(`${post.method} ${new URL(post.url).pathname}`).toBe(`POST /disenos/${ID}/version-anterior/recuperar`)
+    expect(post.headers.get('If-Match')).toBe('"3"')
+    expect(sincronizacion.abrirDiseno.mock.calls[0]![1]).toMatchObject({ id: ID, version: 4, pendiente: false, guardado: 'guardado' })
+  })
+
+  it('sin copia lo dice y no pregunta nada', async () => {
+    fetchCopia.mockResolvedValueOnce(respuesta(404, { mensaje: 'No encontrado.' }))
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await abrirOpcion()
+    await vi.waitFor(() => expect(almacen.getState().aviso).toBe(textos.barra.sinVersionAnterior))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('con cambios sin guardar, la opción está desactivada; en un diseño sin cuenta no existe', async () => {
+    almacen.setState({ guardado: 'pendiente' })
+    const { unmount } = render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    expect(screen.getByRole('button', { name: 'Recuperar la versión anterior' })).toBeDisabled()
+    unmount()
+    reiniciarAlmacen()
+    almacen.getState().crear('salon', 400, 330, 250)
+    render(<BarraSuperior />, { wrapper: MemoryRouter })
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones' }))
+    expect(screen.queryByRole('button', { name: 'Recuperar la versión anterior' })).toBeNull()
   })
 })

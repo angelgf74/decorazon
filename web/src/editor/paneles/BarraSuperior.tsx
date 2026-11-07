@@ -10,7 +10,9 @@ import Icono from '../comunes/Icono'
 import type { NombreIcono } from '../comunes/iconos'
 import { useDesplegable } from '../comunes/usarDesplegable'
 import { almacen, useEditor, type EstadoGuardado } from '../estado/almacen'
-import { renombrar } from '../persistencia/sincronizacion'
+import { abrirDiseno, esperarGuardados, renombrar } from '../persistencia/sincronizacion'
+import { obtenerVersionAnterior, recuperarVersionAnterior } from '../../disenos/servidor'
+import { mensajeDeError } from '../../cuenta/errores'
 
 const t = textos.barra
 
@@ -138,6 +140,37 @@ export default function BarraSuperior({ alImprimir, alDescargarImagen, preparand
   // «Instalar Decorazon» solo existe si el navegador lo permite ('aviso') o hay que explicar los pasos ('ios').
   const instalable = useEstadoDeInstalacion()
   const [explicandoIos, setExplicandoIos] = useState(false)
+  // M-21: la copia del servidor que se ofrece recuperar (su fecha), mientras se pregunta.
+  const [copia, setCopia] = useState<{ fecha: string } | null>(null)
+  const [recuperando, setRecuperando] = useState(false)
+  const pedirCopia = async () => {
+    const o = almacen.getState().origen
+    if (o.tipo !== 'servidor') return
+    try {
+      const c = await obtenerVersionAnterior(o.id)
+      if (c === null) almacen.setState({ aviso: t.sinVersionAnterior })
+      else setCopia(c)
+    } catch (e) {
+      almacen.setState({ aviso: mensajeDeError(e) })
+    }
+  }
+  const recuperar = async () => {
+    const o = almacen.getState().origen
+    if (o.tipo !== 'servidor') return
+    setRecuperando(true)
+    try {
+      // Un guardado en marcha subiría la versión: se espera y se recupera con la que quede abierta.
+      await esperarGuardados(o.id)
+      const vigente = almacen.getState().origen
+      const r = await recuperarVersionAnterior(o.id, vigente.tipo === 'servidor' ? vigente.version : o.version)
+      abrirDiseno(almacen, { id: o.id, version: r.version, nombre: r.diseno.nombre, documento: r.diseno.contenido, pendiente: false, guardado: 'guardado' })
+    } catch (e) {
+      almacen.setState({ aviso: mensajeDeError(e) })
+    } finally {
+      setRecuperando(false)
+      setCopia(null)
+    }
+  }
   const navegar = useNavigate()
   const puedeGuardarEnCuenta = useEditor((e) => e.origen.tipo === 'anonimo' && e.documento !== null) && haySesion
 
@@ -164,6 +197,10 @@ export default function BarraSuperior({ alImprimir, alDescargarImagen, preparand
     ...(alDescargarDiseno ? [{ icono: 'descargar', texto: t.descargarDiseno, alElegir: alDescargarDiseno } satisfies Opcion] : []),
     ...(instalable !== 'no'
       ? [{ icono: 'instalar', texto: t.instalar, alElegir: () => { if (instalable === 'ios') setExplicandoIos(true); else void instalar() } } satisfies Opcion]
+      : []),
+    // Solo en un diseño de la cuenta; con cambios sin subir, no (se perderían): primero tiene que estar guardado.
+    ...(nombreDiseno !== null
+      ? [{ icono: 'deshacer', texto: t.recuperarVersion, title: guardado === 'guardado' ? undefined : t.recuperarEspera, disabled: guardado !== 'guardado', alElegir: () => void pedirCopia() } satisfies Opcion]
       : []),
     // En móvil la sugerencia va en las pestañas de abajo (al alcance del pulgar): aquí se oculta por CSS.
     { icono: 'sugerencia', texto: textos.sugerencias.abrir, title: textos.sugerencias.pista, className: 'menu__sugerencia', alElegir: () => setSugiriendo(true) },
@@ -237,6 +274,8 @@ export default function BarraSuperior({ alImprimir, alDescargarImagen, preparand
       {sugiriendo && <DialogoDeSugerencia alCerrar={() => setSugiriendo(false)} />}
       <Confirmar abierto={explicandoIos} mensaje={t.instalarIos} textoAceptar={textos.comun.entendido} soloAceptar
         alAceptar={() => setExplicandoIos(false)} alCancelar={() => setExplicandoIos(false)} />
+      <Confirmar abierto={copia !== null} mensaje={copia === null ? '' : t.recuperarPregunta(new Date(copia.fecha).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }))}
+        textoAceptar={t.recuperar} ocupado={recuperando} alAceptar={() => void recuperar()} alCancelar={() => setCopia(null)} />
     </header>
   )
 }

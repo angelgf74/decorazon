@@ -100,6 +100,8 @@ interface Trabajo {
   nombrePendiente: string | null
   enVuelo: boolean
   conflicto: boolean
+  /** El próximo guardado pide a la API copiar lo que pisa (M-21): se acaba de elegir sobrescribir tras un conflicto. */
+  copiaPrevia?: boolean
   /** Ya no existe en el servidor y tiene cambios: no se sube más; decide el usuario (guardarlo como nuevo o descartarlo). */
   perdido: boolean
   /** El servidor respondió 429: hasta que un reintento salga bien, editar no lanza PUT (los sube el reintento). */
@@ -214,7 +216,9 @@ export function conectarSincronizacion(
     t.nombrePendiente = null
     fijar(t, { guardado: 'pendiente' })
     try {
-      const r = await guardarDiseno(t.id, t.version, { nombre: t.nombre, doc: t.documento })
+      const datos = { nombre: t.nombre, doc: t.documento }
+      const r = await (t.copiaPrevia ? guardarDiseno(t.id, t.version, datos, { copiaPrevia: true }) : guardarDiseno(t.id, t.version, datos))
+      t.copiaPrevia = false
       t.enVuelo = false
       t.limitado = false
       t.version = r.version
@@ -410,6 +414,7 @@ export function conectarSincronizacion(
         t.version = remota
         if (nombreRemoto !== null) t.nombre = nombreRemoto
         t.conflicto = false
+        t.copiaPrevia = true
         t.sucio = true
         fijarOrigen(t)
         fijar(t, { versionRemota: null })

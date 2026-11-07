@@ -232,6 +232,9 @@ describe('sincronización con el servidor', () => {
     expect(servidor.guardarDiseno).toHaveBeenCalledTimes(2)
     expect(servidor.guardarDiseno.mock.calls[1]![1]).toBe(9)
     expect(servidor.guardarDiseno.mock.calls[1]![2].doc.estancia.alto).toBe(265)
+    // M-21: sobrescribir pide a la API una copia de lo que pisa; el guardado normal, no.
+    expect(servidor.guardarDiseno.mock.calls[0]![3]).toBeUndefined()
+    expect(servidor.guardarDiseno.mock.calls[1]![3]).toEqual({ copiaPrevia: true })
     expect(remoto.version).toBe(10)
     expect(version(a)).toBe(10)
     expect(a.getState().guardado).toBe('guardado')
@@ -291,7 +294,7 @@ describe('sincronización con el servidor', () => {
     await vi.advanceTimersByTimeAsync(0)
     expect(b.getState().guardado).toBe('conflicto')
     await resolverConflicto(b, 'sobrescribir')
-    expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 9, expect.objectContaining({ nombre: 'Mi salón' }))
+    expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 9, expect.objectContaining({ nombre: 'Mi salón' }), { copiaPrevia: true })
     expect(remoto.nombre).toBe('Mi salón')
     expect(b.getState().origen).toMatchObject({ nombre: 'Mi salón', version: 10 })
   })
@@ -800,7 +803,7 @@ describe('elegirApertura', () => {
     await resolverConflicto(a, eleccion)
     const o = a.getState().origen
     expect(o.tipo === 'servidor' && o.nombre).toBe(nombre)
-    if (eleccion === 'sobrescribir') expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Local' }))
+    if (eleccion === 'sobrescribir') expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Local' }), { copiaPrevia: true })
   })
 
   it('misma versión con otro nombre y la marca a false (la pestaña se cerró con el renombrado en vuelo): el renombrado no se pierde', () => {
@@ -820,7 +823,7 @@ describe('elegirApertura', () => {
     desconectadores.push(conectarSincronizacion(a, { esperaMs: 2000, st: falso() }))
     abrirDiseno(a, elegirApertura(ID, { ...copia(4, true), nombre: 'Cocina vieja', nombrePendiente: false }, remoto(6))!)
     await resolverConflicto(a, 'sobrescribir')
-    expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Cocina' }))
+    expect(servidor.guardarDiseno).toHaveBeenLastCalledWith(ID, 6, expect.objectContaining({ nombre: 'Cocina' }), { copiaPrevia: true })
   })
 
   it('sin conexión: la copia local', () => {
