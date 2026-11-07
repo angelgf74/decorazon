@@ -1,6 +1,7 @@
-import { memo, useEffect, useMemo } from 'react'
-import type { ThreeEvent } from '@react-three/fiber'
-import { catalogoBase, piezasDeElemento, type Elemento } from '../../nucleo'
+import { memo, useEffect, useMemo, useRef } from 'react'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
+import { catalogoBase, piezasDeElemento, type Elemento, type Punto } from '../../nucleo'
+import { moverEn3D, puntoDelSuelo, sePuedeArrastrarEn3D } from './arrastre3d'
 import { almacen, useEditor } from '../estado/almacen'
 import { useConflictos } from '../estado/conflictos'
 import type { EstadoPieza } from './materiales3d'
@@ -35,10 +36,44 @@ function Mueble3D({ elemento, sinResaltes = false }: { elemento: Elemento; sinRe
     e.seleccionar({ tipo: 'elemento', id })
   }
 
+  // M-10: el mueble ya seleccionado se arrastra por el suelo; mientras, los controles de la cámara se apagan.
+  const controles = useThree((s) => s.controls) as { enabled: boolean } | null
+  const arrastre = useRef<{ pointerId: number; partida: Punto; desde: Punto } | null>(null)
+  type Puntero = ThreeEvent<PointerEvent>
+  const objetivo = (ev: Puntero) => ev.target as unknown as { setPointerCapture?(id: number): void; releasePointerCapture?(id: number): void }
+  function alBajar(ev: Puntero) {
+    if (ev.button !== 0 || !sePuedeArrastrarEn3D(id)) return
+    const desde = puntoDelSuelo(ev.ray)
+    if (desde === null) return
+    ev.stopPropagation()
+    objetivo(ev).setPointerCapture?.(ev.pointerId)
+    arrastre.current = { pointerId: ev.pointerId, partida: elemento.posicion, desde }
+    if (controles) controles.enabled = false
+  }
+  function alMover(ev: Puntero) {
+    const a = arrastre.current
+    if (a === null || a.pointerId !== ev.pointerId) return
+    ev.stopPropagation()
+    const hasta = puntoDelSuelo(ev.ray)
+    if (hasta !== null) moverEn3D(id, a.partida, a.desde, hasta)
+  }
+  function alSoltar(ev: Puntero) {
+    const a = arrastre.current
+    if (a === null || a.pointerId !== ev.pointerId) return
+    arrastre.current = null
+    objetivo(ev).releasePointerCapture?.(ev.pointerId)
+    if (controles) controles.enabled = true
+    almacen.getState().terminarGrupo()
+  }
+
   const eventos: EventosPieza = {
     onClick: alPulsar,
     onPointerOver: (ev) => { ev.stopPropagation(); cursor('pointer') },
     onPointerOut: () => cursor(''),
+    onPointerDown: alBajar,
+    onPointerMove: alMover,
+    onPointerUp: alSoltar,
+    onPointerCancel: alSoltar,
   }
 
   return (
