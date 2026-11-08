@@ -15,7 +15,7 @@ export const sofaCama: DefinicionTipo = {
   variantes: [{ clave: 'abierto', etiqueta: 'Abierto', valores: [false, true], defecto: false }],
   zonasColor: [
     { clave: 'tapizado', etiqueta: 'Tapizado', material: 'tela', defecto: '#8a8f99' },
-    { clave: 'patas', etiqueta: 'Patas', material: 'madera', defecto: '#5b4636' },
+    { clave: 'patas', etiqueta: 'Patas', material: 'madera', materiales: ['madera', 'metal', 'lacado'], defecto: '#5b4636' },
     { clave: 'colchon', etiqueta: 'Colchón', material: 'tela', defecto: '#ece7dc' },
   ],
   pisable: false, bloqueaPaso: true, conjunto: 'estar', sobreVentana: false,

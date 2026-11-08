@@ -161,3 +161,11 @@ describe('validarDocumento: bloqueado y nombre propio', () => {
     expect(errores(con({ nombre: 7 } as unknown as Partial<Elemento>))).toContain('elementos[0].nombre: debe ser un texto de hasta 60 caracteres')
   })
 })
+
+describe('materiales por zona (plan 28c)', () => {
+  it('opcional; cada valor es uno de los seis materiales', () => {
+    expect(validarDocumento({ ...base(), elementos: [elemento('a', { materiales: { patas: 'madera' } })] }).valido).toBe(true)
+    expect(errores({ ...base(), elementos: [elemento('a', { materiales: { patas: 'plastico' } as never })] })).toContain('elementos[0].materiales.patas: debe ser tela, madera, lacado, metal, vidrio o ceramica')
+    expect(errores({ ...base(), elementos: [elemento('a', { materiales: 3 as never })] }).some((e) => e.includes('elementos[0].materiales'))).toBe(true)
+  })
+})

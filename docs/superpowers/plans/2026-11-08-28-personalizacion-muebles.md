@@ -69,7 +69,7 @@
 
 1. **`feature/cama-bases` (plan 28a)** ✅ hecho (PR abajo): `etiquetas` en variantes, ocultar variantes de un valor, `base` y `lado` de la cama con canapé, cajones y nido, `zonaCajon`/aperturas laterales. Es lo que más cambia lo que ve el usuario y no depende de nada.
 2. **`feature/escritorio-cajoneras` (28b)** ✅ hecho: `cajonesApiladosEn`, `cajonesEn`, `cajoneraLateral`, `tableroConApoyos`; variante `cajonera`. Reutiliza `zonaCajon` del 1 si llega después; si no, la crea.
-3. **`feature/patas` (28c)**: forma de las patas y material por zona (modelo C1). El más transversal: documento, validación, panel y hoja; conviene ir solo en su PR.
+3. **`feature/patas` (28c)** ✅ hecho (el escritorio, tras fusionar 28b): forma de las patas y material por zona (modelo C1). El más transversal: documento, validación, panel y hoja; conviene ir solo en su PR.
 
 Cada PR: tests primero, integridad del catálogo, lint, build, e2e, revisión visual en 3D de los tipos tocados (captura en el PR), `CLAUDE.md` con lo no obvio (regla de ocultar variantes, material por zona, aperturas laterales), merge y publicación solo con el sí de Angel.
 

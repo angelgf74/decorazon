@@ -416,3 +416,20 @@ describe('bloqueado y nombre al cambiar de tipo y al duplicar', () => {
     expect('bloqueado' in copia).toBe(false)
   })
 })
+
+describe('materiales por zona (plan 28c)', () => {
+  const conMesa = () => anadirElemento(documentoNuevo('salon', 400, 330, 250), catalogoBase, 'mesa', { x: 200, y: 165 })
+  it('editar mezcla los materiales como los colores, sin mover el mueble', () => {
+    const { documento, id } = conMesa()
+    const r = editarElemento(documento, catalogoBase, id, { materiales: { patas: 'madera' } })
+    expect(r.elementos[0]!.materiales).toEqual({ patas: 'madera' })
+    expect(r.elementos[0]!.posicion).toEqual(documento.elementos[0]!.posicion)
+    expect(editarElemento(r, catalogoBase, id, { colores: { tablero: '#123456' } }).elementos[0]!.materiales).toEqual({ patas: 'madera' })
+  })
+  it('cambiarTipo conserva el material de una zona que el tipo nuevo también admite y olvida los demás', () => {
+    const { documento, id } = conMesa()
+    const conMaterial = editarElemento(documento, catalogoBase, id, { materiales: { patas: 'madera' } })
+    expect(cambiarTipo(conMaterial, catalogoBase, id, 'mesa-alta').elementos[0]!.materiales).toEqual({ patas: 'madera' })
+    expect(cambiarTipo(conMaterial, catalogoBase, id, 'armario').elementos[0]!.materiales).toBeUndefined()
+  })
+})

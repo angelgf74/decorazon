@@ -1,5 +1,5 @@
 import type { Elemento, Punto } from '../modelo/documento'
-import type { DefinicionTipo } from '../catalogo/tipos'
+import { materialDeZona, type DefinicionTipo } from '../catalogo/tipos'
 import { aMundo } from '../catalogo/transformar'
 import type { Pieza3D, PiezaLocal, Vec3 } from './tipos'
 
@@ -19,7 +19,7 @@ export function piezasDeElemento(e: Elemento, def: DefinicionTipo): Pieza3D[] {
   const giroY = 0 - (e.rotacion * Math.PI) / 180
   return locales.map((p): Pieza3D => {
     const zona = def.zonasColor.find((z) => z.clave === p.zona)
-    const material = p.material ?? zona?.material ?? 'lacado'
+    const material = p.material ?? (zona ? materialDeZona(e, zona) : 'lacado')
     const color = p.color ?? e.colores[p.zona] ?? zona?.defecto ?? '#cccccc'
     if (p.forma === 'caja') {
       const c = aMundo(e, { x: (p.x0 + p.x1) / 2, y: (p.y0 + p.y1) / 2 })

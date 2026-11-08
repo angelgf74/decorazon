@@ -51,7 +51,7 @@ export const escritorioL: DefinicionTipo = {
   medidas: { ancho: { min: 120, max: 220, defecto: 160 }, fondo: { min: 100, max: 200, defecto: 140 }, alto: { min: 70, max: 80, defecto: 75 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [{ clave: 'ala', etiqueta: 'Ala', valores: ['derecha', 'izquierda'], defecto: 'derecha' }],
-  zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#c9a77c' }, { clave: 'patas', etiqueta: 'Patas', material: 'metal', defecto: '#3a3a3a' }],
+  zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#c9a77c' }, { clave: 'patas', etiqueta: 'Patas', material: 'metal', materiales: ['metal', 'madera', 'lacado'], defecto: '#3a3a3a' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes(e) {
     const alto = e.medidas.alto

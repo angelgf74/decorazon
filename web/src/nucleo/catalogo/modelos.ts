@@ -1,5 +1,6 @@
 import type { Elemento } from '../modelo/documento'
 import type { PiezaLocal } from '../modelo3d/tipos'
+import type { DefinicionVariante } from './tipos'
 
 /** Caja local; con `radio` (cm) sus aristas salen redondeadas en 3D. Sin radio no se añade la clave: las piezas de siempre quedan iguales. */
 export function caja(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, zona: string, radio?: number): PiezaLocal {
@@ -10,12 +11,19 @@ export function cilindro(cx: number, cy: number, r: number, z0: number, z1: numb
   return { forma: 'cilindro', cx, cy, r, z0, z1, zona }
 }
 
-/** Cuatro patas cuadradas de `lado`, metidas `margen` desde cada esquina. */
-export function patas4(e: Elemento, lado: number, alto: number, zona: string, margen = 3): PiezaLocal[] {
+export type FormaPatas = 'cuadradas' | 'redondas'
+/** La variante «Patas» que comparten las mesas, la silla y el taburete (plan 28c). */
+// «Forma de las patas» y no «Patas»: la zona de color ya se llama así y serían dos controles con el mismo nombre.
+export const VARIANTE_PATAS: DefinicionVariante = { clave: 'patas', etiqueta: 'Forma de las patas', valores: ['cuadradas', 'redondas'], defecto: 'cuadradas' }
+/** La forma de patas pedida en la variante `patas` (cuadradas si el tipo no la tiene). */
+export const formaPatas = (e: Elemento): FormaPatas => (e.variantes.patas === 'redondas' ? 'redondas' : 'cuadradas')
+
+/** Cuatro patas de `lado` (cuadradas, o cilindros del mismo diámetro), metidas `margen` desde cada esquina. */
+export function patas4(e: Elemento, lado: number, alto: number, zona: string, margen = 3, forma: FormaPatas = 'cuadradas'): PiezaLocal[] {
   const { ancho, fondo } = e.medidas
   const xs = [-ancho / 2 + margen, ancho / 2 - margen - lado]
   const ys = [-fondo / 2 + margen, fondo / 2 - margen - lado]
-  return xs.flatMap((x) => ys.map((y) => caja(x, y, 0, x + lado, y + lado, alto, zona)))
+  return xs.flatMap((x) => ys.map((y) => (forma === 'redondas' ? cilindro(x + lado / 2, y + lado / 2, lado / 2, 0, alto, zona) : caja(x, y, 0, x + lado, y + lado, alto, zona))))
 }
 
 /** Los frentes quedan retranqueados 1,5 cm para que el tirador termine en el borde del volumen. */
@@ -111,10 +119,10 @@ export function ovalo(e: Elemento, z0: number, z1: number, zona: string): PiezaL
   return [ancho >= fondo ? caja(-tramo, -r, z0, tramo, r, z1, zona) : caja(-r, -tramo, z0, r, tramo, z1, zona), ...piezas]
 }
 
-/** Tablero de 3 cm con el canto redondeado sobre cuatro patas de 5 cm. */
+/** Tablero de 3 cm con el canto redondeado sobre cuatro patas de 5 cm, de la forma que pida la variante `patas`. */
 export function mesaConPatas(e: Elemento, zonaTablero: string, zonaPatas: string): PiezaLocal[] {
   const { ancho, fondo, alto } = e.medidas
-  return [caja(-ancho / 2, -fondo / 2, alto - 3, ancho / 2, fondo / 2, alto, zonaTablero, 1), ...patas4(e, 5, alto - 3, zonaPatas)]
+  return [caja(-ancho / 2, -fondo / 2, alto - 3, ancho / 2, fondo / 2, alto, zonaTablero, 1), ...patas4(e, 5, alto - 3, zonaPatas, 3, formaPatas(e))]
 }
 
 export type LadoChaise = 'no' | 'izquierda' | 'derecha'

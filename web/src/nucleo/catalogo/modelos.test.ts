@@ -3,7 +3,8 @@ import { catalogoBase } from './catalogoBase'
 import type { PiezaLocal } from '../modelo3d/tipos'
 import type { Elemento } from '../modelo/documento'
 import { elemento } from './definiciones/ayuda.test-util'
-import { caja, cajonesApilados, cojinesEnTramo } from './modelos'
+import { caja, cajonesApilados, cojinesEnTramo, patas4 } from './modelos'
+import { valoresVariante } from './tipos'
 
 const TIPOS = ['cama', 'armario', 'comoda', 'mesita', 'escritorio', 'silla', 'estanteria', 'sofa', 'sillon', 'mesa-centro', 'mueble-tv', 'mesa', 'aparador']
 
@@ -182,5 +183,32 @@ describe('cajonesApilados', () => {
     const ps = cajonesApilados(e, 2, 1, 40, 'cuerpo')
     expect(ps).toHaveLength(2)
     expect(ps.every((p) => p.forma === 'caja' && p.x1 > p.x0 && p.y1 - p.y0 === 2)).toBe(true)
+  })
+})
+
+describe('patas redondas (plan 28c)', () => {
+  const cilindros = (ps: PiezaLocal[]) => ps.filter((p): p is Extract<PiezaLocal, { forma: 'cilindro' }> => p.forma === 'cilindro')
+  it('patas4 con «redondas» da cuatro cilindros del mismo diámetro que el lado, centrados donde iban las cajas', () => {
+    const e = elemento('mesa', 0, 0, 0)
+    const cuadradas = cajas(patas4(e, 5, 72, 'patas'))
+    const redondas = cilindros(patas4(e, 5, 72, 'patas', 3, 'redondas'))
+    expect(redondas).toHaveLength(4)
+    for (const [i, c] of redondas.entries()) {
+      expect(c.r).toBe(2.5)
+      expect([c.z0, c.z1]).toEqual([0, 72])
+      expect(c.cx).toBeCloseTo((cuadradas[i]!.x0 + cuadradas[i]!.x1) / 2)
+      expect(c.cy).toBeCloseTo((cuadradas[i]!.y0 + cuadradas[i]!.y1) / 2)
+    }
+  })
+  it('mesa, mesa alta, mesa auxiliar, silla y taburete admiten patas redondas; la mesa de reuniones solo si no es ovalada (que ya las lleva)', () => {
+    for (const tipo of ['mesa', 'mesa-alta', 'mesa-auxiliar', 'silla', 'taburete', 'mesa-reuniones']) {
+      const def = catalogoBase.get(tipo)!
+      expect(def.variantes.map((v) => v.clave), tipo).toContain('patas')
+      const redondas = cilindros(def.modelo3d!(elemento(tipo, 0, 0, 0, {}, { patas: 'redondas', forma: tipo === 'mesa-auxiliar' ? 'cuadrada' : 'rectangular' })))
+      expect(redondas.length, tipo).toBeGreaterThanOrEqual(4)
+      expect(cilindros(def.modelo3d!(elemento(tipo, 0, 0, 0, {}, { patas: 'cuadradas', forma: tipo === 'mesa-auxiliar' ? 'cuadrada' : 'rectangular' }))), tipo).toHaveLength(0)
+    }
+    const ovalada = elemento('mesa-reuniones', 0, 0, 0, {}, { forma: 'ovalada' })
+    expect(valoresVariante(catalogoBase.get('mesa-reuniones')!, ovalada, 'patas')).toEqual(['redondas'])
   })
 })

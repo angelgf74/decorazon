@@ -25,7 +25,15 @@ export interface DefinicionMedidaExtra {
   /** El valor de un elemento guardado antes de que existiera la medida (sacado de lo que tenía entonces), si lo hay. */
   legado?: (e: Elemento) => number | undefined
 }
-export interface ZonaColor { clave: string; etiqueta: string; material: 'tela' | 'madera' | 'lacado' | 'metal' | 'vidrio' | 'ceramica'; defecto: string }
+export const MATERIALES_DE_ZONA = ['tela', 'madera', 'lacado', 'metal', 'vidrio', 'ceramica'] as const
+export type MaterialDeZona = (typeof MATERIALES_DE_ZONA)[number]
+/** Zona de color de un tipo: `material` es el de serie; con `materiales`, el usuario elige entre ellos (`Elemento.materiales`). */
+export interface ZonaColor { clave: string; etiqueta: string; material: MaterialDeZona; materiales?: MaterialDeZona[]; defecto: string }
+/** El material con que se pinta la zona: el elegido si la zona lo ofrece (un diseño que viene de otro tipo puede traer uno que esta no admite); si no, el de serie. */
+export function materialDeZona(e: Elemento, zona: ZonaColor): MaterialDeZona {
+  const elegido = e.materiales?.[zona.clave]
+  return elegido !== undefined && zona.materiales?.includes(elegido) ? elegido : zona.material
+}
 export interface ZonaApertura extends Prisma {
   nombre: string
   /**

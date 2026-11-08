@@ -206,6 +206,17 @@ describe('PanelPropiedades: bloquear, voltear y nombre propio', () => {
     expect(screen.queryByLabelText('Lado')).toBeNull()
   })
 
+  it('una zona con materiales a elegir lleva un selector junto al color: las patas de la mesa en metal, madera o lacado; el tablero no', async () => {
+    colocar('mesa')
+    render(<PanelPropiedades />)
+    const material = screen.getByLabelText('Material de Patas')
+    expect(within(material).getAllByRole('option').map((o) => o.textContent)).toEqual(['Metal', 'Madera', 'Lacado'])
+    expect(screen.queryByLabelText('Material de Tablero')).toBeNull()
+    await userEvent.selectOptions(material, 'madera')
+    expect(elemento().materiales).toEqual({ patas: 'madera' })
+    expect(screen.getByLabelText('Patas')).toBeTruthy()
+  })
+
   it('«Voltear» en una puerta cambia la bisagra', async () => {
     almacen.getState().cambiar((d) => ({ ...d, aberturas: [puerta] }))
     almacen.getState().seleccionar({ tipo: 'abertura', id: 'p' })

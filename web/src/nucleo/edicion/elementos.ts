@@ -1,5 +1,5 @@
 import { ajustarMedidas, elementoNuevo, esVarianteDeLado } from '../catalogo/elemento'
-import { medidasExtraDe, valorMedidaExtra, valorVariante, type Catalogo } from '../catalogo/tipos'
+import { medidasExtraDe, valorMedidaExtra, valorVariante, type Catalogo, type DefinicionTipo, type MaterialDeZona } from '../catalogo/tipos'
 import type { Punto } from '../geometria/vector'
 import { LIMITE_NOMBRE_ELEMENTO, type DocumentoDiseno, type Elemento, type Medidas, type OrigenTienda } from '../modelo/documento'
 import { imantar, normalizarGiro, paredesTocadas } from './iman'
@@ -71,7 +71,13 @@ export function voltearElemento(doc: DocumentoDiseno, catalogo: Catalogo, id: st
 
 type CambiosElemento = {
   medidas?: Partial<Medidas>; medidasExtra?: Record<string, number>; rotacion?: number; alturaSuelo?: number
-  variantes?: Record<string, string | number | boolean>; colores?: Record<string, string>
+  variantes?: Record<string, string | number | boolean>; colores?: Record<string, string>; materiales?: Record<string, MaterialDeZona>
+}
+
+/** Los materiales elegidos que el tipo admite en sus zonas; sin ninguno, la clave no se guarda. */
+function materialesAdmitidos(def: DefinicionTipo, materiales: Record<string, MaterialDeZona> | undefined): { materiales?: Record<string, MaterialDeZona> } {
+  const validos = Object.entries(materiales ?? {}).filter(([clave, m]) => def.zonasColor.find((z) => z.clave === clave)?.materiales?.includes(m))
+  return validos.length === 0 ? {} : { materiales: Object.fromEntries(validos) }
 }
 
 /** Las medidas de un mueble de tienda son las del producto: no se cambian aquí, solo al guardar el producto (vincularTienda). */
@@ -115,10 +121,12 @@ function editar(doc: DocumentoDiseno, catalogo: Catalogo, id: string, cambios: C
   const extra = def.medidasExtra?.length
     ? { medidasExtra: medidasExtraDe(def, { ...e, medidas, medidasExtra: { ...medidasExtraDe(def, e), ...nuevasExtra } }) }
     : {}
+  const { materiales: _materiales, ...sinMateriales } = e
   const editado: Elemento = {
-    ...e, medidas, rotacion, alturaSuelo, ...extra,
+    ...sinMateriales, medidas, rotacion, alturaSuelo, ...extra,
     variantes: { ...e.variantes, ...cambios.variantes },
     colores: { ...e.colores, ...cambios.colores },
+    ...materialesAdmitidos(def, { ...e.materiales, ...cambios.materiales }),
   }
   // Colores, variantes o altura al suelo no mueven el elemento. Con medidas o giro nuevos, sigue a ras de las paredes
   // que tocaba; las que solo tenía cerca no lo atraen.
@@ -149,6 +157,7 @@ export function cambiarTipo(doc: DocumentoDiseno, catalogo: Catalogo, id: string
   const cambiado: Elemento = {
     ...base, rotacion: e.rotacion, medidas, alturaSuelo,
     colores: Object.fromEntries(def.zonasColor.map((z) => [z.clave, e.colores[z.clave] ?? z.defecto])),
+    ...materialesAdmitidos(def, e.materiales),
     origen: { ...e.origen },
     ...(e.bloqueado && { bloqueado: true }),
     ...(e.nombre !== undefined && { nombre: e.nombre }),

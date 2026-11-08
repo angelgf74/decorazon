@@ -2,7 +2,7 @@ import { valorVariante, type DefinicionTipo } from '../tipos'
 import type { Elemento } from '../../modelo/documento'
 import { huellaEntera, huellaOvalada, tableroConPatas } from '../aperturas'
 import { cajaMundo } from '../transformar'
-import { cilindro, mesaConPatas, ovalo } from '../modelos'
+import { cilindro, mesaConPatas, ovalo, VARIANTE_PATAS } from '../modelos'
 
 /** Radio de cada pie de la ovalada, en cm. */
 const PIE = 6
@@ -19,8 +19,12 @@ export const mesaReuniones: DefinicionTipo = {
   id: 'mesa-reuniones', nombre: 'mesa de reuniones', genero: 'f', categoria: 'mueble', estancias: ['despacho'],
   medidas: { ancho: { min: 160, max: 400, defecto: 240 }, fondo: { min: 90, max: 150, defecto: 110 }, alto: { min: 72, max: 78, defecto: 75 } },
   alturaSuelo: 0, alturaSueloEditable: false,
-  variantes: [{ clave: 'forma', etiqueta: 'Forma', valores: ['rectangular', 'ovalada'], defecto: 'rectangular' }],
-  zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#a98462' }, { clave: 'patas', etiqueta: 'Patas', material: 'metal', defecto: '#3a3a3a' }],
+  variantes: [
+    { clave: 'forma', etiqueta: 'Forma', valores: ['rectangular', 'ovalada'], defecto: 'rectangular' },
+    // La ovalada ya va sobre pies redondos.
+    { ...VARIANTE_PATAS, valoresPara: (e) => (ovalada(e) ? ['redondas'] : VARIANTE_PATAS.valores), ocultarConUnValor: true },
+  ],
+  zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#a98462' }, { clave: 'patas', etiqueta: 'Patas', material: 'metal', materiales: ['metal', 'madera', 'lacado'], defecto: '#3a3a3a' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes(e) {
     if (!ovalada(e)) return tableroConPatas(e)

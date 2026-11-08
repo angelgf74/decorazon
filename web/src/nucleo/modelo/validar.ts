@@ -1,3 +1,4 @@
+import { MATERIALES_DE_ZONA } from '../catalogo/tipos'
 import { areaConSigno, esSimple } from '../geometria/poligono'
 import { FORMATO_ACTUAL, LIMITE_NOMBRE_ELEMENTO, TIPOS_ESTANCIA, type DocumentoDiseno, type Punto } from './documento'
 import { esFechaPrecio, esPrecio, esUrlDeProducto, LIMITES_TIENDA } from './tienda'
@@ -193,6 +194,12 @@ class Validador {
       if (o.medidasExtra !== undefined) {
         const me = this.objeto(o.medidasExtra, `${r}.medidasExtra`)
         if (me) for (const [k, x] of Object.entries(me)) this.noNegativo(x, `${r}.medidasExtra.${k}`)
+      }
+      if (o.materiales !== undefined) {
+        const ma = this.objeto(o.materiales, `${r}.materiales`)
+        if (ma) for (const [k, x] of Object.entries(ma)) {
+          if (!(MATERIALES_DE_ZONA as readonly unknown[]).includes(x)) this.err(`${r}.materiales.${k}`, `debe ser ${MATERIALES_DE_ZONA.slice(0, -1).join(', ')} o ${MATERIALES_DE_ZONA.at(-1)}`)
+        }
       }
       if (o.bloqueado !== undefined) this.booleano(o.bloqueado, `${r}.bloqueado`)
       if (o.nombre !== undefined) this.textoAcotado(o.nombre, `${r}.nombre`, LIMITE_NOMBRE_ELEMENTO, false)
