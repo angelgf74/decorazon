@@ -138,6 +138,7 @@ export default function Inicio() {
         )}
 
         <footer className="inicio__pie">
+          <Link to="/como-funciona">{t.comoFunciona}</Link>
           <Link to="/privacidad">{t.privacidad}</Link>
           <BotonDeSugerencia className="enlace">{textos.sugerencias.abrir}</BotonDeSugerencia>
         </footer>

@@ -78,6 +78,7 @@ describe('Inicio', () => {
     // Por la clase y no por el rol: un <footer> dentro de <main> no es "contentinfo" en un navegador real.
     const pie = document.querySelector<HTMLElement>('.inicio__pie')!
     expect(within(pie).getByRole('link', { name: 'Privacidad' })).toHaveAttribute('href', '/privacidad')
+    expect(within(pie).getByRole('link', { name: 'Cómo funciona' })).toHaveAttribute('href', '/como-funciona')
     await userEvent.click(within(pie).getByRole('button', { name: 'Sugerencias' }))
     expect(screen.getByRole('dialog', { name: 'Envíanos una sugerencia' })).toBeInTheDocument()
   })

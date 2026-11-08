@@ -12,6 +12,7 @@ import VistaCompartida from './disenos/paginas/VistaCompartida'
 import AnfitrionDeVistasPrevias from './disenos/vistaPrevia/AnfitrionDeVistasPrevias'
 import Editor from './editor/Editor'
 import Inicio from './paginas/Inicio'
+import ComoFunciona from './paginas/ComoFunciona'
 import Privacidad from './paginas/Privacidad'
 import Metadatos from './Metadatos'
 
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/contrasena/olvido" element={<><Metadatos pagina="olvido" /><OlvidoContrasena /></>} />
         <Route path="/contrasena/restablecer" element={<><Metadatos pagina="restablecer" /><RestablecerContrasena /></>} />
         <Route path="/cuenta" element={<><Metadatos pagina="cuenta" /><MiCuenta /></>} />
+        <Route path="/como-funciona" element={<><Metadatos pagina="comoFunciona" /><ComoFunciona /></>} />
         <Route path="/privacidad" element={<><Metadatos pagina="privacidad" /><Privacidad /></>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
