@@ -11,6 +11,10 @@ export interface DefinicionVariante {
   defecto: string | number | boolean
   /** Valores que admite este elemento cuando dependen de él (dos senos solo con 1 m de ancho); sin ella, todos. */
   valoresPara?: (e: Elemento) => (string | number | boolean)[]
+  /** Si `valoresPara` deja un solo valor, la variante no se enseña (el lado de una cama con patas). Sin esto se enseña igual: el lavabo estrecho sigue diciendo «Senos: 1». */
+  ocultarConUnValor?: true
+  /** Cómo se lee cada valor («Canapé», «Cama nido»); sin entrada, el valor con mayúscula. */
+  etiquetas?: Record<string, string>
 }
 export interface DefinicionMedidaExtra {
   clave: string

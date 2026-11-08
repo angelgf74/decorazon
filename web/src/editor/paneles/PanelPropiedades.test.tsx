@@ -189,6 +189,23 @@ describe('PanelPropiedades: bloquear, voltear y nombre propio', () => {
     expect(screen.queryByRole('button', { name: 'Voltear' })).toBeNull()
   })
 
+  it('una variante que solo admite un valor no se enseña: «Lado» de la cama aparece con nido (dos lados) y cajones (tres)', async () => {
+    colocar('cama')
+    render(<PanelPropiedades />)
+    const base = screen.getByLabelText('Base')
+    expect(within(base).getAllByRole('option').map((o) => o.textContent)).toEqual(['Patas', 'Canapé', 'Cajones', 'Cama nido'])
+    expect(screen.queryByLabelText('Lado')).toBeNull()
+    await userEvent.selectOptions(base, 'nido')
+    expect(elemento().variantes.base).toBe('nido')
+    expect(within(screen.getByLabelText('Lado')).getAllByRole('option').map((o) => o.textContent)).toEqual(['Izquierda', 'Derecha'])
+    await userEvent.selectOptions(screen.getByLabelText('Base'), 'cajones')
+    expect(within(screen.getByLabelText('Lado')).getAllByRole('option').map((o) => o.textContent)).toEqual(['Izquierda', 'Derecha', 'Ambos'])
+    // Con menos de 40 de alto solo caben las patas: la base tampoco se enseña.
+    await escribir('Alto', '30')
+    expect(screen.queryByLabelText('Base')).toBeNull()
+    expect(screen.queryByLabelText('Lado')).toBeNull()
+  })
+
   it('«Voltear» en una puerta cambia la bisagra', async () => {
     almacen.getState().cambiar((d) => ({ ...d, aberturas: [puerta] }))
     almacen.getState().seleccionar({ tipo: 'abertura', id: 'p' })

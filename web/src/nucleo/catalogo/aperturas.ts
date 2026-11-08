@@ -76,10 +76,15 @@ export function puertasAbatibles(e: Elemento, hojas: number, zDesde = 0, zHasta 
   return zonas
 }
 
+/** Una zona de apertura con forma de caja, en coordenadas locales del elemento (cm). */
+export function zonaCaja(e: Elemento, nombre: string, x0: number, y0: number, x1: number, y1: number, zDesde: number, zHasta: number): ZonaApertura {
+  return { nombre, ...cajaMundo(e, x0, y0, x1, y1, zDesde, zHasta) }
+}
+
 /** Una caja delante del frente, de `fondo/2` a `fondo/2 + recorrido`. */
 export function cajones(e: Elemento, recorrido: number, zDesde = 0, zHasta = e.medidas.alto): ZonaApertura[] {
   const { ancho, fondo } = e.medidas
-  return [{ nombre: 'el cajón', ...cajaMundo(e, -ancho / 2, fondo / 2, ancho / 2, fondo / 2 + recorrido, zDesde, zHasta) }]
+  return [zonaCaja(e, 'el cajón', -ancho / 2, fondo / 2, ancho / 2, fondo / 2 + recorrido, zDesde, zHasta)]
 }
 
 /** Barrido vertical de una puerta que abate hacia abajo, aproximado por su caja envolvente (ante la duda, conflicto). */
