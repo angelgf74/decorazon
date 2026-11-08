@@ -1,12 +1,15 @@
 import { useEffect, useMemo } from 'react'
 import type { ThreeElements } from '@react-three/fiber'
 import { Edges } from '@react-three/drei'
-import { BoxGeometry, CylinderGeometry, type Material } from 'three'
+import { BoxGeometry, CylinderGeometry, type BufferGeometry, type Material } from 'three'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import type { Pieza3D } from '../../nucleo'
 import { geometriaPrisma, uvsEnMetros } from './geometrias'
 import { COLOR_SELECCION, materialDe, type EstadoPieza } from './materiales3d'
 
 const SEGMENTOS_CILINDRO = 24
+// Con un radio de 5 cm, 3 segmentos dan facetas de 15° cuya sagita es 0,04 cm: no se ve ni en la captura a 2400 px.
+const SEGMENTOS_REDONDEO = 3
 const GROSOR_CONTORNO_PX = 2
 
 type Prisma3D = Extract<Pieza3D, { forma: 'prisma' }>
@@ -15,9 +18,13 @@ type Cilindro3D = Extract<Pieza3D, { forma: 'cilindro' }>
 
 export type EventosPieza = Pick<ThreeElements['mesh'], 'onClick' | 'onPointerOver' | 'onPointerOut' | 'onPointerDown' | 'onPointerMove' | 'onPointerUp' | 'onPointerCancel'>
 
-/** Contorno de la selección: se ve también sobre el rojo de un conflicto. */
-function Contorno() {
-  return <Edges color={COLOR_SELECCION} lineWidth={GROSOR_CONTORNO_PX} />
+/**
+ * Contorno de la selección: se ve también sobre el rojo de un conflicto. `Edges` pinta las aristas con más de 15° entre
+ * caras: sobre una caja redondeada saldrían varias líneas por arista (los escalones del arco), así que una pieza con radio
+ * le pasa su caja lisa (`geometria`) y el contorno sigue siendo el envolvente de siempre.
+ */
+function Contorno({ geometria }: { geometria?: BufferGeometry }) {
+  return <Edges geometry={geometria} color={COLOR_SELECCION} lineWidth={GROSOR_CONTORNO_PX} />
 }
 
 function Prisma({ pieza: { huella, y0, y1 }, material, sombra, eventos, contorno }: { pieza: Prisma3D; material: Material; sombra: boolean; eventos: EventosPieza; contorno: boolean }) {
@@ -30,13 +37,18 @@ function Prisma({ pieza: { huella, y0, y1 }, material, sombra, eventos, contorno
   )
 }
 
-/** Caja y cilindro con las coordenadas de textura en metros (`uvsEnMetros`): la veta no se estira con el tamaño. */
-function Caja({ pieza: { centro, tamano: [x, y, z], giroY }, material, sombra, eventos, contorno }: { pieza: Caja3D; material: Material; sombra: boolean; eventos: EventosPieza; contorno: boolean }) {
-  const geometria = useMemo(() => uvsEnMetros(new BoxGeometry(x, y, z)), [x, y, z])
+/**
+ * Caja y cilindro con las coordenadas de textura en metros (`uvsEnMetros`): la veta no se estira con el tamaño.
+ * Una caja con `radio` (m) va con las aristas redondeadas; su contorno de selección se calcula sobre la caja lisa.
+ */
+function Caja({ pieza: { centro, tamano: [x, y, z], giroY, radio }, material, sombra, eventos, contorno }: { pieza: Caja3D; material: Material; sombra: boolean; eventos: EventosPieza; contorno: boolean }) {
+  const geometria = useMemo(() => uvsEnMetros(radio ? new RoundedBoxGeometry(x, y, z, SEGMENTOS_REDONDEO, radio) : new BoxGeometry(x, y, z)), [x, y, z, radio])
   useEffect(() => () => geometria.dispose(), [geometria])
+  const lisa = useMemo(() => (contorno && radio ? new BoxGeometry(x, y, z) : undefined), [contorno, radio, x, y, z])
+  useEffect(() => () => lisa?.dispose(), [lisa])
   return (
     <mesh castShadow={sombra} receiveShadow position={centro} rotation-y={giroY} geometry={geometria} material={material} {...eventos}>
-      {contorno && <Contorno />}
+      {contorno && <Contorno geometria={lisa} />}
     </mesh>
   )
 }
