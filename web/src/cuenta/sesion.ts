@@ -9,6 +9,8 @@ export const CLAVE_SESION = 'decorazon.sesion'
 export interface Usuario {
   nombre: string
   correo: string
+  /** Solo para enseñar el enlace a la administración: quien decide es la API, con el claim del token. */
+  esAdministrador: boolean
 }
 
 export interface EstadoSesion {
@@ -118,7 +120,7 @@ export const sesion = createStore<EstadoSesion>()((set, get) => {
     async cargarUsuario() {
       const u = exigir(await api.GET('/cuentas/yo'))
       correoDeLaSesion = u.correo
-      set({ usuario: { nombre: u.nombre, correo: u.correo } })
+      set({ usuario: { nombre: u.nombre, correo: u.correo, esAdministrador: u.esAdministrador === true } })
     },
 
     cerrarSesion(motivo) {

@@ -31,7 +31,7 @@ describe('sesion', () => {
     await sesion.getState().iniciarSesion('ana@x.es', 'una contraseña larga')
     const s = sesion.getState()
     expect(s.token).toBe('jwt')
-    expect(s.usuario).toEqual({ nombre: 'Ana', correo: 'ana@x.es' })
+    expect(s.usuario).toEqual({ nombre: 'Ana', correo: 'ana@x.es', esAdministrador: false })
     expect(s.haySesion()).toBe(true)
     expect(JSON.parse(localStorage.getItem(CLAVE_SESION)!)).toEqual({ token: 'jwt', caducidad: MANANA, correo: 'ana@x.es' })
     const yo = fetchSimulado.mock.calls[1][0]
@@ -94,7 +94,7 @@ describe('sesion', () => {
   it('cerrarSesion borra la clave, el token y el usuario', () => {
     localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: MANANA }))
     reiniciarSesion()
-    sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es' } })
+    sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es', esAdministrador: false } })
     sesion.getState().cerrarSesion()
     expect(localStorage.getItem(CLAVE_SESION)).toBeNull()
     expect(sesion.getState().token).toBeNull()
@@ -115,7 +115,15 @@ describe('sesion', () => {
     reiniciarSesion()
     fetchSimulado.mockResolvedValueOnce(respuesta(200, { nombre: 'Ana', correo: 'ana@x.es' }))
     await sesion.getState().cargarUsuario()
-    expect(sesion.getState().usuario).toEqual({ nombre: 'Ana', correo: 'ana@x.es' })
+    expect(sesion.getState().usuario).toEqual({ nombre: 'Ana', correo: 'ana@x.es', esAdministrador: false })
+  })
+
+  it('cargarUsuario apunta si la cuenta administra', async () => {
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: MANANA }))
+    reiniciarSesion()
+    fetchSimulado.mockResolvedValueOnce(respuesta(200, { nombre: 'Ana', correo: 'ana@x.es', esAdministrador: true }))
+    await sesion.getState().cargarUsuario()
+    expect(sesion.getState().usuario?.esAdministrador).toBe(true)
   })
 })
 

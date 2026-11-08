@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -51,7 +51,7 @@ beforeEach(() => {
   reiniciarSesion()
   reiniciarAlmacen()
   conectarSesionConApi()
-  sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es' } })
+  sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es', esAdministrador: false } })
 })
 afterEach(() => vi.unstubAllGlobals())
 
@@ -60,6 +60,13 @@ describe('MiCuenta', () => {
     montar()
     expect(screen.getByText('Ana')).toBeInTheDocument()
     expect(screen.getByText('ana@x.es')).toBeInTheDocument()
+  })
+
+  it('el enlace a la administración solo sale a quien administra', () => {
+    montar()
+    expect(screen.queryByRole('link', { name: 'Administración' })).not.toBeInTheDocument()
+    act(() => sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es', esAdministrador: true } }))
+    expect(screen.getByRole('link', { name: 'Administración' })).toHaveAttribute('href', '/administracion')
   })
 
   it('cambiar la contraseña con 204 cierra la sesión, conserva las copias y va a Entrar', async () => {

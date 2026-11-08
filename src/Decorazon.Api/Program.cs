@@ -159,7 +159,7 @@ constructor.Services
         };
     });
 
-constructor.Services.AddAuthorization();
+constructor.Services.AddAuthorization(Politicas.Anadir);
 
 // La web se sirve desde otro origen, así que necesita CORS explícito.
 // appsettings.json trae el dominio de producción; la web local va en
@@ -249,6 +249,7 @@ aplicacion.MapearEndpointsDeCuentas();
 aplicacion.MapearEndpointsDeDisenos();
 aplicacion.MapearEndpointsDeCompartir();
 aplicacion.MapearEndpointsDeSugerencias();
+aplicacion.MapearEndpointsDeAdministracion();
 
 aplicacion.Run();
 

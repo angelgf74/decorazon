@@ -45,7 +45,8 @@ public static class CuentasEndpoints
 
         return datos is null
             ? Results.Unauthorized()
-            : Results.Ok(new RespuestaDeMiCuenta(datos.Nombre, datos.Correo));
+            // Del token, no de la base de datos: es el mismo claim que abre la administración.
+            : Results.Ok(new RespuestaDeMiCuenta(datos.Nombre, datos.Correo, usuario.EsAdministrador()));
     }
 
     private static async Task<IResult> BorrarmeAsync(

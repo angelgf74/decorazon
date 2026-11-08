@@ -1,6 +1,6 @@
 import { evento } from '../../analitica'
 import { useCallback, useEffect, useId, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router'
+import { Link, Navigate, useNavigate } from 'react-router'
 import { ErrorDeApi } from '../../api/cliente'
 import { mensajeDeError } from '../../cuenta/errores'
 import { copiasDeLaCuenta } from '../../cuenta/disenosLocales'
@@ -73,6 +73,7 @@ function DialogoNuevo({ alCrear, alCerrar }: PropsDialogo) {
 
 export default function MisDisenos() {
   const haySesion = useSesion((s) => s.haySesion())
+  const esAdministrador = useSesion((s) => s.usuario?.esAdministrador === true)
   const navegar = useNavigate()
   const [lista, setLista] = useState<ResumenDiseno[] | null>(null)
   // Sin conexión: las copias de este navegador, solo para abrirlas.
@@ -202,6 +203,7 @@ export default function MisDisenos() {
           {/* El campo de fichero va oculto tras la etiqueta, que se ve como un botón (base.css). */}
           <label htmlFor={idFichero} className="boton">{textos.importar.importar}</label>
           <input id={idFichero} type="file" accept=".json,application/json" className="solo-lectores" disabled={ocupado} onChange={(ev) => void importar(ev)} />
+          {esAdministrador && <Link to="/administracion" className="boton">{textos.administracion.enlace}</Link>}
         </div>
       </header>
       {aviso && <p className="disenos__aviso" role="alert">{aviso}</p>}

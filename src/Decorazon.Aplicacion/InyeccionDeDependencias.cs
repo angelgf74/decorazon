@@ -1,3 +1,4 @@
+using Decorazon.Aplicacion.Administracion;
 using Decorazon.Aplicacion.Contrasenas;
 using Decorazon.Aplicacion.Cuentas;
 using Decorazon.Aplicacion.Disenos;
@@ -27,6 +28,7 @@ public static class InyeccionDeDependencias
         servicios.AddScoped<CompartirDisenos>();
         servicios.AddScoped<LimpiarCaducados>();
         servicios.AddScoped<EnviarSugerencia>();
+        servicios.AddScoped<ListarUsuarios>();
 
         return servicios;
     }

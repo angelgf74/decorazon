@@ -140,7 +140,7 @@ describe('BarraSuperior', () => {
   it('con sesión ofrece Mis diseños y el nombre enlaza a la cuenta', () => {
     localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: new Date(Date.now() + 86_400_000).toISOString() }))
     reiniciarSesion()
-    sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es' } })
+    sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es', esAdministrador: false } })
     render(<BarraSuperior />, { wrapper: MemoryRouter })
     expect(screen.getByRole('link', { name: 'Mis diseños' })).toHaveAttribute('href', '/disenos')
     expect(screen.getByRole('link', { name: 'Ana' })).toHaveAttribute('href', '/cuenta')

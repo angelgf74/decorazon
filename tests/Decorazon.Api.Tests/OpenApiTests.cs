@@ -33,6 +33,7 @@ public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDat
 
         Assert.True(PideBearer(rutas.GetProperty("/disenos/{id}").GetProperty("put")));
         Assert.True(PideBearer(rutas.GetProperty("/cuentas/yo").GetProperty("get")));
+        Assert.True(PideBearer(rutas.GetProperty("/administracion/usuarios").GetProperty("get")));
         Assert.True(PideBearer(rutas.GetProperty("/cuentas/contrasena").GetProperty("post")));
         Assert.False(PideBearer(rutas.GetProperty("/sesiones").GetProperty("post")));
         Assert.True(PideBearer(rutas.GetProperty("/disenos/{id}/enlace").GetProperty("put")));
@@ -99,7 +100,7 @@ public class OpenApiTests(ApiSinBaseDeDatos api) : IClassFixture<ApiSinBaseDeDat
                 "crearDiseno", "duplicarDiseno", "iniciarSesion", "listarDisenos", "obtenerDiseno",
                 "obtenerMiCuenta", "restablecerContrasena", "solicitarOlvidoDeContrasena", "solicitarRegistro",
                 "actualizarDiseno", "compartirDiseno", "dejarDeCompartirDiseno", "leerDisenoCompartido", "subirVistaPrevia", "leerVistaPrevia", "leerVistaPreviaDelDueno", "leerTarjeta", "leerVersionAnterior", "recuperarVersionAnterior",
-                "enviarSugerencia"
+                "enviarSugerencia", "listarUsuarios"
             }.Order(),
             ids.Order());
     }

@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import Administracion from './administracion/Administracion'
 import NavegacionDeSesion from './cuenta/NavegacionDeSesion'
 import ConfirmarRegistro from './cuenta/paginas/ConfirmarRegistro'
 import MiCuenta from './cuenta/paginas/MiCuenta'
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/cuenta" element={<><Metadatos pagina="cuenta" /><MiCuenta /></>} />
         <Route path="/como-funciona" element={<><Metadatos pagina="comoFunciona" /><ComoFunciona /></>} />
         <Route path="/privacidad" element={<><Metadatos pagina="privacidad" /><Privacidad /></>} />
+        <Route path="/administracion" element={<Administracion />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

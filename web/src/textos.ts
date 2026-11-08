@@ -380,6 +380,15 @@ export const textos = {
     guardarComoNuevo: 'Guardar como diseño nuevo',
     descartar: 'Descartar',
   },
+  administracion: {
+    titulo: 'Administración',
+    enlace: 'Administración',
+    resumen: 'Cuentas, cuántos diseños guardan y cuánto ocupan en el servidor (diseños, vistas previas y versiones anteriores), de más a menos espacio.',
+    cargando: 'Cargando…',
+    vacio: 'Aún no hay cuentas',
+    columnas: { correo: 'Correo', nombre: 'Nombre', alta: 'Alta', disenos: 'Diseños', espacio: 'Espacio' },
+    total: (cuentas: number) => `Total (${cuentas} ${cuentas === 1 ? 'cuenta' : 'cuentas'})`,
+  },
   comun: {
     aceptar: 'Aceptar',
     cancelar: 'Cancelar',
