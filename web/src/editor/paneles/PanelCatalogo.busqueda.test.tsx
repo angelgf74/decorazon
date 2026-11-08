@@ -27,12 +27,12 @@ afterEach(() => vi.useRealTimers())
 
 describe('PanelCatalogo: búsquedas sin resultado (lo que falta en el catálogo)', () => {
   it('una búsqueda que no encuentra nada se cuenta al dejar de escribir, sin tildes ni mayúsculas', () => {
-    escribir('Líter')
-    escribir('Litera')
+    escribir('Tumbón')
+    escribir('Tumbóna')
     esperar(ESPERA_BUSQUEDA_MS - 1)
     expect(sinResultados()).toEqual([])
     esperar(1)
-    expect(sinResultados()).toEqual([['catalogo-sin-resultados', { texto: 'litera' }]])
+    expect(sinResultados()).toEqual([['catalogo-sin-resultados', { texto: 'tumbona' }]])
   })
 
   it('lo que sí encuentra algo no se cuenta', () => {
@@ -51,12 +51,12 @@ describe('PanelCatalogo: búsquedas sin resultado (lo que falta en el catálogo)
   it('menos de 3 letras no se cuenta, y la misma búsqueda solo una vez', () => {
     escribir('zq')
     esperar()
-    escribir('zapatero')
+    escribir('piano')
     esperar()
     escribir('')
-    escribir('zapatero')
+    escribir('piano')
     esperar()
-    expect(sinResultados()).toEqual([['catalogo-sin-resultados', { texto: 'zapatero' }]])
+    expect(sinResultados()).toEqual([['catalogo-sin-resultados', { texto: 'piano' }]])
   })
 
   it('el texto va recortado a 30 caracteres', () => {
