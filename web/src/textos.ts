@@ -249,6 +249,8 @@ export const textos = {
     desbloquear: 'Desbloquear',
     voltear: 'Voltear',
     nombre: 'Nombre',
+    materialDe: (zona: string) => `Material de ${zona}`,
+    materiales: { tela: 'Tela', madera: 'Madera', lacado: 'Lacado', metal: 'Metal', vidrio: 'Vidrio', ceramica: 'Cerámica' },
     si: 'Sí',
     no: 'No',
     pared: 'Pared',

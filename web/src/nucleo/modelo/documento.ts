@@ -24,12 +24,15 @@ export interface OrigenTienda {
   /** AAAA-MM-DD en que se anotó el precio. */
   fechaPrecio?: string
 }
+import type { MaterialDeZona } from '../catalogo/tipos'
 export type Origen = { tipo: 'generico' } | OrigenTienda
 export interface Elemento {
   id: string; tipo: string; posicion: Punto; rotacion: number; medidas: Medidas; alturaSuelo: number
   variantes: Record<string, string | number | boolean>; colores: Record<string, string>; origen: Origen
   /** Medidas propias del tipo además de ancho, fondo y alto (el hueco del rincón de un esquinero), en cm enteros. Opcional: los diseños de antes no lo llevan. */
   medidasExtra?: Record<string, number>
+  /** Material elegido por zona de color, solo en las zonas cuyo tipo ofrece varios (`ZonaColor.materiales`); sin él, el de serie. Opcional. */
+  materiales?: Record<string, MaterialDeZona>
   /** Bloqueado: se selecciona y se edita, pero no se mueve ni se gira. Solo se guarda cuando es verdadero. */
   bloqueado?: true
   /** Nombre propio («Armario de Ana»), sin espacios a los lados y hasta LIMITE_NOMBRE_ELEMENTO; sin él, el del producto o del tipo. */

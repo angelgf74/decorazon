@@ -72,3 +72,23 @@ describe('integridad: miniatura del catálogo', () => {
     }
   })
 })
+
+describe('materiales elegibles por zona (plan 28c)', () => {
+  for (const def of catalogoBase.values()) {
+    it(`${def.id}: si una zona ofrece materiales, incluye el suyo y son al menos dos`, () => {
+      for (const z of def.zonasColor) {
+        if (!z.materiales) continue
+        expect(z.materiales, z.clave).toContain(z.material)
+        expect(z.materiales.length, z.clave).toBeGreaterThanOrEqual(2)
+        expect(new Set(z.materiales).size, z.clave).toBe(z.materiales.length)
+      }
+    })
+  }
+  it('las patas de las mesas, escritorios y sofás se pueden pedir en madera, metal o lacado', () => {
+    for (const tipo of ['mesa', 'mesa-alta', 'mesa-reuniones', 'escritorio-l', 'sofa', 'sofa-cama', 'sofa-rinconera']) {
+      const z = catalogoBase.get(tipo)!.zonasColor.find((z) => z.clave === 'patas')!
+      expect(z.materiales, tipo).toEqual(expect.arrayContaining(['madera', 'metal', 'lacado']))
+    }
+    expect(catalogoBase.get('mesa-auxiliar')!.zonasColor.find((z) => z.clave === 'pie')!.materiales).toEqual(expect.arrayContaining(['madera', 'metal', 'lacado']))
+  })
+})

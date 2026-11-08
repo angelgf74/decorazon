@@ -127,3 +127,14 @@ describe('medidas extra en la hoja', () => {
     ])
   })
 })
+
+describe('filasDeMuebles: material por zona (plan 28c)', () => {
+  it('una zona con materiales a elegir dice el suyo entre paréntesis; las demás, solo la etiqueta', () => {
+    const doc = documentoNuevo('salon', 400, 330, 250)
+    const mesa = elementoNuevo(catalogoBase.get('mesa')!, { x: 200, y: 165 }, 'm')
+    doc.elementos = [mesa, { ...mesa, id: 'n', materiales: { patas: 'madera' } }]
+    const [fm, fn] = filasDeMuebles(doc, catalogoBase)
+    expect(fm!.colores.map((c) => c.etiqueta)).toEqual(['Tablero', 'Patas (metal)'])
+    expect(fn!.colores.map((c) => c.etiqueta)).toEqual(['Tablero', 'Patas (madera)'])
+  })
+})

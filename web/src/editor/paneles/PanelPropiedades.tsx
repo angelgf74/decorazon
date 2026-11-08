@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import {
+  materialDeZona, type MaterialDeZona,
   bloquearElemento, cambiarLongitudPared, capitalizar, catalogoBase, editarAbertura, editarElemento, editarEstructura, LIMITE_NOMBRE_ELEMENTO,
   longitudPared, moverVertice, nombreDeElemento, partirPared, quitarDeEstancia, quitarVertice, rangoMedidaExtra, renombrarElemento, sePuedeVoltear,
   valorMedidaExtra, valoresVariante, valorVariante, voltearElemento,
@@ -175,12 +176,20 @@ function BotonQuitar({ id }: { id: string }) {
 type CambiosElemento = Parameters<typeof editarElemento>[3]
 
 
-function CampoColor({ zona, valor, alCambiar }: { zona: ZonaColor; valor: string; alCambiar(color: string): void }) {
+/** Color de una zona y, si el tipo ofrece varios materiales para ella (las patas de una mesa), el material. */
+function CampoColor({ zona, valor, material, alCambiar, alCambiarMaterial }: {
+  zona: ZonaColor; valor: string; material: MaterialDeZona; alCambiar(color: string): void; alCambiarMaterial(material: MaterialDeZona): void
+}) {
   const id = useId()
   return (
     <div className="panel__campo">
       <label htmlFor={id}>{zona.etiqueta}</label>
       <EntradaColor id={id} valor={valor} alCambiar={alCambiar} />
+      {zona.materiales && (
+        <select aria-label={t.materialDe(zona.etiqueta)} value={material} onChange={(ev) => alCambiarMaterial(ev.target.value as MaterialDeZona)}>
+          {zona.materiales.map((m) => <option key={m} value={m}>{t.materiales[m]}</option>)}
+        </select>
+      )}
     </div>
   )
 }
@@ -234,8 +243,9 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
           alCambiar={(s) => editar({ variantes: { [v.clave]: v.valores.find((x) => String(x) === s) ?? v.defecto } })} />
       ))}
       {def.zonasColor.map((z) => (
-        <CampoColor key={z.clave} zona={z} valor={e.colores[z.clave] ?? z.defecto}
-          alCambiar={(c) => editar({ colores: { [z.clave]: c } }, `color:${e.id}:${z.clave}`)} />
+        <CampoColor key={z.clave} zona={z} valor={e.colores[z.clave] ?? z.defecto} material={materialDeZona(e, z)}
+          alCambiar={(c) => editar({ colores: { [z.clave]: c } }, `color:${e.id}:${z.clave}`)}
+          alCambiarMaterial={(m) => editar({ materiales: { [z.clave]: m } })} />
       ))}
       <ProductoDeTienda e={e} def={def} />
       <div className="panel__acciones">

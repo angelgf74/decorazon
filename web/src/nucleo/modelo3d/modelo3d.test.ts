@@ -205,3 +205,14 @@ describe('camaraAPlano', () => {
     expect(camaraAPlano([2, 3, 10])).toEqual({ x: 200, y: 1000 })
   })
 })
+
+describe('piezasDeElemento: material elegido por zona (plan 28c)', () => {
+  it('usa el material del elemento para la zona si el tipo lo admite; si no lo admite, el de la zona; una pieza con material propio manda', () => {
+    const e = elementoNuevo(mesa, { x: 0, y: 0 })
+    const def = conPiezas([{ forma: 'cilindro', cx: 0, cy: 0, r: 2, z0: 0, z1: 70, zona: 'patas' }, { ...caja(-10, 10), material: 'vidrio' }])
+    expect(piezasDeElemento({ ...e, materiales: { patas: 'madera' } }, def)[0].material).toBe('madera')
+    expect(piezasDeElemento({ ...e, materiales: { patas: 'tela' } }, def)[0].material).toBe('metal')
+    expect(piezasDeElemento({ ...e, materiales: { tablero: 'lacado' } }, def)[1].material).toBe('vidrio')
+    expect(piezasDeElemento(e, def)[0].material).toBe('metal')
+  })
+})

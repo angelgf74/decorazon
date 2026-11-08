@@ -1,5 +1,5 @@
 import {
-  capitalizar, desplazarPoligono, esUrlDeProducto, lineasMedidasExtra, nombreDeElemento, valoresVariante, valorVariante, type Catalogo, type DocumentoDiseno, type OrigenTienda, type Punto,
+  capitalizar, desplazarPoligono, esUrlDeProducto, lineasMedidasExtra, materialDeZona, nombreDeElemento, valoresVariante, valorVariante, type Catalogo, type DocumentoDiseno, type OrigenTienda, type Punto,
 } from '../../nucleo'
 import { textos } from '../../textos'
 import { formatoFecha, formatoPrecio } from '../comunes/formatos'
@@ -60,7 +60,8 @@ export function filasDeMuebles(doc: DocumentoDiseno, catalogo: Catalogo): FilaMu
             ...def.variantes.filter((v) => !v.ocultarConUnValor || valoresVariante(def, e, v.clave).length > 1).map((v) => `${v.etiqueta}: ${etiquetaValor(valorVariante(def, e, v.clave), v)}`),
           ]
         : [],
-      colores: def ? def.zonasColor.map((z) => ({ etiqueta: z.etiqueta, color: e.colores[z.clave] ?? z.defecto })) : [],
+      // Si la zona deja elegir material, se dice cuál («Patas (madera)»): el color solo no lo cuenta.
+      colores: def ? def.zonasColor.map((z) => ({ etiqueta: z.materiales ? `${z.etiqueta} (${materialDeZona(e, z)})` : z.etiqueta, color: e.colores[z.clave] ?? z.defecto })) : [],
       tienda: e.origen.tipo === 'tienda' ? filaTienda(e.origen, def ? capitalizar(def.nombre) : e.tipo) : null,
     }
   })
