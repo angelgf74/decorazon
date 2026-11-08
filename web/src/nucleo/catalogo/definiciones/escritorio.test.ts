@@ -76,3 +76,19 @@ describe('escritorio: cajonera a un lado, al otro o a los dos', () => {
     expect(voltear('ambas')).toBe('ambas')
   })
 })
+
+describe('escritorio: forma y material de las patas (plan 28c)', () => {
+  it('admite patas redondas también con cajonera (las dos del lado libre son cilindros) y el material de las patas se elige', () => {
+    expect(escritorio.variantes.map((v) => v.clave)).toContain('patas')
+    const ps = escritorio.modelo3d!(el({ cajonera: 'derecha', patas: 'redondas' }))
+    const cilindros = ps.filter((p): p is Extract<PiezaLocal, { forma: 'cilindro' }> => p.forma === 'cilindro')
+    expect(cilindros).toHaveLength(2)
+    for (const c of cilindros) {
+      expect(c.r).toBe(2.5)
+      expect(c.cx).toBeCloseTo(-60 + 3 + 2.5)
+      expect(c.zona).toBe('patas')
+    }
+    expect(escritorio.modelo3d!(el({ patas: 'redondas' })).filter((p) => p.forma === 'cilindro')).toHaveLength(4)
+    expect(escritorio.zonasColor.find((z) => z.clave === 'patas')!.materiales).toEqual(expect.arrayContaining(['madera', 'metal', 'lacado']))
+  })
+})
