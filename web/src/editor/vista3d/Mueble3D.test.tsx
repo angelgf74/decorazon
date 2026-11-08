@@ -1,4 +1,6 @@
+import { useThree } from '@react-three/fiber'
 import ReactThreeTestRenderer from '@react-three/test-renderer'
+import { useLayoutEffect } from 'react'
 import { Ray, Vector3, type Color, type Mesh, type MeshStandardMaterial } from 'three'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { catalogoBase, piezasDeElemento, type Elemento } from '../../nucleo'
@@ -146,6 +148,24 @@ describe('Mueble3D: arrastrar en 3D (M-10)', () => {
     expect(almacen.getState().pasado.length).toBe(pasos + 1)
   })
 
+  it('mientras dura el arrastre los controles de la cámara están apagados, y al soltar vuelven', async () => {
+    const controles = { enabled: true }
+    function ConControles() {
+      const fijar = useThree((s) => s.set)
+      useLayoutEffect(() => fijar({ controls: controles as never }), [fijar])
+      return null
+    }
+    montar(armario())
+    almacen.getState().irAPaso(2)
+    almacen.getState().seleccionar({ tipo: 'elemento', id: 'a1' })
+    const r = await ReactThreeTestRenderer.create(<><ConControles /><Mueble3D elemento={almacen.getState().documento!.elementos[0]!} /></>)
+    const malla = r.scene.findAll((n) => n.type === 'Mesh')[0]!
+    const { x, y } = almacen.getState().documento!.elementos[0]!.posicion
+    await r.fireEvent(malla, 'onPointerDown', { ray: rayo(x / 100, y / 100), pointerId: 1, button: 0, target: objetivo })
+    expect(controles.enabled).toBe(false)
+    await r.fireEvent(malla, 'onPointerUp', { ray: rayo(x / 100, y / 100), pointerId: 1, target: objetivo })
+    expect(controles.enabled).toBe(true)
+  })
   it('un mueble sin seleccionar no se arrastra (empezar sobre él sigue girando la cámara)', async () => {
     montar(armario())
     almacen.getState().irAPaso(2)
