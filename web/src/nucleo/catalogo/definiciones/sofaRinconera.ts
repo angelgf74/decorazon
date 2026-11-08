@@ -2,11 +2,12 @@ import { valorVariante, type DefinicionTipo } from '../tipos'
 import type { Elemento, Punto } from '../../modelo/documento'
 import type { PiezaLocal } from '../../modelo3d/tipos'
 import { aMundo, cajaMundo } from '../transformar'
-import { caja } from '../modelos'
+import { caja, cojinesEnTramo, RADIO_BRAZO, RADIO_COJIN, RADIO_ESTRUCTURA } from '../modelos'
 
-/** Fondo de asiento de cada lado de la L, grueso del respaldo y de los brazos, y alto de las patas, en cm. */
+/** Fondo de asiento de cada lado de la L, grueso del respaldo (armazón + cojín) y de los brazos, y alto de las patas, en cm. */
 const ASIENTO = 90
 const RESPALDO = 20
+const ARMAZON = 8
 const BRAZO = 15
 const PATA = 8
 
@@ -58,25 +59,31 @@ export const sofaRinconera: DefinicionTipo = {
     const zBase = asiento - 12
     const yFin = -fondo / 2 + ASIENTO
     const xAla = -ancho / 2 + ASIENTO
-    // Con el rincón a la izquierda; después se refleja si va a la derecha.
-    const piezas: [Rect, number, number, string][] = [
-      // Lado largo: base, respaldo, cojín y brazo del extremo libre.
-      [[-ancho / 2, -fondo / 2, ancho / 2, yFin], PATA, zBase, 'tapizado'],
-      [[-ancho / 2, -fondo / 2, ancho / 2, -fondo / 2 + RESPALDO], zBase, alto, 'tapizado'],
-      [[-ancho / 2 + RESPALDO, -fondo / 2 + RESPALDO, ancho / 2 - BRAZO, yFin], zBase, asiento, 'tapizado'],
-      [[ancho / 2 - BRAZO, -fondo / 2, ancho / 2, yFin], PATA, alto - 20, 'tapizado'],
-      // Ala: base, respaldo contra la pared lateral, cojín y brazo del extremo.
-      [[-ancho / 2, yFin, xAla, fondo / 2], PATA, zBase, 'tapizado'],
-      [[-ancho / 2, yFin, -ancho / 2 + RESPALDO, fondo / 2], zBase, alto, 'tapizado'],
-      [[-ancho / 2 + RESPALDO, yFin, xAla, fondo / 2 - BRAZO], zBase, asiento, 'tapizado'],
-      [[-ancho / 2, fondo / 2 - BRAZO, xAla, fondo / 2], PATA, alto - 20, 'tapizado'],
+    const x0 = -ancho / 2, x1 = ancho / 2, y0 = -fondo / 2, y1 = fondo / 2
+    // Con el rincón a la izquierda; después se refleja si va a la derecha. [rectángulo, z0, z1, zona, radio]
+    type Fila = [Rect, number, number, string, number?]
+    const piezas: Fila[] = [
+      // Lado largo: base, armazón del respaldo y brazo del extremo libre.
+      [[x0, y0, x1, yFin], PATA, zBase, 'tapizado', RADIO_ESTRUCTURA],
+      [[x0, y0, x1, y0 + ARMAZON], zBase, alto, 'tapizado', RADIO_ESTRUCTURA],
+      [[x1 - BRAZO, y0, x1, yFin], PATA, alto - 20, 'tapizado', RADIO_BRAZO],
+      // Cojines del lado largo: el respaldo empieza tras el armazón del ala y el asiento tras los cojines de respaldo del ala.
+      ...cojinesEnTramo(x0 + ARMAZON, x1 - BRAZO).map(([a, b]): Fila => [[a, y0 + ARMAZON, b, y0 + RESPALDO], zBase, alto - 4, 'tapizado', RADIO_COJIN]),
+      ...cojinesEnTramo(x0 + RESPALDO, x1 - BRAZO).map(([a, b]): Fila => [[a, y0 + RESPALDO, b, yFin], zBase, asiento, 'tapizado', RADIO_COJIN]),
+      // Ala: base, armazón contra la pared lateral y brazo del extremo.
+      [[x0, yFin, xAla, y1], PATA, zBase, 'tapizado', RADIO_ESTRUCTURA],
+      [[x0, yFin, x0 + ARMAZON, y1], zBase, alto, 'tapizado', RADIO_ESTRUCTURA],
+      [[x0, y1 - BRAZO, xAla, y1], PATA, alto - 20, 'tapizado', RADIO_BRAZO],
+      // Cojines del ala: el respaldo arranca tras los del lado largo (así viste el rincón) y el asiento desde yFin.
+      ...cojinesEnTramo(y0 + RESPALDO, y1 - BRAZO).map(([a, b]): Fila => [[x0 + ARMAZON, a, x0 + RESPALDO, b], zBase, alto - 4, 'tapizado', RADIO_COJIN]),
+      ...cojinesEnTramo(yFin, y1 - BRAZO).map(([a, b]): Fila => [[x0 + RESPALDO, a, xAla, b], zBase, asiento, 'tapizado', RADIO_COJIN]),
       // Patas en las esquinas de fuera de la L.
-      ...([[-ancho / 2 + 3, -fondo / 2 + 3], [ancho / 2 - 8, -fondo / 2 + 3], [ancho / 2 - 8, yFin - 8], [-ancho / 2 + 3, fondo / 2 - 8], [xAla - 8, fondo / 2 - 8]] as [number, number][])
-        .map(([x, y]): [Rect, number, number, string] => [[x, y, x + 5, y + 5], 0, PATA, 'patas']),
+      ...([[x0 + 3, y0 + 3], [x1 - 8, y0 + 3], [x1 - 8, yFin - 8], [x0 + 3, y1 - 8], [xAla - 8, y1 - 8]] as [number, number][])
+        .map(([x, y]): Fila => [[x, y, x + 5, y + 5], 0, PATA, 'patas']),
     ]
-    return piezas.map(([r, z0, z1, zona]): PiezaLocal => {
-      const [x0, y0, x1, y1] = reflejar(e, r)
-      return caja(x0, y0, z0, x1, y1, z1, zona)
+    return piezas.map(([r, z0, z1, zona, radio]): PiezaLocal => {
+      const [a, b, c, d] = reflejar(e, r)
+      return caja(a, b, z0, c, d, z1, zona, radio)
     })
   },
   zonasApertura: () => [],

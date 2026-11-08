@@ -3,7 +3,7 @@ import { catalogoBase } from './catalogoBase'
 import type { PiezaLocal } from '../modelo3d/tipos'
 import type { Elemento } from '../modelo/documento'
 import { elemento } from './definiciones/ayuda.test-util'
-import { caja, cajonesApilados } from './modelos'
+import { caja, cajonesApilados, cojinesEnTramo } from './modelos'
 
 const TIPOS = ['cama', 'armario', 'comoda', 'mesita', 'escritorio', 'silla', 'estanteria', 'sofa', 'sillon', 'mesa-centro', 'mueble-tv', 'mesa', 'aparador']
 
@@ -80,6 +80,35 @@ describe('generadores 3D de dormitorio y salón', () => {
     expect(cojinesDeAsiento(piezasDe(e), f)).toHaveLength(1)
     expect(asiento!.x1 - asiento!.x0).toBeCloseTo(30)
     expect(respaldo!.x1 - respaldo!.x0).toBeCloseTo(28)
+  })
+  it('cojinesEnTramo reparte el tramo en cojines de 70 como mucho, contiguos con 0,4 de hueco', () => {
+    const tres = cojinesEnTramo(0, 165)
+    expect(tres).toHaveLength(3)
+    expect(tres[0]![0]).toBe(0)
+    expect(tres[2]![1]).toBeCloseTo(165)
+    for (const [x0, x1] of tres) expect(x1 - x0).toBeCloseTo((165 - 0.8) / 3)
+    expect(tres[1]![0] - tres[0]![1]).toBeCloseTo(0.4)
+    expect(cojinesEnTramo(0, 45)).toEqual([[0, 45]])
+  })
+  it('rinconera 260 × 200: cojines por tramos en los dos lados (6 de asiento, 7 de respaldo), todos redondeados', () => {
+    const e = elemento('sofa-rinconera', 0, 0, 0)
+    const ps = cajas(piezasDe(e))
+    const { alto } = e.medidas
+    const asiento = ps.filter((p) => p.zona === 'tapizado' && p.z1 - p.z0 === 12 && p.z1 === alto - 40)
+    const respaldo = ps.filter((p) => p.zona === 'tapizado' && p.z1 === alto - 4)
+    expect(asiento).toHaveLength(6)
+    expect(respaldo).toHaveLength(7)
+    for (const p of [...asiento, ...respaldo]) expect(p.radio).toBe(5)
+    for (const p of ps) if (p.zona === 'tapizado') expect(p.radio, JSON.stringify(p)).toBeDefined()
+    // Ningún cojín de asiento pasa de 70 de largo en su dirección.
+    for (const p of asiento) expect(Math.min(p.x1 - p.x0, p.y1 - p.y0)).toBeLessThanOrEqual(70.01)
+  })
+  it('rinconera con el rincón a la derecha: el ala (cojines de 70 de ancho) queda en x positivo; la mayor, 340 × 260, tiene 28 piezas', () => {
+    const der = cajas(piezasDe(elemento('sofa-rinconera', 0, 0, 0, {}, { rincon: 'derecha' })))
+    const ala = der.filter((p) => p.zona === 'tapizado' && p.z1 - p.z0 === 12 && Math.abs(p.x1 - p.x0 - 70) < 1e-9)
+    expect(ala.length).toBeGreaterThan(0)
+    for (const p of ala) expect(p.x0).toBeGreaterThan(0)
+    expect(piezasDe(elemento('sofa-rinconera', 0, 0, 0, { ancho: 340, fondo: 260 }))).toHaveLength(28)
   })
   it('sofá cama abierto: el colchón que sale lleva radio 4', () => {
     const colchon = piezasDe(elemento('sofa-cama', 0, 0, 0, {}, { abierto: true })).filter((p) => p.zona === 'colchon')

@@ -106,6 +106,13 @@ export function mesaConPatas(e: Elemento, zonaTablero: string, zonaPatas: string
 
 export type LadoChaise = 'no' | 'izquierda' | 'derecha'
 
+/** Reparte el tramo `desde..hasta` en cojines contiguos de `anchoMax` como mucho, con `hueco` entre ellos: [[x0, x1], …]. */
+export function cojinesEnTramo(desde: number, hasta: number, anchoMax = 70, hueco = 0.4): [number, number][] {
+  const n = Math.max(1, Math.ceil((hasta - desde) / anchoMax))
+  const w = (hasta - desde - (n - 1) * hueco) / n
+  return Array.from({ length: n }, (_, i): [number, number] => [desde + i * (w + hueco), desde + i * (w + hueco) + w])
+}
+
 /** Radios de redondeo del tapizado, en cm: estructura (base, armazón del respaldo), brazos y cojines. */
 export const RADIO_ESTRUCTURA = 2
 export const RADIO_BRAZO = 4
