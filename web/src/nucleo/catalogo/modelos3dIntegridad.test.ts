@@ -48,6 +48,11 @@ describe('integridad de los generadores 3D del catálogo', () => {
           if (p.forma === 'caja') {
             expect(x1, msg).toBeGreaterThan(x0)
             expect(y1, msg).toBeGreaterThan(y0)
+            // Un redondeo mayor que medio lado menor deforma la caja (RoundedBoxGeometry la encoge).
+            if (p.radio !== undefined) {
+              expect(p.radio, msg).toBeGreaterThan(0)
+              expect(p.radio, msg).toBeLessThanOrEqual(Math.min(x1 - x0, y1 - y0, z1 - z0) / 2 + 1e-9)
+            }
           } else expect(p.r, msg).toBeGreaterThan(0)
           expect(z1, msg).toBeGreaterThan(z0)
           expect(x0, msg).toBeGreaterThanOrEqual(Math.min(...xs) - TOL)

@@ -1,8 +1,9 @@
 import type { Elemento } from '../modelo/documento'
 import type { PiezaLocal } from '../modelo3d/tipos'
 
-export function caja(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, zona: string): PiezaLocal {
-  return { forma: 'caja', x0, y0, z0, x1, y1, z1, zona }
+/** Caja local; con `radio` (cm) sus aristas salen redondeadas en 3D. Sin radio no se añade la clave: las piezas de siempre quedan iguales. */
+export function caja(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, zona: string, radio?: number): PiezaLocal {
+  return { forma: 'caja', x0, y0, z0, x1, y1, z1, zona, ...(radio === undefined ? {} : { radio }) }
 }
 
 export function cilindro(cx: number, cy: number, r: number, z0: number, z1: number, zona: string): PiezaLocal {

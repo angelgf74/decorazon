@@ -3,7 +3,7 @@ import { catalogoBase } from './catalogoBase'
 import type { PiezaLocal } from '../modelo3d/tipos'
 import type { Elemento } from '../modelo/documento'
 import { elemento } from './definiciones/ayuda.test-util'
-import { cajonesApilados } from './modelos'
+import { caja, cajonesApilados } from './modelos'
 
 const TIPOS = ['cama', 'armario', 'comoda', 'mesita', 'escritorio', 'silla', 'estanteria', 'sofa', 'sillon', 'mesa-centro', 'mueble-tv', 'mesa', 'aparador']
 
@@ -21,6 +21,13 @@ function ancho(p: PiezaLocal): [number, number, number, number, number, number] 
 
 const frentesDe = (ps: PiezaLocal[], e: Elemento) =>
   ps.filter((p) => p.forma === 'caja' && Math.abs(p.y1 - (e.medidas.fondo / 2 - 1.5)) < 1e-9 && p.y1 - p.y0 === 2)
+
+describe('caja', () => {
+  it('sin radio no lleva la clave (los toEqual de siempre no cambian); con radio, la lleva', () => {
+    expect(caja(0, 0, 0, 1, 1, 1, 'z')).not.toHaveProperty('radio')
+    expect(caja(0, 0, 0, 10, 10, 10, 'z', 3)).toMatchObject({ forma: 'caja', radio: 3 })
+  })
+})
 
 describe('generadores 3D de dormitorio y salón', () => {
   it('la mesa no deforma las patas al estirarla', () => {

@@ -55,6 +55,15 @@ describe('piezasDeElemento', () => {
     expect(piezasDeElemento(e, def)[0].material).toBe('madera')
   })
 
+  it('una caja con radio lo lleva a la escena en metros; sin radio, no aparece la clave', () => {
+    const e = elementoNuevo(mesa, { x: 0, y: 0 })
+    const [conRadio] = piezasDeElemento(e, conPiezas([{ ...caja(-10, 10), radio: 3 }]))
+    if (conRadio.forma !== 'caja') throw new Error('forma')
+    expect(conRadio.radio).toBeCloseTo(0.03)
+    const [sinRadio] = piezasDeElemento(e, conPiezas([caja(-10, 10)]))
+    expect('radio' in sinRadio).toBe(false)
+  })
+
   it('modeloPorVolumenes: una caja del tamaño del elemento', () => {
     const e = elementoNuevo(mesa, { x: 0, y: 0 })
     const m = modeloPorVolumenes(e)
