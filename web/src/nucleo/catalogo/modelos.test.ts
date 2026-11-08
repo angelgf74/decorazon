@@ -19,6 +19,15 @@ function ancho(p: PiezaLocal): [number, number, number, number, number, number] 
     : [p.cx - p.r, p.cy - p.r, p.z0, p.cx + p.r, p.cy + p.r, p.z1]
 }
 
+type Caja = Extract<PiezaLocal, { forma: 'caja' }>
+const cajas = (ps: PiezaLocal[]) => ps.filter((p): p is Caja => p.forma === 'caja')
+/** Cojines de asiento: tapizado redondeado que llega al frente, de 10 a 14 cm de grueso. */
+const cojinesDeAsiento = (ps: PiezaLocal[], fondo: number) =>
+  cajas(ps).filter((p) => p.zona === 'tapizado' && p.radio !== undefined && p.y1 === fondo / 2 && p.z1 - p.z0 >= 10 && p.z1 - p.z0 <= 14)
+/** Cojines de respaldo: delante del armazón de 8 cm, hasta 20 cm del fondo. */
+const cojinesDeRespaldo = (ps: PiezaLocal[], fondo: number) =>
+  cajas(ps).filter((p) => p.zona === 'tapizado' && p.radio !== undefined && p.y0 === -fondo / 2 + 8 && p.y1 === -fondo / 2 + 20)
+
 const frentesDe = (ps: PiezaLocal[], e: Elemento) =>
   ps.filter((p) => p.forma === 'caja' && Math.abs(p.y1 - (e.medidas.fondo / 2 - 1.5)) < 1e-9 && p.y1 - p.y0 === 2)
 
@@ -51,10 +60,31 @@ describe('generadores 3D de dormitorio y salón', () => {
     const e = elemento('comoda', 0, 0, 0, {}, { cajones: 6 })
     expect(frentesDe(piezasDe(e), e)).toHaveLength(6)
   })
-  it('sofá de 2 plazas: 2 cojines', () => {
-    const e = elemento('sofa', 0, 0, 0, {}, { plazas: 2 })
-    const cojines = piezasDe(e).filter((p) => p.forma === 'caja' && p.z1 - p.z0 === 12 && p.y1 === e.medidas.fondo / 2 && p.y0 === -e.medidas.fondo / 2 + 20)
-    expect(cojines).toHaveLength(2)
+  it('sofá: un cojín de asiento y uno de respaldo por plaza, redondeados', () => {
+    for (const plazas of [2, 3]) {
+      const e = elemento('sofa', 0, 0, 0, {}, { plazas })
+      const f = e.medidas.fondo
+      expect(cojinesDeAsiento(piezasDe(e), f), `asiento ${plazas}`).toHaveLength(plazas)
+      expect(cojinesDeRespaldo(piezasDe(e), f), `respaldo ${plazas}`).toHaveLength(plazas)
+    }
+  })
+  it('todo el tapizado del sofá lleva radio; las patas, no', () => {
+    const ps = piezasDe(elemento('sofa', 0, 0, 0))
+    for (const p of ps) if (p.forma === 'caja') expect(p.radio !== undefined, JSON.stringify(p)).toBe(p.zona === 'tapizado')
+  })
+  it('sillón de 60 de ancho: un cojín de asiento y uno de respaldo de 28 (1 cm de aire a cada lado del hueco entre brazos)', () => {
+    const e = elemento('sillon', 0, 0, 0, { ancho: 60 })
+    const f = e.medidas.fondo
+    const [asiento] = cojinesDeAsiento(piezasDe(e), f)
+    const [respaldo] = cojinesDeRespaldo(piezasDe(e), f)
+    expect(cojinesDeAsiento(piezasDe(e), f)).toHaveLength(1)
+    expect(asiento!.x1 - asiento!.x0).toBeCloseTo(30)
+    expect(respaldo!.x1 - respaldo!.x0).toBeCloseTo(28)
+  })
+  it('sofá cama abierto: el colchón que sale lleva radio 4', () => {
+    const colchon = piezasDe(elemento('sofa-cama', 0, 0, 0, {}, { abierto: true })).filter((p) => p.zona === 'colchon')
+    expect(colchon).toHaveLength(1)
+    expect(colchon[0]).toMatchObject({ forma: 'caja', radio: 4 })
   })
   it('sofá con chaise izquierda: piezas en el lado izquierdo que pasan del frente', () => {
     const e = elemento('sofa', 0, 0, 0, {}, { chaise: 'izquierda' })

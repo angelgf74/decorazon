@@ -106,33 +106,48 @@ export function mesaConPatas(e: Elemento, zonaTablero: string, zonaPatas: string
 
 export type LadoChaise = 'no' | 'izquierda' | 'derecha'
 
-/** Sofá o sillón (plazas = 1): base, respaldo de 20 cm, brazos de 15 cm, cojines y patas; la chaise ocupa el lado indicado. */
+/** Radios de redondeo del tapizado, en cm: estructura (base, armazón del respaldo), brazos y cojines. */
+export const RADIO_ESTRUCTURA = 2
+export const RADIO_BRAZO = 4
+export const RADIO_COJIN = 5
+
+/**
+ * Sofá o sillón (plazas = 1): base, armazón del respaldo de 8 cm con un cojín de respaldo por plaza (hasta 20 cm del fondo),
+ * brazos de 15 cm, cojines de asiento de 12 cm y patas; la chaise ocupa el lado indicado. Todo el tapizado va redondeado;
+ * las piezas quedan dentro de la caja del elemento (los conflictos usan los `volumenes`, no estas piezas).
+ */
 export function asientoTapizado(e: Elemento, plazas: number, chaise: LadoChaise, zonaPatas = 'patas'): PiezaLocal[] {
   const { ancho, fondo, alto } = e.medidas
   const pata = 8
   const asiento = alto - 40
   const zBase = asiento - 12
+  const yArmazon = -fondo / 2 + 8
+  const yRespaldo = -fondo / 2 + 20
   const xA = chaise === 'izquierda' ? -ancho / 2 : -ancho / 2 + 15
   const xB = chaise === 'derecha' ? ancho / 2 : ancho / 2 - 15
   const w = (xB - xA - (plazas - 1) * 0.4) / plazas
   const piezas: PiezaLocal[] = [
-    caja(-ancho / 2, -fondo / 2, pata, ancho / 2, fondo / 2, zBase, 'tapizado'),
-    caja(xA, -fondo / 2, zBase, xB, -fondo / 2 + 20, alto, 'tapizado'),
+    caja(-ancho / 2, -fondo / 2, pata, ancho / 2, fondo / 2, zBase, 'tapizado', RADIO_ESTRUCTURA),
+    caja(xA, -fondo / 2, zBase, xB, yArmazon, alto, 'tapizado', RADIO_ESTRUCTURA),
     ...Array.from({ length: plazas }, (_, i) => {
       const x0 = xA + i * (w + 0.4)
-      return caja(x0, -fondo / 2 + 20, zBase, x0 + w, fondo / 2, asiento, 'tapizado')
-    }),
+      return [
+        // El cojín de respaldo deja 1 cm de aire a cada lado y 4 por arriba: se lee como cojín, no como bloque.
+        caja(x0 + 1, yArmazon, zBase, x0 + w - 1, yRespaldo, alto - 4, 'tapizado', RADIO_COJIN),
+        caja(x0, yRespaldo, zBase, x0 + w, fondo / 2, asiento, 'tapizado', RADIO_COJIN),
+      ]
+    }).flat(),
     ...patas4(e, 5, pata, zonaPatas),
   ]
-  if (chaise !== 'derecha') piezas.push(caja(-ancho / 2, -fondo / 2, pata, -ancho / 2 + 15, fondo / 2, alto - 20, 'tapizado'))
-  if (chaise !== 'izquierda') piezas.push(caja(ancho / 2 - 15, -fondo / 2, pata, ancho / 2, fondo / 2, alto - 20, 'tapizado'))
+  if (chaise !== 'derecha') piezas.push(caja(-ancho / 2, -fondo / 2, pata, -ancho / 2 + 15, fondo / 2, alto - 20, 'tapizado', RADIO_BRAZO))
+  if (chaise !== 'izquierda') piezas.push(caja(ancho / 2 - 15, -fondo / 2, pata, ancho / 2, fondo / 2, alto - 20, 'tapizado', RADIO_BRAZO))
   if (chaise !== 'no') {
     const ancha = Math.min(90, ancho / 2)
     const [x0, x1] = chaise === 'izquierda' ? [-ancho / 2, -ancho / 2 + ancha] : [ancho / 2 - ancha, ancho / 2]
     const y1 = fondo / 2 + 70
     piezas.push(
-      caja(x0, fondo / 2, pata, x1, y1, zBase, 'tapizado'),
-      caja(x0, fondo / 2, zBase, x1, y1, asiento, 'tapizado'),
+      caja(x0, fondo / 2, pata, x1, y1, zBase, 'tapizado', RADIO_ESTRUCTURA),
+      caja(x0, fondo / 2, zBase, x1, y1, asiento, 'tapizado', RADIO_COJIN),
       ...[x0 + 3, x1 - 8].map((x) => caja(x, y1 - 8, 0, x + 5, y1 - 3, pata, zonaPatas)),
     )
   }

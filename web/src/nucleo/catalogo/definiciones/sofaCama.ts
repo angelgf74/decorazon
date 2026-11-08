@@ -32,7 +32,7 @@ export const sofaCama: DefinicionTipo = {
     return [
       ...sofa,
       caja(-ancho / 2 + 5, fondo / 2, 25, ancho / 2 - 5, y1, ALTO_CAMA_CM - 12, 'patas'),
-      caja(-ancho / 2 + 5, fondo / 2, ALTO_CAMA_CM - 12, ancho / 2 - 5, y1, ALTO_CAMA_CM, 'colchon'),
+      caja(-ancho / 2 + 5, fondo / 2, ALTO_CAMA_CM - 12, ancho / 2 - 5, y1, ALTO_CAMA_CM, 'colchon', 4),
       ...[-ancho / 2 + 8, ancho / 2 - 13].map((x) => caja(x, y1 - 8, 0, x + 5, y1 - 3, 25, 'patas')),
     ]
   },
