@@ -11,7 +11,7 @@ export const cuna: DefinicionTipo = {
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],
   zonasColor: [
-    { clave: 'estructura', etiqueta: 'Estructura', material: 'madera', defecto: '#efe8dc' },
+    { clave: 'estructura', etiqueta: 'Estructura', material: 'madera', materiales: ['madera', 'lacado', 'metal'], defecto: '#efe8dc' },
     { clave: 'colchon', etiqueta: 'Colchón', material: 'tela', defecto: '#f4f1ea' },
   ],
   pisable: false, bloqueaPaso: true, sobreVentana: false,

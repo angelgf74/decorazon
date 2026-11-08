@@ -12,7 +12,7 @@ export const libreria: DefinicionTipo = {
   medidas: { ancho: { min: 80, max: 300, defecto: 160 }, fondo: { min: 25, max: 40, defecto: 30 }, alto: { min: 180, max: 260, defecto: 220 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],
-  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'madera', defecto: '#c9a77c' }],
+  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'madera', materiales: ['madera', 'lacado'], defecto: '#c9a77c' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d(e) {

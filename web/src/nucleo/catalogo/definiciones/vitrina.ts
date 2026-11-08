@@ -12,7 +12,7 @@ export const vitrina: DefinicionTipo = {
   medidas: { ancho: { min: 50, max: 120, defecto: 80 }, fondo: { min: 35, max: 45, defecto: 40 }, alto: { min: 160, max: 200, defecto: 180 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],
-  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'madera', defecto: '#8b6b4a' }],
+  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'madera', materiales: ['madera', 'lacado'], defecto: '#8b6b4a' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d(e) {

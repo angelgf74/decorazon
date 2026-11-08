@@ -206,12 +206,19 @@ describe('PanelPropiedades: bloquear, voltear y nombre propio', () => {
     expect(screen.queryByLabelText('Lado')).toBeNull()
   })
 
-  it('una zona con materiales a elegir lleva un selector junto al color: las patas de la mesa en metal, madera o lacado; el tablero no', async () => {
+  it('una zona sin materiales a elegir (la ropa de cama) no lleva selector de material', () => {
+    colocar('cama')
+    render(<PanelPropiedades />)
+    expect(screen.getByLabelText('Ropa de cama')).toBeTruthy()
+    expect(screen.queryByLabelText('Material de Ropa de cama')).toBeNull()
+  })
+
+  it('una zona con materiales a elegir lleva un selector junto al color: las patas de la mesa en metal, madera o lacado; el tablero, madera o lacado', async () => {
     colocar('mesa')
     render(<PanelPropiedades />)
     const material = screen.getByLabelText('Material de Patas')
     expect(within(material).getAllByRole('option').map((o) => o.textContent)).toEqual(['Metal', 'Madera', 'Lacado'])
-    expect(screen.queryByLabelText('Material de Tablero')).toBeNull()
+    expect(within(screen.getByLabelText('Material de Tablero')).getAllByRole('option').map((o) => o.textContent)).toEqual(['Madera', 'Lacado'])
     await userEvent.selectOptions(material, 'madera')
     expect(elemento().materiales).toEqual({ patas: 'madera' })
     expect(screen.getByLabelText('Patas')).toBeTruthy()

@@ -24,7 +24,7 @@ export const mesaReuniones: DefinicionTipo = {
     // La ovalada ya va sobre pies redondos.
     { ...VARIANTE_PATAS, valoresPara: (e) => (ovalada(e) ? ['redondas'] : VARIANTE_PATAS.valores), ocultarConUnValor: true },
   ],
-  zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#a98462' }, { clave: 'patas', etiqueta: 'Patas', material: 'metal', materiales: ['metal', 'madera', 'lacado'], defecto: '#3a3a3a' }],
+  zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', materiales: ['madera', 'lacado'], defecto: '#a98462' }, { clave: 'patas', etiqueta: 'Patas', material: 'metal', materiales: ['metal', 'madera', 'lacado'], defecto: '#3a3a3a' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes(e) {
     if (!ovalada(e)) return tableroConPatas(e)

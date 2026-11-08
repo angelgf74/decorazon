@@ -33,7 +33,7 @@ export const escritorio: DefinicionTipo = {
     { ...VARIANTE_PATAS, valoresPara: (e) => (cajoneraDe(e) === 'ambas' ? ['cuadradas'] : VARIANTE_PATAS.valores), ocultarConUnValor: true },
   ],
   zonasColor: [
-    { clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#c9a77c' },
+    { clave: 'tablero', etiqueta: 'Tablero', material: 'madera', materiales: ['madera', 'lacado'], defecto: '#c9a77c' },
     { clave: 'patas', etiqueta: 'Patas', material: 'metal', materiales: ['metal', 'madera', 'lacado'], defecto: '#3a3a3a' },
   ],
   pisable: false, bloqueaPaso: true, sobreVentana: false,

@@ -92,3 +92,24 @@ describe('materiales elegibles por zona (plan 28c)', () => {
     expect(catalogoBase.get('mesa-auxiliar')!.zonasColor.find((z) => z.clave === 'pie')!.materiales).toEqual(expect.arrayContaining(['madera', 'metal', 'lacado']))
   })
 })
+
+describe('material elegible en tableros, cuerpos, estructuras y asientos', () => {
+  const zona = (tipo: string, clave: string) => catalogoBase.get(tipo)!.zonasColor.find((z) => z.clave === clave)!
+  it('los tableros de madera se pueden pedir lacados, y al revés', () => {
+    for (const tipo of ['mesa', 'mesa-alta', 'mesa-auxiliar', 'mesa-centro', 'mesa-plegable', 'mesa-reuniones', 'escritorio', 'escritorio-l']) {
+      expect(zona(tipo, 'tablero').materiales, tipo).toEqual(expect.arrayContaining(['madera', 'lacado']))
+    }
+  })
+  it('los cuerpos de los muebles (no de los electrodomésticos) en madera o lacado', () => {
+    for (const tipo of ['aparador', 'armario', 'armario-espejo', 'armario-esquinero', 'cajonera', 'comoda', 'estanteria', 'libreria', 'mesita', 'mueble-tv', 'vitrina', 'zapatero', 'modulo-bajo', 'modulo-alto', 'isla', 'columna-cocina', 'columna-bano']) {
+      expect(zona(tipo, 'cuerpo').materiales, tipo).toEqual(expect.arrayContaining(['madera', 'lacado']))
+    }
+    expect(zona('armario-esquinero', 'puertas').materiales).toEqual(expect.arrayContaining(['madera', 'lacado']))
+    expect(zona('lavadora', 'cuerpo').materiales).toBeUndefined()
+  })
+  it('estructuras de cama y asientos de madera también en lacado o metal', () => {
+    for (const [tipo, clave] of [['cama', 'estructura'], ['cuna', 'estructura'], ['litera', 'estructura'], ['silla', 'asiento'], ['taburete', 'asiento']]) {
+      expect(zona(tipo!, clave!).materiales, tipo).toEqual(expect.arrayContaining(['madera', 'lacado', 'metal']))
+    }
+  })
+})

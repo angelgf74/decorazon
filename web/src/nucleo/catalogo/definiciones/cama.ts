@@ -53,7 +53,7 @@ export const cama: DefinicionTipo = {
     },
   ],
   zonasColor: [
-    { clave: 'estructura', etiqueta: 'Estructura', material: 'madera', defecto: '#8b6b4a' },
+    { clave: 'estructura', etiqueta: 'Estructura', material: 'madera', materiales: ['madera', 'lacado', 'metal'], defecto: '#8b6b4a' },
     { clave: 'ropa', etiqueta: 'Ropa de cama', material: 'tela', defecto: '#d9d4c7' },
   ],
   pisable: false, bloqueaPaso: true, sobreVentana: false,

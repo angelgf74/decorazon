@@ -10,7 +10,7 @@ export const armarioEspejo: DefinicionTipo = {
   medidas: { ancho: { min: 40, max: 120, defecto: 60 }, fondo: { min: 10, max: 20, defecto: 15 }, alto: { min: 50, max: 90, defecto: 70 } },
   alturaSuelo: 120, alturaSueloEditable: true,
   variantes: [],
-  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', defecto: '#f2efe8' }],
+  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', materiales: ['lacado', 'madera'], defecto: '#f2efe8' }],
   pisable: false, bloqueaPaso: false, sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d(e) {
