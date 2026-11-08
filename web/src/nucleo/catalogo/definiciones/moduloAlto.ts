@@ -7,7 +7,7 @@ export const moduloAlto: DefinicionTipo = {
   medidas: { ancho: { min: 15, max: 120, defecto: 60 }, fondo: { min: 25, max: 45, defecto: 35 }, alto: { min: 30, max: 110, defecto: 70 } },
   alturaSuelo: 145, alturaSueloEditable: true,
   variantes: [],
-  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', defecto: '#f2efe8' }],
+  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', materiales: ['lacado', 'madera'], defecto: '#f2efe8' }],
   pisable: false, bloqueaPaso: false, sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d(e) {

@@ -18,7 +18,7 @@ export const isla: DefinicionTipo = {
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [{ clave: 'barra', etiqueta: 'Barra para taburetes', valores: [true, false], defecto: true }],
   zonasColor: [
-    { clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', defecto: '#f2efe8' },
+    { clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', materiales: ['lacado', 'madera'], defecto: '#f2efe8' },
     { clave: 'encimera', etiqueta: 'Encimera', material: 'ceramica', defecto: '#cfc9bd' },
   ],
   // El paso alrededor ya lo vigila su espacio libre de 90 cm: sin el aviso de paso estrecho repetido.

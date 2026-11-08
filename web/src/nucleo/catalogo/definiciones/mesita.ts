@@ -7,7 +7,7 @@ export const mesita: DefinicionTipo = {
   medidas: { ancho: { min: 30, max: 70, defecto: 45 }, fondo: { min: 30, max: 50, defecto: 40 }, alto: { min: 40, max: 75, defecto: 55 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [{ clave: 'cajon', etiqueta: 'Cajón', valores: [true, false], defecto: true }],
-  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'madera', defecto: '#a98462' }],
+  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'madera', materiales: ['madera', 'lacado'], defecto: '#a98462' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d(e) {

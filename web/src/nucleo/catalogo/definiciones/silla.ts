@@ -7,7 +7,7 @@ export const silla: DefinicionTipo = {
   medidas: { ancho: { min: 40, max: 60, defecto: 45 }, fondo: { min: 40, max: 60, defecto: 50 }, alto: { min: 75, max: 110, defecto: 85 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [VARIANTE_PATAS],
-  zonasColor: [{ clave: 'asiento', etiqueta: 'Asiento', material: 'madera', defecto: '#8b6b4a' }],
+  zonasColor: [{ clave: 'asiento', etiqueta: 'Asiento', material: 'madera', materiales: ['madera', 'lacado', 'metal'], defecto: '#8b6b4a' }],
   pisable: false, bloqueaPaso: false, sobreVentana: false,
   volumenes: (e) => asientoYRespaldo(e, 45, 3),
   planta: huellaEntera,

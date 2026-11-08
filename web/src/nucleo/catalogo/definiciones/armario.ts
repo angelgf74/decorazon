@@ -10,7 +10,7 @@ export const armario: DefinicionTipo = {
     { clave: 'puertas', etiqueta: 'Puertas', valores: ['abatibles', 'correderas'], defecto: 'abatibles' },
     { clave: 'modulos', etiqueta: 'Módulos', valores: [1, 2, 3, 4], defecto: 1 },
   ],
-  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', defecto: '#e8e4dc' }],
+  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', materiales: ['lacado', 'madera'], defecto: '#e8e4dc' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d(e) {

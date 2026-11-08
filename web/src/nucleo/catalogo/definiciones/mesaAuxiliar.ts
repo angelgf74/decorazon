@@ -11,7 +11,7 @@ export const mesaAuxiliar: DefinicionTipo = {
     // Solo la cuadrada lleva cuatro patas; la redonda va sobre un pie.
     { ...VARIANTE_PATAS, valoresPara: (e) => (valorVariante(mesaAuxiliar, e, 'forma') === 'cuadrada' ? VARIANTE_PATAS.valores : ['cuadradas']), ocultarConUnValor: true },
   ],
-  zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#a98462' }, { clave: 'pie', etiqueta: 'Pie', material: 'metal', materiales: ['metal', 'madera', 'lacado'], defecto: '#3a3a3a' }],
+  zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', materiales: ['madera', 'lacado'], defecto: '#a98462' }, { clave: 'pie', etiqueta: 'Pie', material: 'metal', materiales: ['metal', 'madera', 'lacado'], defecto: '#3a3a3a' }],
   pisable: false, bloqueaPaso: false, sobreVentana: false,
   volumenes: (e) => (valorVariante(mesaAuxiliar, e, 'forma') === 'redonda'
     ? [{ huella: huellaOvalada(e), zMin: e.alturaSuelo, zMax: e.alturaSuelo + e.medidas.alto }]

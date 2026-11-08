@@ -7,7 +7,7 @@ export const muebleTv: DefinicionTipo = {
   medidas: { ancho: { min: 80, max: 300, defecto: 160 }, fondo: { min: 30, max: 55, defecto: 40 }, alto: { min: 30, max: 80, defecto: 50 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [{ clave: 'puertas', etiqueta: 'Puertas', valores: [0, 2, 4], defecto: 2 }],
-  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', defecto: '#e8e4dc' }],
+  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', materiales: ['lacado', 'madera'], defecto: '#e8e4dc' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d: (e) => cuerpoConZocalo(e, Number(valorVariante(muebleTv, e, 'puertas')), 'cuerpo'),

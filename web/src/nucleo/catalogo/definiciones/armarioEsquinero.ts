@@ -144,8 +144,8 @@ export const armarioEsquinero: DefinicionTipo = {
     return [`Profundidad del fondo: ${pF} cm`, `Ancho del ala: ${aA} cm`, ...(hx > 0 ? [`Hueco del rincón: ${hx} × ${hy} cm`] : [])]
   },
   zonasColor: [
-    { clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', defecto: '#e8e4dc' },
-    { clave: 'puertas', etiqueta: 'Puertas', material: 'lacado', defecto: '#f2f0ea' },
+    { clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', materiales: ['lacado', 'madera'], defecto: '#e8e4dc' },
+    { clave: 'puertas', etiqueta: 'Puertas', material: 'lacado', materiales: ['lacado', 'madera'], defecto: '#f2f0ea' },
   ],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: (e) => cuerpos(e).map(([x0, y0, x1, y1]) => cajaMundo(e, x0, y0, x1, y1, 0, e.medidas.alto)),

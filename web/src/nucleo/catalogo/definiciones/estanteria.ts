@@ -7,7 +7,7 @@ export const estanteria: DefinicionTipo = {
   medidas: { ancho: { min: 40, max: 200, defecto: 80 }, fondo: { min: 20, max: 50, defecto: 30 }, alto: { min: 60, max: 240, defecto: 180 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],
-  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'madera', defecto: '#c9a77c' }],
+  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'madera', materiales: ['madera', 'lacado'], defecto: '#c9a77c' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d(e) {

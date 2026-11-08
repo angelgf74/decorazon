@@ -59,7 +59,8 @@ describe('filasDeMuebles', () => {
       variantes: ['Puertas: Correderas', 'Módulos: 2'],
     })
     expect(filas[0]!.colores.length).toBe(catalogoBase.get('armario')!.zonasColor.length)
-    expect(filas[0]!.colores[0]).toEqual({ etiqueta: catalogoBase.get('armario')!.zonasColor[0]!.etiqueta, color: catalogoBase.get('armario')!.zonasColor[0]!.defecto })
+    // El cuerpo del armario se puede pedir en madera o lacado: la hoja dice cuál lleva.
+    expect(filas[0]!.colores[0]).toEqual({ etiqueta: `${catalogoBase.get('armario')!.zonasColor[0]!.etiqueta} (lacado)`, color: catalogoBase.get('armario')!.zonasColor[0]!.defecto })
     expect(filas[1]!.alturaSuelo).toBe('A 85 cm del suelo')
     expect(filas[2]!.variantes).toEqual(['Cabecero: No', 'Base: Patas'])
   })
@@ -134,7 +135,11 @@ describe('filasDeMuebles: material por zona (plan 28c)', () => {
     const mesa = elementoNuevo(catalogoBase.get('mesa')!, { x: 200, y: 165 }, 'm')
     doc.elementos = [mesa, { ...mesa, id: 'n', materiales: { patas: 'madera' } }]
     const [fm, fn] = filasDeMuebles(doc, catalogoBase)
-    expect(fm!.colores.map((c) => c.etiqueta)).toEqual(['Tablero', 'Patas (metal)'])
-    expect(fn!.colores.map((c) => c.etiqueta)).toEqual(['Tablero', 'Patas (madera)'])
+    expect(fm!.colores.map((c) => c.etiqueta)).toEqual(['Tablero (madera)', 'Patas (metal)'])
+    expect(fn!.colores.map((c) => c.etiqueta)).toEqual(['Tablero (madera)', 'Patas (madera)'])
+    // Una zona sin materiales a elegir sigue sin paréntesis.
+    const cama = elementoNuevo(catalogoBase.get('cama')!, { x: 100, y: 100 }, 'c')
+    doc.elementos = [cama]
+    expect(filasDeMuebles(doc, catalogoBase)[0]!.colores.map((c) => c.etiqueta)).toEqual(['Estructura (madera)', 'Ropa de cama'])
   })
 })

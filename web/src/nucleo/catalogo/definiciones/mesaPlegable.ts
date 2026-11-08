@@ -26,7 +26,7 @@ export const mesaPlegable: DefinicionTipo = {
   medidas: { ancho: { min: 60, max: 120, defecto: 80 }, fondo: { min: 40, max: 80, defecto: 60 }, alto: { min: 70, max: 80, defecto: 75 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [{ clave: 'abierta', etiqueta: 'Abierta', valores: [true, false], defecto: true }],
-  zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', defecto: '#a98462' }, { clave: 'soporte', etiqueta: 'Soporte', material: 'metal', defecto: '#3a3a3a' }],
+  zonasColor: [{ clave: 'tablero', etiqueta: 'Tablero', material: 'madera', materiales: ['madera', 'lacado'], defecto: '#a98462' }, { clave: 'soporte', etiqueta: 'Soporte', material: 'metal', defecto: '#3a3a3a' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes,
   // En el plano, listón y tablero; la escuadra queda debajo.

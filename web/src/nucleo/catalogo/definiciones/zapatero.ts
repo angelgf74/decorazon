@@ -11,7 +11,7 @@ export const zapatero: DefinicionTipo = {
   medidas: { ancho: { min: 50, max: 140, defecto: 80 }, fondo: { min: 17, max: 40, defecto: 25 }, alto: { min: 50, max: 180, defecto: 110 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [{ clave: 'trampillas', etiqueta: 'Trampillas', valores: [2, 3, 4], defecto: 3 }],
-  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', defecto: '#f2efe9' }],
+  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', materiales: ['lacado', 'madera'], defecto: '#f2efe9' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d(e) {

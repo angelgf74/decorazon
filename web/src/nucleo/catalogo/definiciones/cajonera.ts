@@ -10,7 +10,7 @@ export const cajonera: DefinicionTipo = {
   medidas: { ancho: { min: 35, max: 50, defecto: 42 }, fondo: { min: 45, max: 65, defecto: 55 }, alto: { min: 50, max: 70, defecto: 60 } },
   alturaSuelo: 0, alturaSueloEditable: false,
   variantes: [],
-  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', defecto: '#e8e6e1' }, { clave: 'ruedas', etiqueta: 'Ruedas', material: 'metal', defecto: '#2b2b2b' }],
+  zonasColor: [{ clave: 'cuerpo', etiqueta: 'Cuerpo', material: 'lacado', materiales: ['lacado', 'madera'], defecto: '#e8e6e1' }, { clave: 'ruedas', etiqueta: 'Ruedas', material: 'metal', defecto: '#2b2b2b' }],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d(e) {

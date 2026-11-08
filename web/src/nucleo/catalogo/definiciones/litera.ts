@@ -9,7 +9,7 @@ export const litera: DefinicionTipo = {
   // Lado largo por el que se sube (x): «Voltear» la cambia de lado.
   variantes: [{ clave: 'escalera', etiqueta: 'Escalera', valores: ['izquierda', 'derecha'], defecto: 'derecha' }],
   zonasColor: [
-    { clave: 'estructura', etiqueta: 'Estructura', material: 'madera', defecto: '#d8c3a0' },
+    { clave: 'estructura', etiqueta: 'Estructura', material: 'madera', materiales: ['madera', 'lacado', 'metal'], defecto: '#d8c3a0' },
     { clave: 'ropa', etiqueta: 'Ropa de cama', material: 'tela', defecto: '#c9d3dc' },
   ],
   pisable: false, bloqueaPaso: true, sobreVentana: false,
