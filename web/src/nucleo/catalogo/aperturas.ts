@@ -81,10 +81,9 @@ export function zonaCaja(e: Elemento, nombre: string, x0: number, y0: number, x1
   return { nombre, ...cajaMundo(e, x0, y0, x1, y1, zDesde, zHasta) }
 }
 
-/** Una caja delante del frente, entre `x0` y `x1`, de `fondo/2` a `fondo/2 + recorrido`. */
-export function cajonesEn(e: Elemento, x0: number, x1: number, recorrido: number, zDesde = 0, zHasta = e.medidas.alto): ZonaApertura[] {
-  const { fondo } = e.medidas
-  return [zonaCaja(e, 'el cajón', x0, fondo / 2, x1, fondo / 2 + recorrido, zDesde, zHasta)]
+/** Una caja delante del frente (`yFrente`, por defecto `fondo/2`), entre `x0` y `x1`, que sale `recorrido`. */
+export function cajonesEn(e: Elemento, x0: number, x1: number, recorrido: number, zDesde = 0, zHasta = e.medidas.alto, yFrente = e.medidas.fondo / 2): ZonaApertura[] {
+  return [zonaCaja(e, 'el cajón', x0, yFrente, x1, yFrente + recorrido, zDesde, zHasta)]
 }
 
 /** Una caja delante del frente a todo el ancho, de `fondo/2` a `fondo/2 + recorrido`. */
