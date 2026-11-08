@@ -12,7 +12,7 @@
 - [x] 2. `Escena3D` prop `sombras`, `Estancia3D` prop `sueloConSombra`; `Escena3D.sombras.test.tsx`.
 - [x] 3. `Captura3D` con `dpr` escalonado, `antialias` y `sombras="suaves"`; `CapturaFueraDePantalla` pasa `dpr={2}`; tests.
 - [x] 4. Medir: build y presupuesto, e2e (hoja ≤ 20 s), tiempo de la captura en SwiftShader; afinar `frames`/`amount`; mirar salón y dormitorio.
-- [ ] 5. Cierre (con el plan 26 en `main`): regenerar `public/ejemplos/*.png` (reducidos a 1200 × 800), `npm run imagen-redes`, `public/capturas/*.webp`; `CLAUDE.md`; PR.
+- [x] 5. Cierre (con el plan 26 en `main`): regenerar `public/ejemplos/*.png` (reducidos a 1200 × 800), `npm run imagen-redes`, `public/capturas/*.webp`; `CLAUDE.md`; PR.
 
 ## Hallazgos (tarea 4)
 
