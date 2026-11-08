@@ -11,12 +11,16 @@ export const silla: DefinicionTipo = {
   pisable: false, bloqueaPaso: false, sobreVentana: false,
   volumenes: (e) => asientoYRespaldo(e, 45, 3),
   planta: huellaEntera,
+  // Asiento a 45 con el canto redondeado; el respaldo son dos montantes de 4 × 3 y un panel de 22 cm que flota sobre el asiento.
   modelo3d(e) {
     const { ancho, fondo, alto } = e.medidas
+    const yRespaldo = -fondo / 2 + 3
     return [
       ...patas4(e, 4, 42, 'asiento', 2),
-      caja(-ancho / 2, -fondo / 2, 42, ancho / 2, fondo / 2, 45, 'asiento'),
-      caja(-ancho / 2, -fondo / 2, 45, ancho / 2, -fondo / 2 + 3, alto, 'asiento'),
+      caja(-ancho / 2, -fondo / 2, 42, ancho / 2, fondo / 2, 45, 'asiento', 1),
+      caja(-ancho / 2, -fondo / 2, 45, -ancho / 2 + 4, yRespaldo, alto, 'asiento'),
+      caja(ancho / 2 - 4, -fondo / 2, 45, ancho / 2, yRespaldo, alto, 'asiento'),
+      caja(-ancho / 2 + 4, -fondo / 2, alto - 25, ancho / 2 - 4, yRespaldo, alto - 3, 'asiento', 1),
     ]
   },
   zonasApertura: () => [],

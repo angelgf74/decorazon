@@ -1,4 +1,5 @@
 import { BoxGeometry, CylinderGeometry, type BufferGeometry } from 'three'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { describe, expect, it } from 'vitest'
 import { uvsEnMetros } from './geometrias'
 
@@ -23,6 +24,31 @@ describe('uvsEnMetros', () => {
     expect(rangoUV(g, [0, 0, 1])).toEqual([2, 1])
     expect(rangoUV(g, [1, 0, 0])).toEqual([0.5, 1])
     expect(rangoUV(g, [0, 1, 0])).toEqual([2, 0.5])
+  })
+
+  it('una caja redondeada también va en metros: en las zonas planas cada cara se proyecta sobre su plano', () => {
+    const g = uvsEnMetros(new RoundedBoxGeometry(2, 1, 0.5, 3, 0.05))
+    const posicion = g.getAttribute('position')
+    const normal = g.getAttribute('normal')
+    const uv = g.getAttribute('uv')
+    expect(uv.count).toBe(posicion.count)
+    let arriba = 0
+    let frente = 0
+    for (let i = 0; i < uv.count; i++) {
+      if (Math.abs(normal.getY(i)) > 0.999) {
+        arriba++
+        expect(uv.getX(i)).toBeCloseTo(posicion.getX(i))
+        expect(uv.getY(i)).toBeCloseTo(posicion.getZ(i))
+      } else if (Math.abs(normal.getZ(i)) > 0.999) {
+        frente++
+        expect(uv.getX(i)).toBeCloseTo(posicion.getX(i))
+        expect(uv.getY(i)).toBeCloseTo(posicion.getY(i))
+      }
+    }
+    expect(arriba).toBeGreaterThan(0)
+    expect(frente).toBeGreaterThan(0)
+    // La parte plana de arriba mide lo que la caja menos los dos radios.
+    expect(rangoUV(g, [0, 1, 0])).toEqual([2 - 0.1, 0.5 - 0.1].map((v) => expect.closeTo(v, 6)))
   })
 
   it('el lateral de un cilindro da la vuelta en metros (2πr) y sube su altura', () => {

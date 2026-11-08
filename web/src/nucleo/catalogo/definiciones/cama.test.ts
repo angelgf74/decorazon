@@ -1,29 +1,55 @@
 import { describe, expect, it } from 'vitest'
+import type { PiezaLocal } from '../../modelo3d/tipos'
+import { elemento } from './ayuda.test-util'
 import { cama } from './cama'
-import { alfombra } from './alfombra'
-import { elementoDe } from './ayuda.test-util'
 
-describe('cama', () => {
-  it('con cabecero: 2 volúmenes, el más alto llega a 100', () => {
-    const v = cama.volumenes(elementoDe('cama', 100, 100, 0, 150, 200, 45, { cabecero: true }))
-    expect(v).toHaveLength(2)
-    expect(Math.max(...v.map((p) => p.zMax))).toBe(100)
+type Caja = Extract<PiezaLocal, { forma: 'caja' }>
+const cajas = (medidas = {}, variantes = {}) => cama.modelo3d!(elemento('cama', 0, 0, 0, medidas, variantes)).filter((p): p is Caja => p.forma === 'caja')
+const almohadas = (ps: Caja[]) => ps.filter((p) => p.zona === 'ropa' && p.z1 - p.z0 === 10 && p.y1 - p.y0 === 40)
+const edredon = (ps: Caja[]) => ps.find((p) => p.zona === 'ropa' && p.z1 - p.z0 === 6)!
+
+describe('cama: ropa de cama con forma', () => {
+  it('con 150 de ancho, dos almohadas redondeadas de 67,5 (5 cm de aire a los lados y entre ellas), simétricas, hasta el alto', () => {
+    const ps = cajas()
+    const a = almohadas(ps)
+    expect(a).toHaveLength(2)
+    for (const p of a) {
+      expect(p.radio).toBe(4)
+      expect(p.x1 - p.x0).toBe(67.5)
+      expect(p.z1).toBe(45)
+    }
+    const [izq, der] = a.sort((p, q) => p.x0 - q.x0)
+    expect(izq!.x0).toBe(-der!.x1)
+    expect(der!.x0 - izq!.x1).toBe(5)
   })
-  it('sin cabecero: 1 volumen; por defecto lleva cabecero', () => {
-    expect(cama.volumenes(elementoDe('cama', 0, 0, 0, 150, 200, 45, { cabecero: false }))).toHaveLength(1)
-    expect(cama.volumenes(elementoDe('cama', 0, 0, 0, 150, 200, 45))).toHaveLength(2)
+
+  it('con 80 de ancho, una almohada de 70; con 220, dos de 80', () => {
+    expect(almohadas(cajas({ ancho: 80 })).map((p) => p.x1 - p.x0)).toEqual([70])
+    expect(almohadas(cajas({ ancho: 220 })).map((p) => p.x1 - p.x0)).toEqual([80, 80])
   })
-  it('cabecero en la trasera (y local negativo)', () => {
-    const [, c] = cama.volumenes(elementoDe('cama', 100, 100, 0, 150, 200, 45))
-    const ys = c.huella.map((p) => p.y)
-    expect(Math.min(...ys)).toBeCloseTo(0, 9)
-    expect(Math.max(...ys)).toBeCloseTo(6, 9)
+
+  it('el edredón empieza 50 cm tras la cabecera del colchón, tiene 6 de grueso y radio 3; las almohadas son lo que llega al alto', () => {
+    for (const alto of [20, 45, 70]) {
+      const ps = cajas({ alto })
+      const e = edredon(ps)
+      expect(e.radio).toBe(3)
+      expect(e.y0).toBe(-100 + 6 + 50)
+      expect(e.z1).toBe(alto - 4)
+      expect(Math.max(...ps.filter((p) => p.zona === 'ropa').map((p) => p.z1))).toBe(alto)
+      for (const p of ps) expect(p.z0, JSON.stringify(p)).toBeGreaterThanOrEqual(0)
+    }
   })
-})
-describe('alfombra', () => {
-  it('es pisable y no bloquea el paso', () => {
-    expect(alfombra.pisable).toBe(true)
-    expect(alfombra.bloqueaPaso).toBe(false)
-    expect(alfombra.zonasApertura(elementoDe('alfombra', 0, 0, 0, 200, 140, 1))).toHaveLength(0)
+
+  it('con 20 de alto no hay patas ni somier: solo colchón, ropa y cabecero', () => {
+    const ps = cajas({ alto: 20 })
+    expect(ps.filter((p) => p.zona === 'estructura')).toHaveLength(1)
+    expect(ps.find((p) => p.zona === 'estructura')!.z1).toBe(100)
+  })
+
+  it('sin cabecero, colchón y edredón empiezan en el fondo', () => {
+    const ps = cajas({}, { cabecero: false })
+    expect(edredon(ps).y0).toBe(-100 + 50)
+    expect(Math.min(...ps.map((p) => p.y0))).toBe(-100)
+    expect(ps.some((p) => p.zona === 'estructura' && p.z1 === 100)).toBe(false)
   })
 })

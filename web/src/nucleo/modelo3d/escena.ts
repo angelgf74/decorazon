@@ -27,6 +27,7 @@ export function piezasDeElemento(e: Elemento, def: DefinicionTipo): Pieza3D[] {
         forma: 'caja', material, color, giroY,
         centro: aEscena(c, e.alturaSuelo + (p.z0 + p.z1) / 2),
         tamano: [(p.x1 - p.x0) / 100, (p.z1 - p.z0) / 100, (p.y1 - p.y0) / 100],
+        ...(p.radio === undefined ? {} : { radio: p.radio / 100 }),
       }
     }
     const c = aMundo(e, { x: p.cx, y: p.cy })
