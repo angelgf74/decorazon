@@ -1,7 +1,7 @@
 import { BoxGeometry, CylinderGeometry, type BufferGeometry } from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { describe, expect, it } from 'vitest'
-import { uvsEnMetros } from './geometrias'
+import { geometriaReceptor, uvsEnMetros } from './geometrias'
 
 /** Ancho y alto de las coordenadas de textura de los vértices cuya normal es `n`. */
 function rangoUV(g: BufferGeometry, n: [number, number, number]): [number, number] {
@@ -17,6 +17,20 @@ function rangoUV(g: BufferGeometry, n: [number, number, number]): [number, numbe
   }
   return [Math.max(...us) - Math.min(...us), Math.max(...vs) - Math.min(...vs)]
 }
+
+describe('geometriaReceptor', () => {
+  it('es la planta (cm) en el plano local del receptor de drei, relativa al centro, con uv de 0 a 1 sobre su caja', () => {
+    const g = geometriaReceptor([{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 330 }, { x: 0, y: 330 }], [2, 0, 1.65])
+    g.computeBoundingBox()
+    const b = g.boundingBox!
+    // Local (x, −z): la planta de 4 × 3,3 m centrada queda de −2 a 2 y de −1,65 a 1,65, en z = 0.
+    expect([b.min.x, b.max.x, b.min.y, b.max.y, b.min.z, b.max.z].map((v) => Number(v.toFixed(6)))).toEqual([-2, 2, -1.65, 1.65, 0, 0])
+    const uv = g.getAttribute('uv')
+    const us = Array.from({ length: uv.count }, (_, i) => uv.getX(i))
+    const vs = Array.from({ length: uv.count }, (_, i) => uv.getY(i))
+    expect([Math.min(...us), Math.max(...us), Math.min(...vs), Math.max(...vs)]).toEqual([0, 1, 0, 1])
+  })
+})
 
 describe('uvsEnMetros', () => {
   it('una caja de 2 × 1 × 0,5 m: cada cara mide en la textura lo que mide de verdad', () => {

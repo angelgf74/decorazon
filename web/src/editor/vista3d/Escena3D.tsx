@@ -169,7 +169,7 @@ export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false,
       <Estancia3D doc={doc} ocultas={ocultas} sueloConSombra={sombras === 'duras'} />
       {doc.elementos.map((e) => <Mueble3D key={e.id} elemento={e} sinResaltes={sinResaltes} />)}
       {/* Después de los muebles: el horneado recorre la escena en su layout effect y tiene que encontrarlos montados. */}
-      {sombras === 'suaves' && <SombrasSuaves centro={centro} radio={radio} sol={sol} />}
+      {sombras === 'suaves' && <SombrasSuaves planta={planta} centro={centro} radio={radio} sol={sol} />}
     </>
   )
 }
