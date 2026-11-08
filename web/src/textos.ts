@@ -490,7 +490,7 @@ export const textos = {
     anonimoTitulo: 'Sin cuenta',
     anonimo: 'El diseño que haces sin cuenta vive solo en tu navegador: no se envía a ningún sitio.',
     medimosTitulo: 'Qué medimos',
-    medimos: 'Medimos de forma anónima cuántas visitas hay y qué partes se usan (por ejemplo, cuántas veces se abre la vista 3D o qué muebles se colocan): sin tu cuenta, sin tu diseño y sin nada que te identifique. En la dirección de la página, el identificador de un diseño se sustituye por «:id» antes de contarla.',
+    medimos: 'Medimos de forma anónima cuántas visitas hay y qué partes se usan (por ejemplo, cuántas veces se abre la vista 3D, qué muebles se colocan o qué se busca en el catálogo sin encontrarlo, sin correos ni números): sin tu cuenta, sin tu diseño y sin nada que te identifique. En la dirección de la página, el identificador de un diseño se sustituye por «:id» antes de contarla.',
     borrarTitulo: 'Borrar tu cuenta',
     borrar: 'Si borras tu cuenta, se borra todo lo que guardamos de ti, diseños incluidos.',
     contactoTitulo: 'Contacto',

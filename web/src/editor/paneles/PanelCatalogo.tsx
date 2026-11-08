@@ -8,6 +8,7 @@ import { useEditor } from '../estado/almacen'
 import { EVENTO_SOLTAR_TIPO, MIME_TIPO, UMBRAL_ARRASTRE_PX, type DetalleSoltarTipo } from '../lienzo/arrastres'
 import { alternarFavorito, useCatalogoLocal } from './catalogoLocal'
 import MiniaturaDeTipo from './MiniaturaDeTipo'
+import { normalizarBusqueda, useBusquedaSinResultados } from './usarBusquedaSinResultados'
 
 const t = textos.catalogo
 
@@ -177,7 +178,7 @@ function Grupo({ titulo, tipos, centro, favoritos, esFavoritos = false, alPulsar
 }
 
 /** Sin mayúsculas ni tildes: "lampara" encuentra "Lámpara de pie". */
-const normalizar = (texto: string) => texto.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim()
+const normalizar = normalizarBusqueda
 
 /** Las definiciones de unos ids, en ese orden, saltando los que ya no existan en el catálogo. */
 const definiciones = (ids: string[]): DefinicionTipo[] => ids.map((id) => catalogoBase.get(id)).filter((d) => d !== undefined)
@@ -222,6 +223,7 @@ export default function PanelCatalogo({ alEmpezarArrastre }: { alEmpezarArrastre
   const local = useCatalogoLocal()
   const { recientes, onPointerEnter, onPointerLeave } = useRecientesQuietos(local.recientes)
   const favoritos = local.favoritos
+  useBusquedaSinResultados(busqueda)
   if (!estancia) return null
   const { deLaEstancia, otros, decoracion } = catalogoDeEstancia(catalogoBase, estancia.tipo)
   const centro = puntoInterior(estancia.planta)
