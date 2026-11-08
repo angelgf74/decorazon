@@ -33,6 +33,18 @@ describe('filasDeMuebles', () => {
     expect(fl!.variantes).toContain('Senos: 1')
   })
 
+  it('una variante con un solo valor posible no sale; las etiquetas de los valores son las del tipo', () => {
+    const doc = documentoNuevo('dormitorio', 400, 330, 250)
+    const patas = elementoNuevo(catalogoBase.get('cama')!, { x: 100, y: 100 }, 'p')
+    const nido = { ...elementoNuevo(catalogoBase.get('cama')!, { x: 250, y: 100 }, 'n'), variantes: { base: 'nido', lado: 'izquierda' } }
+    doc.elementos = [patas, nido]
+    const [fp, fn] = filasDeMuebles(doc, catalogoBase)
+    expect(fp!.variantes).toContain('Base: Patas')
+    expect(fp!.variantes.some((v) => v.startsWith('Lado'))).toBe(false)
+    expect(fn!.variantes).toContain('Base: Cama nido')
+    expect(fn!.variantes).toContain('Lado: Izquierda')
+  })
+
   it('nombre, medidas, altura al suelo, variantes y colores de cada mueble, en el orden del diseño', () => {
     const doc = documentoNuevo('cocina', 400, 300, 250)
     const armario = { ...elementoNuevo(catalogoBase.get('armario')!, { x: 100, y: 50 }, 'a'), variantes: { puertas: 'correderas', modulos: 2 } }
@@ -49,7 +61,7 @@ describe('filasDeMuebles', () => {
     expect(filas[0]!.colores.length).toBe(catalogoBase.get('armario')!.zonasColor.length)
     expect(filas[0]!.colores[0]).toEqual({ etiqueta: catalogoBase.get('armario')!.zonasColor[0]!.etiqueta, color: catalogoBase.get('armario')!.zonasColor[0]!.defecto })
     expect(filas[1]!.alturaSuelo).toBe('A 85 cm del suelo')
-    expect(filas[2]!.variantes).toEqual(['Cabecero: No'])
+    expect(filas[2]!.variantes).toEqual(['Cabecero: No', 'Base: Patas'])
   })
 
   it('con nombre propio, el tipo va aparte; sin él, null; en uno de tienda, el nombre del producto (su línea lleva el tipo)', () => {

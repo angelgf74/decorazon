@@ -227,9 +227,10 @@ function PropiedadesElemento({ doc, e, en3d }: { doc: DocumentoDiseno; e: Elemen
           alCambiar={(n) => editar({ alturaSuelo: n })} />
       )}
       </div>
-      {def.variantes.map((v) => (
+      {/* Una variante dependiente que solo admite un valor para este elemento (el lado de una cama con patas) no se enseña. */}
+      {def.variantes.filter((v) => !v.ocultarConUnValor || valoresVariante(def, e, v.clave).length > 1).map((v) => (
         <Opciones key={v.clave} etiqueta={v.etiqueta} valor={String(valorVariante(def, e, v.clave))}
-          opciones={Object.fromEntries(valoresVariante(def, e, v.clave).map((x) => [String(x), etiquetaValor(x)]))}
+          opciones={Object.fromEntries(valoresVariante(def, e, v.clave).map((x) => [String(x), etiquetaValor(x, v)]))}
           alCambiar={(s) => editar({ variantes: { [v.clave]: v.valores.find((x) => String(x) === s) ?? v.defecto } })} />
       ))}
       {def.zonasColor.map((z) => (

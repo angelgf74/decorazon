@@ -1,5 +1,5 @@
 import {
-  capitalizar, desplazarPoligono, esUrlDeProducto, lineasMedidasExtra, nombreDeElemento, valorVariante, type Catalogo, type DocumentoDiseno, type OrigenTienda, type Punto,
+  capitalizar, desplazarPoligono, esUrlDeProducto, lineasMedidasExtra, nombreDeElemento, valoresVariante, valorVariante, type Catalogo, type DocumentoDiseno, type OrigenTienda, type Punto,
 } from '../../nucleo'
 import { textos } from '../../textos'
 import { formatoFecha, formatoPrecio } from '../comunes/formatos'
@@ -56,7 +56,8 @@ export function filasDeMuebles(doc: DocumentoDiseno, catalogo: Catalogo): FilaMu
         ? [
             // Las medidas extra (el hueco de un esquinero) antes que las variantes; las da el tipo, o «Etiqueta: N cm».
             ...lineasMedidasExtra(def, e),
-            ...def.variantes.map((v) => `${v.etiqueta}: ${etiquetaValor(valorVariante(def, e, v.clave))}`),
+            // Una variante dependiente con un solo valor posible para este mueble no dice nada: no sale (igual que en el panel).
+            ...def.variantes.filter((v) => !v.ocultarConUnValor || valoresVariante(def, e, v.clave).length > 1).map((v) => `${v.etiqueta}: ${etiquetaValor(valorVariante(def, e, v.clave), v)}`),
           ]
         : [],
       colores: def ? def.zonasColor.map((z) => ({ etiqueta: z.etiqueta, color: e.colores[z.clave] ?? z.defecto })) : [],
