@@ -26,16 +26,17 @@ export function Disparar({ alCapturar, dpr }: { alCapturar(url: string): void; d
 }
 
 /**
- * Pinta la escena fuera de la pantalla, desde la cámara inicial, sin resaltes y con sombras suaves, y devuelve la imagen.
+ * Pinta la escena fuera de la pantalla, desde la cámara inicial, sin resaltes y con sombras suaves (salvo que se pidan
+ * duras: la vista previa es una miniatura y el horneado no cabía en su tiempo en el CI), y devuelve la imagen.
  * El tamaño lo da la clase del contenedor (fuera de la pantalla): la cámara encuadra para él; `dpr` 2 dobla los píxeles.
  */
-export default function Captura3D({ doc, alCapturar, className = 'hoja-impresion__lienzo3d', dpr = 1 }: {
-  doc: DocumentoDiseno; alCapturar(url: string): void; className?: string; dpr?: DprCaptura
+export default function Captura3D({ doc, alCapturar, className = 'hoja-impresion__lienzo3d', dpr = 1, sombras = 'suaves' }: {
+  doc: DocumentoDiseno; alCapturar(url: string): void; className?: string; dpr?: DprCaptura; sombras?: 'duras' | 'suaves'
 }) {
   return (
     <div className={className} aria-hidden="true">
       <Canvas shadows dpr={1} camera={{ fov: 45 }} gl={{ preserveDrawingBuffer: true, antialias: true }}>
-        <Escena doc={doc} ocultar encuadres={0} sinResaltes sombras="suaves" />
+        <Escena doc={doc} ocultar encuadres={0} sinResaltes sombras={sombras} />
         <Disparar alCapturar={alCapturar} dpr={dpr} />
       </Canvas>
     </div>
