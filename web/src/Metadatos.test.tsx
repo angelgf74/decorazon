@@ -53,8 +53,8 @@ describe('useMetadatos', () => {
 })
 
 describe('Metadatos de cada página', () => {
-  it('inicio, diseñar y privacidad se indexan, con título y descripción propios', () => {
-    expect(PAGINAS_INDEXABLES).toEqual(['inicio', 'disenar', 'privacidad'])
+  it('inicio, diseñar, cómo funciona y privacidad se indexan, con título y descripción propios', () => {
+    expect(PAGINAS_INDEXABLES).toEqual(['inicio', 'disenar', 'comoFunciona', 'privacidad'])
     for (const pagina of PAGINAS_INDEXABLES) {
       const r = render(<Metadatos pagina={pagina} />)
       expect(document.title).toBe(textos.seo[pagina].titulo)

@@ -14,6 +14,7 @@ export const textos = {
     tuCuenta: 'Tu cuenta',
     miCuenta: 'Mi cuenta',
     privacidad: 'Privacidad',
+    comoFunciona: 'Cómo funciona',
     cuentaBorrada: 'Tu cuenta se ha borrado.',
     ejemplos: 'Empieza con un ejemplo',
     ejemplosDetalle: 'Una copia para ti: cámbiala como quieras.',
@@ -519,6 +520,53 @@ export const textos = {
     cambioNoValido: 'Ese cambio no es válido',
   },
   /** Título y descripción de cada página para buscadores (`Metadatos.tsx`): título hasta 60 caracteres, descripción hasta 160. */
+  comoFunciona: {
+    titulo: 'Cómo funciona Decorazon',
+    entradilla: 'Decorazon es un planificador de habitaciones gratuito que funciona en el navegador. Dibujas la estancia con sus medidas reales, la amueblas y compruebas, antes de comprar nada, que todo cabe, que las puertas y los cajones se abren y que queda sitio para pasar.',
+    empezar: 'Empezar a diseñar',
+    pasosTitulo: 'Paso a paso',
+    pasos: [
+      {
+        titulo: '1. Dibuja la estancia con sus medidas',
+        texto: 'Elige dormitorio, salón, cocina, despacho o baño y escribe el ancho, el largo y el alto en centímetros. La planta puede ser un rectángulo o una L; si tu habitación tiene otra forma, arrastra las esquinas o parte una pared en dos. Después añade puertas, ventanas, radiadores, columnas y vigas en su sitio.',
+        imagen: '/como-funciona/estancia.webp',
+        imagenAlt: 'Plano de un dormitorio con sus cotas en centímetros, la puerta y la ventana',
+      },
+      {
+        titulo: '2. Amuebla desde el catálogo',
+        texto: 'El catálogo tiene casi sesenta tipos de muebles y electrodomésticos ordenados por estancia: camas, armarios, sofás, mesas, módulos de cocina, sanitarios… Cada uno admite sus medidas, sus variantes (con o sin cajones, puertas a la izquierda o a la derecha) y sus colores. Si ya sabes qué vas a comprar, apunta la tienda, el enlace y el precio, y la lista de muebles te dará el total.',
+        imagen: '/como-funciona/amueblar.webp',
+        imagenAlt: 'El catálogo de muebles junto al plano de un salón amueblado',
+      },
+      {
+        titulo: '3. Comprueba que todo cabe y se abre',
+        texto: 'Mientras colocas los muebles, Decorazon te avisa de lo que no encaja: dos muebles que se solapan, uno que atraviesa la pared o no cabe bajo el techo o una viga, una puerta o un cajón que choca al abrirse, un mueble que tapa la ventana o el radiador y los pasos de menos de 60 cm. Cada aviso dice cuántos centímetros faltan.',
+        imagen: '/como-funciona/avisos.webp',
+        imagenAlt: 'La lista de avisos del plano, con un cajón que choca y un paso estrecho',
+      },
+      {
+        titulo: '4. Míralo en 3D',
+        texto: 'Con un toque pasas a la vista 3D: gira alrededor de la habitación, acércate o ponte dentro, a la altura de los ojos, para ver cómo queda al entrar por la puerta. Los muebles se pueden elegir, cambiar y mover también ahí.',
+        imagen: '/como-funciona/vista-3d.webp',
+        imagenAlt: 'Vista 3D de una cocina amueblada',
+      },
+      {
+        titulo: '5. Guarda, comparte o imprime',
+        texto: 'Sin cuenta, el diseño se guarda en tu navegador. Con una cuenta gratuita guardas hasta 100 diseños y los abres desde cualquier dispositivo. Puedes compartir un enlace de solo lectura, imprimir o guardar en PDF una hoja con el plano, la lista de muebles y la vista 3D, o descargar el plano y la imagen.',
+        imagen: '/como-funciona/compartir.webp',
+        imagenAlt: 'Hoja para imprimir con el plano acotado de un salón',
+      },
+    ],
+    preguntasTitulo: 'Preguntas frecuentes',
+    preguntas: [
+      { pregunta: '¿Es gratis?', respuesta: 'Sí. No hay versión de pago ni anuncios.' },
+      { pregunta: '¿Necesito crear una cuenta?', respuesta: 'No. Puedes diseñar sin registrarte y tu diseño se queda en este navegador. La cuenta solo hace falta para guardar varios diseños y abrirlos en otro dispositivo.' },
+      { pregunta: '¿Funciona en el móvil?', respuesta: 'Sí, en el móvil y en la tableta: el plano se mueve con los dedos y los muebles se giran con dos. También se puede instalar como una aplicación.' },
+      { pregunta: '¿Qué precisión tienen las medidas?', respuesta: 'Todo se mide en centímetros. Las medidas del plano y de los avisos son las que escribes tú, así que conviene medir la habitación con cinta antes de empezar.' },
+    ],
+    otrasCosas: '¿Prefieres ver uno hecho?',
+    verEjemplos: 'Abre uno de los ejemplos del inicio',
+  },
   seo: {
     inicio: {
       titulo: 'Decorazon: diseña tu habitación en 2D y 3D, gratis',
@@ -527,6 +575,10 @@ export const textos = {
     disenar: {
       titulo: 'Diseñar una habitación online en 3D | Decorazon',
       descripcion: 'Dibuja las paredes con tus medidas, añade puertas y ventanas, amuebla desde el catálogo y comprueba que todo cabe y se abre. Sin registro.',
+    },
+    comoFunciona: {
+      titulo: 'Cómo planificar tu habitación paso a paso | Decorazon',
+      descripcion: 'Dibuja la habitación a medida, amuebla, comprueba que todo cabe y se abre y míralo en 3D. Así funciona Decorazon, gratis y sin registro.',
     },
     privacidad: {
       titulo: 'Privacidad | Decorazon',

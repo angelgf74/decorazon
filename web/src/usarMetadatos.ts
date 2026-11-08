@@ -4,7 +4,7 @@ import { textos } from './textos'
 export type PaginaConMetadatos = keyof typeof textos.seo
 
 /** Lo único que se indexa (y lo que lleva `public/sitemap.xml`); las páginas de cuenta van con `noindex`. */
-export const PAGINAS_INDEXABLES = ['inicio', 'disenar', 'privacidad'] as const satisfies readonly PaginaConMetadatos[]
+export const PAGINAS_INDEXABLES = ['inicio', 'disenar', 'comoFunciona', 'privacidad'] as const satisfies readonly PaginaConMetadatos[]
 
 /** La etiqueta `<meta name>` o `<link rel>` del head, o null si no está. */
 const buscar = <E extends Element>(selector: string) => document.head.querySelector<E>(selector)
