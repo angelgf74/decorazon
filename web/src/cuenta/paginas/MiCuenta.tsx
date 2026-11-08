@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router'
+import { Link, Navigate, useNavigate } from 'react-router'
 import { api, exigir } from '../../api/cliente'
 import Confirmar from '../../editor/comunes/Confirmar'
 import { textos } from '../../textos'
@@ -125,6 +125,7 @@ export default function MiCuenta() {
         <div className="cuenta__seccion">
           <button type="button" onClick={() => (hayCambiosSinSubir() ? setConfirmandoSalir(true) : salir())}>{m.cerrar}</button>
           <button type="button" onClick={() => setBorrando(true)}>{m.borrar}</button>
+          {usuario?.esAdministrador && <Link to="/administracion" className="boton">{textos.administracion.enlace}</Link>}
         </div>
       </div>
       <Confirmar

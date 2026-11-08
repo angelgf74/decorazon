@@ -1402,6 +1402,37 @@
           }
         ]
       }
+    },
+    "/administracion/usuarios": {
+      "get": {
+        "tags": [
+          "Administracion"
+        ],
+        "operationId": "listarUsuarios",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaDeListadoDeUsuarios"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1670,6 +1701,30 @@
           }
         }
       },
+      "RespuestaDeListadoDeUsuarios": {
+        "required": [
+          "usuarios",
+          "totalDeDisenos",
+          "totalDeBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "usuarios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RespuestaDeUsoDeUsuario"
+            }
+          },
+          "totalDeDisenos": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalDeBytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "RespuestaDeMensaje": {
         "required": [
           "mensaje"
@@ -1684,7 +1739,8 @@
       "RespuestaDeMiCuenta": {
         "required": [
           "nombre",
-          "correo"
+          "correo",
+          "esAdministrador"
         ],
         "type": "object",
         "properties": {
@@ -1693,6 +1749,9 @@
           },
           "correo": {
             "type": "string"
+          },
+          "esAdministrador": {
+            "type": "boolean"
           }
         }
       },
@@ -1758,6 +1817,41 @@
           },
           "baseDeDatos": {
             "type": "boolean"
+          }
+        }
+      },
+      "RespuestaDeUsoDeUsuario": {
+        "required": [
+          "id",
+          "correo",
+          "nombre",
+          "fechaDeAlta",
+          "disenos",
+          "bytes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "correo": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "fechaDeAlta": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "disenos": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -1839,6 +1933,9 @@
     },
     {
       "name": "Disenos"
+    },
+    {
+      "name": "Administracion"
     }
   ]
 }

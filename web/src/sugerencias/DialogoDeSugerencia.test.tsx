@@ -27,7 +27,7 @@ function entrar() {
   localStorage.setItem(CLAVE_SESION, JSON.stringify({ token: 'jwt', caducidad: MANANA }))
   reiniciarSesion()
   conectarSesionConApi()
-  sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es' } })
+  sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es', esAdministrador: false } })
 }
 
 beforeEach(() => {

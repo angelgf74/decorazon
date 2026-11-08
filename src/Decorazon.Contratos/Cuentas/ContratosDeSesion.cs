@@ -21,7 +21,11 @@ public sealed class PeticionDeInicioDeSesion
 public sealed record RespuestaDeInicioDeSesion(string Token, DateTimeOffset Caducidad);
 
 /// <summary>Respuesta de <c>GET /cuentas/yo</c>: quién es el usuario de la sesión.</summary>
-public sealed record RespuestaDeMiCuenta(string Nombre, string Correo);
+/// <param name="EsAdministrador">
+/// Si su correo está en <c>Administracion:Correos</c>: puede entrar en la vista de
+/// administración. La web lo usa para enseñar el enlace; la API lo comprueba por su cuenta.
+/// </param>
+public sealed record RespuestaDeMiCuenta(string Nombre, string Correo, bool EsAdministrador);
 
 /// <summary>
 /// <c>DELETE /cuentas/yo</c>: borrar la cuenta entera, con sus diseños.

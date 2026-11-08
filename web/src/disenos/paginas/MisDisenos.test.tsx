@@ -70,6 +70,16 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('MisDisenos', () => {
+  it('el enlace a la administración solo sale a quien administra', async () => {
+    conSesion()
+    fetchSimulado.mockImplementation(async () => respuesta(200, []))
+    montar()
+    await screen.findByText(textos.disenos.vacio)
+    expect(screen.queryByRole('link', { name: 'Administración' })).not.toBeInTheDocument()
+    act(() => sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es', esAdministrador: true } }))
+    expect(screen.getByRole('link', { name: 'Administración' })).toHaveAttribute('href', '/administracion')
+  })
+
   it('lista los diseños del más reciente al más antiguo', async () => {
     conSesion()
     fetchSimulado.mockResolvedValueOnce(respuesta(200, [ANTIGUO, RECIENTE]))
@@ -433,7 +443,7 @@ describe('MisDisenos sin conexión o con la carga fallida', () => {
 
   it('sin conexión no muestra copias de otra cuenta', async () => {
     conSesion()
-    sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es' } })
+    sesion.setState({ usuario: { nombre: 'Ana', correo: 'ana@x.es', esAdministrador: false } })
     localStorage.setItem(CLAVE_DUENO_COPIAS, 'otra@x.es')
     guardarCopiaLocal(localStorage, 'c1', { version: 3, nombre: 'De otra', documento: doc, pendiente: false })
     fetchSimulado.mockRejectedValueOnce(new TypeError('Failed to fetch'))

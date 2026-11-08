@@ -308,6 +308,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/administracion/usuarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listarUsuarios"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -381,12 +397,20 @@ export interface components {
             /** Format: date-time */
             caducidad: string;
         };
+        RespuestaDeListadoDeUsuarios: {
+            usuarios: components["schemas"]["RespuestaDeUsoDeUsuario"][];
+            /** Format: int32 */
+            totalDeDisenos: number;
+            /** Format: int64 */
+            totalDeBytes: number;
+        };
         RespuestaDeMensaje: {
             mensaje: string;
         };
         RespuestaDeMiCuenta: {
             nombre: string;
             correo: string;
+            esAdministrador: boolean;
         };
         RespuestaDeResumenDeDiseno: {
             /** Format: uuid */
@@ -406,6 +430,18 @@ export interface components {
         RespuestaDeSalud: {
             estado: string;
             baseDeDatos: boolean;
+        };
+        RespuestaDeUsoDeUsuario: {
+            /** Format: uuid */
+            id: string;
+            correo: string;
+            nombre: string;
+            /** Format: date-time */
+            fechaDeAlta: string;
+            /** Format: int32 */
+            disenos: number;
+            /** Format: int64 */
+            bytes: number;
         };
         RespuestaDeVersionAnterior: {
             nombre: string;
@@ -1519,6 +1555,40 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RespuestaDeMensaje"];
                 };
+            };
+        };
+    };
+    listarUsuarios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaDeListadoDeUsuarios"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

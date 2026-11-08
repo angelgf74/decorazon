@@ -41,6 +41,7 @@ public static class InyeccionDeDependencias
         servicios.AddScoped<IRepositorioDeDisenos, RepositorioDeDisenosEf>();
         servicios.AddScoped<IBorradoDeCuentas, BorradoDeCuentasEf>();
         servicios.AddScoped<ILimpiezaDeCaducados, LimpiezaDeCaducadosEf>();
+        servicios.AddScoped<IConsultaDeUsuarios, ConsultaDeUsuariosEf>();
 
         servicios.AddSingleton<IReloj, RelojDelSistema>();
         servicios.AddSingleton<IHasheadorDeContrasenas, HasheadorPbkdf2>();
@@ -48,6 +49,8 @@ public static class InyeccionDeDependencias
         servicios.AddScoped<IEmisorDeAcceso, EmisorDeAccesoJwt>();
 
         AnadirOpcionesDeJwt(servicios, configuracion);
+        // Sin validar: una lista vacía es válida y significa que nadie administra.
+        servicios.Configure<OpcionesDeAdministracion>(configuracion.GetSection(OpcionesDeAdministracion.Seccion));
         AnadirCorreo(servicios, configuracion);
         AnadirSugerencias(servicios, configuracion);
 

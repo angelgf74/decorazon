@@ -1,0 +1,21 @@
+.administracion {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.administracion h1 { margin: 0; color: var(--terracota); }
+.administracion__resumen { margin: 0; color: var(--gris); }
+.administracion__aviso { margin: 0; padding: 0.6rem 0.75rem; border-radius: 0.5rem; background: var(--crema); border: 1px solid var(--amarillo); }
+
+/* En móvil la tabla se desplaza dentro de su caja: la página no. */
+.administracion__tabla { overflow-x: auto; border: 1px solid var(--salmon); border-radius: 0.6rem; background: var(--superficie); }
+.administracion table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.administracion th, .administracion td { padding: 0.5rem 0.75rem; text-align: left; white-space: nowrap; }
+.administracion thead th { font-size: var(--texto-s); border-bottom: 1px solid var(--salmon); }
+.administracion tbody tr + tr td { border-top: 1px solid var(--crema-oscura); }
+.administracion tfoot th, .administracion tfoot td { font-weight: 700; border-top: 1px solid var(--salmon); }
+.administracion .administracion__numero { text-align: right; font-variant-numeric: tabular-nums; }
+.administracion__correo { overflow-wrap: anywhere; white-space: normal; }
