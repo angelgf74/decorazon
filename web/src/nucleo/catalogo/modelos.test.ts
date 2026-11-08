@@ -39,6 +39,11 @@ describe('caja', () => {
 })
 
 describe('generadores 3D de dormitorio y salón', () => {
+  it('el tablero de la mesa lleva el canto redondeado (radio 1 en 3 cm de grueso)', () => {
+    const tablero = cajas(piezasDe(elemento('mesa', 0, 0, 0))).find((p) => p.zona === 'tablero')!
+    expect(tablero.z1 - tablero.z0).toBe(3)
+    expect(tablero.radio).toBe(1)
+  })
   it('la mesa no deforma las patas al estirarla', () => {
     for (const w of [60, 300]) {
       const patas = piezasDe(elemento('mesa', 0, 0, 0, { ancho: w })).filter((p) => p.zona === 'patas')

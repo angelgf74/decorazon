@@ -98,10 +98,10 @@ export function ovalo(e: Elemento, z0: number, z1: number, zona: string): PiezaL
   return [ancho >= fondo ? caja(-tramo, -r, z0, tramo, r, z1, zona) : caja(-r, -tramo, z0, r, tramo, z1, zona), ...piezas]
 }
 
-/** Tablero de 3 cm sobre cuatro patas de 5 cm. */
+/** Tablero de 3 cm con el canto redondeado sobre cuatro patas de 5 cm. */
 export function mesaConPatas(e: Elemento, zonaTablero: string, zonaPatas: string): PiezaLocal[] {
   const { ancho, fondo, alto } = e.medidas
-  return [caja(-ancho / 2, -fondo / 2, alto - 3, ancho / 2, fondo / 2, alto, zonaTablero), ...patas4(e, 5, alto - 3, zonaPatas)]
+  return [caja(-ancho / 2, -fondo / 2, alto - 3, ancho / 2, fondo / 2, alto, zonaTablero, 1), ...patas4(e, 5, alto - 3, zonaPatas)]
 }
 
 export type LadoChaise = 'no' | 'izquierda' | 'derecha'
