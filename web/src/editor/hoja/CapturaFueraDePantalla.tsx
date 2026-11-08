@@ -18,8 +18,8 @@ interface Props {
 }
 
 /**
- * Captura la vista 3D del diseño fuera de la pantalla (1200 × 800, `.hoja-impresion__lienzo3d`) y la entrega, o avisa de
- * que no se puede. La usan la hoja para imprimir y «Descargar imagen 3D». Se desmonta en cuanto termina.
+ * Captura la vista 3D del diseño fuera de la pantalla (1200 × 800 a dpr 2: un PNG de 2400 × 1600, `.hoja-impresion__lienzo3d`)
+ * y la entrega, o avisa de que no se puede. La usan la hoja para imprimir y «Descargar imagen 3D». Se desmonta en cuanto termina.
  */
 export default function CapturaFueraDePantalla({ doc, alCapturar, alFallar }: Props) {
   // Sin WebGL no se monta la captura: montarla pediría el fragmento con three (~1 MB) para nada.
@@ -49,7 +49,7 @@ export default function CapturaFueraDePantalla({ doc, alCapturar, alFallar }: Pr
   return (
     <SinFallos alternativa={null} alFallar={() => terminar(null)}>
       <Suspense fallback={null}>
-        <Captura3D doc={doc} alCapturar={terminar} />
+        <Captura3D doc={doc} alCapturar={terminar} dpr={2} />
       </Suspense>
     </SinFallos>
   )

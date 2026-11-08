@@ -5,6 +5,7 @@ import { Object3D, Vector3, type DirectionalLight } from 'three'
 import { cajaPlanta, camaraAPlano, camaraDesdeDentro, camaraInicial, direccionSol, DISTANCIA_MIRADA_M, lucesInteriores, paredesQueTapan, type DocumentoDiseno, type Vec3 } from '../../nucleo'
 import Estancia3D from './Estancia3D'
 import Mueble3D from './Mueble3D'
+import SombrasSuaves from './SombrasSuaves'
 import { useContextoRestaurado } from './usarContextoRestaurado'
 
 const DISTANCIA_SOL_M = 15
@@ -36,9 +37,11 @@ interface Props {
   sinResaltes?: boolean
   /** La cámara dentro de la estancia, como al entrar por la puerta (M-09). */
   desdeDentro?: boolean
+  /** 'suaves' (la captura): sombras acumuladas en el suelo (`SombrasSuaves`) en vez de la dura del sol; cuestan un horneado. */
+  sombras?: 'duras' | 'suaves'
 }
 
-export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false, desdeDentro = false }: Props) {
+export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false, desdeDentro = false, sombras = 'duras' }: Props) {
   const [inicial] = useState(() => camaraInicial(doc))
   const camara = useThree((e) => e.camera)
   const invalidate = useThree((e) => e.invalidate)
@@ -163,8 +166,10 @@ export default function Escena3D({ doc, ocultar, encuadres, sinResaltes = false,
         minPolarAngle={desdeDentro ? POLAR_DENTRO : 0.1}
         maxPolarAngle={desdeDentro ? Math.PI - POLAR_DENTRO : Math.PI / 2 - 0.05}
       />
-      <Estancia3D doc={doc} ocultas={ocultas} />
+      <Estancia3D doc={doc} ocultas={ocultas} sueloConSombra={sombras === 'duras'} />
       {doc.elementos.map((e) => <Mueble3D key={e.id} elemento={e} sinResaltes={sinResaltes} />)}
+      {/* Después de los muebles: el horneado recorre la escena en su layout effect y tiene que encontrarlos montados. */}
+      {sombras === 'suaves' && <SombrasSuaves planta={planta} centro={centro} radio={radio} sol={sol} />}
     </>
   )
 }

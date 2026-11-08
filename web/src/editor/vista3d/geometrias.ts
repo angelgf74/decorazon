@@ -1,5 +1,5 @@
 import { ExtrudeGeometry, Shape, ShapeGeometry, type BufferGeometry } from 'three'
-import type { Punto } from '../../nucleo'
+import type { Punto, Vec3 } from '../../nucleo'
 
 /** Shape en XY con (x, −z): al girar −π/2 en X cae en (x, z) de la escena y su normal mira a +y. */
 function forma(puntos: [number, number][]): Shape {
@@ -20,6 +20,22 @@ export function geometriaPrisma(huella: [number, number][], y0: number, y1: numb
 export function geometriaSuelo(planta: Punto[]): BufferGeometry {
   const g = new ShapeGeometry(forma(planta.map((p): [number, number] => [p.x / 100, p.y / 100])))
   g.rotateX(-Math.PI / 2)
+  return g
+}
+
+/**
+ * Receptor de las sombras acumuladas (`SombrasSuaves`): la planta en el plano local del receptor de drei (que ya va girado
+ * −π/2 en X: local (x, y) es mundo (x, −z)), relativa a `centro`, con las uv de 0 a 1 sobre su caja. El horneado de drei
+ * desenvuelve por uv, así que valen cualquier forma y cualquier uv dentro de 0..1 mientras el material use las mismas.
+ */
+export function geometriaReceptor(planta: Punto[], centro: Vec3): BufferGeometry {
+  const g = new ShapeGeometry(forma(planta.map((p): [number, number] => [p.x / 100 - centro[0], p.y / 100 - centro[2]])))
+  g.computeBoundingBox()
+  const b = g.boundingBox!
+  const posicion = g.getAttribute('position')
+  const uv = g.getAttribute('uv')
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, (posicion.getX(i) - b.min.x) / (b.max.x - b.min.x), (posicion.getY(i) - b.min.y) / (b.max.y - b.min.y))
+  uv.needsUpdate = true
   return g
 }
 
