@@ -81,10 +81,34 @@ export function zonaCaja(e: Elemento, nombre: string, x0: number, y0: number, x1
   return { nombre, ...cajaMundo(e, x0, y0, x1, y1, zDesde, zHasta) }
 }
 
-/** Una caja delante del frente, de `fondo/2` a `fondo/2 + recorrido`. */
+/** Una caja delante del frente, entre `x0` y `x1`, de `fondo/2` a `fondo/2 + recorrido`. */
+export function cajonesEn(e: Elemento, x0: number, x1: number, recorrido: number, zDesde = 0, zHasta = e.medidas.alto): ZonaApertura[] {
+  const { fondo } = e.medidas
+  return [zonaCaja(e, 'el cajón', x0, fondo / 2, x1, fondo / 2 + recorrido, zDesde, zHasta)]
+}
+
+/** Una caja delante del frente a todo el ancho, de `fondo/2` a `fondo/2 + recorrido`. */
 export function cajones(e: Elemento, recorrido: number, zDesde = 0, zHasta = e.medidas.alto): ZonaApertura[] {
-  const { ancho, fondo } = e.medidas
-  return [zonaCaja(e, 'el cajón', -ancho / 2, fondo / 2, ancho / 2, fondo / 2 + recorrido, zDesde, zHasta)]
+  const { ancho } = e.medidas
+  return cajonesEn(e, -ancho / 2, ancho / 2, recorrido, zDesde, zHasta)
+}
+
+/**
+ * Tablero de 3 cm apoyado en cada lado sobre dos patas de 5 cm (como `tableroConPatas`) o sobre una cajonera de `anchoCajonera`
+ * que llega del suelo al tablero. Lo que quepa bajo el tablero, entre los apoyos, no choca.
+ */
+export function tableroConApoyos(e: Elemento, izquierda: 'pata' | 'cajonera', derecha: 'pata' | 'cajonera', anchoCajonera: number): Prisma[] {
+  const { ancho, fondo, alto } = e.medidas
+  const ys = [-fondo / 2 + 3, fondo / 2 - 8]
+  const apoyo = (lado: -1 | 1, tipo: 'pata' | 'cajonera'): Prisma[] => {
+    if (tipo === 'cajonera') {
+      const [x0, x1] = lado < 0 ? [-ancho / 2, -ancho / 2 + anchoCajonera] : [ancho / 2 - anchoCajonera, ancho / 2]
+      return [cajaMundo(e, x0, -fondo / 2, x1, fondo / 2, 0, alto - 3)]
+    }
+    const x = lado < 0 ? -ancho / 2 + 3 : ancho / 2 - 8
+    return ys.map((y) => cajaMundo(e, x, y, x + 5, y + 5, 0, alto - 3))
+  }
+  return [cajaMundo(e, -ancho / 2, -fondo / 2, ancho / 2, fondo / 2, alto - 3, alto), ...apoyo(-1, izquierda), ...apoyo(1, derecha)]
 }
 
 /** Barrido vertical de una puerta que abate hacia abajo, aproximado por su caja envolvente (ante la duda, conflicto). */
