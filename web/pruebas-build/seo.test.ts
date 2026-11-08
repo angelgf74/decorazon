@@ -25,7 +25,9 @@ describe.skipIf(!existsSync(new URL('index.html', dist)) && !process.env.EXIGIR_
 
   it('index.html lleva Open Graph con imagen absoluta, canonical y un JSON-LD que se parsea', () => {
     const html = leer('index.html')
-    expect(html).toMatch(new RegExp(`<meta property="og:image" content="${DOMINIO}/ejemplos/[a-z]+[.]png"`))
+    expect(html).toContain(`<meta property="og:image" content="${DOMINIO}/imagen-redes.png"`)
+    expect(html).toContain('<meta property="og:image:width" content="1200"')
+    expect(html).toContain('<meta property="og:image:height" content="630"')
     expect(html).toContain('<meta property="og:title"')
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image"')
     expect(html).toContain(`<link rel="canonical" href="${DOMINIO}/"`)
@@ -34,6 +36,14 @@ describe.skipIf(!existsSync(new URL('index.html', dist)) && !process.env.EXIGIR_
     const datos = JSON.parse(ld![1]!)
     expect(datos).toMatchObject({ '@context': 'https://schema.org', '@type': 'WebApplication', url: `${DOMINIO}/`, inLanguage: 'es' })
     expect(datos.offers).toMatchObject({ price: '0' })
+  })
+
+  it('la imagen para redes es un PNG de 1200 × 630 (1,91:1, la que no recortan WhatsApp, X ni Facebook)', () => {
+    const png = readFileSync(new URL('imagen-redes.png', dist))
+    expect(png.subarray(1, 4).toString('latin1')).toBe('PNG')
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630])
+    // Por debajo de 300 kB: WhatsApp no enseña la vista previa con imágenes grandes.
+    expect(png.length).toBeLessThan(300 * 1024)
   })
 
   it('el service worker no sirve la aplicación en lugar de sitemap.xml ni robots.txt', () => {

@@ -37,7 +37,12 @@ function Mueble3D({ elemento, sinResaltes = false }: { elemento: Elemento; sinRe
   }
 
   // M-10: el mueble ya seleccionado se arrastra por el suelo; mientras, los controles de la cámara se apagan.
-  const controles = useThree((s) => s.controls) as { enabled: boolean } | null
+  // Se leen al empezar y al soltar (con get(), no como valor del hook): son los controles de ese momento.
+  const estado3d = useThree((s) => s.get)
+  const activarControles = (activos: boolean) => {
+    const controles = estado3d().controls as { enabled: boolean } | null
+    if (controles) controles.enabled = activos
+  }
   const arrastre = useRef<{ pointerId: number; partida: Punto; desde: Punto } | null>(null)
   type Puntero = ThreeEvent<PointerEvent>
   const objetivo = (ev: Puntero) => ev.target as unknown as { setPointerCapture?(id: number): void; releasePointerCapture?(id: number): void }
@@ -48,7 +53,7 @@ function Mueble3D({ elemento, sinResaltes = false }: { elemento: Elemento; sinRe
     ev.stopPropagation()
     objetivo(ev).setPointerCapture?.(ev.pointerId)
     arrastre.current = { pointerId: ev.pointerId, partida: elemento.posicion, desde }
-    if (controles) controles.enabled = false
+    activarControles(false)
   }
   function alMover(ev: Puntero) {
     const a = arrastre.current
@@ -62,7 +67,7 @@ function Mueble3D({ elemento, sinResaltes = false }: { elemento: Elemento; sinRe
     if (a === null || a.pointerId !== ev.pointerId) return
     arrastre.current = null
     objetivo(ev).releasePointerCapture?.(ev.pointerId)
-    if (controles) controles.enabled = true
+    activarControles(true)
     almacen.getState().terminarGrupo()
   }
 
