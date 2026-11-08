@@ -59,9 +59,11 @@ export function tiradores(e: Elemento, n: number, z: number, zona: string, separ
   })
 }
 
-/** `n` frentes apilados en vertical entre `x0` y `x1`, cada uno con su tirador centrado (en `zonaTirador`, por defecto la misma). */
-export function cajonesApiladosEn(e: Elemento, x0: number, x1: number, n: number, zDesde: number, zHasta: number, zona: string, zonaTirador = zona, separacion = 0.4): PiezaLocal[] {
-  const { fondo } = e.medidas
+/**
+ * `n` frentes apilados en vertical entre `x0` y `x1`, cada uno con su tirador centrado (en `zonaTirador`, por defecto la misma).
+ * El frente del mueble está en `yFrente` (por defecto el del elemento; en un escritorio en L, el del tablero principal).
+ */
+export function cajonesApiladosEn(e: Elemento, x0: number, x1: number, n: number, zDesde: number, zHasta: number, zona: string, zonaTirador = zona, separacion = 0.4, yFrente = e.medidas.fondo / 2): PiezaLocal[] {
   const h = (zHasta - zDesde - (n - 1) * separacion) / n
   const cx = (x0 + x1) / 2
   const a = anchoTirador(x1 - x0)
@@ -69,8 +71,8 @@ export function cajonesApiladosEn(e: Elemento, x0: number, x1: number, n: number
     const z0 = zDesde + i * (h + separacion)
     const zc = z0 + h / 2 - TIRADOR.alto / 2
     return [
-      caja(x0, fondo / 2 - FRENTE_Y0, z0, x1, fondo / 2 - FRENTE_Y1, z0 + h, zona),
-      ...(a === 0 ? [] : [caja(cx - a / 2, fondo / 2 - TIRADOR.fondo, zc, cx + a / 2, fondo / 2, zc + TIRADOR.alto, zonaTirador)]),
+      caja(x0, yFrente - FRENTE_Y0, z0, x1, yFrente - FRENTE_Y1, z0 + h, zona),
+      ...(a === 0 ? [] : [caja(cx - a / 2, yFrente - TIRADOR.fondo, zc, cx + a / 2, yFrente, zc + TIRADOR.alto, zonaTirador)]),
     ]
   }).flat()
 }
@@ -81,10 +83,12 @@ export function cajonesApilados(e: Elemento, n: number, zDesde: number, zHasta: 
   return cajonesApiladosEn(e, -ancho / 2, ancho / 2, n, zDesde, zHasta, zona, zona, separacion)
 }
 
-/** Cajonera bajo un tablero, entre `x0` y `x1`: cuerpo del suelo a `zHasta` con tres cajones de frente (tiradores en `zonaTirador`). */
-export function cajoneraLateral(e: Elemento, x0: number, x1: number, zHasta: number, zona: string, zonaTirador: string): PiezaLocal[] {
-  const { fondo } = e.medidas
-  return [caja(x0, -fondo / 2, 0, x1, yFrenteCuerpo(e, true), zHasta, zona), ...cajonesApiladosEn(e, x0, x1, 3, 1, zHasta - 1, zona, zonaTirador)]
+/**
+ * Cajonera bajo un tablero, entre `x0` y `x1`: cuerpo del suelo a `zHasta` con tres cajones de frente (tiradores en `zonaTirador`).
+ * Va de `yTrasera` a `yFrente` (por defecto, el fondo entero del elemento).
+ */
+export function cajoneraLateral(e: Elemento, x0: number, x1: number, zHasta: number, zona: string, zonaTirador: string, yTrasera = -e.medidas.fondo / 2, yFrente = e.medidas.fondo / 2): PiezaLocal[] {
+  return [caja(x0, yTrasera, 0, x1, yFrente - FRENTE_Y0, zHasta, zona), ...cajonesApiladosEn(e, x0, x1, 3, 1, zHasta - 1, zona, zonaTirador, 0.4, yFrente)]
 }
 
 /** Las mismas piezas desplazadas `dy` cm a lo fondo (negativo = hacia atrás). */
