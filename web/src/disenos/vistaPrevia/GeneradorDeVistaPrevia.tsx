@@ -64,7 +64,8 @@ export default function GeneradorDeVistaPrevia({ doc, alTerminar }: { doc: Docum
   return (
     <SinFallos alternativa={null} alFallar={() => terminar(null)}>
       <Suspense fallback={null}>
-        <Captura3D doc={doc} className="vista-previa__lienzo3d" alCapturar={(url) => { aJpeg(url).then(terminar, () => terminar(null)) }} />
+        {/* Sombras duras: es una miniatura, y el horneado de las suaves rozaba los 10 s en el CI (SwiftShader, tres trabajos a la vez). */}
+        <Captura3D doc={doc} className="vista-previa__lienzo3d" sombras="duras" alCapturar={(url) => { aJpeg(url).then(terminar, () => terminar(null)) }} />
       </Suspense>
     </SinFallos>
   )

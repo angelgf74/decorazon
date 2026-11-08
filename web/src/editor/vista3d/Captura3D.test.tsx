@@ -35,6 +35,12 @@ describe('Captura3D', () => {
     expect(escena).toEqual({ ocultar: true, encuadres: 0, sinResaltes: true, sombras: 'suaves' })
   })
 
+  it('con sombras="duras" (la vista previa) la escena va sin el horneado de sombras suaves', () => {
+    const { container } = render(<Captura3D doc={doc} alCapturar={() => {}} sombras="duras" />)
+    const escena = JSON.parse(container.querySelector('[data-escena]')!.getAttribute('data-escena')!)
+    expect(escena.sombras).toBe('duras')
+  })
+
   it('el contenedor es la clase de la hoja por defecto y no se anuncia al lector de pantalla', () => {
     const { container } = render(<Captura3D doc={doc} alCapturar={() => {}} />)
     const envoltorio = container.firstElementChild!
