@@ -46,8 +46,13 @@ describe.skipIf(!existsSync(new URL('index.html', dist)) && !process.env.EXIGIR_
     expect(png.length).toBeLessThan(300 * 1024)
   })
 
+  it('ninguna carpeta de dist se llama como una página del sitemap (nginx redirigiría /pagina a /pagina/ y daría 403)', () => {
+    const urls = [...leer('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!).pathname.slice(1)).filter((p) => p !== '')
+    for (const ruta of urls) expect(existsSync(new URL(`${ruta}/`, dist)), ruta).toBe(false)
+  })
+
   it('las capturas de «Cómo funciona» son WebP y no pesan de más (que carguen lo comprueba e2e/como-funciona.spec.ts)', () => {
-    const carpeta = new URL('como-funciona/', dist)
+    const carpeta = new URL('capturas/', dist)
     const ficheros = readdirSync(carpeta)
     expect(ficheros.length).toBeGreaterThanOrEqual(5)
     for (const f of ficheros) {

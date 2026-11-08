@@ -22,7 +22,7 @@ describe('Cómo funciona', () => {
     montar()
     for (const paso of t.pasos) {
       const img = screen.getByRole('img', { name: paso.imagenAlt })
-      expect(img).toHaveAttribute('src', expect.stringMatching(/^\/como-funciona\/[a-z0-9-]+[.]webp$/))
+      expect(img).toHaveAttribute('src', expect.stringMatching(/^\/capturas\/[a-z0-9-]+[.]webp$/))
       expect(img).toHaveAttribute('width')
       expect(img).toHaveAttribute('height')
       expect(img).toHaveAttribute('loading', 'lazy')
