@@ -51,19 +51,32 @@ export function tiradores(e: Elemento, n: number, z: number, zona: string, separ
   })
 }
 
-/** `n` frentes apilados en vertical a todo el ancho, cada uno con su tirador centrado. */
-export function cajonesApilados(e: Elemento, n: number, zDesde: number, zHasta: number, zona: string, separacion = 0.4): PiezaLocal[] {
-  const { ancho, fondo } = e.medidas
+/** `n` frentes apilados en vertical entre `x0` y `x1`, cada uno con su tirador centrado (en `zonaTirador`, por defecto la misma). */
+export function cajonesApiladosEn(e: Elemento, x0: number, x1: number, n: number, zDesde: number, zHasta: number, zona: string, zonaTirador = zona, separacion = 0.4): PiezaLocal[] {
+  const { fondo } = e.medidas
   const h = (zHasta - zDesde - (n - 1) * separacion) / n
+  const cx = (x0 + x1) / 2
+  const a = anchoTirador(x1 - x0)
   return Array.from({ length: n }, (_, i) => {
     const z0 = zDesde + i * (h + separacion)
     const zc = z0 + h / 2 - TIRADOR.alto / 2
-    const a = anchoTirador(ancho)
     return [
-      caja(-ancho / 2, fondo / 2 - FRENTE_Y0, z0, ancho / 2, fondo / 2 - FRENTE_Y1, z0 + h, zona),
-      ...(a === 0 ? [] : [caja(-a / 2, fondo / 2 - TIRADOR.fondo, zc, a / 2, fondo / 2, zc + TIRADOR.alto, zona)]),
+      caja(x0, fondo / 2 - FRENTE_Y0, z0, x1, fondo / 2 - FRENTE_Y1, z0 + h, zona),
+      ...(a === 0 ? [] : [caja(cx - a / 2, fondo / 2 - TIRADOR.fondo, zc, cx + a / 2, fondo / 2, zc + TIRADOR.alto, zonaTirador)]),
     ]
   }).flat()
+}
+
+/** `n` frentes apilados en vertical a todo el ancho, cada uno con su tirador centrado. */
+export function cajonesApilados(e: Elemento, n: number, zDesde: number, zHasta: number, zona: string, separacion = 0.4): PiezaLocal[] {
+  const { ancho } = e.medidas
+  return cajonesApiladosEn(e, -ancho / 2, ancho / 2, n, zDesde, zHasta, zona, zona, separacion)
+}
+
+/** Cajonera bajo un tablero, entre `x0` y `x1`: cuerpo del suelo a `zHasta` con tres cajones de frente (tiradores en `zonaTirador`). */
+export function cajoneraLateral(e: Elemento, x0: number, x1: number, zHasta: number, zona: string, zonaTirador: string): PiezaLocal[] {
+  const { fondo } = e.medidas
+  return [caja(x0, -fondo / 2, 0, x1, yFrenteCuerpo(e, true), zHasta, zona), ...cajonesApiladosEn(e, x0, x1, 3, 1, zHasta - 1, zona, zonaTirador)]
 }
 
 /** Las mismas piezas desplazadas `dy` cm a lo fondo (negativo = hacia atrás). */
