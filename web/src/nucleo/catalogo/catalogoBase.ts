@@ -56,7 +56,13 @@ import { chimenea } from './definiciones/chimenea'
 import { isla } from './definiciones/isla'
 import { mesaAlta } from './definiciones/mesaAlta'
 import { campana } from './definiciones/campana'
+import { cuna } from './definiciones/cuna'
+import { litera } from './definiciones/litera'
+import { sofaCama } from './definiciones/sofaCama'
+import { zapatero } from './definiciones/zapatero'
+import { perchero } from './definiciones/perchero'
+import { mesaPlegable } from './definiciones/mesaPlegable'
 
-const tipos = [cama, armario, armarioEsquinero, comoda, alfombra, mesita, escritorio, silla, estanteria, sofa, sillon, mesaCentro, muebleTv, mesa, aparador, moduloBajo, moduloAlto, columnaCocina, encimera, frigorifico, lavavajillas, placa, fregadero, taburete, lampara, planta, cuadro, cortina, sillaOficina, escritorioL, cajonera, archivador, mesaReuniones, papelera, reposapies, inodoro, bide, lavabo, ducha, banera, espejo, armarioEspejo, lavadora, columnaBano, sofaRinconera, vitrina, libreria, mesaAuxiliar, puf, chimenea, isla, mesaAlta, campana]
+const tipos = [cama, armario, armarioEsquinero, comoda, alfombra, mesita, escritorio, silla, estanteria, sofa, sillon, mesaCentro, muebleTv, mesa, aparador, moduloBajo, moduloAlto, columnaCocina, encimera, frigorifico, lavavajillas, placa, fregadero, taburete, lampara, planta, cuadro, cortina, sillaOficina, escritorioL, cajonera, archivador, mesaReuniones, papelera, reposapies, inodoro, bide, lavabo, ducha, banera, espejo, armarioEspejo, lavadora, columnaBano, sofaRinconera, vitrina, libreria, mesaAuxiliar, puf, chimenea, isla, mesaAlta, campana, cuna, litera, sofaCama, zapatero, perchero, mesaPlegable]
 
 export const catalogoBase: Catalogo = new Map(tipos.map((d) => [d.id, d]))
