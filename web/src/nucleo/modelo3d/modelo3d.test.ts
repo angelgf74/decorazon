@@ -80,10 +80,15 @@ describe('piezasDeElemento', () => {
     const [p] = piezasDeElemento(e, conPiezas([{ forma: 'extrusion', plano: 'alzado', contorno: [[-10, 0], [10, 0], [0, 40]], desde: -2, hasta: 2, zona: 'patas' }]))
     expect(p).toEqual({
       forma: 'extrusion', material: 'metal', color: expect.any(String), origen: [0, 0, 0], giroY: expect.closeTo(0, 9),
-      plano: 'alzado', contorno: [[-0.1, 0], [0.1, 0], [0, 0.4]], huecos: [], desde: -0.02, hasta: 0.02,
+      plano: 'alzado', contorno: [[-0.1, 0], [0.1, 0], [0, 0.4]], huecos: [], desde: -0.02, hasta: 0.02, radio: 0,
     })
     const [h] = piezasDeElemento(e, conPiezas([{ forma: 'extrusion', plano: 'planta', contorno: [[0, 0], [10, 0], [10, 10]], huecos: [[[1, 1], [2, 1], [2, 2]]], desde: 0, hasta: 3, zona: 'patas' }]))
     expect(h).toMatchObject({ huecos: [[[0.01, 0.01], [0.02, 0.01], [0.02, 0.02]]] })
+  })
+
+  it('una extrusión con cantos redondeados lleva su radio en metros', () => {
+    const [p] = piezasDeElemento(elementoNuevo(mesa, { x: 0, y: 0 }), conPiezas([{ forma: 'extrusion', plano: 'planta', contorno: [[0, 0], [10, 0], [10, 10]], desde: 0, hasta: 3, radio: 1, zona: 'patas' }]))
+    expect(p).toMatchObject({ forma: 'extrusion', radio: 0.01 })
   })
 
   it('un tubo va en metros; sin codo ni cierre, recto y abierto', () => {

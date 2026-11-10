@@ -71,7 +71,7 @@ function geometriaEnElemento(p: EnElemento3D): BufferGeometry {
     case 'revolucion':
       return geometriaRevolucion(p.centro, p.perfil, p.lados, p.escalaY)
     case 'extrusion':
-      return geometriaExtrusion(p.plano, p.contorno, p.huecos, p.desde, p.hasta)
+      return geometriaExtrusion(p.plano, p.contorno, p.huecos, p.desde, p.hasta, p.radio)
     case 'tubo':
       return geometriaTubo(p.puntos, p.radio, p.codo, p.cerrado)
   }

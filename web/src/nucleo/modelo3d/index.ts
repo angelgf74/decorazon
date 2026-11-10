@@ -1,6 +1,7 @@
 export * from './tipos'
 export { PBR } from './materiales'
 export { aEscena, modeloPorVolumenes, piezasDeElemento } from './escena'
+export { cajaDePieza, contornoEncogido, type CajaLocal } from './formas'
 export { camaraAPlano, camaraDesdeDentro, camaraInicial, direccionSol, DISTANCIA_MIRADA_M, paredesQueTapan } from './camara'
 export { escenaEstancia, materialDelSuelo, type EscenaEstancia } from './estancia'
 export { lucesInteriores, MAXIMO_LAMPARAS, MAXIMO_VENTANAS, type LuzInterior } from './luces'

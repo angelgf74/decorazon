@@ -57,7 +57,7 @@ describe('Pieza: revolución, extrusión y tubo', () => {
   const comun = { material: 'metal' as const, color: '#3a3a3a', origen: [1, 0.2, 2] as Vec3, giroY: 0.7 }
   const formas: Pieza3D[] = [
     { ...comun, forma: 'revolucion', centro: [0.05, 0], perfil: [[0, 0], [0.1, 0], [0.05, 0.3], [0, 0.3]], lados: 24, escalaY: 1 },
-    { ...comun, forma: 'extrusion', plano: 'alzado', contorno: [[-0.1, 0], [0.1, 0], [0, 0.2]], huecos: [], desde: -0.01, hasta: 0.01 },
+    { ...comun, forma: 'extrusion', plano: 'alzado', contorno: [[-0.1, 0], [0.1, 0], [0, 0.2]], huecos: [], desde: -0.01, hasta: 0.01, radio: 0 },
     { ...comun, forma: 'tubo', puntos: [[0, 0, 0], [0, 0, 0.4], [0.2, 0, 0.4]], radio: 0.015, codo: 0.05, cerrado: false },
   ]
 

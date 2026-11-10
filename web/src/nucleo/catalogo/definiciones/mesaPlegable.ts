@@ -42,7 +42,7 @@ export const mesaPlegable: DefinicionTipo = {
     return [
       liston,
       caja(-ancho / 2, -fondo / 2, alto - 3, ancho / 2, fondo / 2, alto, 'tablero'),
-      extrusion('perfil', escuadra, -1.5, 1.5, 'soporte', [hueco]),
+      extrusion('perfil', escuadra, -1.5, 1.5, 'soporte', { huecos: [hueco] }),
     ]
   },
   zonasApertura: () => [],

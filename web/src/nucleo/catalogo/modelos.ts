@@ -17,16 +17,28 @@ export function revolucion(cx: number, cy: number, perfil: [number, number][], z
   return { forma: 'revolucion', cx, cy, perfil, zona, ...opciones }
 }
 
-/** Extrusión de un `contorno` (con `huecos`) en su `plano`, de `desde` a `hasta` en el eje que falta (ver `PiezaLocal`). */
-export function extrusion(plano: PlanoExtrusion, contorno: [number, number][], desde: number, hasta: number, zona: string, huecos?: [number, number][][]): PiezaLocal {
-  return { forma: 'extrusion', plano, contorno, desde, hasta, zona, ...(huecos ? { huecos } : {}) }
+/** Extrusión de un `contorno` en su `plano`, de `desde` a `hasta` en el eje que falta, con `huecos` o con los cantos redondeados a `radio` (ver `PiezaLocal`). */
+export function extrusion(plano: PlanoExtrusion, contorno: [number, number][], desde: number, hasta: number, zona: string, opciones: { huecos?: [number, number][][]; radio?: number } = {}): PiezaLocal {
+  return { forma: 'extrusion', plano, contorno, desde, hasta, zona, ...opciones }
+}
+
+/**
+ * Brazo de sofá enrollado en el rectángulo (x0, y0)–(x1, y1), de z0 a z1: la parte de arriba es un semicírculo a todo su ancho y los
+ * cantos de sus tapas van redondeados como la estructura. Su largo va por el lado mayor: a lo fondo es un alzado; a lo ancho, un perfil.
+ */
+export function brazoEnrollado(x0: number, y0: number, x1: number, y1: number, z0: number, z1: number, zona: string): PiezaLocal {
+  const aLoFondo = y1 - y0 >= x1 - x0
+  const [a0, a1, d0, d1] = aLoFondo ? [x0, x1, y0, y1] : [y0, y1, x0, x1]
+  const r = (a1 - a0) / 2
+  const arco = Array.from({ length: 9 }, (_, i): [number, number] => [(a0 + a1) / 2 + r * Math.cos((Math.PI * i) / 8), z1 - r + r * Math.sin((Math.PI * i) / 8)])
+  return extrusion(aLoFondo ? 'alzado' : 'perfil', [[a0, z0], [a1, z0], ...arco], d0, d1, zona, { radio: RADIO_ESTRUCTURA })
 }
 
 /** Marco de `m` cm a todo el ancho, alto y fondo del elemento: una extrusión de alzado con el hueco de la lámina (o la luna). */
 export function marco(e: Elemento, m: number, zona: string): PiezaLocal {
   const { ancho, fondo, alto } = e.medidas
   const rectangulo = (x0: number, z0: number, x1: number, z1: number): [number, number][] => [[x0, z0], [x1, z0], [x1, z1], [x0, z1]]
-  return extrusion('alzado', rectangulo(-ancho / 2, 0, ancho / 2, alto), -fondo / 2, fondo / 2, zona, [rectangulo(-ancho / 2 + m, m, ancho / 2 - m, alto - m)])
+  return extrusion('alzado', rectangulo(-ancho / 2, 0, ancho / 2, alto), -fondo / 2, fondo / 2, zona, { huecos: [rectangulo(-ancho / 2 + m, m, ancho / 2 - m, alto - m)] })
 }
 
 /** Tubo de radio `r` por los `puntos` ([x, y, z]); `codo` redondea las esquinas y `cerrado` vuelve al primero. */
@@ -64,6 +76,17 @@ export function frentes(e: Elemento, n: number, zDesde: number, zHasta: number, 
   })
 }
 
+/**
+ * Tirador de barra de `a` cm centrado en `cx`, en la franja de siempre (de `z` a `z` + 1,5 y de la cara del frente a `yFrente`): un tubo
+ * en C de radio 0,5, dos patillas que salen del frente y la barra. Sin codos: con este radio no se ven, y así son tres tramos rectos.
+ */
+function tiradorDeBarra(cx: number, a: number, yFrente: number, z: number, zona: string): PiezaLocal {
+  const r = TIRADOR.alto / 3
+  const zc = z + TIRADOR.alto / 2
+  const [base, barra] = [yFrente - TIRADOR.fondo, yFrente - r]
+  return tubo([[cx - a / 2, base, zc], [cx - a / 2, barra, zc], [cx + a / 2, barra, zc], [cx + a / 2, base, zc]], r, zona)
+}
+
 /** Ancho del tirador en un frente de ancho `w`: 12 cm como mucho y 1 cm de margen a cada lado; 0 si no cabe. */
 function anchoTirador(w: number): number {
   const a = Math.min(TIRADOR.ancho, w - 2)
@@ -78,7 +101,7 @@ export function tiradores(e: Elemento, n: number, z: number, zona: string, separ
   if (a === 0) return []
   return Array.from({ length: n }, (_, i) => {
     const c = -ancho / 2 + i * (w + separacion) + w / 2
-    return caja(c - a / 2, fondo / 2 - TIRADOR.fondo, z, c + a / 2, fondo / 2, z + TIRADOR.alto, zona)
+    return tiradorDeBarra(c, a, fondo / 2, z, zona)
   })
 }
 
@@ -95,7 +118,7 @@ export function cajonesApiladosEn(e: Elemento, x0: number, x1: number, n: number
     const zc = z0 + h / 2 - TIRADOR.alto / 2
     return [
       caja(x0, yFrente - FRENTE_Y0, z0, x1, yFrente - FRENTE_Y1, z0 + h, zona),
-      ...(a === 0 ? [] : [caja(cx - a / 2, yFrente - TIRADOR.fondo, zc, cx + a / 2, yFrente, zc + TIRADOR.alto, zonaTirador)]),
+      ...(a === 0 ? [] : [tiradorDeBarra(cx, a, yFrente, zc, zonaTirador)]),
     ]
   }).flat()
 }
@@ -172,9 +195,8 @@ export function cojinesEnTramo(desde: number, hasta: number, anchoMax = 70, huec
   return Array.from({ length: n }, (_, i): [number, number] => [desde + i * (w + hueco), desde + i * (w + hueco) + w])
 }
 
-/** Radios de redondeo del tapizado, en cm: estructura (base, armazón del respaldo), brazos y cojines. */
+/** Radios de redondeo del tapizado, en cm: estructura (base, armazón del respaldo y cantos de los brazos enrollados) y cojines. */
 export const RADIO_ESTRUCTURA = 2
-export const RADIO_BRAZO = 4
 export const RADIO_COJIN = 5
 
 /**
@@ -205,8 +227,8 @@ export function asientoTapizado(e: Elemento, plazas: number, chaise: LadoChaise,
     }).flat(),
     ...patas4(e, 5, pata, zonaPatas),
   ]
-  if (chaise !== 'derecha') piezas.push(caja(-ancho / 2, -fondo / 2, pata, -ancho / 2 + 15, fondo / 2, alto - 20, 'tapizado', RADIO_BRAZO))
-  if (chaise !== 'izquierda') piezas.push(caja(ancho / 2 - 15, -fondo / 2, pata, ancho / 2, fondo / 2, alto - 20, 'tapizado', RADIO_BRAZO))
+  if (chaise !== 'derecha') piezas.push(brazoEnrollado(-ancho / 2, -fondo / 2, -ancho / 2 + 15, fondo / 2, pata, alto - 20, 'tapizado'))
+  if (chaise !== 'izquierda') piezas.push(brazoEnrollado(ancho / 2 - 15, -fondo / 2, ancho / 2, fondo / 2, pata, alto - 20, 'tapizado'))
   if (chaise !== 'no') {
     const ancha = Math.min(90, ancho / 2)
     const [x0, x1] = chaise === 'izquierda' ? [-ancho / 2, -ancho / 2 + ancha] : [ancho / 2 - ancha, ancho / 2]

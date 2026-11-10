@@ -42,7 +42,7 @@ export const banera: DefinicionTipo = {
     const x0 = -ancho / 2 + BORDE
     const xGrifo = ancho / 2 - BORDE - 6
     return [
-      extrusion('planta', [[-ancho / 2, -fondo / 2], [ancho / 2, -fondo / 2], [ancho / 2, fondo / 2], [-ancho / 2, fondo / 2]], 0, alto, 'banera', [cubeta]),
+      extrusion('planta', [[-ancho / 2, -fondo / 2], [ancho / 2, -fondo / 2], [ancho / 2, fondo / 2], [-ancho / 2, fondo / 2]], 0, alto, 'banera', { huecos: [cubeta] }),
       { ...extrusion('planta', cubeta, 0, fondoCubeta, 'banera'), color: oscuro },
       { ...extrusion('alzado', [[x0, fondoCubeta], [x0 + RESPALDO, fondoCubeta], [x0, alto - 6]], -fondo / 2 + BORDE, fondo / 2 - BORDE, 'banera'), color: oscuro },
       tubo([[ancho / 2 - 2, 0, alto - 6], [xGrifo, 0, alto - 6], [xGrifo, 0, alto - 10]], 1.2, 'grifo', { codo: 2.5 }),

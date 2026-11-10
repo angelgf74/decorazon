@@ -72,7 +72,7 @@ export const lavabo: DefinicionTipo = {
       caja(-ancho / 2 + 1.5, -fondo / 2, zSeno - 1, ancho / 2 - 1.5, -fondo / 2 + 1.5, zTablero, 'mueble'),
       ...frentes(e, puertas, zCuerpo + 1, zTablero - 1, 'mueble'),
       ...tiradores(e, puertas, zTablero - 8, 'mueble'),
-      extrusion('planta', [[-ancho / 2, -fondo / 2], [ancho / 2, -fondo / 2], [ancho / 2, fondo / 2], [-ancho / 2, fondo / 2]], zTablero, alto, 'lavabo', xs.map((x) => elipse(x, ySeno, rx, ry))),
+      extrusion('planta', [[-ancho / 2, -fondo / 2], [ancho / 2, -fondo / 2], [ancho / 2, fondo / 2], [-ancho / 2, fondo / 2]], zTablero, alto, 'lavabo', { huecos: xs.map((x) => elipse(x, ySeno, rx, ry)) }),
       ...xs.flatMap((x) => [
         { ...revolucion(x, ySeno, seno, 'lavabo', { escalaY: ry / rx }), color: oscurecer(e.colores.lavabo ?? LOZA, 0.93) },
         cilindro(x, yGrifo, 1.5, alto, alto + 3, 'grifo'),

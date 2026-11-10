@@ -50,7 +50,7 @@ export function piezasDeElemento(e: Elemento, def: DefinicionTipo): Pieza3D[] {
       return {
         forma: 'extrusion', material, color, ...enElemento,
         plano: p.plano, contorno: p.contorno.map(enMetros), huecos: (p.huecos ?? []).map((h) => h.map(enMetros)),
-        desde: p.desde / 100, hasta: p.hasta / 100,
+        desde: p.desde / 100, hasta: p.hasta / 100, radio: (p.radio ?? 0) / 100,
       }
     }
     return {

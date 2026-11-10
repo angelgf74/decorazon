@@ -3,12 +3,14 @@ import {
   type BufferGeometry, type Curve,
 } from 'three'
 import { mergeGeometries, toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import type { PlanoExtrusion, Punto, Vec3 } from '../../nucleo'
+import { contornoEncogido, type PlanoExtrusion, type Punto, type Vec3 } from '../../nucleo'
 
 /** Caras que se encuentran a más de esto quedan con el canto vivo; por debajo, la superficie se sombrea lisa. */
 const PLIEGUE = (35 * Math.PI) / 180
 const LADOS_TUBO = 12
 const TRAMOS_CODO = 8
+/** Tramos del bisel de una extrusión con radio: 3 por cuarto de vuelta, como la caja redondeada (30° cada uno, por debajo del pliegue). */
+const SEGMENTOS_BISEL = 3
 
 /** Shape en XY con (x, −z): al girar −π/2 en X cae en (x, z) de la escena y su normal mira a +y. */
 function forma(puntos: [number, number][]): Shape {
@@ -111,14 +113,18 @@ const vector2 = ([a, b]: [number, number]) => new Vector2(a, b)
  * - alzado (x, z) → x y la altura, va en z: tal cual;
  * - perfil (y, z) → z y la altura, va en x: gira −π/2 en Y (la extrusión queda en −x) y se lleva a `hasta`.
  * Las coordenadas de textura son las del contorno: metros.
+ * Con `radio`, el bisel de three redondea los cantos: crece `radio` hacia fuera del contorno y de cada tapa, así que se extruye el
+ * contorno encogido (`contornoEncogido`) entre `desde + radio` y `hasta − radio` y el bisel lo devuelve a su sitio.
  */
-export function geometriaExtrusion(plano: PlanoExtrusion, contorno: [number, number][], huecos: [number, number][][], desde: number, hasta: number): BufferGeometry {
-  const s = new Shape(contorno.map(vector2))
+export function geometriaExtrusion(plano: PlanoExtrusion, contorno: [number, number][], huecos: [number, number][][], desde: number, hasta: number, radio = 0): BufferGeometry {
+  const s = new Shape((radio > 0 ? contornoEncogido(contorno, radio) : contorno).map(vector2))
   s.holes = huecos.map((h) => new Path(h.map(vector2)))
-  const g = new ExtrudeGeometry(s, { depth: hasta - desde, bevelEnabled: false })
-  if (plano === 'planta') g.rotateX(Math.PI / 2).translate(0, hasta, 0)
-  else if (plano === 'alzado') g.translate(0, 0, desde)
-  else g.rotateY(-Math.PI / 2).translate(hasta, 0, 0)
+  const bisel = radio > 0 ? { bevelEnabled: true, bevelThickness: radio, bevelSize: radio, bevelOffset: 0, bevelSegments: SEGMENTOS_BISEL } : { bevelEnabled: false }
+  const g = new ExtrudeGeometry(s, { depth: hasta - desde - 2 * radio, ...bisel })
+  // El bisel deja la extrusión entre −radio y depth + radio en z.
+  if (plano === 'planta') g.rotateX(Math.PI / 2).translate(0, hasta - radio, 0)
+  else if (plano === 'alzado') g.translate(0, 0, desde + radio)
+  else g.rotateY(-Math.PI / 2).translate(hasta - radio, 0, 0)
   return conPliegues(g)
 }
 

@@ -1,4 +1,5 @@
 import type { PiezaLocal } from './tipos'
+import { areaConSigno, desplazarPoligono } from '../geometria/poligono'
 
 /** Lados de una revolución si no se dicen: los mismos que un cilindro. */
 export const LADOS_REVOLUCION = 24
@@ -72,4 +73,16 @@ function cajaDeTubo(p: Extract<PiezaLocal, { forma: 'tubo' }>): CajaLocal {
   }
   if ((p.codo ?? 0) > 0) p.puntos.forEach((q, i) => (p.cerrado || (i > 0 && i < n - 1)) && extender(q, [p.r, p.r, p.r]))
   return c
+}
+
+/**
+ * El contorno metido `d` hacia dentro (el de la tapa de una extrusión con radio, que el redondeo devuelve al contorno).
+ * `desplazarPoligono` desplaza hacia fuera según el sentido del polígono: se prueban los dos y vale el que encoge.
+ */
+export function contornoEncogido(contorno: [number, number][], d: number): [number, number][] {
+  const puntos = contorno.map(([x, y]) => ({ x, y }))
+  const area = Math.abs(areaConSigno(puntos))
+  const [a, b] = [desplazarPoligono(puntos, -d), desplazarPoligono(puntos, d)]
+  const menor = Math.abs(areaConSigno(a)) < area ? a : b
+  return menor.map(({ x, y }): [number, number] => [x, y])
 }

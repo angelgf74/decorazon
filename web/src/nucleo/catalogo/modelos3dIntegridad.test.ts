@@ -3,7 +3,7 @@ import { catalogoBase } from './catalogoBase'
 import type { DefinicionTipo } from './tipos'
 import type { Elemento } from '../modelo/documento'
 import type { PiezaLocal } from '../modelo3d/tipos'
-import { cajaDePieza } from '../modelo3d/formas'
+import { cajaDePieza, contornoEncogido } from '../modelo3d/formas'
 import { aMundo } from './transformar'
 import { contienePunto, desplazarPoligono } from '../geometria/poligono'
 import { elemento } from './definiciones/ayuda.test-util'
@@ -45,6 +45,21 @@ function comprobarForma(p: PiezaLocal, msg: string) {
     case 'extrusion':
       expect(p.contorno.length, msg).toBeGreaterThanOrEqual(3)
       expect(p.hasta, msg).toBeGreaterThan(p.desde)
+      if (p.radio !== undefined) {
+        // El bisel encoge el contorno el radio y lo vuelve a crecer: sin huecos, sin pasar de medio grueso y sin que ninguna
+        // arista del contorno encogido se dé la vuelta (el contorno sería más estrecho que dos radios).
+        expect(p.radio, msg).toBeGreaterThan(0)
+        expect(p.huecos ?? [], msg).toHaveLength(0)
+        expect(p.radio, msg).toBeLessThanOrEqual((p.hasta - p.desde) / 2 + 1e-9)
+        const encogido = contornoEncogido(p.contorno, p.radio)
+        const n = p.contorno.length
+        p.contorno.forEach(([ax, ay], i) => {
+          const [bx, by] = p.contorno[(i + 1) % n]!
+          const [cx, cy] = encogido[i]!
+          const [dx, dy] = encogido[(i + 1) % n]!
+          expect((bx - ax) * (dx - cx) + (by - ay) * (dy - cy), msg).toBeGreaterThan(-1e-9)
+        })
+      }
       break
     case 'tubo':
       expect(p.puntos.length, msg).toBeGreaterThanOrEqual(2)
@@ -118,7 +133,8 @@ describe('generadores 3D de cocina y decoración', () => {
     expect(piezasDeTipo(ecaj).filter(delante)).toHaveLength(3)
     const enc = cajas(piezasDeTipo(e60)).find((p) => p.zona === 'encimera')!
     expect([enc.y1 - enc.y0, enc.z1 - enc.z0, enc.y1]).toEqual([60, 4, 30])
-    const maxFrente = Math.max(...cajas(piezasDeTipo(e60)).filter((p) => p.zona === 'cuerpo').map((p) => p.y1))
+    // Lo más adelantado del cuerpo es el tirador, que llega al borde del volumen bajo la encimera.
+    const maxFrente = Math.max(...piezasDeTipo(e60).filter((p) => p.zona === 'cuerpo').map((p) => cajaDePieza(p).y1))
     expect(maxFrente).toBe(28)
   })
 
@@ -126,7 +142,7 @@ describe('generadores 3D de cocina y decoración', () => {
     const tipos = ['modulo-bajo', 'lavavajillas', 'frigorifico', 'columna-cocina']
     const sinEncimera = (tipo: string) => cajas(piezas(tipo, { fondo: 60 })).filter((p) => p.zona !== 'encimera')
     const frente = (tipo: string) => Math.max(...sinEncimera(tipo).filter((p) => p.y1 - p.y0 === 2).map((p) => p.y1))
-    const delante = (tipo: string) => Math.max(...sinEncimera(tipo).map((p) => p.y1))
+    const delante = (tipo: string) => Math.max(...piezas(tipo, { fondo: 60 }).filter((p) => p.zona !== 'encimera').map((p) => cajaDePieza(p).y1))
     expect(tipos.map(frente)).toEqual(tipos.map(() => 26.5))
     expect(tipos.map(delante)).toEqual(tipos.map(() => 28))
   })

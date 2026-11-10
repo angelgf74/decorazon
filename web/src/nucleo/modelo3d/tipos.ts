@@ -13,14 +13,15 @@ export type PlanoExtrusion = 'planta' | 'alzado' | 'perfil'
  * - `revolucion`: el `perfil` ([radio, z]) gira alrededor del eje vertical que pasa por (cx, cy). Se recorre en sentido antihorario
  *   con el radio a la derecha y z arriba (sube por fuera y baja por dentro). `lados` (24) lo facetan: con 4 es una pirámide con las
  *   caras alineadas con los ejes y el radio llega a las esquinas. `escalaY` estira a lo fondo (un óvalo).
- * - `extrusion`: un `contorno` (y sus `huecos`) en un `plano`, extruido de `desde` a `hasta` en el eje que falta.
+ * - `extrusion`: un `contorno` (y sus `huecos`) en un `plano`, extruido de `desde` a `hasta` en el eje que falta. Con `radio`, los cantos
+ *   entre las tapas y el lateral salen redondeados como los de una caja con radio (sin huecos; el contorno no cambia).
  * - `tubo`: un tubo de radio `r` por los `puntos` ([x, y, z]), con los codos redondeados con radio `codo`; `cerrado` vuelve al primero.
  */
 export type PiezaLocal = { material?: ZonaColor['material'] | 'mampara'; color?: string } & (
   | { forma: 'caja'; x0: number; y0: number; z0: number; x1: number; y1: number; z1: number; zona: string; radio?: number }
   | { forma: 'cilindro'; cx: number; cy: number; r: number; z0: number; z1: number; zona: string }
   | { forma: 'revolucion'; cx: number; cy: number; perfil: [number, number][]; lados?: number; escalaY?: number; zona: string }
-  | { forma: 'extrusion'; plano: PlanoExtrusion; contorno: [number, number][]; huecos?: [number, number][][]; desde: number; hasta: number; zona: string }
+  | { forma: 'extrusion'; plano: PlanoExtrusion; contorno: [number, number][]; huecos?: [number, number][][]; desde: number; hasta: number; radio?: number; zona: string }
   | { forma: 'tubo'; puntos: [number, number, number][]; r: number; codo?: number; cerrado?: boolean; zona: string }
 )
 
@@ -36,6 +37,6 @@ export type Pieza3D = { material: MaterialPBR; color: string } & (
   | { forma: 'cilindro'; centro: Vec3; radio: number; alto: number }
   | { forma: 'prisma'; huella: [number, number][]; y0: number; y1: number }
   | ({ forma: 'revolucion'; centro: [number, number]; perfil: [number, number][]; lados: number; escalaY: number } & EnElemento)
-  | ({ forma: 'extrusion'; plano: PlanoExtrusion; contorno: [number, number][]; huecos: [number, number][][]; desde: number; hasta: number } & EnElemento)
+  | ({ forma: 'extrusion'; plano: PlanoExtrusion; contorno: [number, number][]; huecos: [number, number][][]; desde: number; hasta: number; radio: number } & EnElemento)
   | ({ forma: 'tubo'; puntos: Vec3[]; radio: number; codo: number; cerrado: boolean } & EnElemento)
 )

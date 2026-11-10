@@ -43,7 +43,7 @@ describe('escritorio en L: cajonera en el extremo libre del tablero principal', 
     const frentes = ps.filter((p) => p.y1 - p.y0 === 2 && p.x0 >= -80 && p.x1 <= -40)
     expect(frentes).toHaveLength(3)
     for (const f of frentes) expect(f.y1).toBeCloseTo(-10 - 1.5)
-    expect(ps.filter((p) => p.zona === 'patas' && p.z1 - p.z0 === 1.5)).toHaveLength(3)
+    expect(escritorioL.modelo3d!(el({ cajonera: true })).filter((p) => p.forma === 'tubo' && p.zona === 'patas')).toHaveLength(3)
     const patas = ps.filter((p) => p.zona === 'patas' && p.x1 - p.x0 === 5)
     expect(patas).toHaveLength(3)
     for (const p of patas) expect(p.x0).toBeGreaterThan(-40)

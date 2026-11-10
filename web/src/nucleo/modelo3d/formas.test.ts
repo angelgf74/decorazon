@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cajaDePieza } from './formas'
+import { cajaDePieza, contornoEncogido } from './formas'
 
 describe('cajaDePieza: la caja local (cm) que envuelve cualquier pieza', () => {
   it('una caja es ella misma', () => {
@@ -67,5 +67,22 @@ describe('cajaDePieza: la caja local (cm) que envuelve cualquier pieza', () => {
     const c = cajaDePieza({ forma: 'tubo', puntos: [[0, 0, 10], [20, 0, 10], [20, 20, 10]], r: 1, cerrado: true, zona: 'z' })
     const m = Math.SQRT1_2
     expect([c.x0, c.y0, c.z0, c.x1, c.y1, c.z1].map((v) => Number(v.toFixed(9)))).toEqual([-m, -1, 9, 21, 20 + m, 11].map((v) => Number(v.toFixed(9))))
+  })
+})
+
+describe('contornoEncogido: el contorno metido d hacia dentro, se recorra en el sentido que se recorra', () => {
+  const cuadrado: [number, number][] = [[0, 0], [10, 0], [10, 10], [0, 10]]
+  const caja = (ps: [number, number][]) => [Math.min(...ps.map(([x]) => x)), Math.min(...ps.map(([, y]) => y)), Math.max(...ps.map(([x]) => x)), Math.max(...ps.map(([, y]) => y))].map((v) => Number(v.toFixed(9)))
+
+  it('un cuadrado de 10 encogido 2 es uno de 6 centrado, en los dos sentidos', () => {
+    expect(caja(contornoEncogido(cuadrado, 2))).toEqual([2, 2, 8, 8])
+    expect(caja(contornoEncogido([...cuadrado].reverse(), 2))).toEqual([2, 2, 8, 8])
+  })
+})
+
+describe('cajaDePieza de una extrusión con radio', () => {
+  it('los cantos redondeados no cambian la caja: el redondeo queda dentro del contorno', () => {
+    expect(cajaDePieza({ forma: 'extrusion', plano: 'alzado', contorno: [[-10, 0], [10, 0], [10, 40], [-10, 40]], desde: -5, hasta: 5, radio: 2, zona: 'z' }))
+      .toEqual({ x0: -10, y0: -5, z0: 0, x1: 10, y1: 5, z1: 40 })
   })
 })

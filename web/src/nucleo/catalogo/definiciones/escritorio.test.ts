@@ -56,7 +56,7 @@ describe('escritorio: cajonera a un lado, al otro o a los dos', () => {
     const ps = cajas({ cajonera: 'derecha' })
     const frentes = ps.filter((p) => p.y1 - p.y0 === 2 && p.x0 >= 60 - CAJONERA - 0.01 && p.x1 <= 60 + 0.01)
     expect(frentes).toHaveLength(3)
-    const tiradores = ps.filter((p) => p.zona === 'patas' && p.z1 - p.z0 === 1.5)
+    const tiradores = escritorio.modelo3d!(el({ cajonera: 'derecha' })).filter((p) => p.forma === 'tubo' && p.zona === 'patas')
     expect(tiradores).toHaveLength(3)
     const patas = ps.filter((p) => p.zona === 'patas' && p.x1 - p.x0 === 5)
     expect(patas).toHaveLength(2)

@@ -129,6 +129,17 @@ describe('geometriaExtrusion', () => {
     }
   })
 
+  it('con radio, los cantos salen redondeados sin cambiar la caja: algo menos de volumen y caras hacia fuera, en los tres planos', () => {
+    for (const plano of ['planta', 'alzado', 'perfil'] as const) {
+      const liso = geometriaExtrusion(plano, contorno, [], 0.3, 0.4)
+      const redondo = geometriaExtrusion(plano, contorno, [], 0.3, 0.4, 0.02)
+      cerca(caja(redondo), caja(liso), 4)
+      expect(volumen(redondo), plano).toBeLessThan(volumen(liso) - 1e-6)
+      expect(volumen(redondo), plano).toBeGreaterThan(volumen(liso) * 0.85)
+      expect(normalesContrarias(redondo), plano).toBe(0)
+    }
+  })
+
   it('las coordenadas de textura van en metros: la tapa mide lo que el contorno', () => {
     const g = geometriaExtrusion('alzado', contorno, [], 0.3, 0.4)
     const uv = g.getAttribute('uv')
