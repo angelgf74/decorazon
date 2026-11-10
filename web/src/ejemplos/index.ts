@@ -15,15 +15,20 @@ export interface Ejemplo {
 // su pared. Los muebles van centrados y con el frente hacia abajo (giro 0) o hacia arriba (180). Ningún ejemplo tiene
 // avisos: cada mueble va pegado a la pared o a 60 cm o más de lo que tiene al lado (`ejemplos.test.ts`).
 
-/** Dormitorio de 400 × 330: cama centrada contra la pared de arriba con sus mesitas, armario y cómoda abajo a la izquierda, y lámpara. */
+/**
+ * Dormitorio de 400 × 330: armario en la esquina de arriba a la izquierda y, a su lado contra la misma pared, la cama con sus
+ * mesitas; cómoda abajo y lámpara. El armario va al fondo porque la vista 3D inicial mira desde abajo a la izquierda: en esa
+ * esquina tapaba media habitación.
+ */
 const dormitorio: DocumentoDiseno = estancia('dormitorio', 400, 330, {
   aberturas: [puerta('puerta', 2, 20), ventana('ventana', 1, 60)],
   elementos: [
-    mueble('cama', 'cama', 200, 100),
-    mueble('mesita', 'mesita-izquierda', 97, 20),
-    mueble('mesita', 'mesita-derecha', 303, 20),
+    mueble('armario', 'armario', 50, 30),
+    // Cama y mesitas, juntas, a menos de 30 cm del armario y de la pared de la derecha: así no queda ningún paso estrecho.
+    mueble('mesita', 'mesita-izquierda', 144.5, 20),
+    mueble('cama', 'cama', 247, 100),
+    mueble('mesita', 'mesita-derecha', 349.5, 20),
     mueble('comoda', 'comoda', 170, 305, 180),
-    mueble('armario', 'armario', 70, 300, 180),
     mueble('lampara-pie', 'lampara', 380, 200),
   ],
 })

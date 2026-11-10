@@ -26,6 +26,18 @@ describe('ejemplos del inicio', () => {
     it('no tiene ni errores ni avisos: es lo primero que ve quien llega, y «6 avisos» resta confianza', () => {
       expect(detectarConflictos(ejemplo.documento, catalogoBase).map((c) => c.mensaje)).toEqual([])
     })
+    it('lo alto y ancho va contra la pared de arriba o la de la derecha: la vista 3D inicial mira desde abajo a la izquierda y ahí no tapa nada', () => {
+      const { estancia } = ejemplo.documento
+      const anchoEstancia = Math.max(...estancia.planta.map((p) => p.x))
+      for (const e of ejemplo.documento.elementos) {
+        if (e.medidas.alto <= 150 || e.medidas.ancho < 60) continue
+        const huella = catalogoBase.get(e.tipo)!.volumenes(e).flatMap((v) => v.huella)
+        const arriba = Math.min(...huella.map((p) => p.y)) < 1
+        const derecha = Math.max(...huella.map((p) => p.x)) > anchoEstancia - 1
+        expect(arriba || derecha, e.id).toBe(true)
+      }
+    })
+
     it('su imagen existe en public', () => {
       expect(ejemplo.imagen).toMatch(/^\/ejemplos\/[a-z-]+\.(png|jpg|webp)$/)
       expect(IMAGENES, ejemplo.imagen).toContain(ejemplo.imagen)
