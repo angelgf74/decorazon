@@ -6,7 +6,14 @@ import { hayWebgl } from '../comunes/webgl'
 // Con three: solo se carga al pedir una captura.
 const Captura3D = lazy(() => import('../vista3d/Captura3D'))
 
-/** Si la vista 3D no llega a capturarse en este tiempo, se sigue sin ella. */
+/**
+ * Tope del arranque: cargar el fragmento con three, compilar los shaders y hornear las sombras suaves antes del primer
+ * fotograma. Sin GPU (SwiftShader, un móvil lento) y con la CPU ocupada pasaba de 8 s, y la hoja decía «no disponible»
+ * cuando el 3D solo iba lento.
+ */
+const ESPERA_ARRANQUE_MS = 20_000
+
+/** Desde el primer fotograma, si la vista 3D no llega a capturarse en este tiempo, se sigue sin ella. */
 const ESPERA_3D_MS = 8000
 
 interface Props {
@@ -36,20 +43,32 @@ export default function CapturaFueraDePantalla({ doc, alCapturar, alFallar }: Pr
     else avisos.current.alCapturar(url)
   }
 
+  const tope = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const reiniciarTope = (ms: number) => {
+    clearTimeout(tope.current)
+    tope.current = setTimeout(() => terminar(null), ms)
+  }
+  const primerFotograma = useRef(false)
+  const alPrimerFotograma = () => {
+    if (primerFotograma.current || hecho.current) return
+    primerFotograma.current = true
+    reiniciarTope(ESPERA_3D_MS)
+  }
+
   useEffect(() => {
     if (!conWebgl) {
       terminar(null)
       return
     }
-    const id = setTimeout(() => terminar(null), ESPERA_3D_MS)
-    return () => clearTimeout(id)
+    reiniciarTope(ESPERA_ARRANQUE_MS)
+    return () => clearTimeout(tope.current)
   }, [conWebgl])
 
   if (!conWebgl) return null
   return (
     <SinFallos alternativa={null} alFallar={() => terminar(null)}>
       <Suspense fallback={null}>
-        <Captura3D doc={doc} alCapturar={terminar} dpr={2} />
+        <Captura3D doc={doc} alCapturar={terminar} alPrimerFotograma={alPrimerFotograma} dpr={2} />
       </Suspense>
     </SinFallos>
   )

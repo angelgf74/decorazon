@@ -40,3 +40,17 @@ describe('Disparar', () => {
     expect(sonda.dpr).toBe(1)
   })
 })
+
+describe('Disparar: primer fotograma', () => {
+  it('avisa del primer fotograma una sola vez, antes de capturar', async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:,')
+    const alPrimerFotograma = vi.fn()
+    const alCapturar = vi.fn()
+    const r = await ReactThreeTestRenderer.create(<Disparar alCapturar={alCapturar} alPrimerFotograma={alPrimerFotograma} dpr={1} />)
+    await r.advanceFrames(1, 16)
+    expect(alPrimerFotograma).toHaveBeenCalledOnce()
+    expect(alCapturar).not.toHaveBeenCalled()
+    await r.advanceFrames(FOTOGRAMAS + 3, 16)
+    expect(alPrimerFotograma).toHaveBeenCalledOnce()
+  })
+})

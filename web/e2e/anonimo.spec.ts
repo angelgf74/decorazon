@@ -104,6 +104,8 @@ test('vista 3D: los botones de la barra reciben clics reales del ratón', async 
 })
 
 test('hoja para imprimir: plano, lista de muebles y la vista 3D capturada en su página', async ({ page }) => {
+  // Sin GPU (SwiftShader) y con otros tests en paralelo, la captura tiene hasta 20 s de arranque y 8 más: CapturaFueraDePantalla.
+  test.setTimeout(60_000)
   await page.goto('/disenar')
   await page.getByRole('button', { name: 'Crear estancia' }).click()
   await page.getByRole('button', { name: '2 Amueblar' }).click()
@@ -115,7 +117,7 @@ test('hoja para imprimir: plano, lista de muebles y la vista 3D capturada en su 
   await expect(hoja.getByRole('img', { name: 'Plano' })).toBeVisible()
   await expect(hoja.getByRole('table').getByRole('cell', { name: 'Cama', exact: true })).toBeVisible()
   // La imagen sale de un lienzo WebGL aparte; hasta tenerla no se puede imprimir.
-  await expect(hoja.getByRole('img', { name: 'Vista 3D' })).toBeVisible({ timeout: 20_000 })
+  await expect(hoja.getByRole('img', { name: 'Vista 3D' })).toBeVisible({ timeout: 30_000 })
   await expect(hoja.getByRole('button', { name: 'Imprimir o guardar PDF' })).toBeEnabled()
   expect(await hoja.getByRole('img', { name: 'Vista 3D' }).getAttribute('src')).toMatch(/^data:image\/png;base64,/)
 
