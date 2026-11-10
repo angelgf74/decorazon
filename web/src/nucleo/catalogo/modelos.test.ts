@@ -3,7 +3,8 @@ import { catalogoBase } from './catalogoBase'
 import type { PiezaLocal } from '../modelo3d/tipos'
 import type { Elemento } from '../modelo/documento'
 import { elemento } from './definiciones/ayuda.test-util'
-import { caja, cajonesApilados, cojinesEnTramo, patas4 } from './modelos'
+import { caja, cajonesApilados, cojinesEnTramo, desplazadasY, ovalo, patas4, RADIO_ESTRUCTURA } from './modelos'
+import { cajaDePieza } from '../modelo3d/formas'
 import { valoresVariante } from './tipos'
 
 const TIPOS = ['cama', 'armario', 'comoda', 'mesita', 'escritorio', 'silla', 'estanteria', 'sofa', 'sillon', 'mesa-centro', 'mueble-tv', 'mesa', 'aparador']
@@ -15,9 +16,8 @@ function piezasDe(e: Elemento): PiezaLocal[] {
 }
 
 function ancho(p: PiezaLocal): [number, number, number, number, number, number] {
-  return p.forma === 'caja'
-    ? [p.x0, p.y0, p.z0, p.x1, p.y1, p.z1]
-    : [p.cx - p.r, p.cy - p.r, p.z0, p.cx + p.r, p.cy + p.r, p.z1]
+  const { x0, y0, z0, x1, y1, z1 } = cajaDePieza(p)
+  return [x0, y0, z0, x1, y1, z1]
 }
 
 type Caja = Extract<PiezaLocal, { forma: 'caja' }>
@@ -135,7 +135,7 @@ describe('generadores 3D de dormitorio y salón', () => {
   it('los tiradores de frentes estrechos no se solapan ni salen del frente', () => {
     for (const [w, modulos] of [[40, 2], [40, 4], [80, 4], [100, 1]]) {
       const e = elemento('armario', 0, 0, 0, { ancho: w }, { modulos })
-      const ts = piezasDe(e).filter((p): p is Extract<PiezaLocal, { forma: 'caja' }> => p.forma === 'caja' && p.y1 === e.medidas.fondo / 2 && p.y1 - p.y0 === 1.5).sort((a, b) => a.x0 - b.x0)
+      const ts = piezasDe(e).filter((p) => p.forma === 'tubo').map(cajaDePieza).sort((a, b) => a.x0 - b.x0)
       for (let i = 0; i < ts.length; i++) {
         expect(ts[i].x0, `${w}/${modulos}`).toBeGreaterThanOrEqual(-w / 2)
         expect(ts[i].x1).toBeLessThanOrEqual(w / 2)
@@ -177,6 +177,23 @@ describe('generadores 3D de dormitorio y salón', () => {
   })
 })
 
+describe('tiradores de barra', () => {
+  it('cada tirador es un tubo en C de 0,5 de radio: dos patillas que salen 1,5 cm del frente y la barra, centrado en su frente', () => {
+    const e = elemento('comoda', 0, 0, 0, { ancho: 100 })
+    const ts = piezasDe(e).filter((p): p is Extract<PiezaLocal, { forma: 'tubo' }> => p.forma === 'tubo')
+    expect(ts.length).toBeGreaterThan(0)
+    for (const t of ts) {
+      expect(t.r).toBe(0.5)
+      expect(t.puntos).toHaveLength(4)
+      const c = cajaDePieza(t)
+      // De la cara del frente (1,5 cm por detrás del borde) al borde del volumen.
+      expect([c.y0, c.y1]).toEqual([e.medidas.fondo / 2 - 1.5, e.medidas.fondo / 2])
+      expect((c.x0 + c.x1) / 2).toBeCloseTo(0)
+      expect(c.x1 - c.x0).toBeCloseTo(12 + 1)
+    }
+  })
+})
+
 describe('cajonesApilados', () => {
   it('sin sitio para el tirador no emite tiradores de ancho 0', () => {
     const e = elemento('comoda', 0, 0, 0, { ancho: 3 })
@@ -210,5 +227,73 @@ describe('patas redondas (plan 28c)', () => {
     }
     const ovalada = elemento('mesa-reuniones', 0, 0, 0, {}, { forma: 'ovalada' })
     expect(valoresVariante(catalogoBase.get('mesa-reuniones')!, ovalada, 'patas')).toEqual(['redondas'])
+  })
+})
+
+describe('desplazadasY', () => {
+  it('mueve a lo fondo cualquier forma: su caja envolvente se desplaza lo mismo y no cambia de tamaño', () => {
+    const piezas: PiezaLocal[] = [
+      caja(-10, -5, 0, 10, 5, 20, 'z'),
+      { forma: 'cilindro', cx: 0, cy: 3, r: 2, z0: 0, z1: 10, zona: 'z' },
+      { forma: 'revolucion', cx: 1, cy: 2, perfil: [[0, 0], [5, 0], [0, 10]], zona: 'z' },
+      { forma: 'extrusion', plano: 'planta', contorno: [[0, 0], [10, 0], [10, 4]], huecos: [[[6, 1], [8, 1], [8, 2]]], desde: 0, hasta: 3, zona: 'z' },
+      { forma: 'extrusion', plano: 'alzado', contorno: [[0, 0], [10, 0], [10, 4]], desde: -1, hasta: 1, zona: 'z' },
+      { forma: 'extrusion', plano: 'perfil', contorno: [[0, 0], [10, 0], [10, 4]], desde: -1, hasta: 1, zona: 'z' },
+      { forma: 'tubo', puntos: [[0, 0, 0], [0, 5, 10]], r: 1, zona: 'z' },
+    ]
+    const movidas = desplazadasY(piezas, -2)
+    movidas.forEach((p, i) => {
+      const antes = cajaDePieza(piezas[i]!)
+      expect(cajaDePieza(p), p.forma).toEqual({ ...antes, y0: antes.y0 - 2, y1: antes.y1 - 2 })
+    })
+    // Los huecos de una extrusión en planta se mueven con su contorno.
+    const planta = movidas[3]
+    expect(planta?.forma === 'extrusion' && planta.huecos).toEqual([[[6, -1], [8, -1], [8, 0]]])
+  })
+})
+
+describe('ovalo', () => {
+  it('una sola extrusión en planta del ancho y fondo enteros, con los extremos en semicírculo (sin esquinas)', () => {
+    const e = elemento('mesa-reuniones', 0, 0, 0, { ancho: 240, fondo: 110 })
+    const piezas = ovalo(e, 72, 75, 'tablero')
+    expect(piezas).toHaveLength(1)
+    const [p] = piezas
+    expect(p).toMatchObject({ forma: 'extrusion', plano: 'planta', desde: 72, hasta: 75, zona: 'tablero' })
+    expect(cajaDePieza(p!)).toMatchObject({ x0: -120, x1: 120, y0: -55, y1: 55 })
+    if (p?.forma !== 'extrusion') throw new Error('forma')
+    // En los extremos, cada punto dista medio fondo del centro de su semicírculo.
+    for (const [x, y] of p.contorno.filter(([x]) => Math.abs(x) > 65)) expect(Math.hypot(Math.abs(x) - 65, y)).toBeCloseTo(55)
+  })
+})
+
+describe('brazos enrollados del tapizado', () => {
+  type Extrusion = Extract<PiezaLocal, { forma: 'extrusion' }>
+  const brazos = (e: Elemento) => piezasDe(e).filter((p): p is Extrusion => p.forma === 'extrusion' && p.zona === 'tapizado')
+
+  it('sofá: dos brazos de 15 de ancho a todo el fondo, del alto de las patas a 20 bajo el alto, con la parte de arriba en semicírculo y los cantos redondeados', () => {
+    const e = elemento('sofa', 0, 0, 0)
+    const bs = brazos(e)
+    expect(bs).toHaveLength(2)
+    for (const b of bs) {
+      expect(b).toMatchObject({ plano: 'alzado', desde: -e.medidas.fondo / 2, hasta: e.medidas.fondo / 2, radio: RADIO_ESTRUCTURA })
+      const c = cajaDePieza(b)
+      expect(c.x1 - c.x0).toBeCloseTo(15)
+      expect([c.z0, c.z1]).toEqual([8, e.medidas.alto - 20])
+      // Lo más alto es el centro del brazo: la parte de arriba es un semicírculo de 7,5.
+      const arriba = b.contorno.find(([, z]) => Math.abs(z - c.z1) < 1e-9)!
+      expect(arriba[0]).toBeCloseTo((c.x0 + c.x1) / 2)
+      for (const [x, z] of b.contorno.filter(([, z]) => z > c.z1 - 7.5 + 1e-9)) expect(Math.hypot(x - (c.x0 + c.x1) / 2, z - (c.z1 - 7.5))).toBeCloseTo(7.5)
+    }
+  })
+
+  it('con chaise, el brazo de ese lado desaparece', () => {
+    expect(brazos(elemento('sofa', 0, 0, 0, {}, { chaise: 'izquierda' }))).toHaveLength(1)
+  })
+
+  it('rinconera: el brazo del lado largo va a lo fondo (alzado) y el del ala, a lo ancho (perfil)', () => {
+    for (const rincon of ['izquierda', 'derecha']) {
+      const planos = brazos(elemento('sofa-rinconera', 0, 0, 0, {}, { rincon })).map((b) => b.plano).sort()
+      expect(planos, rincon).toEqual(['alzado', 'perfil'])
+    }
   })
 })

@@ -33,11 +33,11 @@ describe('mesas y escritorios: bajo el tablero queda hueco', () => {
   })
   it('una silla metida bajo el escritorio hasta el respaldo no choca', () => {
     // Silla girada 180°: el respaldo (y local negativa) queda hacia +y, fuera del tablero (y de 170 a 230).
-    // Centro en y=240: asiento de 215 a 265, que entra 15 cm bajo el tablero; respaldo de 262 a 265.
+    // Centro en y=240: asiento de 215 a 265, que entra 15 cm bajo el tablero; respaldo de 259 a 265.
     expect(conEscritorio(elemento('silla', 200, 240, 180))).toEqual([])
   })
   it('si el respaldo entra bajo el tablero, choca', () => {
-    // Centro en y=200: respaldo de 222 a 225, bajo el tablero (de 72 a 75 cm de alto).
+    // Centro en y=200: respaldo de 219 a 225, bajo el tablero (de 72 a 75 cm de alto).
     const conflictos = conEscritorio(elemento('silla', 200, 200, 180, {}, {}, 'silla'))
     expect(conflictos.some((c) => c.tipo === 'solape' && c.ids.includes('silla'))).toBe(true)
   })

@@ -2,10 +2,13 @@ import { valorVariante, type DefinicionTipo } from '../tipos'
 import { ESPACIO_DE_USO_CM, espacioDelante, huellaEntera } from '../aperturas'
 import { cajaMundo } from '../transformar'
 import type { Elemento } from '../../modelo/documento'
-import { caja, cilindro, frentes, oscurecer, tiradores, yFrenteCuerpo } from '../modelos'
+import { caja, cilindro, extrusion, frentes, oscurecer, revolucion, tiradores, tubo, yFrenteCuerpo } from '../modelos'
+import { elipse } from '../perfiles'
 
 /** Grueso de la encimera, alto del mueble suspendido, alto del grifo sobre la encimera y ancho mínimo para dos senos, en cm. */
 const ENCIMERA = 3
+/** Lo que se hunde el seno desde lo alto de la encimera, en cm. */
+const HONDO = 15
 const MUEBLE_SUSPENDIDO = 50
 const GRIFO = 18
 const ANCHO_DOS_SENOS = 100
@@ -44,26 +47,36 @@ export const lavabo: DefinicionTipo = {
     ]
   },
   planta: huellaEntera,
+  // Encimera con un hueco ovalado por seno y, debajo, el seno de revolución que se hunde HONDO cm. El cuerpo del mueble acaba por
+  // debajo del seno (si no, su tapa lo taparía) y por encima solo quedan los costados y la trasera. El grifo, un caño de tubo.
   modelo3d(e) {
     const { ancho, fondo, alto } = e.medidas
     const suspendido = valorVariante(lavabo, e, 'montaje') === 'suspendido'
     const z0 = suspendido ? alto - MUEBLE_SUSPENDIDO : 0
     const zCuerpo = suspendido ? z0 : 8
     const zTablero = alto - ENCIMERA
+    const zSeno = alto - HONDO
     const puertas = ancho <= 60 ? 1 : 2
     const xs = senos(e)
-    const anchoSeno = Math.min(ancho / xs.length - 12, 50)
+    const rx = Math.min(ancho / xs.length - 12, 50) / 2
+    const ySeno = (13 - 5) / 2
+    const ry = (fondo - 18) / 2
     const yGrifo = -fondo / 2 + SEPARACION_GRIFO + 1.5
+    const yFrente = yFrenteCuerpo(e, true)
+    const seno: [number, number][] = [[0, zSeno - 1], [rx * 0.7, zSeno - 1], [rx + 1, zTablero], [rx, zTablero], [rx * 0.65, zSeno], [0, zSeno]]
     return [
-      ...(suspendido ? [] : [caja(-ancho / 2 + 3, -fondo / 2 + 3, 0, ancho / 2 - 3, yFrenteCuerpo(e, true), 8, 'mueble')]),
-      caja(-ancho / 2, -fondo / 2, zCuerpo, ancho / 2, yFrenteCuerpo(e, true), zTablero, 'mueble'),
+      ...(suspendido ? [] : [caja(-ancho / 2 + 3, -fondo / 2 + 3, 0, ancho / 2 - 3, yFrente, 8, 'mueble')]),
+      caja(-ancho / 2, -fondo / 2, zCuerpo, ancho / 2, yFrente, zSeno - 1, 'mueble'),
+      caja(-ancho / 2, -fondo / 2, zSeno - 1, -ancho / 2 + 1.5, yFrente, zTablero, 'mueble'),
+      caja(ancho / 2 - 1.5, -fondo / 2, zSeno - 1, ancho / 2, yFrente, zTablero, 'mueble'),
+      caja(-ancho / 2 + 1.5, -fondo / 2, zSeno - 1, ancho / 2 - 1.5, -fondo / 2 + 1.5, zTablero, 'mueble'),
       ...frentes(e, puertas, zCuerpo + 1, zTablero - 1, 'mueble'),
       ...tiradores(e, puertas, zTablero - 8, 'mueble'),
-      caja(-ancho / 2, -fondo / 2, zTablero, ancho / 2, fondo / 2, alto, 'lavabo'),
+      extrusion('planta', [[-ancho / 2, -fondo / 2], [ancho / 2, -fondo / 2], [ancho / 2, fondo / 2], [-ancho / 2, fondo / 2]], zTablero, alto, 'lavabo', { huecos: xs.map((x) => elipse(x, ySeno, rx, ry)) }),
       ...xs.flatMap((x) => [
-        { ...caja(x - anchoSeno / 2, -fondo / 2 + 13, alto - 0.5, x + anchoSeno / 2, fondo / 2 - 5, alto + 0.2, 'lavabo'), color: oscurecer(e.colores.lavabo ?? LOZA, 0.85) },
-        cilindro(x, yGrifo, 1.5, alto, alto + GRIFO, 'grifo'),
-        caja(x - 1, yGrifo, alto + GRIFO - 2, x + 1, yGrifo + 8, alto + GRIFO, 'grifo'),
+        { ...revolucion(x, ySeno, seno, 'lavabo', { escalaY: ry / rx }), color: oscurecer(e.colores.lavabo ?? LOZA, 0.93) },
+        cilindro(x, yGrifo, 1.5, alto, alto + 3, 'grifo'),
+        tubo([[x, yGrifo, alto + 2], [x, yGrifo, alto + GRIFO - 1.5], [x, yGrifo + 6, alto + GRIFO - 1.5], [x, yGrifo + 6, alto + GRIFO - 4.5]], 1.1, 'grifo', { codo: 2.5 }),
       ]),
     ]
   },

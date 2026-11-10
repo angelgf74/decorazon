@@ -79,7 +79,10 @@ describe('muebles de despacho', () => {
     const [huella] = huellasEnPlanta(def('mesa-reuniones'), e)
     expect(contienePunto(huella!, { x: 0, y: 0 })).toBe(true)
     expect(contienePunto(huella!, { x: 118, y: 53 })).toBe(false)
-    expect(def('mesa-reuniones').modelo3d!(e).filter((p) => p.forma === 'cilindro' && p.zona === 'tablero')).toHaveLength(2)
+    // El tablero es una sola pieza: una extrusión en planta con los extremos en semicírculo.
+    const tableros = def('mesa-reuniones').modelo3d!(e).filter((p) => p.zona === 'tablero')
+    expect(tableros).toHaveLength(1)
+    expect(tableros[0]).toMatchObject({ forma: 'extrusion', plano: 'planta' })
     const rect = elemento('mesa-reuniones', 0, 0, 0)
     expect(huellasEnPlanta(def('mesa-reuniones'), rect)).toHaveLength(1)
     expect(def('mesa-reuniones').volumenes(rect)).toHaveLength(5)

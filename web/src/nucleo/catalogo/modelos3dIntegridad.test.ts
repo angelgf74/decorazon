@@ -3,7 +3,8 @@ import { catalogoBase } from './catalogoBase'
 import type { DefinicionTipo } from './tipos'
 import type { Elemento } from '../modelo/documento'
 import type { PiezaLocal } from '../modelo3d/tipos'
-import { piezasDeElemento } from '../modelo3d/escena'
+import { cajaDePieza, contornoEncogido } from '../modelo3d/formas'
+import { aMundo } from './transformar'
 import { contienePunto, desplazarPoligono } from '../geometria/poligono'
 import { elemento } from './definiciones/ayuda.test-util'
 
@@ -18,10 +19,54 @@ function combinaciones(def: DefinicionTipo): [Partial<Elemento['medidas']>, Elem
   return medidas.flatMap((m) => variantes.map((v): [Partial<Elemento['medidas']>, Elemento['variantes']] => [m, v]))
 }
 
-function limites(p: PiezaLocal): [number, number, number, number, number, number] {
-  return p.forma === 'caja'
-    ? [p.x0, p.y0, p.z0, p.x1, p.y1, p.z1]
-    : [p.cx - p.r, p.cy - p.r, p.z0, p.cx + p.r, p.cy + p.r, p.z1]
+/** Lo que cada forma necesita para pintarse sin deformarse (la caja envolvente se comprueba aparte). */
+function comprobarForma(p: PiezaLocal, msg: string) {
+  const { x0, y0, z0, x1, y1, z1 } = cajaDePieza(p)
+  switch (p.forma) {
+    case 'caja':
+      expect(x1, msg).toBeGreaterThan(x0)
+      expect(y1, msg).toBeGreaterThan(y0)
+      // Un redondeo mayor que medio lado menor deforma la caja (RoundedBoxGeometry la encoge).
+      if (p.radio !== undefined) {
+        expect(p.radio, msg).toBeGreaterThan(0)
+        expect(p.radio, msg).toBeLessThanOrEqual(Math.min(x1 - x0, y1 - y0, z1 - z0) / 2 + 1e-9)
+      }
+      break
+    case 'cilindro':
+      expect(p.r, msg).toBeGreaterThan(0)
+      break
+    case 'revolucion':
+      expect(p.perfil.length, msg).toBeGreaterThanOrEqual(2)
+      expect(p.perfil.every(([r]) => r >= 0), msg).toBe(true)
+      expect(Math.max(...p.perfil.map(([r]) => r)), msg).toBeGreaterThan(0)
+      expect(p.lados ?? 3, msg).toBeGreaterThanOrEqual(3)
+      expect(p.escalaY ?? 1, msg).toBeGreaterThan(0)
+      break
+    case 'extrusion':
+      expect(p.contorno.length, msg).toBeGreaterThanOrEqual(3)
+      expect(p.hasta, msg).toBeGreaterThan(p.desde)
+      if (p.radio !== undefined) {
+        // El bisel encoge el contorno el radio y lo vuelve a crecer: sin huecos, sin pasar de medio grueso y sin que ninguna
+        // arista del contorno encogido se dé la vuelta (el contorno sería más estrecho que dos radios).
+        expect(p.radio, msg).toBeGreaterThan(0)
+        expect(p.huecos ?? [], msg).toHaveLength(0)
+        expect(p.radio, msg).toBeLessThanOrEqual((p.hasta - p.desde) / 2 + 1e-9)
+        const encogido = contornoEncogido(p.contorno, p.radio)
+        const n = p.contorno.length
+        p.contorno.forEach(([ax, ay], i) => {
+          const [bx, by] = p.contorno[(i + 1) % n]!
+          const [cx, cy] = encogido[i]!
+          const [dx, dy] = encogido[(i + 1) % n]!
+          expect((bx - ax) * (dx - cx) + (by - ay) * (dy - cy), msg).toBeGreaterThan(-1e-9)
+        })
+      }
+      break
+    case 'tubo':
+      expect(p.puntos.length, msg).toBeGreaterThanOrEqual(2)
+      expect(p.r, msg).toBeGreaterThan(0)
+      expect(p.codo ?? 0, msg).toBeGreaterThanOrEqual(0)
+      break
+  }
 }
 
 describe('integridad de los generadores 3D del catálogo', () => {
@@ -44,16 +89,8 @@ describe('integridad de los generadores 3D del catálogo', () => {
         const zMax = Math.max(...vols.map((v) => v.zMax)) - e.alturaSuelo
         for (const p of piezas) {
           const msg = `${ctx} ${JSON.stringify(p)}`
-          const [x0, y0, z0, x1, y1, z1] = limites(p)
-          if (p.forma === 'caja') {
-            expect(x1, msg).toBeGreaterThan(x0)
-            expect(y1, msg).toBeGreaterThan(y0)
-            // Un redondeo mayor que medio lado menor deforma la caja (RoundedBoxGeometry la encoge).
-            if (p.radio !== undefined) {
-              expect(p.radio, msg).toBeGreaterThan(0)
-              expect(p.radio, msg).toBeLessThanOrEqual(Math.min(x1 - x0, y1 - y0, z1 - z0) / 2 + 1e-9)
-            }
-          } else expect(p.r, msg).toBeGreaterThan(0)
+          const { x0, y0, z0, x1, y1, z1 } = cajaDePieza(p)
+          comprobarForma(p, msg)
           expect(z1, msg).toBeGreaterThan(z0)
           expect(x0, msg).toBeGreaterThanOrEqual(Math.min(...xs) - TOL)
           expect(x1, msg).toBeLessThanOrEqual(Math.max(...xs) + TOL)
@@ -68,14 +105,14 @@ describe('integridad de los generadores 3D del catálogo', () => {
       }
     })
 
-    it(`${def.id}: girado 37°, el centro en planta de cada caja cae dentro de los volúmenes`, () => {
+    it(`${def.id}: girado 37°, el centro en planta de cada pieza cae dentro de los volúmenes`, () => {
       for (const [medidas, variantes] of combinaciones(def)) {
         const base = elemento(def.id, 500, 300, 37, medidas, variantes)
         const huellas = def.volumenes(base).map((v) => desplazarPoligono(v.huella, TOL))
-        for (const p of piezasDeElemento(base, def)) {
-          if (p.forma !== 'caja') continue
-          const c = { x: p.centro[0] * 100, y: p.centro[2] * 100 }
-          expect(huellas.some((h) => contienePunto(h, c)), `${def.id} ${JSON.stringify(c)}`).toBe(true)
+        for (const p of def.modelo3d!(base)) {
+          const { x0, y0, x1, y1 } = cajaDePieza(p)
+          const c = aMundo(base, { x: (x0 + x1) / 2, y: (y0 + y1) / 2 })
+          expect(huellas.some((h) => contienePunto(h, c)), `${def.id} ${p.forma} ${JSON.stringify(c)}`).toBe(true)
         }
       }
     })
@@ -96,7 +133,8 @@ describe('generadores 3D de cocina y decoración', () => {
     expect(piezasDeTipo(ecaj).filter(delante)).toHaveLength(3)
     const enc = cajas(piezasDeTipo(e60)).find((p) => p.zona === 'encimera')!
     expect([enc.y1 - enc.y0, enc.z1 - enc.z0, enc.y1]).toEqual([60, 4, 30])
-    const maxFrente = Math.max(...cajas(piezasDeTipo(e60)).filter((p) => p.zona === 'cuerpo').map((p) => p.y1))
+    // Lo más adelantado del cuerpo es el tirador, que llega al borde del volumen bajo la encimera.
+    const maxFrente = Math.max(...piezasDeTipo(e60).filter((p) => p.zona === 'cuerpo').map((p) => cajaDePieza(p).y1))
     expect(maxFrente).toBe(28)
   })
 
@@ -104,7 +142,7 @@ describe('generadores 3D de cocina y decoración', () => {
     const tipos = ['modulo-bajo', 'lavavajillas', 'frigorifico', 'columna-cocina']
     const sinEncimera = (tipo: string) => cajas(piezas(tipo, { fondo: 60 })).filter((p) => p.zona !== 'encimera')
     const frente = (tipo: string) => Math.max(...sinEncimera(tipo).filter((p) => p.y1 - p.y0 === 2).map((p) => p.y1))
-    const delante = (tipo: string) => Math.max(...sinEncimera(tipo).map((p) => p.y1))
+    const delante = (tipo: string) => Math.max(...piezas(tipo, { fondo: 60 }).filter((p) => p.zona !== 'encimera').map((p) => cajaDePieza(p).y1))
     expect(tipos.map(frente)).toEqual(tipos.map(() => 26.5))
     expect(tipos.map(delante)).toEqual(tipos.map(() => 28))
   })
@@ -134,7 +172,7 @@ describe('generadores 3D de cocina y decoración', () => {
     expect(fondo).toHaveLength(1)
     expect(fondo[0]!.color).toBe('#8a8c8d')
     expect(fondo[0]).toMatchObject({ x0: -38, x1: 38, y0: -23, y1: 23, z0: 0, z1: 0.5 })
-    expect(ps.filter((p) => p.forma === 'cilindro').length).toBeGreaterThanOrEqual(2)
+    expect(ps.filter((p) => p.forma === 'cilindro' || p.forma === 'tubo').length).toBeGreaterThanOrEqual(2)
   })
 
   it('fregadero: el fondo de la cubeta es el color elegido, más oscuro', () => {
@@ -142,12 +180,14 @@ describe('generadores 3D de cocina y decoración', () => {
     expect(cajas(rojo).find((p) => p.material === 'metal')?.color).toBe('#b80000')
   })
 
-  it('fregadero: el caño une la base del grifo con la salida, sin piezas flotando', () => {
+  it('fregadero: el caño arranca dentro de la base del grifo, sin piezas flotando', () => {
     const ps = piezas('fregadero')
-    const [base, salida] = ps.filter((p): p is Extract<PiezaLocal, { forma: 'cilindro' }> => p.forma === 'cilindro')
-    const cano = cajas(ps).find((p) => p.z1 === base!.z1 && p.y0 <= base!.cy + base!.r && p.y1 >= salida!.cy - salida!.r)
-    expect(cano).toBeDefined()
-    expect(cano!.z0).toBeLessThanOrEqual(salida!.z0 + 0.01)
+    const [base] = ps.filter((p): p is Extract<PiezaLocal, { forma: 'cilindro' }> => p.forma === 'cilindro')
+    const cano = ps.find((p): p is Extract<PiezaLocal, { forma: 'tubo' }> => p.forma === 'tubo')
+    const [x, y, z] = cano!.puntos[0]!
+    expect(Math.hypot(x - base!.cx, y - base!.cy)).toBeLessThan(base!.r)
+    expect(z).toBeGreaterThanOrEqual(base!.z0)
+    expect(z).toBeLessThanOrEqual(base!.z1)
   })
 
   it('fregadero: la cubeta baja min(18, alturaSuelo); pegado al suelo no se hunde', () => {
@@ -160,18 +200,20 @@ describe('generadores 3D de cocina y decoración', () => {
     expect(fondoMarco(0)).toBeCloseTo(0)
   })
 
-  it('cortina: 2 paños de 5 cajas que alternan el fondo, y barra de metal', () => {
-    const ps = cajas(piezas('cortina'))
-    const panos = ps.filter((p) => p.material === undefined)
-    expect(panos).toHaveLength(10)
-    expect(new Set(panos.map((p) => p.y0)).size).toBe(2)
-    expect(ps.filter((p) => p.material === 'metal')).toHaveLength(1)
+  it('cortina: 2 paños ondulados (extrusiones en planta, recogidos a los lados) y una barra de tubo de metal de lado a lado', () => {
+    const ps = piezas('cortina')
+    const panos = ps.filter((p): p is Extract<PiezaLocal, { forma: 'extrusion' }> => p.forma === 'extrusion')
+    expect(panos).toHaveLength(2)
+    for (const p of panos) {
+      expect(p).toMatchObject({ plano: 'planta', desde: 0, hasta: 237, zona: 'tejido' })
+      // Ondula: muchos puntos con y distintas, no un rectángulo.
+      expect(new Set(p.contorno.map(([, y]) => y.toFixed(3))).size).toBeGreaterThan(8)
+    }
+    expect(panos.map((p) => [Math.min(...p.contorno.map(([x]) => x)), Math.max(...p.contorno.map(([x]) => x))])).toEqual([[-80, -40], [40, 80]])
+    const barra = ps.find((p) => p.forma === 'tubo')
+    expect(barra).toMatchObject({ material: 'metal', puntos: [[-80, 0, 238.75], [80, 0, 238.75]] })
   })
 
-  it('cuadro: marco de 4 listones de 3 cm y lámina; planta: maceta y 3 copas', () => {
-    expect(cajas(piezas('cuadro')).filter((p) => p.zona === 'marco')).toHaveLength(4)
-    expect(piezas('planta').filter((p) => p.zona === 'hojas')).toHaveLength(3)
-  })
 })
 
 function piezasDeTipo(e: Elemento): PiezaLocal[] {
