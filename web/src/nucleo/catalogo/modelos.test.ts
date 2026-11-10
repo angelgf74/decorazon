@@ -3,7 +3,7 @@ import { catalogoBase } from './catalogoBase'
 import type { PiezaLocal } from '../modelo3d/tipos'
 import type { Elemento } from '../modelo/documento'
 import { elemento } from './definiciones/ayuda.test-util'
-import { caja, cajonesApilados, cojinesEnTramo, desplazadasY, patas4 } from './modelos'
+import { caja, cajonesApilados, cojinesEnTramo, desplazadasY, ovalo, patas4 } from './modelos'
 import { cajaDePieza } from '../modelo3d/formas'
 import { valoresVariante } from './tipos'
 
@@ -232,5 +232,19 @@ describe('desplazadasY', () => {
     // Los huecos de una extrusión en planta se mueven con su contorno.
     const planta = movidas[3]
     expect(planta?.forma === 'extrusion' && planta.huecos).toEqual([[[6, -1], [8, -1], [8, 0]]])
+  })
+})
+
+describe('ovalo', () => {
+  it('una sola extrusión en planta del ancho y fondo enteros, con los extremos en semicírculo (sin esquinas)', () => {
+    const e = elemento('mesa-reuniones', 0, 0, 0, { ancho: 240, fondo: 110 })
+    const piezas = ovalo(e, 72, 75, 'tablero')
+    expect(piezas).toHaveLength(1)
+    const [p] = piezas
+    expect(p).toMatchObject({ forma: 'extrusion', plano: 'planta', desde: 72, hasta: 75, zona: 'tablero' })
+    expect(cajaDePieza(p!)).toMatchObject({ x0: -120, x1: 120, y0: -55, y1: 55 })
+    if (p?.forma !== 'extrusion') throw new Error('forma')
+    // En los extremos, cada punto dista medio fondo del centro de su semicírculo.
+    for (const [x, y] of p.contorno.filter(([x]) => Math.abs(x) > 65)) expect(Math.hypot(Math.abs(x) - 65, y)).toBeCloseTo(55)
   })
 })

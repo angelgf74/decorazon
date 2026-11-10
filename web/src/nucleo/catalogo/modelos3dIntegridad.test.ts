@@ -156,7 +156,7 @@ describe('generadores 3D de cocina y decoración', () => {
     expect(fondo).toHaveLength(1)
     expect(fondo[0]!.color).toBe('#8a8c8d')
     expect(fondo[0]).toMatchObject({ x0: -38, x1: 38, y0: -23, y1: 23, z0: 0, z1: 0.5 })
-    expect(ps.filter((p) => p.forma === 'cilindro').length).toBeGreaterThanOrEqual(2)
+    expect(ps.filter((p) => p.forma === 'cilindro' || p.forma === 'tubo').length).toBeGreaterThanOrEqual(2)
   })
 
   it('fregadero: el fondo de la cubeta es el color elegido, más oscuro', () => {
@@ -164,12 +164,14 @@ describe('generadores 3D de cocina y decoración', () => {
     expect(cajas(rojo).find((p) => p.material === 'metal')?.color).toBe('#b80000')
   })
 
-  it('fregadero: el caño une la base del grifo con la salida, sin piezas flotando', () => {
+  it('fregadero: el caño arranca dentro de la base del grifo, sin piezas flotando', () => {
     const ps = piezas('fregadero')
-    const [base, salida] = ps.filter((p): p is Extract<PiezaLocal, { forma: 'cilindro' }> => p.forma === 'cilindro')
-    const cano = cajas(ps).find((p) => p.z1 === base!.z1 && p.y0 <= base!.cy + base!.r && p.y1 >= salida!.cy - salida!.r)
-    expect(cano).toBeDefined()
-    expect(cano!.z0).toBeLessThanOrEqual(salida!.z0 + 0.01)
+    const [base] = ps.filter((p): p is Extract<PiezaLocal, { forma: 'cilindro' }> => p.forma === 'cilindro')
+    const cano = ps.find((p): p is Extract<PiezaLocal, { forma: 'tubo' }> => p.forma === 'tubo')
+    const [x, y, z] = cano!.puntos[0]!
+    expect(Math.hypot(x - base!.cx, y - base!.cy)).toBeLessThan(base!.r)
+    expect(z).toBeGreaterThanOrEqual(base!.z0)
+    expect(z).toBeLessThanOrEqual(base!.z1)
   })
 
   it('fregadero: la cubeta baja min(18, alturaSuelo); pegado al suelo no se hunde', () => {
@@ -196,9 +198,6 @@ describe('generadores 3D de cocina y decoración', () => {
     expect(barra).toMatchObject({ material: 'metal', puntos: [[-80, 0, 238.75], [80, 0, 238.75]] })
   })
 
-  it('cuadro: marco de 4 listones de 3 cm y lámina', () => {
-    expect(cajas(piezas('cuadro')).filter((p) => p.zona === 'marco')).toHaveLength(4)
-  })
 })
 
 function piezasDeTipo(e: Elemento): PiezaLocal[] {

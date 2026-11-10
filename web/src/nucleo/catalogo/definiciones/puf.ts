@@ -1,6 +1,6 @@
 import { valorVariante, type DefinicionTipo } from '../tipos'
 import { cajaEntera, huellaOvalada } from '../aperturas'
-import { caja, ovalo } from '../modelos'
+import { caja, RADIO_COJIN, revolucion } from '../modelos'
 
 export const puf: DefinicionTipo = {
   id: 'puf', nombre: 'puf', genero: 'm', categoria: 'mueble', estancias: ['salon', 'dormitorio'],
@@ -12,11 +12,12 @@ export const puf: DefinicionTipo = {
   volumenes: (e) => (valorVariante(puf, e, 'forma') === 'redonda'
     ? [{ huella: huellaOvalada(e), zMin: e.alturaSuelo, zMax: e.alturaSuelo + e.medidas.alto }]
     : cajaEntera(e)),
+  // Redondo: revolución abombada (la más ancha a media altura), ovalada si no es redondo. Cuadrado: caja con aristas de cojín.
   modelo3d(e) {
-    const { ancho, fondo, alto } = e.medidas
-    return valorVariante(puf, e, 'forma') === 'redonda'
-      ? ovalo(e, 0, alto, 'tapizado')
-      : [caja(-ancho / 2, -fondo / 2, 0, ancho / 2, fondo / 2, alto, 'tapizado')]
+    const { ancho, fondo, alto: h } = e.medidas
+    if (valorVariante(puf, e, 'forma') !== 'redonda') return [caja(-ancho / 2, -fondo / 2, 0, ancho / 2, fondo / 2, h, 'tapizado', RADIO_COJIN)]
+    const r = ancho / 2
+    return [revolucion(0, 0, [[0, 0], [r * 0.86, 0], [r * 0.97, h * 0.18], [r, h * 0.5], [r * 0.97, h * 0.82], [r * 0.86, h], [0, h]], 'tapizado', { escalaY: fondo / ancho })]
   },
   zonasApertura: () => [],
 }

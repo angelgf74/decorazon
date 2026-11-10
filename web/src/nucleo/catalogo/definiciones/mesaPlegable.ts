@@ -2,7 +2,7 @@ import { valorVariante, type DefinicionTipo } from '../tipos'
 import type { Elemento } from '../../modelo/documento'
 import type { Prisma } from '../../geometria/prisma'
 import { cajaMundo } from '../transformar'
-import { caja } from '../modelos'
+import { caja, extrusion } from '../modelos'
 
 /** Lo que ocupa contra la pared cerrada: listón de 3 cm y el tablero colgando delante. */
 const CERRADA_CM = 6
@@ -35,10 +35,14 @@ export const mesaPlegable: DefinicionTipo = {
     const { ancho, fondo, alto } = e.medidas
     const liston = caja(-ancho / 2, -fondo / 2, alto - 20, ancho / 2, -fondo / 2 + 3, alto, 'soporte')
     if (!abierta(e)) return [liston, caja(-ancho / 2, -fondo / 2 + 3, Math.max(0, alto - fondo), ancho / 2, -fondo / 2 + CERRADA_CM, alto, 'tablero')]
+    // La escuadra: un triángulo de perfil (del listón al tablero) con el hueco en medio, de 3 cm de grueso.
+    const escuadra: [number, number][] = [[-fondo / 2 + 3, alto - 3], [-fondo / 2 + fondo * 0.6, alto - 3], [-fondo / 2 + 3, alto - 30]]
+    const [cy, cz] = [0, 1].map((k) => escuadra.reduce((s, p) => s + p[k]!, 0) / 3)
+    const hueco = escuadra.map(([y, z]): [number, number] => [cy! + (y - cy!) * 0.55, cz! + (z - cz!) * 0.55])
     return [
       liston,
       caja(-ancho / 2, -fondo / 2, alto - 3, ancho / 2, fondo / 2, alto, 'tablero'),
-      caja(-1.5, -fondo / 2 + 3, alto - 30, 1.5, -fondo / 2 + fondo * 0.6, alto - 3, 'soporte'),
+      extrusion('perfil', escuadra, -1.5, 1.5, 'soporte', [hueco]),
     ]
   },
   zonasApertura: () => [],

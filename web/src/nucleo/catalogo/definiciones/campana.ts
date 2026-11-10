@@ -2,10 +2,12 @@ import { valorVariante, type DefinicionTipo } from '../tipos'
 import { huellaEntera } from '../aperturas'
 import { cajaMundo } from '../transformar'
 import type { Elemento } from '../../modelo/documento'
-import { caja } from '../modelos'
+import { caja, extrusion, revolucion } from '../modelos'
 
 /** Alto de la campana (sin la chimenea) y lado de la chimenea, en cm. */
 const CUERPO = 25
+/** Alto del filtro de abajo, en cm. */
+const FILTRO = 8
 const CHIMENEA_ANCHO = 26
 const CHIMENEA_FONDO = 22
 
@@ -29,15 +31,16 @@ export const campana: DefinicionTipo = {
     return [cajaMundo(e, -ancho / 2, -fondo / 2, ancho / 2, fondo / 2, 0, CUERPO), cajaMundo(e, x0, y0, x1, y1, CUERPO, alto)]
   },
   planta: huellaEntera,
+  // Filtro de 8 cm, el cuerpo que se estrecha hasta la chimenea y la chimenea. En isla, el cuerpo es una pirámide truncada
+  // (revolución de 4 lados, el radio hasta las esquinas); en pared, una cuña de perfil pegada a ella que sube hasta el fondo de
+  // la chimenea (una revolución, centrada, dejaría un hueco contra la pared).
   modelo3d(e) {
     const { ancho, fondo, alto } = e.medidas
     const [x0, y0, x1, y1] = chimenea(e)
-    return [
-      caja(-ancho / 2, -fondo / 2, 0, ancho / 2, fondo / 2, 8, 'cuerpo'),
-      // Pirámide aproximada por una caja más estrecha encima.
-      caja(-ancho * 0.3, -fondo / 2 + (y0 === -fondo / 2 ? 0 : fondo * 0.2), 8, ancho * 0.3, fondo / 2 - fondo * 0.2, CUERPO, 'cuerpo'),
-      caja(x0, y0, CUERPO, x1, y1, alto, 'cuerpo'),
-    ]
+    const cuerpo = valorVariante(campana, e, 'montaje') === 'isla'
+      ? revolucion(0, 0, [[0, FILTRO], [(ancho / 2) * Math.SQRT2, FILTRO], [(CHIMENEA_ANCHO / 2) * Math.SQRT2, CUERPO], [0, CUERPO]], 'cuerpo', { lados: 4, escalaY: fondo / ancho })
+      : extrusion('perfil', [[-fondo / 2, FILTRO], [fondo / 2, FILTRO], [-fondo / 2 + CHIMENEA_FONDO, CUERPO], [-fondo / 2, CUERPO]], -ancho / 2, ancho / 2, 'cuerpo')
+    return [caja(-ancho / 2, -fondo / 2, 0, ancho / 2, fondo / 2, FILTRO, 'cuerpo'), cuerpo, caja(x0, y0, CUERPO, x1, y1, alto, 'cuerpo')]
   },
   zonasApertura: () => [],
 }

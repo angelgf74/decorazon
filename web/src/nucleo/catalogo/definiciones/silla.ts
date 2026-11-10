@@ -2,8 +2,8 @@ import type { DefinicionTipo } from '../tipos'
 import { asientoYRespaldo, huellaEntera } from '../aperturas'
 import { caja, extrusion, formaPatas, patas4, VARIANTE_PATAS } from '../modelos'
 
-/** Fondo del respaldo (el de su volumen), grueso del panel, lo que se curva y alto de los faldones bajo el asiento, en cm. */
-const RESPALDO = 3
+/** Fondo del respaldo (el de su volumen: el panel se curva dentro), grueso del panel, lo que se curva y alto de los faldones, en cm. */
+const RESPALDO = 6
 const PANEL = 1.5
 const CURVA = RESPALDO - PANEL
 const FALDON = 7
@@ -18,14 +18,16 @@ export const silla: DefinicionTipo = {
   volumenes: (e) => asientoYRespaldo(e, 45, RESPALDO),
   planta: huellaEntera,
   // Asiento a 45 con el canto redondeado y faldones debajo que unen las patas; el respaldo son dos montantes de 4 × 3 y un panel
-  // de 22 cm que flota sobre el asiento, curvado hacia atrás en el centro (cabe en los 3 cm del volumen del respaldo).
+  // de 22 cm que flota sobre el asiento. Los montantes siguen a las patas de atrás por delante del respaldo y el panel se curva
+  // por detrás de ellos hasta el fondo del volumen: los extremos tocan los montantes y el centro queda 4,5 cm más atrás.
   modelo3d(e) {
     const { ancho, fondo, alto } = e.medidas
-    const yRespaldo = -fondo / 2 + RESPALDO
+    const yMontante = -fondo / 2 + RESPALDO - 3
     // Las patas son de 4 metidas 2: los faldones van de pata a pata por su cara de fuera.
     const xPata = ancho / 2 - 6
     const yPata = fondo / 2 - 6
-    const w = ancho / 2 - 4
+    // El panel va entre los montantes, que siguen a las patas de atrás (de 4, metidas 2).
+    const w = ancho / 2 - 6
     const xs = Array.from({ length: 9 }, (_, i) => -w + (2 * w * i) / 8)
     const atras = (x: number) => -fondo / 2 + CURVA * (x / w) ** 2
     const curva: [number, number][] = [...xs.map((x): [number, number] => [x, atras(x)]), ...[...xs].reverse().map((x): [number, number] => [x, atras(x) + PANEL])]
@@ -36,8 +38,8 @@ export const silla: DefinicionTipo = {
       caja(-xPata, fondo / 2 - 4, 42 - FALDON, xPata, fondo / 2 - 2, 42, 'asiento'),
       caja(-ancho / 2 + 2, -yPata, 42 - FALDON, -ancho / 2 + 4, yPata, 42, 'asiento'),
       caja(ancho / 2 - 4, -yPata, 42 - FALDON, ancho / 2 - 2, yPata, 42, 'asiento'),
-      caja(-ancho / 2, -fondo / 2, 45, -ancho / 2 + 4, yRespaldo, alto, 'asiento'),
-      caja(ancho / 2 - 4, -fondo / 2, 45, ancho / 2, yRespaldo, alto, 'asiento'),
+      caja(-ancho / 2 + 2, yMontante, 45, -ancho / 2 + 6, yMontante + 3, alto, 'asiento'),
+      caja(ancho / 2 - 6, yMontante, 45, ancho / 2 - 2, yMontante + 3, alto, 'asiento'),
       extrusion('planta', curva, alto - 25, alto - 3, 'asiento'),
     ]
   },

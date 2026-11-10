@@ -11,7 +11,14 @@ const cajas = (medidas = {}) => piezas(medidas).filter((p): p is Caja => p.forma
 const panel = (medidas = {}) => piezas(medidas).find((p): p is Extrusion => p.forma === 'extrusion')!
 
 describe('silla: respaldo con montantes y panel curvo, faldones bajo el asiento', () => {
-  it('45 × 50 × 85: 4 patas, asiento redondeado y dos montantes de 4 × 3 desde el asiento hasta arriba', () => {
+  it('el respaldo choca en sus 6 cm de fondo detrás, del asiento hacia arriba', () => {
+    const [, respaldo] = silla.volumenes(elemento('silla', 0, 0, 0))
+    const ys = respaldo!.huella.map((q) => q.y)
+    expect([Math.min(...ys), Math.max(...ys)]).toEqual([-25, -19])
+    expect(respaldo).toMatchObject({ zMin: 45, zMax: 85 })
+  })
+
+  it('45 × 50 × 85: 4 patas, asiento redondeado y dos montantes de 4 × 3 que siguen a las patas de atrás hasta arriba', () => {
     const ps = cajas()
     expect(ps.filter((p) => p.z0 === 0)).toHaveLength(4)
     const asiento = ps.find((p) => p.z0 === 42 && p.z1 === 45)!
@@ -20,21 +27,21 @@ describe('silla: respaldo con montantes y panel curvo, faldones bajo el asiento'
     expect(montantes).toHaveLength(2)
     for (const m of montantes) {
       expect(m.x1 - m.x0).toBe(4)
-      expect(m.y1 - m.y0).toBe(3)
-      expect(m.y0).toBe(-25)
+      // Por delante, a ras de las patas de atrás (de −23 a −19): el panel se curva por detrás de ellos.
+      expect([m.y0, m.y1]).toEqual([-22, -19])
     }
-    expect(montantes.map((m) => m.x0).sort((a, b) => a - b)).toEqual([-22.5, 18.5])
+    // Encima de las patas de atrás (de 4, metidas 2).
+    expect(montantes.map((m) => m.x0).sort((a, b) => a - b)).toEqual([-20.5, 16.5])
   })
 
-  it('el panel del respaldo es una extrusión en planta entre los montantes, curvada hacia atrás en el centro y dentro de los 3 cm del respaldo', () => {
+  it('el panel del respaldo es una extrusión en planta entre los montantes, curvada 4,5 cm hacia atrás en el centro', () => {
     const p = panel()
     expect(p).toMatchObject({ plano: 'planta', desde: 60, hasta: 82, zona: 'asiento' })
-    expect(cajaDePieza(p)).toMatchObject({ x0: -18.5, x1: 18.5, y0: -25 })
-    expect(cajaDePieza(p).y1).toBeLessThanOrEqual(-22)
-    // El centro queda más atrás que los extremos: la curva abraza la espalda.
+    expect(cajaDePieza(p)).toMatchObject({ x0: -16.5, x1: 16.5, y0: -25, y1: -19 })
+    // El centro queda más atrás que los extremos: la curva abraza la espalda, y los extremos tocan los montantes.
     const atras = (x: number) => Math.min(...p.contorno.filter(([px]) => Math.abs(px - x) < 1e-9).map(([, y]) => y))
-    expect(atras(0)).toBeLessThan(atras(-18.5))
-    expect(atras(0)).toBeLessThan(atras(18.5))
+    expect(atras(-16.5) - atras(0)).toBeCloseTo(4.5)
+    expect(atras(16.5) - atras(0)).toBeCloseTo(4.5)
   })
 
   it('el panel deja al menos 5 cm de hueco sobre el asiento con cualquier alto', () => {

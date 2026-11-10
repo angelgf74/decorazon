@@ -1,6 +1,6 @@
 import { valorVariante, type DefinicionTipo } from '../tipos'
 import { cajaEntera, huellaOvalada } from '../aperturas'
-import { caja, cilindro, formaPatas, ovalo, patas4, VARIANTE_PATAS } from '../modelos'
+import { caja, formaPatas, ovalo, patas4, revolucion, VARIANTE_PATAS } from '../modelos'
 
 export const mesaAuxiliar: DefinicionTipo = {
   id: 'mesa-auxiliar', nombre: 'mesa auxiliar', genero: 'f', categoria: 'mueble', estancias: ['salon', 'dormitorio'],
@@ -21,9 +21,10 @@ export const mesaAuxiliar: DefinicionTipo = {
     if (valorVariante(mesaAuxiliar, e, 'forma') === 'cuadrada') {
       return [caja(-ancho / 2, -fondo / 2, alto - 3, ancho / 2, fondo / 2, alto, 'tablero'), ...patas4(e, 3, alto - 3, 'pie', 3, formaPatas(e))]
     }
-    // Tablero redondo sobre un pie central y una base.
-    const r = Math.min(ancho, fondo) / 2
-    return [...ovalo(e, alto - 3, alto, 'tablero'), cilindro(0, 0, 2, 2, alto - 3, 'pie'), cilindro(0, 0, r * 0.6, 0, 2, 'pie')]
+    // Tablero redondo de una pieza sobre un pie de revolución: base achaflanada, caña que se estrecha y se abre bajo el tablero.
+    const base = (Math.min(ancho, fondo) / 2) * 0.55
+    const z = alto - 3
+    return [...ovalo(e, z, alto, 'tablero'), revolucion(0, 0, [[0, 0], [base, 0], [base, 1.2], [base * 0.5, 2.5], [2.2, 6], [1.8, z - 4], [3, z], [0, z]], 'pie')]
   },
   zonasApertura: () => [],
 }

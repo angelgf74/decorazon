@@ -1,6 +1,6 @@
 import type { DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
-import { caja } from '../modelos'
+import { caja, marco } from '../modelos'
 
 export const cuadro: DefinicionTipo = {
   id: 'cuadro', nombre: 'cuadro', genero: 'm', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina', 'despacho', 'bano'],
@@ -11,15 +11,9 @@ export const cuadro: DefinicionTipo = {
   pisable: false, bloqueaPaso: false, sobreVentana: false,
   volumenes: cajaEntera,
   modelo3d(e) {
-    const { ancho, fondo, alto } = e.medidas
+    const { ancho, alto } = e.medidas
     const m = 3
-    return [
-      caja(-ancho / 2, -fondo / 2, 0, ancho / 2, fondo / 2, m, 'marco'),
-      caja(-ancho / 2, -fondo / 2, alto - m, ancho / 2, fondo / 2, alto, 'marco'),
-      caja(-ancho / 2, -fondo / 2, m, -ancho / 2 + m, fondo / 2, alto - m, 'marco'),
-      caja(ancho / 2 - m, -fondo / 2, m, ancho / 2, fondo / 2, alto - m, 'marco'),
-      caja(-ancho / 2 + m, -0.3, m, ancho / 2 - m, 0.3, alto - m, 'lamina'),
-    ]
+    return [marco(e, m, 'marco'), caja(-ancho / 2 + m, -0.3, m, ancho / 2 - m, 0.3, alto - m, 'lamina')]
   },
   zonasApertura: () => [],
 }

@@ -1,6 +1,6 @@
 import type { DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
-import { caja } from '../modelos'
+import { caja, marco } from '../modelos'
 
 /** Luna de espejo: un gris azulado claro y liso (el metal, sin nada alrededor que reflejar, se ve negro). */
 const LUNA = '#cfdade'
@@ -17,10 +17,7 @@ export const espejo: DefinicionTipo = {
     const { ancho, fondo, alto } = e.medidas
     const m = 2
     return [
-      caja(-ancho / 2, -fondo / 2, 0, ancho / 2, fondo / 2, m, 'marco'),
-      caja(-ancho / 2, -fondo / 2, alto - m, ancho / 2, fondo / 2, alto, 'marco'),
-      caja(-ancho / 2, -fondo / 2, m, -ancho / 2 + m, fondo / 2, alto - m, 'marco'),
-      caja(ancho / 2 - m, -fondo / 2, m, ancho / 2, fondo / 2, alto - m, 'marco'),
+      marco(e, m, 'marco'),
       { ...caja(-ancho / 2 + m, -fondo / 2, m, ancho / 2 - m, fondo / 2 - 0.5, alto - m, 'marco'), material: 'lacado', color: LUNA },
     ]
   },

@@ -1,6 +1,7 @@
 import type { Elemento } from '../modelo/documento'
 import type { PiezaLocal, PlanoExtrusion } from '../modelo3d/tipos'
 import type { DefinicionVariante } from './tipos'
+import { rectanguloRedondeado } from './perfiles'
 
 /** Caja local; con `radio` (cm) sus aristas salen redondeadas en 3D. Sin radio no se añade la clave: las piezas de siempre quedan iguales. */
 export function caja(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, zona: string, radio?: number): PiezaLocal {
@@ -19,6 +20,13 @@ export function revolucion(cx: number, cy: number, perfil: [number, number][], z
 /** Extrusión de un `contorno` (con `huecos`) en su `plano`, de `desde` a `hasta` en el eje que falta (ver `PiezaLocal`). */
 export function extrusion(plano: PlanoExtrusion, contorno: [number, number][], desde: number, hasta: number, zona: string, huecos?: [number, number][][]): PiezaLocal {
   return { forma: 'extrusion', plano, contorno, desde, hasta, zona, ...(huecos ? { huecos } : {}) }
+}
+
+/** Marco de `m` cm a todo el ancho, alto y fondo del elemento: una extrusión de alzado con el hueco de la lámina (o la luna). */
+export function marco(e: Elemento, m: number, zona: string): PiezaLocal {
+  const { ancho, fondo, alto } = e.medidas
+  const rectangulo = (x0: number, z0: number, x1: number, z1: number): [number, number][] => [[x0, z0], [x1, z0], [x1, z1], [x0, z1]]
+  return extrusion('alzado', rectangulo(-ancho / 2, 0, ancho / 2, alto), -fondo / 2, fondo / 2, zona, [rectangulo(-ancho / 2 + m, m, ancho / 2 - m, alto - m)])
 }
 
 /** Tubo de radio `r` por los `puntos` ([x, y, z]); `codo` redondea las esquinas y `cerrado` vuelve al primero. */
@@ -143,15 +151,10 @@ export function cuerpoConZocalo(e: Elemento, puertas: number, zona: string): Pie
   ]
 }
 
-/** Óvalo inscrito en ancho×fondo entre z0 y z1: una caja central y un cilindro en cada extremo del lado mayor. */
+/** Óvalo inscrito en ancho×fondo entre z0 y z1 (círculo si son iguales): una extrusión en planta con los extremos en semicírculo. */
 export function ovalo(e: Elemento, z0: number, z1: number, zona: string): PiezaLocal[] {
   const { ancho, fondo } = e.medidas
-  const r = Math.min(ancho, fondo) / 2
-  const tramo = Math.abs(ancho - fondo) / 2
-  const centros = ancho >= fondo ? [[-tramo, 0], [tramo, 0]] : [[0, -tramo], [0, tramo]]
-  const piezas = centros.map(([cx, cy]) => cilindro(cx!, cy!, r, z0, z1, zona))
-  if (tramo < 0.5) return [piezas[0]!]
-  return [ancho >= fondo ? caja(-tramo, -r, z0, tramo, r, z1, zona) : caja(-r, -tramo, z0, r, tramo, z1, zona), ...piezas]
+  return [extrusion('planta', rectanguloRedondeado(-ancho / 2, -fondo / 2, ancho / 2, fondo / 2, Math.min(ancho, fondo) / 2, 8), z0, z1, zona)]
 }
 
 /** Tablero de 3 cm con el canto redondeado sobre cuatro patas de 5 cm, de la forma que pida la variante `patas`. */
