@@ -1,6 +1,12 @@
 import type { DefinicionTipo } from '../tipos'
 import { cajaEntera } from '../aperturas'
-import { caja } from '../modelos'
+import { extrusion, tubo } from '../modelos'
+import { onda } from '../perfiles'
+
+/** Radio de la barra y grueso de la tela, en cm; un pliegue de la tela cada ANCHO_PLIEGUE cm. */
+const BARRA = 1.25
+const TELA = 1
+const ANCHO_PLIEGUE = 12
 
 export const cortina: DefinicionTipo = {
   id: 'cortina', nombre: 'cortina', genero: 'f', categoria: 'decoracion', estancias: ['dormitorio', 'salon', 'cocina', 'despacho', 'bano'],
@@ -10,15 +16,16 @@ export const cortina: DefinicionTipo = {
   zonasColor: [{ clave: 'tejido', etiqueta: 'Tejido', material: 'tela', defecto: '#e9e1d3' }],
   pisable: true, bloqueaPaso: false, sobreVentana: true,
   volumenes: cajaEntera,
+  // Dos paños recogidos a los lados (un cuarto del ancho cada uno), ondulados en planta, bajo una barra de tubo de lado a lado.
   modelo3d(e) {
     const { ancho, fondo, alto } = e.medidas
-    const w = ancho / 4 / 5
-    const panos = [-ancho / 2, ancho / 4].flatMap((x0) =>
-      Array.from({ length: 5 }, (_, i) => {
-        const y0 = i % 2 === 0 ? -fondo / 2 : fondo / 2 - 2
-        return caja(x0 + i * w, y0, 0, x0 + (i + 1) * w, y0 + 2, alto - 3, 'tejido')
-      }))
-    return [...panos, { ...caja(-ancho / 2, -1, alto - 2.5, ancho / 2, 1, alto, 'tejido'), material: 'metal' as const, color: '#8a8a8a' }]
+    const pano = ancho / 4
+    const pliegues = Math.max(2, Math.round(pano / ANCHO_PLIEGUE))
+    const amplitud = fondo / 2 - 1.5
+    return [
+      ...[-ancho / 2, ancho / 4].map((x0) => extrusion('planta', onda(x0, x0 + pano, 0, amplitud, pliegues, TELA), 0, alto - 3, 'tejido')),
+      { ...tubo([[-ancho / 2, 0, alto - BARRA], [ancho / 2, 0, alto - BARRA]], BARRA, 'tejido'), material: 'metal' as const, color: '#8a8a8a' },
+    ]
   },
   zonasApertura: () => [],
 }

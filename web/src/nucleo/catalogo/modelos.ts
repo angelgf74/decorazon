@@ -1,5 +1,5 @@
 import type { Elemento } from '../modelo/documento'
-import type { PiezaLocal } from '../modelo3d/tipos'
+import type { PiezaLocal, PlanoExtrusion } from '../modelo3d/tipos'
 import type { DefinicionVariante } from './tipos'
 
 /** Caja local; con `radio` (cm) sus aristas salen redondeadas en 3D. Sin radio no se añade la clave: las piezas de siempre quedan iguales. */
@@ -14,6 +14,11 @@ export function cilindro(cx: number, cy: number, r: number, z0: number, z1: numb
 /** Revolución del `perfil` ([radio, z], antihorario: sube por fuera, baja por dentro) alrededor del eje vertical por (cx, cy). */
 export function revolucion(cx: number, cy: number, perfil: [number, number][], zona: string, opciones: { lados?: number; escalaY?: number } = {}): PiezaLocal {
   return { forma: 'revolucion', cx, cy, perfil, zona, ...opciones }
+}
+
+/** Extrusión de un `contorno` (con `huecos`) en su `plano`, de `desde` a `hasta` en el eje que falta (ver `PiezaLocal`). */
+export function extrusion(plano: PlanoExtrusion, contorno: [number, number][], desde: number, hasta: number, zona: string, huecos?: [number, number][][]): PiezaLocal {
+  return { forma: 'extrusion', plano, contorno, desde, hasta, zona, ...(huecos ? { huecos } : {}) }
 }
 
 /** Tubo de radio `r` por los `puntos` ([x, y, z]); `codo` redondea las esquinas y `cerrado` vuelve al primero. */
@@ -218,12 +223,28 @@ export function oscurecer(hex: string, k: number): string {
   return `#${[1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('')}`
 }
 
-/** Taza de inodoro o bidé entre z0 y z1: recta por detrás desde `yAtras` y redondeada por delante, con el radio de medio ancho. */
-export function taza(e: Elemento, yAtras: number, z0: number, z1: number, zona: string): PiezaLocal[] {
+/** El óvalo de la taza de un inodoro o bidé, de `yAtras` al frente y a todo el ancho: su centro en y, su radio en x y lo que se alarga. */
+export function ovaloDeTaza(e: Elemento, yAtras: number): { cy: number; rx: number; escalaY: number } {
   const { ancho, fondo } = e.medidas
-  const r = ancho / 2
-  const yCentro = fondo / 2 - r
-  return [caja(-r, yAtras, z0, r, yCentro, z1, zona), cilindro(0, yCentro, r, z0, z1, zona)]
+  return { cy: (yAtras + fondo / 2) / 2, rx: ancho / 2, escalaY: (fondo / 2 - yAtras) / ancho }
+}
+
+/**
+ * Taza de loza de inodoro o bidé (revolución ovalada, `ovaloDeTaza`) del suelo al `borde`: el pie se estrecha, se ensancha hasta
+ * el borde y por dentro baja la cubeta hasta media altura, donde queda una lámina de agua más oscura. Un cuerpo trasero la une
+ * con la pared (o con la cisterna).
+ */
+export function tazaDeLoza(e: Elemento, yAtras: number, borde: number, zona: string, colorAgua: string): PiezaLocal[] {
+  const { fondo } = e.medidas
+  const { cy, rx, escalaY } = ovaloDeTaza(e, yAtras)
+  const b = borde
+  const agua = b * 0.5 + 0.1
+  return [
+    revolucion(0, cy, [[0, 0], [rx * 0.55, 0], [rx * 0.6, b * 0.45], [rx * 0.9, b * 0.8], [rx, b - 1.5], [rx, b], [rx - 4, b], [rx * 0.55, b * 0.62], [rx * 0.3, b * 0.5], [0, b * 0.5]], zona, { escalaY }),
+    { ...revolucion(0, cy, [[0, agua], [rx * 0.3, agua], [rx * 0.3, agua + 0.3], [0, agua + 0.3]], zona, { escalaY }), color: colorAgua },
+    // Hasta 0,45 del borde, por debajo del fondo de la cubeta (que baja a la mitad): más alto, asomaría dentro.
+    caja(-rx * 0.5, -fondo / 2, 0, rx * 0.5, cy, b * 0.45, zona, 2),
+  ]
 }
 
 /** Cristal de mampara de 1 cm en el borde del frente, de x0 a x1 y de z0 a z1, con su perfil arriba. */

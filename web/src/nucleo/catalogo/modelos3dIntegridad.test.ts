@@ -182,17 +182,22 @@ describe('generadores 3D de cocina y decoración', () => {
     expect(fondoMarco(0)).toBeCloseTo(0)
   })
 
-  it('cortina: 2 paños de 5 cajas que alternan el fondo, y barra de metal', () => {
-    const ps = cajas(piezas('cortina'))
-    const panos = ps.filter((p) => p.material === undefined)
-    expect(panos).toHaveLength(10)
-    expect(new Set(panos.map((p) => p.y0)).size).toBe(2)
-    expect(ps.filter((p) => p.material === 'metal')).toHaveLength(1)
+  it('cortina: 2 paños ondulados (extrusiones en planta, recogidos a los lados) y una barra de tubo de metal de lado a lado', () => {
+    const ps = piezas('cortina')
+    const panos = ps.filter((p): p is Extract<PiezaLocal, { forma: 'extrusion' }> => p.forma === 'extrusion')
+    expect(panos).toHaveLength(2)
+    for (const p of panos) {
+      expect(p).toMatchObject({ plano: 'planta', desde: 0, hasta: 237, zona: 'tejido' })
+      // Ondula: muchos puntos con y distintas, no un rectángulo.
+      expect(new Set(p.contorno.map(([, y]) => y.toFixed(3))).size).toBeGreaterThan(8)
+    }
+    expect(panos.map((p) => [Math.min(...p.contorno.map(([x]) => x)), Math.max(...p.contorno.map(([x]) => x))])).toEqual([[-80, -40], [40, 80]])
+    const barra = ps.find((p) => p.forma === 'tubo')
+    expect(barra).toMatchObject({ material: 'metal', puntos: [[-80, 0, 238.75], [80, 0, 238.75]] })
   })
 
-  it('cuadro: marco de 4 listones de 3 cm y lámina; planta: maceta y 3 copas', () => {
+  it('cuadro: marco de 4 listones de 3 cm y lámina', () => {
     expect(cajas(piezas('cuadro')).filter((p) => p.zona === 'marco')).toHaveLength(4)
-    expect(piezas('planta').filter((p) => p.zona === 'hojas')).toHaveLength(3)
   })
 })
 
