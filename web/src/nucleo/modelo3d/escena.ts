@@ -2,6 +2,7 @@ import type { Elemento, Punto } from '../modelo/documento'
 import { materialDeZona, type DefinicionTipo } from '../catalogo/tipos'
 import { aMundo } from '../catalogo/transformar'
 import type { Pieza3D, PiezaLocal, Vec3 } from './tipos'
+import { LADOS_REVOLUCION } from './formas'
 
 /** Del plano (cm, y hacia abajo) a la escena (m, y arriba): el y del plano pasa a ser el z. */
 export function aEscena(p: Punto, zCm: number): Vec3 {
@@ -30,11 +31,33 @@ export function piezasDeElemento(e: Elemento, def: DefinicionTipo): Pieza3D[] {
         ...(p.radio === undefined ? {} : { radio: p.radio / 100 }),
       }
     }
-    const c = aMundo(e, { x: p.cx, y: p.cy })
+    if (p.forma === 'cilindro') {
+      const c = aMundo(e, { x: p.cx, y: p.cy })
+      return {
+        forma: 'cilindro', material, color,
+        centro: aEscena(c, e.alturaSuelo + (p.z0 + p.z1) / 2),
+        radio: p.r / 100, alto: (p.z1 - p.z0) / 100,
+      }
+    }
+    const enElemento = { origen: aEscena(e.posicion, e.alturaSuelo), giroY }
+    if (p.forma === 'revolucion') {
+      return {
+        forma: 'revolucion', material, color, ...enElemento,
+        centro: [p.cx / 100, p.cy / 100], perfil: p.perfil.map(enMetros), lados: p.lados ?? LADOS_REVOLUCION, escalaY: p.escalaY ?? 1,
+      }
+    }
+    if (p.forma === 'extrusion') {
+      return {
+        forma: 'extrusion', material, color, ...enElemento,
+        plano: p.plano, contorno: p.contorno.map(enMetros), huecos: (p.huecos ?? []).map((h) => h.map(enMetros)),
+        desde: p.desde / 100, hasta: p.hasta / 100,
+      }
+    }
     return {
-      forma: 'cilindro', material, color,
-      centro: aEscena(c, e.alturaSuelo + (p.z0 + p.z1) / 2),
-      radio: p.r / 100, alto: (p.z1 - p.z0) / 100,
+      forma: 'tubo', material, color, ...enElemento,
+      puntos: p.puntos.map(([x, y, z]): Vec3 => [x / 100, y / 100, z / 100]), radio: p.r / 100, codo: (p.codo ?? 0) / 100, cerrado: p.cerrado ?? false,
     }
   })
 }
+
+const enMetros = ([a, b]: [number, number]): [number, number] => [a / 100, b / 100]

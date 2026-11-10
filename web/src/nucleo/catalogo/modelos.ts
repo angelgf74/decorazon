@@ -11,6 +11,16 @@ export function cilindro(cx: number, cy: number, r: number, z0: number, z1: numb
   return { forma: 'cilindro', cx, cy, r, z0, z1, zona }
 }
 
+/** Revolución del `perfil` ([radio, z], antihorario: sube por fuera, baja por dentro) alrededor del eje vertical por (cx, cy). */
+export function revolucion(cx: number, cy: number, perfil: [number, number][], zona: string, opciones: { lados?: number; escalaY?: number } = {}): PiezaLocal {
+  return { forma: 'revolucion', cx, cy, perfil, zona, ...opciones }
+}
+
+/** Tubo de radio `r` por los `puntos` ([x, y, z]); `codo` redondea las esquinas y `cerrado` vuelve al primero. */
+export function tubo(puntos: [number, number, number][], r: number, zona: string, opciones: { codo?: number; cerrado?: boolean } = {}): PiezaLocal {
+  return { forma: 'tubo', puntos, r, zona, ...opciones }
+}
+
 export type FormaPatas = 'cuadradas' | 'redondas'
 /** La variante «Patas» que comparten las mesas, la silla y el taburete (plan 28c). */
 // «Forma de las patas» y no «Patas»: la zona de color ya se llama así y serían dos controles con el mismo nombre.
@@ -93,7 +103,23 @@ export function cajoneraLateral(e: Elemento, x0: number, x1: number, zHasta: num
 
 /** Las mismas piezas desplazadas `dy` cm a lo fondo (negativo = hacia atrás). */
 export function desplazadasY(piezas: PiezaLocal[], dy: number): PiezaLocal[] {
-  return piezas.map((p) => (p.forma === 'caja' ? { ...p, y0: p.y0 + dy, y1: p.y1 + dy } : { ...p, cy: p.cy + dy }))
+  return piezas.map((p): PiezaLocal => {
+    switch (p.forma) {
+      case 'caja':
+        return { ...p, y0: p.y0 + dy, y1: p.y1 + dy }
+      case 'cilindro':
+      case 'revolucion':
+        return { ...p, cy: p.cy + dy }
+      case 'extrusion': {
+        // En planta y de perfil, la y es una coordenada del contorno (la segunda o la primera); en alzado, el tramo extruido.
+        if (p.plano === 'alzado') return { ...p, desde: p.desde + dy, hasta: p.hasta + dy }
+        const mover = p.plano === 'planta' ? ([a, b]: [number, number]): [number, number] => [a, b + dy] : ([a, b]: [number, number]): [number, number] => [a + dy, b]
+        return { ...p, contorno: p.contorno.map(mover), ...(p.huecos ? { huecos: p.huecos.map((h) => h.map(mover)) } : {}) }
+      }
+      case 'tubo':
+        return { ...p, puntos: p.puntos.map(([x, y, z]): [number, number, number] => [x, y + dy, z]) }
+    }
+  })
 }
 
 /** Cuerpo hueco por detrás de los frentes: llega a `fondo/2 − 3,5` si hay frentes y a `fondo/2` si no. */

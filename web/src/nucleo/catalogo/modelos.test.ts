@@ -3,7 +3,8 @@ import { catalogoBase } from './catalogoBase'
 import type { PiezaLocal } from '../modelo3d/tipos'
 import type { Elemento } from '../modelo/documento'
 import { elemento } from './definiciones/ayuda.test-util'
-import { caja, cajonesApilados, cojinesEnTramo, patas4 } from './modelos'
+import { caja, cajonesApilados, cojinesEnTramo, desplazadasY, patas4 } from './modelos'
+import { cajaDePieza } from '../modelo3d/formas'
 import { valoresVariante } from './tipos'
 
 const TIPOS = ['cama', 'armario', 'comoda', 'mesita', 'escritorio', 'silla', 'estanteria', 'sofa', 'sillon', 'mesa-centro', 'mueble-tv', 'mesa', 'aparador']
@@ -15,9 +16,8 @@ function piezasDe(e: Elemento): PiezaLocal[] {
 }
 
 function ancho(p: PiezaLocal): [number, number, number, number, number, number] {
-  return p.forma === 'caja'
-    ? [p.x0, p.y0, p.z0, p.x1, p.y1, p.z1]
-    : [p.cx - p.r, p.cy - p.r, p.z0, p.cx + p.r, p.cy + p.r, p.z1]
+  const { x0, y0, z0, x1, y1, z1 } = cajaDePieza(p)
+  return [x0, y0, z0, x1, y1, z1]
 }
 
 type Caja = Extract<PiezaLocal, { forma: 'caja' }>
@@ -210,5 +210,27 @@ describe('patas redondas (plan 28c)', () => {
     }
     const ovalada = elemento('mesa-reuniones', 0, 0, 0, {}, { forma: 'ovalada' })
     expect(valoresVariante(catalogoBase.get('mesa-reuniones')!, ovalada, 'patas')).toEqual(['redondas'])
+  })
+})
+
+describe('desplazadasY', () => {
+  it('mueve a lo fondo cualquier forma: su caja envolvente se desplaza lo mismo y no cambia de tamaño', () => {
+    const piezas: PiezaLocal[] = [
+      caja(-10, -5, 0, 10, 5, 20, 'z'),
+      { forma: 'cilindro', cx: 0, cy: 3, r: 2, z0: 0, z1: 10, zona: 'z' },
+      { forma: 'revolucion', cx: 1, cy: 2, perfil: [[0, 0], [5, 0], [0, 10]], zona: 'z' },
+      { forma: 'extrusion', plano: 'planta', contorno: [[0, 0], [10, 0], [10, 4]], huecos: [[[6, 1], [8, 1], [8, 2]]], desde: 0, hasta: 3, zona: 'z' },
+      { forma: 'extrusion', plano: 'alzado', contorno: [[0, 0], [10, 0], [10, 4]], desde: -1, hasta: 1, zona: 'z' },
+      { forma: 'extrusion', plano: 'perfil', contorno: [[0, 0], [10, 0], [10, 4]], desde: -1, hasta: 1, zona: 'z' },
+      { forma: 'tubo', puntos: [[0, 0, 0], [0, 5, 10]], r: 1, zona: 'z' },
+    ]
+    const movidas = desplazadasY(piezas, -2)
+    movidas.forEach((p, i) => {
+      const antes = cajaDePieza(piezas[i]!)
+      expect(cajaDePieza(p), p.forma).toEqual({ ...antes, y0: antes.y0 - 2, y1: antes.y1 - 2 })
+    })
+    // Los huecos de una extrusión en planta se mueven con su contorno.
+    const planta = movidas[3]
+    expect(planta?.forma === 'extrusion' && planta.huecos).toEqual([[[6, -1], [8, -1], [8, 0]]])
   })
 })

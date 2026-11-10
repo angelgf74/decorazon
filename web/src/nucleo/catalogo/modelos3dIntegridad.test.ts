@@ -3,7 +3,8 @@ import { catalogoBase } from './catalogoBase'
 import type { DefinicionTipo } from './tipos'
 import type { Elemento } from '../modelo/documento'
 import type { PiezaLocal } from '../modelo3d/tipos'
-import { piezasDeElemento } from '../modelo3d/escena'
+import { cajaDePieza } from '../modelo3d/formas'
+import { aMundo } from './transformar'
 import { contienePunto, desplazarPoligono } from '../geometria/poligono'
 import { elemento } from './definiciones/ayuda.test-util'
 
@@ -18,10 +19,39 @@ function combinaciones(def: DefinicionTipo): [Partial<Elemento['medidas']>, Elem
   return medidas.flatMap((m) => variantes.map((v): [Partial<Elemento['medidas']>, Elemento['variantes']] => [m, v]))
 }
 
-function limites(p: PiezaLocal): [number, number, number, number, number, number] {
-  return p.forma === 'caja'
-    ? [p.x0, p.y0, p.z0, p.x1, p.y1, p.z1]
-    : [p.cx - p.r, p.cy - p.r, p.z0, p.cx + p.r, p.cy + p.r, p.z1]
+/** Lo que cada forma necesita para pintarse sin deformarse (la caja envolvente se comprueba aparte). */
+function comprobarForma(p: PiezaLocal, msg: string) {
+  const { x0, y0, z0, x1, y1, z1 } = cajaDePieza(p)
+  switch (p.forma) {
+    case 'caja':
+      expect(x1, msg).toBeGreaterThan(x0)
+      expect(y1, msg).toBeGreaterThan(y0)
+      // Un redondeo mayor que medio lado menor deforma la caja (RoundedBoxGeometry la encoge).
+      if (p.radio !== undefined) {
+        expect(p.radio, msg).toBeGreaterThan(0)
+        expect(p.radio, msg).toBeLessThanOrEqual(Math.min(x1 - x0, y1 - y0, z1 - z0) / 2 + 1e-9)
+      }
+      break
+    case 'cilindro':
+      expect(p.r, msg).toBeGreaterThan(0)
+      break
+    case 'revolucion':
+      expect(p.perfil.length, msg).toBeGreaterThanOrEqual(2)
+      expect(p.perfil.every(([r]) => r >= 0), msg).toBe(true)
+      expect(Math.max(...p.perfil.map(([r]) => r)), msg).toBeGreaterThan(0)
+      expect(p.lados ?? 3, msg).toBeGreaterThanOrEqual(3)
+      expect(p.escalaY ?? 1, msg).toBeGreaterThan(0)
+      break
+    case 'extrusion':
+      expect(p.contorno.length, msg).toBeGreaterThanOrEqual(3)
+      expect(p.hasta, msg).toBeGreaterThan(p.desde)
+      break
+    case 'tubo':
+      expect(p.puntos.length, msg).toBeGreaterThanOrEqual(2)
+      expect(p.r, msg).toBeGreaterThan(0)
+      expect(p.codo ?? 0, msg).toBeGreaterThanOrEqual(0)
+      break
+  }
 }
 
 describe('integridad de los generadores 3D del catálogo', () => {
@@ -44,16 +74,8 @@ describe('integridad de los generadores 3D del catálogo', () => {
         const zMax = Math.max(...vols.map((v) => v.zMax)) - e.alturaSuelo
         for (const p of piezas) {
           const msg = `${ctx} ${JSON.stringify(p)}`
-          const [x0, y0, z0, x1, y1, z1] = limites(p)
-          if (p.forma === 'caja') {
-            expect(x1, msg).toBeGreaterThan(x0)
-            expect(y1, msg).toBeGreaterThan(y0)
-            // Un redondeo mayor que medio lado menor deforma la caja (RoundedBoxGeometry la encoge).
-            if (p.radio !== undefined) {
-              expect(p.radio, msg).toBeGreaterThan(0)
-              expect(p.radio, msg).toBeLessThanOrEqual(Math.min(x1 - x0, y1 - y0, z1 - z0) / 2 + 1e-9)
-            }
-          } else expect(p.r, msg).toBeGreaterThan(0)
+          const { x0, y0, z0, x1, y1, z1 } = cajaDePieza(p)
+          comprobarForma(p, msg)
           expect(z1, msg).toBeGreaterThan(z0)
           expect(x0, msg).toBeGreaterThanOrEqual(Math.min(...xs) - TOL)
           expect(x1, msg).toBeLessThanOrEqual(Math.max(...xs) + TOL)
@@ -68,14 +90,14 @@ describe('integridad de los generadores 3D del catálogo', () => {
       }
     })
 
-    it(`${def.id}: girado 37°, el centro en planta de cada caja cae dentro de los volúmenes`, () => {
+    it(`${def.id}: girado 37°, el centro en planta de cada pieza cae dentro de los volúmenes`, () => {
       for (const [medidas, variantes] of combinaciones(def)) {
         const base = elemento(def.id, 500, 300, 37, medidas, variantes)
         const huellas = def.volumenes(base).map((v) => desplazarPoligono(v.huella, TOL))
-        for (const p of piezasDeElemento(base, def)) {
-          if (p.forma !== 'caja') continue
-          const c = { x: p.centro[0] * 100, y: p.centro[2] * 100 }
-          expect(huellas.some((h) => contienePunto(h, c)), `${def.id} ${JSON.stringify(c)}`).toBe(true)
+        for (const p of def.modelo3d!(base)) {
+          const { x0, y0, x1, y1 } = cajaDePieza(p)
+          const c = aMundo(base, { x: (x0 + x1) / 2, y: (y0 + y1) / 2 })
+          expect(huellas.some((h) => contienePunto(h, c)), `${def.id} ${p.forma} ${JSON.stringify(c)}`).toBe(true)
         }
       }
     })
