@@ -61,6 +61,17 @@ async function esperarGuardadoEnServidor(page: Page) {
   await expect(indicador(page)).toHaveText('Guardado')
 }
 
+// El build de los e2e es de producción y leería el sitio de .env.production: sin vaciarlo, cada ejecución contaría
+// visitas en la analítica real.
+test('la analítica no se carga en los e2e', async ({ page }) => {
+  const peticiones: string[] = []
+  page.on('request', (r) => { if (r.url().includes('webanalytics')) peticiones.push(r.url()) })
+  await page.goto('/')
+  await expect(page.getByRole('link', { name: 'Empezar a diseñar' })).toBeVisible()
+  await expect(page.locator('script[data-site-id]')).toHaveCount(0)
+  expect(peticiones).toEqual([])
+})
+
 test('diseñar sin cuenta, registrarse y encontrar el diseño en la cuenta', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('link', { name: 'Empezar a diseñar' }).click()

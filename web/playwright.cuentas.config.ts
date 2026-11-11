@@ -45,7 +45,8 @@ export default defineConfig({
       url: 'http://localhost:5322',
       reuseExistingServer: false,
       timeout: 180_000,
-      env: { VITE_API_URL: 'http://localhost:5320' },
+      // Build de producción: sin vaciar VITE_ANALITICA_SITIO leería el de .env.production y contaría visitas reales.
+      env: { VITE_API_URL: 'http://localhost:5320', VITE_ANALITICA_SITIO: '' },
     },
   ],
 })
