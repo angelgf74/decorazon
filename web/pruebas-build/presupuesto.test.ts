@@ -30,6 +30,19 @@ describe.skipIf(!hay('index.html') && !process.env.EXIGIR_DIST)('presupuesto de 
     expect(js.some((f) => /Escena3D-/.test(f))).toBe(false)
   })
 
+  it('el generador de miniaturas (miniaturas.html, solo para desarrollo) no llega a dist', () => {
+    expect(hay('miniaturas.html')).toBe(false)
+    const assets = readdirSync(new URL('assets/', dist)).filter((f) => f.endsWith('.js'))
+    expect(assets.filter((f) => readFileSync(new URL(`assets/${f}`, dist), 'utf8').includes('window.miniaturas'))).toEqual([])
+  })
+
+  it('el service worker guarda las miniaturas del catálogo al verlas (sin conexión siguen saliendo) y no las precarga', () => {
+    const sw = readFileSync(new URL('sw.js', dist), 'utf8')
+    expect(sw).toMatch(/cacheName:\s*"miniaturas"/)
+    expect(sw).toContain('CacheFirst')
+    expect(sw).not.toMatch(/url:\s*"miniaturas\//)
+  })
+
   it(`el JavaScript del arranque pesa como mucho ${PRESUPUESTO_ARRANQUE_KB} kB sin comprimir`, () => {
     const { js } = arranque()
     const total = js.filter((f) => f.startsWith('assets/')).reduce((s, f) => s + kB(f), 0)

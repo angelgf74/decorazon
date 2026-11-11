@@ -14,6 +14,7 @@
     "e2e:cuentas": "playwright test -c playwright.cuentas.config.ts",
     "iconos": "node scripts/generar-iconos.mjs",
     "imagen-redes": "node scripts/generar-imagen-redes.mjs",
+    "miniaturas": "node scripts/generar-miniaturas.mjs",
     "api:tipos": "openapi-typescript src/api/openapi.json -o src/api/esquema.d.ts"
   },
   "dependencies": {

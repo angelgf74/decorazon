@@ -29,6 +29,10 @@ test('con el sistema en oscuro, la interfaz es oscura, el texto claro y el plano
   // La barra y el panel, oscuros.
   expect(luz(await fondo(page, '.barra'))).toBeLessThan(0.2)
   await page.getByRole('button', { name: '2 Amueblar' }).click()
+  // La franja de la miniatura 3D del catálogo es papel claro, como el plano: el mueble se ve igual de día y de noche.
+  const miniatura = page.locator('.panel-catalogo img.panel-catalogo__miniatura').first()
+  expect(luz(await miniatura.evaluate((n) => getComputedStyle(n).backgroundColor))).toBeGreaterThan(0.8)
+  await expect.poll(() => miniatura.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true)
   await page.screenshot({ path: 'test-results/oscuro-editor-1440.png' })
 
   // La hoja para imprimir es papel: texto oscuro sobre blanco y muros de tinta oscura, también de noche.

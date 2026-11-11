@@ -26,8 +26,13 @@ describe.skipIf(!hay('index.html'))('PWA en dist', () => {
     expect(readFileSync(new URL('index.html', dist), 'utf8')).toContain('registerSW.js')
   })
 
-  it('no cachea respuestas de la API en tiempo de ejecución', () => {
+  it('no cachea respuestas de la API en tiempo de ejecución: la única ruta con caché es la de las miniaturas del catálogo', () => {
     const sw = readFileSync(new URL('sw.js', dist), 'utf8')
-    expect(sw).not.toMatch(/NetworkFirst|CacheFirst|StaleWhileRevalidate|NetworkOnly/)
+    const estrategias = [...sw.matchAll(/new \w+\.(NetworkFirst|CacheFirst|StaleWhileRevalidate|NetworkOnly)\(/g)].map((m) => m[1])
+    expect(estrategias).toEqual(['CacheFirst'])
+    // Una RegExp de workbox solo vale para otro origen si coincide desde el principio de la URL: esta no puede tocar la API.
+    const ruta = String.raw`registerRoute(/\/miniaturas\/[^/]+\.webp/,new `
+    expect(sw).toContain(ruta)
+    expect(sw.slice(sw.indexOf(ruta))).toMatch(/^registerRoute\([^,]+,new \w+\.CacheFirst\(\{cacheName:"miniaturas"/)
   })
 })
