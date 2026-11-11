@@ -11,7 +11,7 @@ const ids = [...manifiesto.matchAll(/^ {2}'([a-z0-9-]+)': \{ firma: '[0-9a-f]{8}
 const ficheros = readdirSync(carpeta)
 const REGENERAR = 'regenera con npm run miniaturas'
 
-// Medido el 10 nov 2026 (plan 30): 59 miniaturas, 142,3 kB. Tope: lo medido + 15 %, como en presupuesto.test.ts.
+// Medido el 10 nov 2026 (plan 30): 59 miniaturas, 142,3 kB; con el contorno de silueta (11 nov), 146,3 kB. Tope: lo medido + 15 %, como en presupuesto.test.ts.
 // Si se pasa, no es «subir el tope»: es mirar qué miniatura ha crecido o si ha cambiado la calidad del WebP.
 const TOPE_KB = 164
 

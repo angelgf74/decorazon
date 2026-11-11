@@ -2,7 +2,7 @@
 // node scripts/generar-miniaturas.mjs (npm run miniaturas). Se rehace al cambiar un modelo, una variante o un color por
 // defecto (lo avisa src/editor/paneles/miniaturas.test.ts) o al subir VERSION_DEL_DIBUJO (src/miniaturas/firma.ts).
 // Abre miniaturas.html en el servidor de desarrollo de Vite con Chromium (sin GPU, SwiftShader), recorta cada imagen y
-// la convierte con sharp. Deja una hoja de contacto en test-results/miniaturas.png para revisarlas de un vistazo.
+// la convierte con sharp, con un contorno de silueta (src/miniaturas/contorno.ts). Deja una hoja de contacto en test-results/miniaturas.png para revisarlas de un vistazo.
 import { createHash } from 'node:crypto'
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -17,6 +17,8 @@ const HOJA = ruta('test-results/miniaturas.png')
 /** El doble de la franja de la tarjeta en móvil (unos 160 × 56 px). */
 const ANCHO_PX = 320
 const ALTO_PX = 112
+/** El contorno: 2 px de tinta (#2b2622, la de lienzo.css) al 45 %; cuenta dentro de ANCHO_PX × ALTO_PX. */
+const CONTORNO = { px: 2, color: [0x2b, 0x26, 0x22], opacidad: 0.45 }
 /** Menos que esto tras recortar es un mueble que no se ha pintado (o casi). */
 const MINIMO_PX = 8
 /** Un tipo tarda menos de un segundo; esto es solo para no quedarse colgado si la página deja de responder. */
@@ -25,6 +27,7 @@ const TOPE_MS = 30_000
 const inicio = Date.now()
 const servidor = await createServer({ root: ruta(''), logLevel: 'warn', server: { port: 5329 } })
 await servidor.listen()
+const { contornear } = await servidor.ssrLoadModule('/src/miniaturas/contorno.ts')
 const navegador = await chromium.launch()
 try {
   const pagina = await navegador.newPage({ viewport: { width: 800, height: 800 } })
@@ -60,8 +63,11 @@ try {
     if (recortada.info.width < MINIMO_PX || recortada.info.height < MINIMO_PX) {
       throw new Error(`La miniatura de ${id} sale casi vacía (${recortada.info.width} × ${recortada.info.height} px)`)
     }
-    const { data, info } = await sharp(recortada.data)
-      .resize({ width: ANCHO_PX, height: ALTO_PX, fit: 'inside' })
+    const reducida = await sharp(recortada.data)
+      .resize({ width: ANCHO_PX - 2 * CONTORNO.px, height: ALTO_PX - 2 * CONTORNO.px, fit: 'inside' })
+      .ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+    const conContorno = contornear(reducida.data, reducida.info.width, reducida.info.height, CONTORNO)
+    const { data, info } = await sharp(Buffer.from(conContorno.datos), { raw: { width: conContorno.ancho, height: conContorno.alto, channels: 4 } })
       .webp({ quality: 82, alphaQuality: 90, effort: 6 })
       .toBuffer({ resolveWithObject: true })
     writeFileSync(`${CARPETA}${id}.webp`, data)
