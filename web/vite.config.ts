@@ -29,6 +29,13 @@ export default defineConfig({
         navigateFallback: '/index.html',
         // Abiertos en el navegador son navegaciones: sin esto el service worker devolvería la aplicación en su lugar.
         navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/],
+        // Las miniaturas del catálogo no se precargan (~140 kB que no necesita quien no abre el editor): se guardan al
+        // verlas y sin conexión siguen saliendo. Su URL lleva el resumen de sus bytes (?v=), así que una guardada nunca es vieja.
+        runtimeCaching: [{
+          urlPattern: /\/miniaturas\/[^/]+\.webp/,
+          handler: 'CacheFirst',
+          options: { cacheName: 'miniaturas', expiration: { maxEntries: 120 } },
+        }],
       },
     }),
   ],

@@ -255,11 +255,11 @@ describe('PanelCatalogo: miniaturas, favoritos y usados hace poco', () => {
     almacen.getState().irAPaso(2)
   })
 
-  it('cada tarjeta lleva la miniatura del tipo y conserva su nombre accesible', () => {
+  it('cada tarjeta lleva la miniatura 3D del tipo y conserva su nombre accesible', () => {
     render(<PanelCatalogo />)
     const tarjetas = document.querySelectorAll('.panel-catalogo__tipo')
     expect(tarjetas.length).toBeGreaterThan(10)
-    for (const t of tarjetas) expect(t.querySelector('svg.panel-catalogo__miniatura')).not.toBeNull()
+    for (const t of tarjetas) expect(t.querySelector('img.panel-catalogo__miniatura')).not.toBeNull()
     expect(screen.getByRole('button', { name: armario }).textContent).toContain('100 × 60 cm')
   })
 

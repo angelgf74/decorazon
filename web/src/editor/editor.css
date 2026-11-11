@@ -359,6 +359,8 @@
   background: var(--crema-oscura);
   pointer-events: none;
 }
+/* La miniatura 3D (un WebP recortado al mueble) cabe entera en la franja, centrada; la huella es la reserva. */
+img.panel-catalogo__miniatura { box-sizing: border-box; padding: var(--esp-1); object-fit: contain; }
 .panel-catalogo__miniatura polygon { vector-effect: non-scaling-stroke; }
 .panel-catalogo__miniatura .capa-elementos__apertura { stroke-width: 1; }
 /* La estrella, en la esquina superior derecha de la tarjeta, encima de la miniatura; el asa (con el dedo) va a la derecha del texto, debajo. */

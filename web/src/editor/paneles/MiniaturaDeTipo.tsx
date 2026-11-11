@@ -1,6 +1,7 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { cajaPlanta, elementoNuevo, huellasEnPlanta, type DefinicionTipo, type Elemento } from '../../nucleo'
 import Pieza from '../lienzo/capas/Pieza'
+import { MINIATURAS } from './miniaturas.generado'
 
 /** Aire alrededor de la huella, en cm del plano. */
 const MARGEN_CM = 6
@@ -23,7 +24,7 @@ function miniatura(def: DefinicionTipo): Miniatura {
 }
 
 /** La huella del tipo con sus medidas por defecto, como se verá en el plano. Decorativa: el nombre va en la tarjeta. */
-function MiniaturaDeTipo({ def }: { def: DefinicionTipo }) {
+function Huella({ def }: { def: DefinicionTipo }) {
   const { e, viewBox } = miniatura(def)
   return (
     <svg className="panel-catalogo__miniatura" viewBox={viewBox} aria-hidden="true" focusable="false">
@@ -32,5 +33,20 @@ function MiniaturaDeTipo({ def }: { def: DefinicionTipo }) {
   )
 }
 
-// `def` es una referencia estable del catálogo: con memo, escribir en el buscador o pulsar una estrella no vuelve a calcular las huellas de las ~50 miniaturas.
+/**
+ * El mueble en 3D, generado de antemano por `npm run miniaturas` (`public/miniaturas/<id>.webp`). El resumen de sus bytes
+ * va en la URL: si la imagen cambia, cambia la URL y ni el navegador ni el service worker sirven la vieja. Sin imagen (un tipo nuevo aún sin
+ * generar) o si no carga (sin conexión y sin caché), la huella. Decorativa; `draggable={false}`: el arrastre es el de la tarjeta.
+ */
+function MiniaturaDeTipo({ def }: { def: DefinicionTipo }) {
+  const [fallo, setFallo] = useState(false)
+  const imagen = MINIATURAS[def.id]
+  if (!imagen || fallo) return <Huella def={def} />
+  return (
+    <img className="panel-catalogo__miniatura" src={`/miniaturas/${def.id}.webp?v=${imagen.contenido}`} alt=""
+      width={imagen.ancho} height={imagen.alto} loading="lazy" decoding="async" draggable={false} onError={() => setFallo(true)} />
+  )
+}
+
+// `def` es una referencia estable del catálogo: con memo, escribir en el buscador o pulsar una estrella no vuelve a pintar las ~60 miniaturas.
 export default memo(MiniaturaDeTipo)
