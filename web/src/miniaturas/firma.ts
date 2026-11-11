@@ -2,11 +2,14 @@ import { elementoNuevo, piezasDeElemento, type DefinicionTipo } from '../nucleo'
 
 /**
  * Se sube a mano al cambiar cómo se dibujan las miniaturas sin que cambien los modelos: luces, cámara, materiales,
- * texturas o teselación (`vista3d/geometrias.ts`, los segmentos de `vista3d/Pieza.tsx`). Entra en la firma de todos los
- * tipos, así que el test de vigencia pide regenerarlas (`npm run miniaturas`). Olvidarlo no deja imágenes viejas en
- * ninguna caché (la URL lleva el resumen de los bytes): solo deja las miniaturas sin regenerar.
+ * el contorno (`contorno.ts` y `CONTORNO` en el script), texturas o teselación (`vista3d/geometrias.ts`, los
+ * segmentos de `vista3d/Pieza.tsx`). Entra en la firma de todos los tipos, así que el test de vigencia pide
+ * regenerarlas (`npm run miniaturas`). Olvidarlo no deja imágenes viejas en ninguna caché (la URL lleva el resumen de
+ * los bytes): solo deja las miniaturas sin regenerar.
+ *
+ * 2 (11 nov 2026): contorno de silueta de 2 px.
  */
-export const VERSION_DEL_DIBUJO = 1
+export const VERSION_DEL_DIBUJO = 2
 
 /** 0,1 mm en metros: Node y Chromium pueden diferir en el último bit de un seno, nunca en la cuarta cifra. */
 const DECIMALES = 1e4
